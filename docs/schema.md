@@ -16,3 +16,9 @@ DELETE /admin/api/fields/:id
 MVP types: string, text, integer, float, boolean, date, datetime, email, url, uuid, json, enum, image, file.
 
 Schema Builder UI: drag & drop reorder, inline settings, Save schema → `PUT .../fields`.
+
+## Migrations (Phase 5)
+
+Publish / `POST /admin/api/resources/:id/migrate` creates or alters `res_{slug}` from the field schema.
+
+Destructive ops (`drop_field`, `change_type`) require `{ "confirmDestructive": true }`.

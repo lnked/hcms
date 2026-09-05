@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Database\MigrationService;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\ResourceService;
@@ -18,6 +19,7 @@ final class ResourceController
     public function __construct(
         private readonly ResourceService $resources,
         private readonly AuditLogger $audit,
+        private readonly ?MigrationService $migrations = null,
     ) {
     }
 
@@ -84,6 +86,11 @@ final class ResourceController
     public function publish(Request $request, AuthContext $auth, int $id): Response
     {
         try {
+            if ($this->migrations !== null) {
+                $this->migrations->applyForResource($id, [
+                    'confirmDestructive' => (bool) ($request->json()['confirmDestructive'] ?? false),
+                ]);
+            }
             $resource = $this->resources->publish($id);
             $this->audit->log(
                 $request,
@@ -94,6 +101,8 @@ final class ResourceController
             );
 
             return Response::data($resource);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
         }

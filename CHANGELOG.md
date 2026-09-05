@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-09-05
+
+### Added
+
+- Migration engine: `res_{slug}` tables, schema diff, publish applies SQL
+- `POST /admin/api/resources/:id/migrate`
+
 ## 0.4.0 — 2026-09-05
 
 ### Added

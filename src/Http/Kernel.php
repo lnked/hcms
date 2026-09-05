@@ -16,12 +16,16 @@ use Cms\Core\Env;
 use Cms\Core\Paths;
 use Cms\Core\Settings;
 use Cms\Database\Connection;
+use Cms\Database\MigrationService;
+use Cms\Database\SchemaDiff;
 use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
 use Cms\Fields\FieldTypeRegistry;
+use Cms\Fields\SqlTypeMapper;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Install\Installer;
@@ -270,7 +274,14 @@ final class Kernel
                 new ContentTypeRepository($this->db),
                 new ResourceRepository($this->db),
             );
-            $resources = new ResourceController($resourceService, $audit);
+            $migrationService = new MigrationService(
+                $this->db,
+                new ResourceRepository($this->db),
+                new FieldRepository($this->db),
+                new SqlTypeMapper(new FieldTypeRegistry()),
+                new SchemaDiff(),
+            );
+            $resources = new ResourceController($resourceService, $audit, $migrationService);
 
             $this->router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
                 unset($params);
@@ -367,6 +378,18 @@ final class Kernel
                 }
 
                 return $fields->delete($request, $context, (int) $params['id']);
+            });
+
+            $migrations = new MigrationController(
+                $migrationService,
+                $audit,
+            );
+            $this->router->add('POST', '/admin/api/resources/{id}/migrate', function (Request $request, array $params, ?AuthContext $context) use ($migrations): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $migrations->apply($request, $context, (int) $params['id']);
             });
         }
 
