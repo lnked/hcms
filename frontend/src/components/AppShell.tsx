@@ -8,6 +8,7 @@ import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
 
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/resources', label: 'Resources', icon: FileText },
   { to: '/changelog', label: 'Changelog', icon: ScrollText },
   { to: '/settings/tokens', label: 'API Tokens', icon: KeyRound },
   { to: '/settings/system', label: 'System', icon: Settings },
@@ -47,11 +48,6 @@ export function AppShell() {
             <BookOpen className="h-4 w-4" />
             Documentation
           </a>
-          <div className="px-3 pt-4 text-xs uppercase text-muted-foreground">Soon</div>
-          <span className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground">
-            <FileText className="h-4 w-4" />
-            Resources
-          </span>
         </nav>
         <div className="flex items-center justify-between px-4 py-3 text-xs text-muted-foreground">
           <span>v{version.data?.current ?? '…'}</span>

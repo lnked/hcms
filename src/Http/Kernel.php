@@ -10,6 +10,7 @@ use Cms\Auth\DatabaseRateLimitStore;
 use Cms\Auth\LoginGuard;
 use Cms\Auth\RateLimiter;
 use Cms\Auth\TokenService;
+use Cms\Content\ContentTypeRepository;
 use Cms\Core\Config;
 use Cms\Core\Env;
 use Cms\Core\Paths;
@@ -17,8 +18,11 @@ use Cms\Core\Settings;
 use Cms\Database\Connection;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
+use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Install\Installer;
+use Cms\Resources\ResourceRepository;
+use Cms\Resources\ResourceService;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
 use Throwable;
@@ -251,6 +255,62 @@ final class Kernel
                 }
 
                 return $system->markSeen($request, $context);
+            });
+
+            $audit = $this->audit;
+            if ($audit === null) {
+                throw new \RuntimeException('Audit logger is required');
+            }
+            $resourceService = new ResourceService(
+                $this->db,
+                new ContentTypeRepository($this->db),
+                new ResourceRepository($this->db),
+            );
+            $resources = new ResourceController($resourceService, $audit);
+
+            $this->router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->index($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->create($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->show($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PATCH', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->update($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/publish', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->publish($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resources->delete($request, $context, (int) $params['id']);
             });
         }
 

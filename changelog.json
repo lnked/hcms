@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.3.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Resources",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin-api",
+          "text": "CRUD ContentType + Resource (атомарное создание draft)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Список, создание, publish/delete ресурсов в админке"
+        }
+      ]
+    },
+    {
       "version": "0.2.0",
       "date": "2026-09-05",
       "channel": "stable",

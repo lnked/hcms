@@ -18,7 +18,7 @@ final class InstallerTest extends TestCase
 
         $this->assertFalse($status['installed']);
         $this->assertTrue($status['srcReady']);
-        $this->assertSame('0.2.0', $status['version']);
+        $this->assertSame('0.3.0', $status['version']);
         $this->assertArrayHasKey('checks', $status['requirements']);
     }
 

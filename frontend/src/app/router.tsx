@@ -4,6 +4,9 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { ChangelogPage } from '@/features/changelog/ChangelogPage'
 import { InstallPage } from '@/features/install/InstallPage'
+import { CreateResourcePage } from '@/features/resources/CreateResourcePage'
+import { ResourceDetailPage } from '@/features/resources/ResourceDetailPage'
+import { ResourcesPage } from '@/features/resources/ResourcesPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { SystemPage } from '@/pages/SystemPage'
 import { TokensPage } from '@/pages/TokensPage'
@@ -17,6 +20,9 @@ export function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route index element={<DashboardPage />} />
+            <Route path="resources" element={<ResourcesPage />} />
+            <Route path="resources/new" element={<CreateResourcePage />} />
+            <Route path="resources/:id" element={<ResourceDetailPage />} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="settings/system" element={<SystemPage />} />
             <Route path="settings/tokens" element={<TokensPage />} />

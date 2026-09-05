@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-09-05
+
+### Added
+
+- CRUD ContentType + Resource (атомарное создание draft)
+- Список, создание, publish/delete ресурсов в админке
+
 ## 0.2.0 — 2026-09-05
 
 ### Added
