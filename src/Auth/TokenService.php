@@ -80,6 +80,14 @@ final class TokenService
         return $row;
     }
 
+    public function touchLogin(int $userId): void
+    {
+        $this->db->execute(
+            'UPDATE cms_users SET last_login_at = :now WHERE id = :id',
+            ['now' => date('Y-m-d H:i:s'), 'id' => $userId],
+        );
+    }
+
     public function revoke(int $id): void
     {
         $this->db->execute(

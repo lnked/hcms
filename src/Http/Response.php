@@ -49,6 +49,17 @@ final class Response
         return self::json(['error' => $error], $status);
     }
 
+    public static function tooManyRequests(int $retryAfter): self
+    {
+        $response = self::error('TOO_MANY_REQUESTS', 'Too many requests', 429);
+
+        return new self(
+            $response->status,
+            $response->body,
+            $response->headers + ['Retry-After' => (string) $retryAfter],
+        );
+    }
+
     public static function html(string $html, int $status = 200): self
     {
         return new self($status, $html, ['Content-Type' => 'text/html; charset=utf-8']);

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.2.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Auth hardening",
+      "changes": [
+        {
+          "type": "added",
+          "area": "security",
+          "text": "TTL admin-токена, brute-force login и rate limit с 429"
+        },
+        {
+          "type": "added",
+          "area": "admin-api",
+          "text": "Audit login/logout/fail в cms_audit_logs"
+        }
+      ]
+    },
+    {
       "version": "0.1.0",
       "date": "2026-09-05",
       "channel": "stable",

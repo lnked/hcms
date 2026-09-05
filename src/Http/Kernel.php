@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Cms\Http;
 
+use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Auth\DatabaseRateLimitStore;
+use Cms\Auth\LoginGuard;
+use Cms\Auth\RateLimiter;
 use Cms\Auth\TokenService;
 use Cms\Core\Config;
 use Cms\Core\Env;
 use Cms\Core\Paths;
+use Cms\Core\Settings;
 use Cms\Database\Connection;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
@@ -28,6 +33,11 @@ final class Kernel
         private readonly ?Connection $db,
         private readonly ?TokenService $tokens,
         private readonly bool $installed,
+        private readonly ?RateLimiter $ipLimiter,
+        private readonly ?RateLimiter $tokenLimiter,
+        private readonly ?LoginGuard $loginGuard,
+        private readonly ?AuditLogger $audit,
+        private readonly int $adminTtlHours,
     ) {
     }
 
@@ -41,6 +51,11 @@ final class Kernel
 
         $db = null;
         $tokens = null;
+        $ipLimiter = null;
+        $tokenLimiter = null;
+        $loginGuard = null;
+        $audit = null;
+        $adminTtlHours = 12;
         if ($installed && $config->dbName !== '') {
             $db = Connection::connect([
                 'host' => $config->dbHost,
@@ -51,6 +66,25 @@ final class Kernel
                 'charset' => $config->dbCharset,
             ]);
             $tokens = new TokenService($db);
+            $settings = new Settings($db);
+            $store = new DatabaseRateLimitStore($db);
+            $adminTtlHours = max(1, $settings->int('auth.admin_token_ttl_hours', 12));
+            $loginGuard = new LoginGuard(new RateLimiter(
+                $store,
+                max(60, $settings->int('security.login_window_seconds', 900)),
+                max(1, $settings->int('security.login_max_attempts', 5)),
+            ));
+            $ipLimiter = new RateLimiter(
+                $store,
+                60,
+                max(1, $settings->int('security.rate_limit_ip_per_minute', 120)),
+            );
+            $tokenLimiter = new RateLimiter(
+                $store,
+                60,
+                max(1, $settings->int('security.rate_limit_token_per_minute', 300)),
+            );
+            $audit = new AuditLogger($db);
         }
 
         $router = new Router();
@@ -62,6 +96,11 @@ final class Kernel
             $db,
             $tokens,
             $installed,
+            $ipLimiter,
+            $tokenLimiter,
+            $loginGuard,
+            $audit,
+            $adminTtlHours,
         );
         $kernel->registerRoutes();
 
@@ -112,6 +151,13 @@ final class Kernel
             }
         }
 
+        if ($this->shouldRateLimit($request->path)) {
+            $limited = $this->rateLimit($request, $auth instanceof AuthContext ? $auth : null);
+            if ($limited !== null) {
+                return $limited;
+            }
+        }
+
         $handler = $route->handler;
 
         return $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
@@ -147,7 +193,9 @@ final class Kernel
 
     private function registerRoutes(): void
     {
-        $auth = $this->tokens !== null ? new AuthController($this->tokens) : null;
+        $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
+            ? new AuthController($this->tokens, $this->loginGuard, $this->audit, $this->adminTtlHours)
+            : null;
         $docs = new DocsController($this->config);
 
         $this->router->add('POST', '/admin/api/auth/login', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
@@ -232,6 +280,35 @@ final class Kernel
 
             return Response::data(['ok' => true, 'installed' => $this->installed]);
         }, true);
+    }
+
+    private function shouldRateLimit(string $path): bool
+    {
+        if ($path === '/admin/api/health' || $path === '/api/docs' || $path === '/api/openapi.json') {
+            return false;
+        }
+        if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json') {
+            return false;
+        }
+
+        return str_starts_with($path, '/admin/api') || str_starts_with($path, '/api/');
+    }
+
+    private function rateLimit(Request $request, ?AuthContext $auth): ?Response
+    {
+        if ($this->ipLimiter !== null) {
+            if (!$this->ipLimiter->hit('ip:' . $request->ip)) {
+                return Response::tooManyRequests($this->ipLimiter->retryAfter());
+            }
+        }
+
+        if ($auth !== null && $this->tokenLimiter !== null) {
+            if (!$this->tokenLimiter->hit('token:' . $auth->tokenId())) {
+                return Response::tooManyRequests($this->tokenLimiter->retryAfter());
+            }
+        }
+
+        return null;
     }
 
     private function isSpaPath(string $path): bool

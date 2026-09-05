@@ -130,6 +130,11 @@ final class Installer
             'app.language' => $language,
             'app.version' => Version::current(),
             'api.base_url' => $appUrl . '/api',
+            'auth.admin_token_ttl_hours' => 12,
+            'security.login_max_attempts' => 5,
+            'security.login_window_seconds' => 900,
+            'security.rate_limit_ip_per_minute' => 120,
+            'security.rate_limit_token_per_minute' => 300,
         ];
         foreach ($settings as $key => $value) {
             $connection->execute(
