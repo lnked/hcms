@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.6.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Dynamic REST API",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Dynamic CRUD for published resources: filter/sort/search/pagination"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "/api/{slug} and /api/v1/{slug} with Bearer or public flags"
+        }
+      ]
+    },
+    {
       "version": "0.5.0",
       "date": "2026-09-05",
       "channel": "stable",

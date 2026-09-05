@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-09-05
+
+### Added
+
+- Dynamic CRUD for published resources: filter/sort/search/pagination
+- `/api/{slug}` and `/api/v1/{slug}` with Bearer or public flags
+
 ## 0.5.0 — 2026-09-05
 
 ### Added

@@ -11,7 +11,7 @@ final class VersionTest extends TestCase
 {
     public function testCurrentReadsVersionFile(): void
     {
-        $this->assertSame('0.5.0', Version::current());
+        $this->assertSame('0.6.0', Version::current());
     }
 
     public function testSemverCompare(): void

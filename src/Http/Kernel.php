@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Http;
 
+use Cms\Api\QueryEngine;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\DatabaseRateLimitStore;
@@ -26,6 +27,7 @@ use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\FieldController;
 use Cms\Http\Controllers\MigrationController;
+use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Install\Installer;
@@ -160,6 +162,11 @@ final class Kernel
             $auth = $this->authenticate($request, $route->auth);
             if ($auth instanceof Response) {
                 return $auth;
+            }
+        } elseif ($this->tokens !== null && $request->bearerToken() !== null) {
+            $resolved = $this->authenticate($request, 'api');
+            if ($resolved instanceof AuthContext) {
+                $auth = $resolved;
             }
         }
 
@@ -413,6 +420,31 @@ final class Kernel
 
             return $docs->swagger($request);
         }, true, 'api');
+
+        if ($this->db !== null) {
+            $publicApi = new PublicApiController(
+                new QueryEngine(
+                    $this->db,
+                    new ResourceRepository($this->db),
+                    new FieldRepository($this->db),
+                ),
+                new ResourceRepository($this->db),
+            );
+            foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
+                $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                    return $publicApi->handle($request, (string) $params['slug'], null, $context);
+                }, true, 'api');
+                $this->router->add($method, '/api/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
+                }, true, 'api');
+                $this->router->add($method, '/api/v1/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                    return $publicApi->handle($request, (string) $params['slug'], null, $context);
+                }, true, 'api');
+                $this->router->add($method, '/api/v1/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
+                }, true, 'api');
+            }
+        }
 
         $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context): Response {
             unset($request, $params, $context);
