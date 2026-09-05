@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.12.0 — 2026-09-05
+
+### Added
+
+- Update check/preview/run with backup, preserve `.env`/uploads, breaking ack gate
+- Security headers (nosniff, frame, referrer, CSP in production)
+
+### Fixed
+
+- Allow `frontend/src/features/logs` in git
+
 ## 0.11.0 — 2026-09-05
 
 ### Added

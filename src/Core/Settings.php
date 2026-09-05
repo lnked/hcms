@@ -41,4 +41,39 @@ final class Settings
 
         return is_string($decoded) ? $decoded : $default;
     }
+
+    public function get(string $key): mixed
+    {
+        $row = $this->db->selectOne(
+            'SELECT value_json FROM cms_settings WHERE `key` = :key',
+            ['key' => $key],
+        );
+        if ($row === null) {
+            return null;
+        }
+
+        return json_decode((string) $row['value_json'], true);
+    }
+
+    public function set(string $key, mixed $value): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $encoded = json_encode($value, JSON_UNESCAPED_SLASHES);
+        $existing = $this->db->selectOne(
+            'SELECT `key` FROM cms_settings WHERE `key` = :key',
+            ['key' => $key],
+        );
+        if ($existing === null) {
+            $this->db->execute(
+                'INSERT INTO cms_settings (`key`, value_json, updated_at) VALUES (:key, :value, :now)',
+                ['key' => $key, 'value' => $encoded, 'now' => $now],
+            );
+
+            return;
+        }
+        $this->db->execute(
+            'UPDATE cms_settings SET value_json = :value, updated_at = :now WHERE `key` = :key',
+            ['key' => $key, 'value' => $encoded, 'now' => $now],
+        );
+    }
 }

@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.12.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "In-admin updater & hardening",
+      "changes": [
+        {
+          "type": "added",
+          "area": "system",
+          "text": "Update check/preview/run with backup, preserve .env/uploads, breaking ack gate"
+        },
+        {
+          "type": "added",
+          "area": "security",
+          "text": "Security headers (X-Content-Type-Options, frame, referrer, CSP in production)"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Allow frontend/src/features/logs in git (gitignore was swallowing the folder)"
+        }
+      ]
+    },
+    {
       "version": "0.11.0",
       "date": "2026-09-05",
       "channel": "stable",

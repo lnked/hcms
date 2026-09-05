@@ -11,6 +11,9 @@ use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
+use Cms\System\UpdateService;
+use RuntimeException;
+use Throwable;
 
 final class SystemController
 {
@@ -18,6 +21,7 @@ final class SystemController
         private readonly ChangelogRepository $changelog,
         private readonly LatestRelease $latest,
         private readonly Connection $db,
+        private readonly ?UpdateService $updates = null,
     ) {
     }
 
@@ -39,6 +43,7 @@ final class SystemController
             'releasedAt' => is_array($latest) ? ($latest['releasedAt'] ?? null) : null,
             'channel' => is_array($latest) ? ($latest['channel'] ?? 'stable') : 'stable',
             'changelogSeenVersion' => is_string($seen) ? $seen : null,
+            'backupReady' => true,
         ]);
     }
 
@@ -71,5 +76,53 @@ final class SystemController
         );
 
         return Response::data(['changelogSeenVersion' => $version]);
+    }
+
+    public function updateCheck(Request $request, AuthContext $auth): Response
+    {
+        unset($auth);
+        if ($this->updates === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
+        }
+        $force = ($request->query['force'] ?? '') === '1';
+
+        return Response::data($this->updates->check($force));
+    }
+
+    public function updatePreview(Request $request, AuthContext $auth): Response
+    {
+        unset($request, $auth);
+        if ($this->updates === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
+        }
+
+        return Response::data($this->updates->preview());
+    }
+
+    public function updateStatus(Request $request, AuthContext $auth): Response
+    {
+        unset($request, $auth);
+        if ($this->updates === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
+        }
+
+        return Response::data($this->updates->status());
+    }
+
+    public function updateRun(Request $request, AuthContext $auth): Response
+    {
+        unset($auth);
+        if ($this->updates === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
+        }
+        try {
+            $ack = (bool) ($request->json()['acknowledgeBreaking'] ?? false);
+
+            return Response::data($this->updates->run($ack));
+        } catch (RuntimeException $e) {
+            return Response::error('UPDATE_ERROR', $e->getMessage(), 400);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
     }
 }

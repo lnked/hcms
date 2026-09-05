@@ -45,6 +45,7 @@ use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
+use Cms\System\UpdateService;
 use Throwable;
 
 final class Kernel
@@ -202,10 +203,11 @@ final class Kernel
         $handler = $route->handler;
         $started = hrtime(true);
         $response = $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
+        $response = $this->withSecurityHeaders($response);
 
         if (
             $this->apiLogs !== null
-            && (str_starts_with($request->path, '/api/') || preg_match('#^/api$#', $request->path) === 1)
+            && str_starts_with($request->path, '/api/')
             && $request->path !== '/api/docs'
             && $request->path !== '/api/openapi.json'
             && $request->path !== '/api/v1/docs'
@@ -299,6 +301,14 @@ final class Kernel
                 new ChangelogRepository($this->paths),
                 new LatestRelease($this->paths, $this->config),
                 $this->db,
+                new UpdateService(
+                    $this->paths,
+                    $this->config,
+                    new LatestRelease($this->paths, $this->config),
+                    new ChangelogRepository($this->paths),
+                    $this->db,
+                    new Settings($this->db),
+                ),
             );
             $this->router->add('GET', '/admin/api/system/version', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
                 unset($params);
@@ -320,6 +330,38 @@ final class Kernel
                 }
 
                 return $system->markSeen($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/system/update/check', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->updateCheck($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/system/update/preview', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->updatePreview($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/system/update/status', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->updateStatus($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/system/update/run', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->updateRun($request, $context);
             });
 
             $audit = $this->audit;
@@ -656,6 +698,21 @@ final class Kernel
 
             return Response::data(['ok' => true, 'installed' => $this->installed]);
         }, true);
+    }
+
+    private function withSecurityHeaders(Response $response): Response
+    {
+        $headers = $response->headers + [
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'Referrer-Policy' => 'strict-origin-when-cross-origin',
+            'Permissions-Policy' => 'geolocation=(), microphone=(), camera=()',
+        ];
+        if (!$this->config->debug) {
+            $headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://unpkg.com; script-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self'";
+        }
+
+        return new Response($response->status, $response->body, $headers);
     }
 
     private function shouldRateLimit(string $path): bool
