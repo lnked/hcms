@@ -1,0 +1,32 @@
+{
+  "releases": [
+    {
+      "version": "0.1.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Foundation",
+      "changes": [
+        {
+          "type": "added",
+          "area": "install",
+          "text": "Однофайловый install.php с загрузкой GitHub Releases"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Админка на shadcn/ui, login по Bearer-токену"
+        },
+        {
+          "type": "added",
+          "area": "admin-api",
+          "text": "Версия продукта, changelog и What's new"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Заготовка Swagger UI на /api/docs"
+        }
+      ]
+    }
+  ]
+}

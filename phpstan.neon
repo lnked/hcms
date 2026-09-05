@@ -1,0 +1,10 @@
+parameters:
+    level: 6
+    paths:
+        - src
+        - install.php
+        - public/index.php
+    excludePaths:
+        - vendor
+        - frontend
+    tmpDir: storage/cache/phpstan

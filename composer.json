@@ -1,0 +1,38 @@
+{
+  "name": "lnked/hcms",
+  "description": "API-first headless CMS",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.3"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.64",
+    "phpstan/phpstan": "^2.0",
+    "phpunit/phpunit": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Cms\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Cms\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "lint": "php-cs-fixer fix --dry-run --diff",
+    "lint:fix": "php-cs-fixer fix",
+    "stan": "phpstan analyse",
+    "test": "phpunit",
+    "qa": [
+      "@lint",
+      "@stan",
+      "@test"
+    ]
+  },
+  "config": {
+    "sort-packages": true
+  }
+}
