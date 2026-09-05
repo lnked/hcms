@@ -135,6 +135,7 @@ final class Installer
             'security.login_window_seconds' => 900,
             'security.rate_limit_ip_per_minute' => 120,
             'security.rate_limit_token_per_minute' => 300,
+            'security.rate_limit_api_token_per_minute' => 120,
         ];
         foreach ($settings as $key => $value) {
             $connection->execute(

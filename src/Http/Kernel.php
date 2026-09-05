@@ -6,10 +6,12 @@ namespace Cms\Http;
 
 use Cms\Api\QueryEngine;
 use Cms\Audit\AuditLogger;
+use Cms\Auth\ApiTokenService;
 use Cms\Auth\AuthContext;
 use Cms\Auth\DatabaseRateLimitStore;
 use Cms\Auth\LoginGuard;
 use Cms\Auth\RateLimiter;
+use Cms\Auth\TokenGrantRepository;
 use Cms\Auth\TokenService;
 use Cms\Content\ContentTypeRepository;
 use Cms\Core\Config;
@@ -31,6 +33,7 @@ use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
+use Cms\Http\Controllers\TokensController;
 use Cms\Install\Installer;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
@@ -50,6 +53,7 @@ final class Kernel
         private readonly bool $installed,
         private readonly ?RateLimiter $ipLimiter,
         private readonly ?RateLimiter $tokenLimiter,
+        private readonly ?RateLimiter $apiTokenLimiter,
         private readonly ?LoginGuard $loginGuard,
         private readonly ?AuditLogger $audit,
         private readonly int $adminTtlHours,
@@ -68,6 +72,7 @@ final class Kernel
         $tokens = null;
         $ipLimiter = null;
         $tokenLimiter = null;
+        $apiTokenLimiter = null;
         $loginGuard = null;
         $audit = null;
         $adminTtlHours = 12;
@@ -99,6 +104,11 @@ final class Kernel
                 60,
                 max(1, $settings->int('security.rate_limit_token_per_minute', 300)),
             );
+            $apiTokenLimiter = new RateLimiter(
+                $store,
+                60,
+                max(1, $settings->int('security.rate_limit_api_token_per_minute', 120)),
+            );
             $audit = new AuditLogger($db);
         }
 
@@ -113,6 +123,7 @@ final class Kernel
             $installed,
             $ipLimiter,
             $tokenLimiter,
+            $apiTokenLimiter,
             $loginGuard,
             $audit,
             $adminTtlHours,
@@ -445,6 +456,53 @@ final class Kernel
 
                 return $migrations->apply($request, $context, (int) $params['id']);
             });
+
+            $apiTokens = new TokensController(
+                new ApiTokenService(
+                    $this->db,
+                    new TokenService($this->db),
+                    new TokenGrantRepository($this->db),
+                    new ResourceRepository($this->db),
+                ),
+                $audit,
+            );
+            $this->router->add('GET', '/admin/api/tokens', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->index($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/tokens', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->create($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->show($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PUT', '/admin/api/tokens/{id}/grants', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->updateGrants($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->delete($request, $context, (int) $params['id']);
+            });
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -476,6 +534,7 @@ final class Kernel
                     new FieldRepository($this->db),
                 ),
                 new ResourceRepository($this->db),
+                new TokenGrantRepository($this->db),
             );
             foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
                 $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
@@ -516,13 +575,14 @@ final class Kernel
     {
         if ($this->ipLimiter !== null) {
             if (!$this->ipLimiter->hit('ip:' . $request->ip)) {
-                return Response::tooManyRequests($this->ipLimiter->retryAfter());
+                return Response::tooManyRequests($this->ipLimiter->retryAfter(), $this->ipLimiter->limit());
             }
         }
 
-        if ($auth !== null && $this->tokenLimiter !== null) {
-            if (!$this->tokenLimiter->hit('token:' . $auth->tokenId())) {
-                return Response::tooManyRequests($this->tokenLimiter->retryAfter());
+        if ($auth !== null) {
+            $limiter = $auth->isAdmin() ? $this->tokenLimiter : $this->apiTokenLimiter;
+            if ($limiter !== null && !$limiter->hit('token:' . $auth->tokenId())) {
+                return Response::tooManyRequests($limiter->retryAfter(), $limiter->limit());
             }
         }
 

@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Api\QueryEngine;
 use Cms\Auth\AuthContext;
+use Cms\Auth\TokenGrantRepository;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\ResourceRepository;
@@ -17,6 +18,7 @@ final class PublicApiController
     public function __construct(
         private readonly QueryEngine $query,
         private readonly ResourceRepository $resources,
+        private readonly TokenGrantRepository $grants,
     ) {
     }
 
@@ -88,8 +90,15 @@ final class PublicApiController
             throw new RuntimeException('Unauthorized', 401);
         }
 
-        // Phase 8 will enforce token grants; for now any valid api/admin token may access private methods
-        if (!in_array($auth->token['type'] ?? '', ['api', 'admin'], true)) {
+        if ($auth->isAdmin()) {
+            return;
+        }
+
+        if (($auth->token['type'] ?? '') !== 'api') {
+            throw new RuntimeException('Forbidden', 403);
+        }
+
+        if (!$this->grants->allows($auth->tokenId(), (int) $resource['id'], $action)) {
             throw new RuntimeException('Forbidden', 403);
         }
     }

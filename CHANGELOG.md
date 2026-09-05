@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — 2026-09-05
+
+### Added
+
+- API token CRUD UI and `/admin/api/tokens` with per-resource grants
+- Public API enforces token grants (admin tokens bypass)
+
+### Changed
+
+- Separate API token rate limit + `X-RateLimit-Limit` on 429
+
 ## 0.7.0 — 2026-09-05
 
 ### Added

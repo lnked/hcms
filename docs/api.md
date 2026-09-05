@@ -4,6 +4,19 @@ Admin: `/admin/api/*` (Bearer admin token).
 Public: `/api/{slug}` and `/api/v1/{slug}` for **published** resources.  
 Docs: `/api/docs`.
 
+## Admin tokens
+
+```http
+GET    /admin/api/tokens
+POST   /admin/api/tokens          # body: { name, expiresAt?, grants[] }
+GET    /admin/api/tokens/{id}
+PUT    /admin/api/tokens/{id}/grants
+DELETE /admin/api/tokens/{id}     # revoke
+```
+
+Grant: `{ resourceId: null|number, canRead, canCreate, canUpdate, canDelete }`.  
+`resourceId: null` = global. Empty grants → deny on private methods.
+
 ## Admin entries
 
 ```http
@@ -26,6 +39,9 @@ PATCH  /api/{slug}/{id}
 DELETE /api/{slug}/{id}
 ```
 
-Auth: `Authorization: Bearer <token>` unless the resource `settings.public.{read|create|update|delete}` allows anonymous access.
+Auth: `Authorization: Bearer <token>` unless the resource `settings.public.{read|create|update|delete}` allows anonymous access.  
+API tokens need matching grants; admin tokens bypass grants.
 
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.
+
+Rate limits: IP + per-token (admin vs API limits from settings). 429 includes `Retry-After` and `X-RateLimit-Limit`.

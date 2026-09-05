@@ -32,6 +32,11 @@ final class RateLimiter
         return max(1, $start + $this->windowSeconds - time());
     }
 
+    public function limit(): int
+    {
+        return $this->maxHits;
+    }
+
     private function windowStart(): DateTimeImmutable
     {
         $ts = (int) (floor(time() / $this->windowSeconds) * $this->windowSeconds);

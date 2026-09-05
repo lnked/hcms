@@ -49,14 +49,19 @@ final class Response
         return self::json(['error' => $error], $status);
     }
 
-    public static function tooManyRequests(int $retryAfter): self
+    public static function tooManyRequests(int $retryAfter, int $limit = 0): self
     {
         $response = self::error('TOO_MANY_REQUESTS', 'Too many requests', 429);
+        $headers = $response->headers + ['Retry-After' => (string) $retryAfter];
+        if ($limit > 0) {
+            $headers['X-RateLimit-Limit'] = (string) $limit;
+            $headers['X-RateLimit-Remaining'] = '0';
+        }
 
         return new self(
             $response->status,
             $response->body,
-            $response->headers + ['Retry-After' => (string) $retryAfter],
+            $headers,
         );
     }
 
