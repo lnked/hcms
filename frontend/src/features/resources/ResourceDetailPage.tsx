@@ -4,12 +4,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { api } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
-type Tab = 'overview' | 'schema' | 'api'
+type Tab = 'overview' | 'schema' | 'data' | 'api'
 
 export function ResourceDetailPage() {
   const { id } = useParams()
@@ -119,7 +120,7 @@ export function ResourceDetailPage() {
       </div>
 
       <div className="flex gap-2 border-b pb-2">
-        {(['overview', 'schema', 'api'] as Tab[]).map((item) => (
+        {(['overview', 'schema', 'data', 'api'] as Tab[]).map((item) => (
           <Button
             key={item}
             size="sm"
@@ -194,11 +195,19 @@ export function ResourceDetailPage() {
         </Card>
       ) : null}
 
+      {tab === 'data' ? (
+        <ResourceEntriesPanel
+          resourceId={resource.id}
+          fields={fieldsQuery.data ?? schema}
+          published={resource.status === 'published'}
+        />
+      ) : null}
+
       {tab === 'api' ? (
         <Card>
           <CardHeader>
             <CardTitle>API</CardTitle>
-            <CardDescription>Endpoints after publish (runtime Phase 6).</CardDescription>
+            <CardDescription>Public endpoints for this published resource.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 font-mono text-sm">
             <p>GET {resource.endpoint}</p>

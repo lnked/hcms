@@ -59,6 +59,48 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return payload as T
 }
 
+export interface PageMeta {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+export async function apiPage<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ data: T[]; meta: PageMeta }> {
+  const headers = new Headers(init.headers)
+  headers.set('Accept', 'application/json')
+  const token = getToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  if (init.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const response = await fetch(path, { ...init, headers })
+  const payload = (await response.json()) as {
+    data?: T[]
+    meta?: PageMeta
+    error?: { code?: string; message?: string }
+  }
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      payload.error?.code ?? 'ERROR',
+      payload.error?.message ?? 'Request failed',
+    )
+  }
+
+  return {
+    data: payload.data ?? [],
+    meta: payload.meta ?? { page: 1, limit: 20, total: 0, totalPages: 1 },
+  }
+}
+
 export async function installApi<T>(
   action: string,
   body: Record<string, unknown> = {},

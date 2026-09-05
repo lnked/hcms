@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.7.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Admin Data Table & FormRenderer",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Entries CRUD API under /admin/api/resources/{id}/entries"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Data tab with DataTable, FormRenderer, search/sort/pagination"
+        },
+        {
+          "type": "fixed",
+          "area": "api",
+          "text": "Flatten nested PHP query arrays for filter[field] params"
+        }
+      ]
+    },
+    {
       "version": "0.6.0",
       "date": "2026-09-05",
       "channel": "stable",

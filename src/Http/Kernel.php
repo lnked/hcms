@@ -25,6 +25,7 @@ use Cms\Fields\FieldTypeRegistry;
 use Cms\Fields\SqlTypeMapper;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
+use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FieldController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
@@ -385,6 +386,52 @@ final class Kernel
                 }
 
                 return $fields->delete($request, $context, (int) $params['id']);
+            });
+
+            $queryEngine = new QueryEngine(
+                $this->db,
+                new ResourceRepository($this->db),
+                new FieldRepository($this->db),
+            );
+            $entries = new EntriesController(
+                $queryEngine,
+                new ResourceRepository($this->db),
+                $audit,
+            );
+            $this->router->add('GET', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->index($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->create($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->show($request, $context, (int) $params['id'], (int) $params['entryId']);
+            });
+            $this->router->add('PATCH', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->update($request, $context, (int) $params['id'], (int) $params['entryId']);
+            });
+            $this->router->add('DELETE', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->delete($request, $context, (int) $params['id'], (int) $params['entryId']);
             });
 
             $migrations = new MigrationController(

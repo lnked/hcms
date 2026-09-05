@@ -50,17 +50,38 @@ final class Request
             $body = is_array($decoded) ? $decoded : null;
         }
 
-        $query = [];
-        foreach ($_GET as $key => $value) {
-            if (is_string($key) && is_string($value)) {
-                $query[$key] = $value;
-            }
-        }
+        /** @var array<string, mixed> $get */
+        $get = $_GET;
+        $query = self::flattenQuery($get);
 
         $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
         $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 
         return new self($method, $path, $query, $headers, $body, $raw, $ip, $ua);
+    }
+
+    /**
+     * Flatten PHP nested query arrays so filter[field]=x becomes key "filter[field]".
+     *
+     * @param array<string, mixed> $input
+     * @return array<string, string>
+     */
+    public static function flattenQuery(array $input, string $prefix = ''): array
+    {
+        $out = [];
+        foreach ($input as $key => $value) {
+            $full = $prefix === '' ? (string) $key : $prefix . '[' . $key . ']';
+            if (is_array($value)) {
+                /** @var array<string, mixed> $value */
+                $out += self::flattenQuery($value, $full);
+                continue;
+            }
+            if (is_scalar($value) || $value === null) {
+                $out[$full] = (string) $value;
+            }
+        }
+
+        return $out;
     }
 
     public static function normalizePath(string $path): string

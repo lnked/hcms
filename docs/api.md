@@ -4,6 +4,18 @@ Admin: `/admin/api/*` (Bearer admin token).
 Public: `/api/{slug}` and `/api/v1/{slug}` for **published** resources.  
 Docs: `/api/docs`.
 
+## Admin entries
+
+```http
+GET    /admin/api/resources/{id}/entries?page=1&limit=20&sort=-id&search=foo
+GET    /admin/api/resources/{id}/entries/{entryId}
+POST   /admin/api/resources/{id}/entries
+PATCH  /admin/api/resources/{id}/entries/{entryId}
+DELETE /admin/api/resources/{id}/entries/{entryId}
+```
+
+Resource must be **published** (table exists). Same QueryEngine as the public API.
+
 ## Public CRUD
 
 ```http

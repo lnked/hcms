@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0 — 2026-09-05
+
+### Added
+
+- Entries CRUD API under `/admin/api/resources/{id}/entries`
+- Data tab with DataTable, FormRenderer, search/sort/pagination
+
+### Fixed
+
+- Flatten nested PHP query arrays for `filter[field]` params
+
 ## 0.6.0 — 2026-09-05
 
 ### Added
