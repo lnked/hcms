@@ -1,4 +1,5 @@
 import {
+  Activity,
   BookOpen,
   FileText,
   Image,
@@ -18,6 +19,7 @@ const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/resources', label: 'Resources', icon: FileText },
   { to: '/media', label: 'Media', icon: Image },
+  { to: '/logs', label: 'Logs', icon: Activity },
   { to: '/changelog', label: 'Changelog', icon: ScrollText },
   { to: '/settings/tokens', label: 'API Tokens', icon: KeyRound },
   { to: '/settings/system', label: 'System', icon: Settings },

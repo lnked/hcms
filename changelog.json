@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.11.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Audit & API logs",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Logs page with audit trail and public API request log"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Automatic cms_api_logs for /api/* (no secrets/query)"
+        }
+      ]
+    },
+    {
       "version": "0.10.0",
       "date": "2026-09-05",
       "channel": "stable",

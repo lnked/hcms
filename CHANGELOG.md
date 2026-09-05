@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0 — 2026-09-05
+
+### Added
+
+- Logs page with audit trail and public API request log
+- Automatic `cms_api_logs` for `/api/*` (no secrets/query)
+
 ## 0.10.0 — 2026-09-05
 
 ### Added

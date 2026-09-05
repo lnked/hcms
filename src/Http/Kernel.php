@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Cms\Http;
 
 use Cms\Api\QueryEngine;
+use Cms\Audit\ApiLogRepository;
 use Cms\Audit\AuditLogger;
+use Cms\Audit\AuditRepository;
 use Cms\Auth\ApiTokenService;
 use Cms\Auth\AuthContext;
 use Cms\Auth\DatabaseRateLimitStore;
@@ -29,6 +31,7 @@ use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
@@ -59,6 +62,7 @@ final class Kernel
         private readonly ?RateLimiter $apiTokenLimiter,
         private readonly ?LoginGuard $loginGuard,
         private readonly ?AuditLogger $audit,
+        private readonly ?ApiLogRepository $apiLogs,
         private readonly int $adminTtlHours,
     ) {
     }
@@ -78,6 +82,7 @@ final class Kernel
         $apiTokenLimiter = null;
         $loginGuard = null;
         $audit = null;
+        $apiLogs = null;
         $adminTtlHours = 12;
         if ($installed && $config->dbName !== '') {
             $db = Connection::connect([
@@ -113,6 +118,7 @@ final class Kernel
                 max(1, $settings->int('security.rate_limit_api_token_per_minute', 120)),
             );
             $audit = new AuditLogger($db);
+            $apiLogs = new ApiLogRepository($db);
         }
 
         $router = new Router();
@@ -129,6 +135,7 @@ final class Kernel
             $apiTokenLimiter,
             $loginGuard,
             $audit,
+            $apiLogs,
             $adminTtlHours,
         );
         $kernel->registerRoutes();
@@ -193,8 +200,30 @@ final class Kernel
         }
 
         $handler = $route->handler;
+        $started = hrtime(true);
+        $response = $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
 
-        return $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
+        if (
+            $this->apiLogs !== null
+            && (str_starts_with($request->path, '/api/') || preg_match('#^/api$#', $request->path) === 1)
+            && $request->path !== '/api/docs'
+            && $request->path !== '/api/openapi.json'
+            && $request->path !== '/api/v1/docs'
+            && $request->path !== '/api/v1/openapi.json'
+        ) {
+            $durationMs = (int) ((hrtime(true) - $started) / 1_000_000);
+            $tokenId = $auth instanceof AuthContext && !$auth->isAdmin() ? $auth->tokenId() : null;
+            $this->apiLogs->write(
+                $request->method,
+                $request->path,
+                $response->status,
+                $durationMs,
+                $tokenId,
+                $request->ip,
+            );
+        }
+
+        return $response;
     }
 
     private function authenticate(Request $request, string $type): AuthContext|Response
@@ -552,6 +581,27 @@ final class Kernel
 
                 return $media->file($request, (int) $params['id']);
             }, true);
+
+            $logs = new LogsController(
+                new AuditRepository($this->db),
+                new ApiLogRepository($this->db),
+            );
+            $this->router->add('GET', '/admin/api/logs/audit', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->audit($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/logs/api', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->api($request, $context);
+            });
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
