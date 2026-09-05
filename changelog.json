@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.4.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "Schema Builder",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin-api",
+          "text": "Field types registry and resource schema CRUD"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Visual Schema Builder with drag & drop"
+        }
+      ]
+    },
+    {
       "version": "0.3.0",
       "date": "2026-09-05",
       "channel": "stable",

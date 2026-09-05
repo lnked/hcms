@@ -16,8 +16,12 @@ use Cms\Core\Env;
 use Cms\Core\Paths;
 use Cms\Core\Settings;
 use Cms\Database\Connection;
+use Cms\Fields\FieldRepository;
+use Cms\Fields\FieldService;
+use Cms\Fields\FieldTypeRegistry;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
+use Cms\Http\Controllers\FieldController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Install\Installer;
@@ -311,6 +315,58 @@ final class Kernel
                 }
 
                 return $resources->delete($request, $context, (int) $params['id']);
+            });
+
+            $fieldService = new FieldService(
+                $this->db,
+                new FieldRepository($this->db),
+                new ResourceRepository($this->db),
+                new FieldTypeRegistry(),
+            );
+            $fields = new FieldController($fieldService, $audit);
+
+            $this->router->add('GET', '/admin/api/field-types', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->types($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->index($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PUT', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->replace($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->create($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PATCH', '/admin/api/fields/{id}', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->update($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/fields/{id}', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $fields->delete($request, $context, (int) $params['id']);
             });
         }
 

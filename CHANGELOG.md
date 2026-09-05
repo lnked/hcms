@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-09-05
+
+### Added
+
+- Field types registry and resource schema CRUD
+- Visual Schema Builder with drag & drop
+
 ## 0.3.0 — 2026-09-05
 
 ### Added
