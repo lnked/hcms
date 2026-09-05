@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.9.0",
+      "date": "2026-09-05",
+      "channel": "stable",
+      "title": "OpenAPI generator",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Full OpenAPI 3 spec generated from published resources and fields"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "Swagger UI deepLinking for /api/docs#/{tag}"
+        }
+      ]
+    },
+    {
       "version": "0.8.0",
       "date": "2026-09-05",
       "channel": "stable",

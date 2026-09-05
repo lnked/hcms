@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 — 2026-09-05
+
+### Added
+
+- Full OpenAPI 3 spec generated from published resources and fields
+
+### Changed
+
+- Swagger UI deepLinking for `/api/docs#/{tag}`
+
 ## 0.8.0 — 2026-09-05
 
 ### Added

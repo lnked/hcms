@@ -218,7 +218,9 @@ export function ResourceDetailPage() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => window.open('/api/docs', '_blank')}
+              onClick={() =>
+                window.open(`/api/docs#/${encodeURIComponent(resource.label)}`, '_blank')
+              }
             >
               Open Documentation
             </Button>

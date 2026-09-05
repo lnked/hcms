@@ -35,6 +35,7 @@ use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Install\Installer;
+use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\System\ChangelogRepository;
@@ -227,7 +228,13 @@ final class Kernel
         $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
             ? new AuthController($this->tokens, $this->loginGuard, $this->audit, $this->adminTtlHours)
             : null;
-        $docs = new DocsController($this->config);
+        $docs = new DocsController(
+            new OpenApiGenerator(
+                $this->config,
+                $this->db !== null ? new ResourceRepository($this->db) : null,
+                $this->db !== null ? new FieldRepository($this->db) : null,
+            ),
+        );
 
         $this->router->add('POST', '/admin/api/auth/login', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
             unset($params, $context);
