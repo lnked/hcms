@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 — 2026-09-05
+
+### Added
+
+- Upload/list/delete media; public `/media/{id}`; FormRenderer image/file picker
+
 ## 0.9.0 — 2026-09-05
 
 ### Added

@@ -29,12 +29,14 @@ use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Install\Installer;
+use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
@@ -510,6 +512,46 @@ final class Kernel
 
                 return $apiTokens->delete($request, $context, (int) $params['id']);
             });
+
+            $media = new MediaController(
+                new MediaService($this->db, $this->paths),
+                $audit,
+            );
+            $this->router->add('GET', '/admin/api/media', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $media->index($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/media', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $media->upload($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $media->show($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $media->delete($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                unset($context);
+
+                return $media->file($request, (int) $params['id']);
+            }, true);
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -572,6 +614,9 @@ final class Kernel
             return false;
         }
         if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json') {
+            return false;
+        }
+        if (preg_match('#^/media/\\d+$#', $path) === 1) {
             return false;
         }
 

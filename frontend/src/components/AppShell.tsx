@@ -1,4 +1,12 @@
-import { BookOpen, FileText, KeyRound, LayoutDashboard, ScrollText, Settings } from 'lucide-react'
+import {
+  BookOpen,
+  FileText,
+  Image,
+  KeyRound,
+  LayoutDashboard,
+  ScrollText,
+  Settings,
+} from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -9,6 +17,7 @@ import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/resources', label: 'Resources', icon: FileText },
+  { to: '/media', label: 'Media', icon: Image },
   { to: '/changelog', label: 'Changelog', icon: ScrollText },
   { to: '/settings/tokens', label: 'API Tokens', icon: KeyRound },
   { to: '/settings/system', label: 'System', icon: Settings },

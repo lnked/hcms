@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import type { SchemaField } from '@/types/field'
 import { cn } from '@/lib/utils'
 
@@ -70,6 +71,18 @@ function renderControl(
         />
         {value ? 'Yes' : 'No'}
       </label>
+    )
+  }
+
+  if (field.type === 'image' || field.type === 'file') {
+    return (
+      <MediaFieldPicker
+        id={id}
+        value={value}
+        disabled={disabled}
+        accept={field.type === 'image' ? 'image/*' : undefined}
+        onChange={(mediaId) => set(field.name, mediaId)}
+      />
     )
   }
 

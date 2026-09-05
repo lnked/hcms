@@ -35,6 +35,11 @@ final class Paths
         return $this->root . '/storage';
     }
 
+    public function media(): string
+    {
+        return $this->root . '/storage/uploads';
+    }
+
     public function cache(): string
     {
         return $this->root . '/storage/cache';

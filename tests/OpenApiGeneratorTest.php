@@ -28,7 +28,7 @@ final class OpenApiGeneratorTest extends TestCase
         $spec = (new OpenApiGenerator($config))->generate();
 
         $this->assertSame('3.0.3', $spec['openapi']);
-        $this->assertSame('0.9.0', $spec['info']['version']);
+        $this->assertSame('0.10.0', $spec['info']['version']);
         $this->assertArrayHasKey('bearerAuth', $spec['components']['securitySchemes']);
         $this->assertCount(2, $spec['servers']);
     }

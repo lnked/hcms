@@ -101,6 +101,37 @@ export async function apiPage<T>(
   }
 }
 
+export async function apiUpload<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+  const headers = new Headers()
+  headers.set('Accept', 'application/json')
+  const token = getToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  const body = new FormData()
+  body.append(fieldName, file)
+
+  const response = await fetch(path, { method: 'POST', headers, body })
+  const payload = (await response.json()) as {
+    data?: T
+    error?: { code?: string; message?: string }
+  }
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      payload.error?.code ?? 'ERROR',
+      payload.error?.message ?? 'Upload failed',
+    )
+  }
+
+  if (payload.data !== undefined) {
+    return payload.data
+  }
+
+  return payload as T
+}
+
 export async function installApi<T>(
   action: string,
   body: Record<string, unknown> = {},
