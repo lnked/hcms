@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.21.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Arctic Blue / Midnight Cobalt theme",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Light/dark admin theme: Arctic Blue (cool SaaS blue) and Midnight Cobalt (navy + cobalt primary) instead of grayscale"
+        }
+      ]
+    },
+    {
       "version": "0.20.0",
       "date": "2026-09-06",
       "channel": "stable",
