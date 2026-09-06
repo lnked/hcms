@@ -173,6 +173,13 @@ function cms_install_inline_download(string $root): never
 
 function cms_install_http(string $url): string
 {
+    $headers = ['User-Agent: hcms-installer'];
+    $token = getenv('CMS_GITHUB_TOKEN') ?: getenv('GITHUB_TOKEN') ?: '';
+    if ($token !== '') {
+        $headers[] = 'Authorization: Bearer ' . $token;
+        $headers[] = 'Accept: application/octet-stream';
+    }
+
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         if ($ch === false) {
@@ -182,19 +189,30 @@ function cms_install_http(string $url): string
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 60,
-            CURLOPT_USERAGENT => 'hcms-installer',
+            CURLOPT_HTTPHEADER => $headers,
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
         if (!is_string($body) || $code >= 400) {
-            throw new RuntimeException('Download failed: ' . $url);
+            throw new RuntimeException(
+                'Download failed: ' . $url
+                . ($code === 404
+                    ? ' — repo private or release missing. Make lnked/hcms public, or set CMS_GITHUB_TOKEN.'
+                    : ''),
+            );
         }
 
         return $body;
     }
 
-    $body = @file_get_contents($url);
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 60,
+            'header' => implode("\r\n", $headers) . "\r\n",
+        ],
+    ]);
+    $body = @file_get_contents($url, false, $context);
     if (!is_string($body)) {
         throw new RuntimeException('Download failed: ' . $url);
     }
@@ -288,10 +306,20 @@ function cms_install_html(): string
       const c = s.requirements?.checks || {};
       $('req').innerHTML = Object.entries(c).map(([k,v]) => `<div class="${v?'ok':'err'}">${k}: ${v?'ok':'fail'}</div>`).join('');
       if (s.installed) { location.href = '/admin'; }
+      if (s.srcReady) {
+        $('dlLog').textContent = 'Files already present — download skipped';
+        show('s1');
+      }
     }).catch((e) => { $('req').textContent = e.message; });
     $('btnDownload').onclick = async () => {
       $('dlLog').textContent = 'Working…';
       try {
+        const status = await api('status');
+        if (status.srcReady) {
+          $('dlLog').textContent = 'Files already present — download skipped';
+          show('s1');
+          return;
+        }
         const r = await api('download');
         $('dlLog').textContent = r.skipped ? 'Files already present' : ('Downloaded ' + r.version);
         show('s1');

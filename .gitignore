@@ -16,5 +16,6 @@
 .phpunit.cache
 .phpunit.result.cache
 /coverage/
+/dist/
 .DS_Store
 *.log

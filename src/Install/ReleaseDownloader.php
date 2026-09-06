@@ -119,6 +119,13 @@ final class ReleaseDownloader
 
     private function httpGet(string $url): ?string
     {
+        $headers = ['User-Agent: hcms-installer'];
+        $token = getenv('CMS_GITHUB_TOKEN') ?: getenv('GITHUB_TOKEN') ?: '';
+        if ($token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+            $headers[] = 'Accept: application/octet-stream';
+        }
+
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch === false) {
@@ -128,7 +135,7 @@ final class ReleaseDownloader
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_TIMEOUT => 60,
-                CURLOPT_USERAGENT => 'hcms-installer',
+                CURLOPT_HTTPHEADER => $headers,
             ]);
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -141,7 +148,10 @@ final class ReleaseDownloader
         }
 
         $context = stream_context_create([
-            'http' => ['timeout' => 60, 'header' => "User-Agent: hcms-installer\r\n"],
+            'http' => [
+                'timeout' => 60,
+                'header' => implode("\r\n", $headers) . "\r\n",
+            ],
         ]);
         $body = @file_get_contents($url, false, $context);
 

@@ -35,10 +35,21 @@ export function InstallPage() {
   })
 
   useEffect(() => {
-    void installApi<InstallStatus>('status').then(setStatus)
+    void installApi<InstallStatus>('status').then((s) => {
+      setStatus(s)
+      if (s.srcReady) {
+        setMessage('Files already present — download skipped')
+        setStep(1)
+      }
+    })
   }, [])
 
   async function download() {
+    if (status?.srcReady) {
+      setMessage('Files already present — download skipped')
+      setStep(1)
+      return
+    }
     setMessage('Downloading…')
     try {
       const result = await installApi<{ skipped?: boolean; version?: string }>('download')
