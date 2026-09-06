@@ -20,5 +20,18 @@ final class ResourceServiceTest extends TestCase
         $this->assertFalse($settings['public']['create']);
         $this->assertFalse($settings['pagination']);
         $this->assertTrue($settings['apiEnabled']);
+        $this->assertFalse($settings['softDelete']);
+        $this->assertSame('hard', $settings['deleteStrategy']);
+    }
+
+    public function testSoftDeleteStrategyNormalization(): void
+    {
+        $byStrategy = ResourceService::normalizeSettings(['deleteStrategy' => 'soft']);
+        $this->assertTrue($byStrategy['softDelete']);
+        $this->assertSame('soft', $byStrategy['deleteStrategy']);
+
+        $byFlag = ResourceService::normalizeSettings(['softDelete' => true]);
+        $this->assertTrue($byFlag['softDelete']);
+        $this->assertSame('soft', $byFlag['deleteStrategy']);
     }
 }

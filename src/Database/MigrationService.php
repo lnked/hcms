@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Database;
 
 use Cms\Content\Slug;
+use Cms\Core\MetadataCache;
 use Cms\Fields\FieldRepository;
 use Cms\Fields\SqlTypeMapper;
 use Cms\Resources\ResourceRepository;
@@ -19,6 +20,7 @@ final class MigrationService
         private readonly FieldRepository $fields,
         private readonly SqlTypeMapper $mapper,
         private readonly SchemaDiff $diff,
+        private readonly ?MetadataCache $metadata = null,
     ) {
     }
 
@@ -70,6 +72,9 @@ final class MigrationService
             $this->createTable($table, $desired);
             $ops[] = ['op' => 'create_table', 'table' => $table];
         } else {
+            if ($this->ensureDeletedAtColumn($table)) {
+                $ops[] = ['op' => 'add_system_column', 'name' => 'deleted_at'];
+            }
             $current = $this->describeTable($table);
             $plan = $this->diff->plan($current, $desired);
             foreach ($plan as $step) {
@@ -100,6 +105,8 @@ final class MigrationService
                 'applied_at' => date('Y-m-d H:i:s'),
             ],
         );
+
+        $this->metadata?->invalidate();
 
         return [
             'table' => $table,
@@ -152,11 +159,13 @@ final class MigrationService
             '`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT',
             '`created_at` DATETIME NOT NULL',
             '`updated_at` DATETIME NOT NULL',
+            '`deleted_at` DATETIME NULL',
         ];
         foreach ($columns as $column) {
             $parts[] = $this->columnSql($column);
         }
         $parts[] = 'PRIMARY KEY (`id`)';
+        $parts[] = 'KEY `idx_deleted_at` (`deleted_at`)';
         foreach ($columns as $column) {
             if ($column->unique) {
                 $parts[] = 'UNIQUE KEY `uq_' . $column->name . '` (' . $this->mapper->quoteIdent($column->name) . ')';
@@ -168,6 +177,20 @@ final class MigrationService
         $sql = 'CREATE TABLE ' . $this->mapper->quoteIdent($table) . ' (' . implode(', ', $parts)
             . ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
         $this->db->execRaw($sql);
+    }
+
+    private function ensureDeletedAtColumn(string $table): bool
+    {
+        $rows = $this->db->select('SHOW COLUMNS FROM ' . $this->mapper->quoteIdent($table) . " LIKE 'deleted_at'");
+        if ($rows !== []) {
+            return false;
+        }
+
+        $t = $this->mapper->quoteIdent($table);
+        $this->db->execRaw('ALTER TABLE ' . $t . ' ADD COLUMN `deleted_at` DATETIME NULL');
+        $this->db->execRaw('ALTER TABLE ' . $t . ' ADD KEY `idx_deleted_at` (`deleted_at`)');
+
+        return true;
     }
 
     /**

@@ -232,13 +232,18 @@ export function ResourceDetailPage() {
 
       {tab === 'settings' ? (
         <ResourceSettingsPanel
+          key={`settings-${resource.id}-${JSON.stringify(resource.settings)}`}
           resource={resource}
           onSaved={() => void queryClient.invalidateQueries({ queryKey: ['resource', resourceId] })}
         />
       ) : null}
 
       {tab === 'api' ? (
-        <ResourceApiPlayground resource={resource} fields={fieldsQuery.data ?? schema} />
+        <ResourceApiPlayground
+          key={`api-${resource.id}-${resource.endpoint}`}
+          resource={resource}
+          fields={fieldsQuery.data ?? schema}
+        />
       ) : null}
     </div>
   )

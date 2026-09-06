@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -30,10 +30,6 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
   const [responseText, setResponseText] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    setPath(resource.endpoint)
-  }, [resource.endpoint])
 
   const endpoints = useMemo(
     () => [

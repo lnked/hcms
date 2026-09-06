@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,10 +27,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
   const queryClient = useQueryClient()
   const [settings, setSettings] = useState(() => cloneSettings(resource.settings))
   const [message, setMessage] = useState<string | null>(null)
-
-  useEffect(() => {
-    setSettings(cloneSettings(resource.settings))
-  }, [resource.settings])
 
   const save = useMutation({
     mutationFn: () =>

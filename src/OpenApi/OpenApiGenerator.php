@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\OpenApi;
 
 use Cms\Core\Config;
+use Cms\Core\MetadataCache;
 use Cms\Core\Version;
 use Cms\Fields\FieldRepository;
 use Cms\Resources\ResourceRepository;
@@ -15,6 +16,7 @@ final class OpenApiGenerator
         private readonly Config $config,
         private readonly ?ResourceRepository $resources = null,
         private readonly ?FieldRepository $fields = null,
+        private readonly ?MetadataCache $metadata = null,
     ) {
     }
 
@@ -22,6 +24,22 @@ final class OpenApiGenerator
      * @return array<string, mixed>
      */
     public function generate(): array
+    {
+        $cached = $this->metadata?->getOpenApi();
+        if ($cached !== null) {
+            return $this->normalizeCached($cached);
+        }
+
+        $spec = $this->build();
+        $this->metadata?->setOpenApi($spec);
+
+        return $spec;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function build(): array
     {
         $paths = [];
         $schemas = [];
@@ -83,6 +101,26 @@ final class OpenApiGenerator
                 ['bearerAuth' => []],
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $cached
+     * @return array<string, mixed>
+     */
+    private function normalizeCached(array $cached): array
+    {
+        if (($cached['paths'] ?? null) === [] || ($cached['paths'] ?? null) === null) {
+            $cached['paths'] = new \stdClass();
+        }
+        $schemas = $cached['components']['schemas'] ?? null;
+        if ($schemas === [] || $schemas === null) {
+            if (!isset($cached['components']) || !is_array($cached['components'])) {
+                $cached['components'] = [];
+            }
+            $cached['components']['schemas'] = new \stdClass();
+        }
+
+        return $cached;
     }
 
     /**

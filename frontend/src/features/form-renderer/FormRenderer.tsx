@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
@@ -151,47 +151,26 @@ function RelationControl({
   const relatedSlug = String(field.config.relatedSlug ?? '')
   const labelField = String(field.config.labelField ?? 'id')
   const foreignKey = String(field.config.foreignKey ?? '')
-  const [options, setOptions] = useState<RelatedRow[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const canLoad = Boolean(relatedSlug) && !(cardinality === 'oneToMany' && !entryId)
+  const filterQs =
+    cardinality === 'oneToMany' && foreignKey && entryId
+      ? `filter[${encodeURIComponent(foreignKey)}]=${encodeURIComponent(String(entryId))}`
+      : ''
 
-  useEffect(() => {
-    if (!relatedSlug) {
-      setOptions([])
-      return
-    }
-    if (cardinality === 'oneToMany' && !entryId) {
-      setOptions([])
-      return
-    }
+  const relatedQuery = useQuery({
+    queryKey: ['relation-options', relatedSlug, cardinality, foreignKey, entryId, filterQs],
+    queryFn: () => fetchRelatedList(relatedSlug, filterQs),
+    enabled: canLoad,
+  })
 
-    let cancelled = false
-    setLoading(true)
-    setError(null)
-
-    const filterQs =
-      cardinality === 'oneToMany' && foreignKey && entryId
-        ? `filter[${encodeURIComponent(foreignKey)}]=${encodeURIComponent(String(entryId))}`
-        : ''
-
-    void fetchRelatedList(relatedSlug, filterQs)
-      .then((rows) => {
-        if (!cancelled) setOptions(rows)
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setOptions([])
-          setError(err instanceof Error ? err.message : t('common.requestFailed'))
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [relatedSlug, cardinality, foreignKey, entryId, t])
+  const options = relatedQuery.data ?? []
+  const loading = relatedQuery.isLoading || relatedQuery.isFetching
+  const error =
+    relatedQuery.error instanceof Error
+      ? relatedQuery.error.message
+      : relatedQuery.error
+        ? t('common.requestFailed')
+        : null
 
   if (!relatedSlug) {
     return (

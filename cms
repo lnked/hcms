@@ -1,0 +1,168 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Cms\Core\Config;
+use Cms\Core\Env;
+use Cms\Core\FileCache;
+use Cms\Core\MetadataCache;
+use Cms\Core\Paths;
+use Cms\Core\Version;
+use Cms\Database\Connection;
+use Cms\Database\MigrationService;
+use Cms\Database\SchemaDiff;
+use Cms\Fields\FieldRepository;
+use Cms\Fields\FieldTypeRegistry;
+use Cms\Fields\SqlTypeMapper;
+use Cms\Resources\ResourceRepository;
+
+$root = __DIR__;
+require $root . '/vendor/autoload.php';
+
+$argv = $_SERVER['argv'] ?? [];
+array_shift($argv);
+$command = $argv[0] ?? null;
+$options = parseCliOptions(array_slice($argv, 1));
+
+$paths = new Paths($root);
+$env = new Env();
+$env->load($paths->envFile());
+$config = Config::fromEnv($env);
+$installed = is_file($paths->installedLock());
+
+try {
+    match ($command) {
+        'status' => cliStatus($paths, $config, $installed),
+        'cache:clear' => cliCacheClear($paths),
+        'migrate' => cliMigrate($paths, $config, $installed, $options),
+        null, '', 'help', '--help', '-h' => cliHelp(),
+        default => throw new RuntimeException('Unknown command: ' . $command),
+    };
+} catch (Throwable $e) {
+    fwrite(STDERR, 'Error: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}
+
+exit(0);
+
+/**
+ * @param list<string> $args
+ * @return array<string, string|bool>
+ */
+function parseCliOptions(array $args): array
+{
+    $out = [];
+    foreach ($args as $arg) {
+        if (str_starts_with($arg, '--') && str_contains($arg, '=')) {
+            [$key, $value] = explode('=', substr($arg, 2), 2);
+            $out[$key] = $value;
+            continue;
+        }
+        if (str_starts_with($arg, '--')) {
+            $out[substr($arg, 2)] = true;
+        }
+    }
+
+    return $out;
+}
+
+function cliHelp(): void
+{
+    echo <<<TXT
+HCMS CLI
+
+Usage:
+  php cms status
+  php cms migrate [--resource=ID]
+  php cms cache:clear
+
+TXT;
+}
+
+function cliStatus(Paths $paths, Config $config, bool $installed): void
+{
+    $resourceCount = 0;
+    if ($installed && $config->dbName !== '') {
+        $db = cliDb($config);
+        $row = $db->selectOne('SELECT COUNT(*) AS c FROM cms_resources');
+        $resourceCount = $row === null ? 0 : (int) $row['c'];
+    }
+
+    echo 'version: ' . Version::current() . PHP_EOL;
+    echo 'installed: ' . ($installed ? 'yes' : 'no') . PHP_EOL;
+    echo 'publicDir: ' . $paths->publicDir . PHP_EOL;
+    echo 'resources: ' . $resourceCount . PHP_EOL;
+}
+
+function cliCacheClear(Paths $paths): void
+{
+    $cache = new MetadataCache(new FileCache($paths->cache()));
+    $cache->flush();
+    echo 'Cache cleared.' . PHP_EOL;
+}
+
+/**
+ * @param array<string, string|bool> $options
+ */
+function cliMigrate(Paths $paths, Config $config, bool $installed, array $options): void
+{
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+
+    $db = cliDb($config);
+    $resources = new ResourceRepository($db);
+    $service = new MigrationService(
+        $db,
+        $resources,
+        new FieldRepository($db),
+        new SqlTypeMapper(new FieldTypeRegistry()),
+        new SchemaDiff(),
+        new MetadataCache(new FileCache($paths->cache())),
+    );
+
+    $resourceId = isset($options['resource']) ? (int) $options['resource'] : 0;
+    if ($resourceId > 0) {
+        $result = $service->applyForResource($resourceId, [
+            'confirmDestructive' => !empty($options['confirm-destructive']),
+        ]);
+        echo 'Migrated resource #' . $resourceId
+            . ' → ' . $result['table']
+            . ' v' . $result['version']
+            . ' (' . count($result['operations']) . ' ops)' . PHP_EOL;
+
+        return;
+    }
+
+    $count = 0;
+    foreach ($resources->all() as $resource) {
+        if (($resource['status'] ?? '') !== 'published') {
+            continue;
+        }
+        $id = (int) $resource['id'];
+        $result = $service->applyForResource($id, [
+            'confirmDestructive' => !empty($options['confirm-destructive']),
+        ]);
+        echo 'Migrated #' . $id . ' (' . $resource['slug'] . ') → v' . $result['version'] . PHP_EOL;
+        ++$count;
+    }
+
+    if ($count === 0) {
+        echo 'No published resources to migrate.' . PHP_EOL;
+    } else {
+        echo 'Done: ' . $count . ' resource(s).' . PHP_EOL;
+    }
+}
+
+function cliDb(Config $config): Connection
+{
+    return Connection::connect([
+        'host' => $config->dbHost,
+        'port' => $config->dbPort,
+        'database' => $config->dbName,
+        'username' => $config->dbUser,
+        'password' => $config->dbPassword,
+        'charset' => $config->dbCharset,
+    ]);
+}

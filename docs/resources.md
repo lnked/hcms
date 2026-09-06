@@ -17,4 +17,4 @@ DELETE /admin/api/resources/:id
 
 Slug: `^[a-z][a-z0-9_]{0,47}$`. Endpoint defaults to `/api/{slug}`.
 
-Statuses: `draft` | `published` | `archived`. Public API runtime (Phase 6) only serves `published`.
+Statuses: `draft` | `published` | `archived`. Public API only serves `published` resources with `settings.apiEnabled`.

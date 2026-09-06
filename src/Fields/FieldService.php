@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Fields;
 
 use Cms\Content\Slug;
+use Cms\Core\MetadataCache;
 use Cms\Database\Connection;
 use Cms\Resources\ResourceRepository;
 use InvalidArgumentException;
@@ -17,6 +18,7 @@ final class FieldService
         private readonly FieldRepository $fields,
         private readonly ResourceRepository $resources,
         private readonly FieldTypeRegistry $types,
+        private readonly ?MetadataCache $metadata = null,
     ) {
     }
 
@@ -82,6 +84,8 @@ final class FieldService
             throw $e;
         }
 
+        $this->metadata?->invalidate();
+
         return $this->listForResource($resourceId);
     }
 
@@ -109,6 +113,8 @@ final class FieldService
             'sort_order' => $field['sort_order'],
             'spec' => $field['spec'],
         ]);
+
+        $this->metadata?->invalidate();
 
         return $this->serialize($created);
     }
@@ -140,6 +146,8 @@ final class FieldService
             'spec' => $field['spec'],
         ]);
 
+        $this->metadata?->invalidate();
+
         return $this->serialize($updated);
     }
 
@@ -150,6 +158,7 @@ final class FieldService
             throw new RuntimeException('Field not found', 404);
         }
         $this->fields->delete($fieldId);
+        $this->metadata?->invalidate();
     }
 
     /**

@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.17.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Soft delete, cache, CLI, multi-admin",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Soft delete end-to-end (deleted_at, soft vs hard via resource settings)"
+        },
+        {
+          "type": "added",
+          "area": "core",
+          "text": "FileCache + MetadataCache for OpenAPI/metadata with invalidation"
+        },
+        {
+          "type": "added",
+          "area": "cli",
+          "text": "php cms status|migrate|cache:clear"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Multiple admin users (CRUD in Users page)"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "README/docs cleanup; release zip excludes clean.php and one-shot fix scripts"
+        }
+      ]
+    },
+    {
       "version": "0.16.0",
       "date": "2026-09-06",
       "channel": "stable",

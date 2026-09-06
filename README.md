@@ -36,6 +36,15 @@ Installer: `http://127.0.0.1:8080/install.php`
 
 Если `src/` уже на диске, download в installer пропускается.
 
+CLI:
+
+```bash
+php cms status
+php cms migrate                # все published
+php cms migrate --resource=1
+php cms cache:clear
+```
+
 ## Production build
 
 ```bash
@@ -58,9 +67,11 @@ Authorization: Bearer <token>
 ```
 
 - Admin API: `/admin/api/*`
-- Public API: `/api/*` (ресурсы появятся после Phase 6)
+- Public API: `/api/*` и `/api/v1/*` (published resources с `settings.apiEnabled`)
 - OpenAPI: `/api/openapi.json`
 - Swagger UI: `/api/docs`
+
+В админке: **Settings → System** — язык и CORS/origins для public API; у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter).
 
 ## Quality
 

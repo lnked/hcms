@@ -6,6 +6,7 @@ namespace Cms\Resources;
 
 use Cms\Content\ContentTypeRepository;
 use Cms\Content\Slug;
+use Cms\Core\MetadataCache;
 use Cms\Database\Connection;
 use InvalidArgumentException;
 use RuntimeException;
@@ -16,6 +17,7 @@ final class ResourceService
         private readonly Connection $db,
         private readonly ContentTypeRepository $contentTypes,
         private readonly ResourceRepository $resources,
+        private readonly ?MetadataCache $metadata = null,
     ) {
     }
 
@@ -103,6 +105,8 @@ final class ResourceService
             throw $e;
         }
 
+        $this->metadata?->invalidate();
+
         return $this->serialize($resource);
     }
 
@@ -165,6 +169,8 @@ final class ResourceService
             }
         }
 
+        $this->metadata?->invalidate();
+
         return $this->serialize($resource);
     }
 
@@ -197,6 +203,8 @@ final class ResourceService
             $pdo->rollBack();
             throw $e;
         }
+
+        $this->metadata?->invalidate();
     }
 
     /**

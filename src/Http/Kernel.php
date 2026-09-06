@@ -15,9 +15,13 @@ use Cms\Auth\LoginGuard;
 use Cms\Auth\RateLimiter;
 use Cms\Auth\TokenGrantRepository;
 use Cms\Auth\TokenService;
+use Cms\Auth\UsersRepository;
+use Cms\Auth\UsersService;
 use Cms\Content\ContentTypeRepository;
 use Cms\Core\Config;
 use Cms\Core\Env;
+use Cms\Core\FileCache;
+use Cms\Core\MetadataCache;
 use Cms\Core\Paths;
 use Cms\Core\Settings;
 use Cms\Database\Connection;
@@ -39,6 +43,7 @@ use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
+use Cms\Http\Controllers\UsersController;
 use Cms\Install\Installer;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
@@ -317,11 +322,13 @@ final class Kernel
         $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
             ? new AuthController($this->tokens, $this->loginGuard, $this->audit, $this->adminTtlHours)
             : null;
+        $metadata = new MetadataCache(new FileCache($this->paths->cache()));
         $docs = new DocsController(
             new OpenApiGenerator(
                 $this->config,
                 $this->db !== null ? new ResourceRepository($this->db) : null,
                 $this->db !== null ? new FieldRepository($this->db) : null,
+                $this->db !== null ? $metadata : null,
             ),
         );
 
@@ -436,6 +443,7 @@ final class Kernel
                 $this->db,
                 new ContentTypeRepository($this->db),
                 new ResourceRepository($this->db),
+                $metadata,
             );
             $migrationService = new MigrationService(
                 $this->db,
@@ -443,6 +451,7 @@ final class Kernel
                 new FieldRepository($this->db),
                 new SqlTypeMapper(new FieldTypeRegistry()),
                 new SchemaDiff(),
+                $metadata,
             );
             $resources = new ResourceController($resourceService, $audit, $migrationService);
 
@@ -496,6 +505,7 @@ final class Kernel
                 new FieldRepository($this->db),
                 new ResourceRepository($this->db),
                 new FieldTypeRegistry(),
+                $metadata,
             );
             $fields = new FieldController($fieldService, $audit);
 
@@ -646,6 +656,41 @@ final class Kernel
                 }
 
                 return $apiTokens->delete($request, $context, (int) $params['id']);
+            });
+
+            $users = new UsersController(
+                new UsersService(new UsersRepository($this->db)),
+                $audit,
+            );
+            $this->router->add('GET', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->index($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->create($request, $context);
+            });
+            $this->router->add('PATCH', '/admin/api/users/{id}', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->update($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/users/{id}', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->delete($request, $context, (int) $params['id']);
             });
 
             $media = new MediaController(

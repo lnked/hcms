@@ -11,6 +11,7 @@ import {
   ScrollText,
   Settings,
   Sun,
+  Users,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -75,6 +76,7 @@ export function AppShell() {
     { to: '/logs', label: t('nav.logs'), icon: Activity },
     { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
     { to: '/settings/tokens', label: t('nav.tokens'), icon: KeyRound },
+    { to: '/settings/users', label: t('nav.users'), icon: Users },
     { to: '/settings/system', label: t('nav.system'), icon: Settings },
   ]
 

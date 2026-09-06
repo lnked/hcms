@@ -40,7 +40,7 @@ final class QueryEngine
         }
         $offset = ($page - 1) * $limit;
 
-        $where = [];
+        $where = ['`deleted_at` IS NULL'];
         $params = [];
         if (!$public || ($settings['filtering'] ?? true)) {
             $this->applyFilters($query, $fieldMap, $where, $params);
@@ -53,7 +53,7 @@ final class QueryEngine
             throw new InvalidArgumentException('Search is disabled for this resource');
         }
 
-        $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+        $whereSql = ' WHERE ' . implode(' AND ', $where);
         if ($public && !($settings['sorting'] ?? true)) {
             if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
                 throw new InvalidArgumentException('Sorting is disabled for this resource');
@@ -89,7 +89,10 @@ final class QueryEngine
     public function find(string $slug, int $id, array $options = []): array
     {
         [, $table, $fieldMap] = $this->resolve($slug, $options);
-        $row = $this->db->selectOne('SELECT * FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
+        $row = $this->db->selectOne(
+            'SELECT * FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            ['id' => $id],
+        );
         if ($row === null) {
             throw new RuntimeException('Resource not found', 404);
         }
@@ -128,7 +131,10 @@ final class QueryEngine
     public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
         [, $table, $fieldMap] = $this->resolve($slug, $options);
-        $existing = $this->db->selectOne('SELECT id FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
+        $existing = $this->db->selectOne(
+            'SELECT id FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            ['id' => $id],
+        );
         if ($existing === null) {
             throw new RuntimeException('Resource not found', 404);
         }
@@ -156,8 +162,21 @@ final class QueryEngine
      */
     public function delete(string $slug, int $id, array $options = []): void
     {
-        [, $table] = $this->resolve($slug, $options);
-        $affected = $this->db->execute('DELETE FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
+        [$resource, $table] = $this->resolve($slug, $options);
+        $settings = $this->settingsOf($resource);
+        if (($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft') {
+            $now = date('Y-m-d H:i:s');
+            $affected = $this->db->execute(
+                'UPDATE `' . $table . '` SET `deleted_at` = :now, `updated_at` = :now
+                 WHERE id = :id AND `deleted_at` IS NULL',
+                ['now' => $now, 'id' => $id],
+            );
+        } else {
+            $affected = $this->db->execute(
+                'DELETE FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+                ['id' => $id],
+            );
+        }
         if ($affected === 0) {
             throw new RuntimeException('Resource not found', 404);
         }

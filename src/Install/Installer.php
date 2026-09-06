@@ -32,6 +32,7 @@ final class Installer
         'VERSION',
         'changelog.json',
         'install.php',
+        'cms',
         'clean.php',
         'fix.php',
         'fix2.php',

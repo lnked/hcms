@@ -3,6 +3,7 @@ parameters:
     paths:
         - src
         - install.php
+        - cms
         - public/index.php
     excludePaths:
         - vendor

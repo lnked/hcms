@@ -13,6 +13,7 @@ import { LogsPage } from '@/features/logs/LogsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { SystemPage } from '@/pages/SystemPage'
 import { TokensPage } from '@/pages/TokensPage'
+import { UsersPage } from '@/pages/UsersPage'
 
 export function AppRouter() {
   return (
@@ -32,6 +33,7 @@ export function AppRouter() {
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="settings/system" element={<SystemPage />} />
             <Route path="settings/tokens" element={<TokensPage />} />
+            <Route path="settings/users" element={<UsersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

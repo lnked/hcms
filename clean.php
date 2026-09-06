@@ -176,6 +176,97 @@ function clean_wipe_db(array $env): array
 }
 
 /**
+ * @return list<string> Absolute admin dir candidates (public/admin, public_html/admin, admin/, …)
+ */
+function clean_admin_candidates(string $root, array $env = []): array
+{
+    $publicDir = $env['CMS_PUBLIC_DIR'] ?? '';
+    if (!is_string($publicDir) || !preg_match('/^[A-Za-z0-9_-]{1,64}$/', $publicDir)) {
+        $publicDir = is_dir($root . '/public_html') && !is_dir($root . '/public') ? 'public_html' : 'public';
+    }
+
+    $dirs = [
+        $root . '/' . $publicDir . '/admin',
+        $root . '/public/admin',
+        $root . '/public_html/admin',
+        $root . '/admin',
+    ];
+
+    $unique = [];
+    $seen = [];
+    foreach ($dirs as $dir) {
+        $key = rtrim(str_replace('\\', '/', $dir), '/');
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $unique[] = $dir;
+    }
+
+    return $unique;
+}
+
+/**
+ * @return array{exists: bool, ok: bool, refs: list<string>, missing: list<string>, mtime: int}
+ */
+function clean_inspect_admin(string $adminDir): array
+{
+    $index = $adminDir . '/index.html';
+    if (!is_file($index)) {
+        return [
+            'exists' => is_dir($adminDir),
+            'ok' => false,
+            'refs' => [],
+            'missing' => is_dir($adminDir) ? ['index.html'] : [],
+            'mtime' => 0,
+        ];
+    }
+    $html = (string) file_get_contents($index);
+    $refs = [];
+    if (preg_match_all('#/admin/(assets/[^"\']+)#', $html, $matches)) {
+        $refs = array_values(array_unique($matches[1]));
+    }
+    $missing = [];
+    foreach ($refs as $rel) {
+        if (!is_file($adminDir . '/' . $rel)) {
+            $missing[] = $rel;
+        }
+    }
+
+    return [
+        'exists' => true,
+        'ok' => $missing === [],
+        'refs' => $refs,
+        'missing' => $missing,
+        'mtime' => (int) filemtime($index),
+    ];
+}
+
+function clean_rmtree(string $dir): int
+{
+    if (!is_dir($dir)) {
+        return 0;
+    }
+    $removed = 0;
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    );
+    foreach ($it as $item) {
+        $p = $item->getPathname();
+        if ($item->isDir()) {
+            @rmdir($p);
+        } else {
+            @unlink($p);
+            $removed++;
+        }
+    }
+    @rmdir($dir);
+
+    return $removed;
+}
+
+/**
  * @param array<string, string> $env
  * @return list<string>
  */
@@ -236,52 +327,17 @@ function clean_wipe_files(string $root, array $env = []): array
         if (!is_dir($dir)) {
             continue;
         }
-        $it = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-        foreach ($it as $item) {
-            $p = $item->getPathname();
-            if ($item->isDir()) {
-                @rmdir($p);
-            } else {
-                @unlink($p);
-            }
-        }
-        @rmdir($dir);
+        clean_rmtree($dir);
         $log[] = 'rmtree ' . $dirName;
     }
 
-    $publicDirs = [];
-    $fromEnv = $env['CMS_PUBLIC_DIR'] ?? '';
-    if (is_string($fromEnv) && preg_match('/^[A-Za-z0-9_-]{1,64}$/', $fromEnv)) {
-        $publicDirs[] = $fromEnv;
-    }
-    foreach (['public', 'public_html'] as $candidate) {
-        if (!in_array($candidate, $publicDirs, true)) {
-            $publicDirs[] = $candidate;
-        }
-    }
-
-    foreach ($publicDirs as $publicDir) {
-        $adminDir = $root . '/' . $publicDir . '/admin';
-        if (!is_dir($adminDir)) {
+    // All possible admin SPA locations (public/ vs public_html/ vs docroot admin/)
+    foreach (clean_admin_candidates($root, $env) as $adminDir) {
+        if (!is_dir($adminDir) && !is_file($adminDir . '/index.html')) {
             continue;
         }
-        $it = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($adminDir, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::CHILD_FIRST,
-        );
-        foreach ($it as $item) {
-            $p = $item->getPathname();
-            if ($item->isDir()) {
-                @rmdir($p);
-            } else {
-                @unlink($p);
-            }
-        }
-        @rmdir($adminDir);
-        $log[] = 'rmtree ' . $publicDir . '/admin';
+        $n = clean_rmtree($adminDir);
+        $log[] = 'rmtree ' . str_replace($root . '/', '', $adminDir) . ' (' . $n . ' files)';
     }
 
     foreach ([$root . '/VERSION', $root . '/changelog.json', $root . '/composer.json', $root . '/composer.lock'] as $path) {
@@ -297,20 +353,65 @@ function clean_wipe_files(string $root, array $env = []): array
 $env = clean_parse_env($envFile);
 $hasLock = is_file($lockFile);
 $hasEnv = is_file($envFile);
+$adminReports = [];
+foreach (clean_admin_candidates($root, $env) as $adminDir) {
+    $info = clean_inspect_admin($adminDir);
+    if (!$info['exists'] && $info['missing'] === []) {
+        continue;
+    }
+    $adminReports[] = [
+        'rel' => str_replace($root . '/', '', $adminDir),
+        'info' => $info,
+    ];
+}
 
 if (!$confirm) {
     echo '<!doctype html><html><head><meta charset="utf-8"/><title>HCMS clean (TEMP)</title>';
-    echo '<style>body{font-family:ui-sans-serif,system-ui;max-width:640px;margin:40px auto;padding:0 16px}';
+    echo '<style>body{font-family:ui-sans-serif,system-ui;max-width:720px;margin:40px auto;padding:0 16px}';
     echo '.warn{background:#fef2f2;border:1px solid #fecaca;padding:12px;border-radius:8px;margin:16px 0}';
-    echo 'button{background:#18181b;color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}</style></head><body>';
+    echo '.ok{color:#15803d}.bad{color:#b91c1c}.muted{color:#71717a;font-size:13px}';
+    echo 'code{font-size:12px}button{background:#18181b;color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}</style></head><body>';
     echo '<h1>HCMS clean.php (TEMP)</h1>';
-    echo '<div class="warn"><strong>Test only.</strong> Drops the entire MySQL database from .env and recreates it empty, then deletes .env, installed.lock, uploads/backups, and package dirs so install can re-run clean. Delete this file after testing.</div>';
-    echo '<p>.env: ' . ($hasEnv ? 'yes' : 'no') . '</p>';
+    echo '<div class="warn"><strong>Test only.</strong> Drops the entire MySQL database from .env and recreates it empty, then deletes .env, installed.lock, uploads/backups, package dirs, and <em>all</em> admin SPA copies (<code>public/admin</code>, <code>public_html/admin</code>, <code>admin/</code>) so install can re-run clean. Delete this file after testing.</div>';
+    echo '<p>.env: ' . ($hasEnv ? 'yes' : 'no');
+    if ($hasEnv && isset($env['CMS_PUBLIC_DIR'])) {
+        echo ' · CMS_PUBLIC_DIR=<code>' . h($env['CMS_PUBLIC_DIR']) . '</code>';
+    }
+    echo '</p>';
     echo '<p>installed.lock: ' . ($hasLock ? 'yes' : 'no') . '</p>';
     echo '<p>DB: <strong>' . h($env['DB_DATABASE'] ?? '(none)') . '</strong> @ ' . h($env['DB_HOST'] ?? '-') . ' — will be <code>DROP DATABASE</code> + <code>CREATE DATABASE</code></p>';
+
+    echo '<h2>Admin SPA trees</h2>';
+    if ($adminReports === []) {
+        echo '<p class="muted">No admin trees found.</p>';
+    } else {
+        echo '<ul>';
+        foreach ($adminReports as $row) {
+            $info = $row['info'];
+            $cls = $info['ok'] ? 'ok' : 'bad';
+            echo '<li class="' . $cls . '"><code>' . h($row['rel']) . '</code>';
+            if ($info['ok']) {
+                echo ' — ok';
+                if ($info['refs'] !== []) {
+                    echo ' · ' . h(implode(', ', $info['refs']));
+                }
+            } elseif ($info['exists']) {
+                echo ' — broken';
+                if ($info['missing'] !== []) {
+                    echo ' · missing ' . h(implode(', ', $info['missing']));
+                }
+            } else {
+                echo ' — empty/missing index';
+            }
+            echo '</li>';
+        }
+        echo '</ul>';
+        echo '<p class="muted">Clean removes every listed tree so a fresh install cannot leave a stale <code>public_html/admin</code> vs <code>public/admin</code> split.</p>';
+    }
+
     echo '<form method="post"><input type="hidden" name="confirm" value="1"/>';
     echo '<button type="submit">Wipe DB + install state</button></form>';
-    echo '<p><a href="/install.php">install.php</a> · <a href="/admin">/admin</a></p>';
+    echo '<p><a href="/install.php">install.php</a> · <a href="/admin">/admin</a> · <a href="/fix2.php">fix2.php</a></p>';
     echo '</body></html>';
     exit;
 }
