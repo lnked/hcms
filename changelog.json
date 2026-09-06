@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.42.1",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Docs code block polish",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "docs",
+          "text": "Code block copy button vertically centered; line-height and min-height for short snippets"
+        }
+      ]
+    },
+    {
       "version": "0.42.0",
       "date": "2026-09-07",
       "channel": "stable",
