@@ -33,7 +33,7 @@ export interface DocCodeSample {
 
 export interface DocSection {
   heading?: string
-  paragraphs: string[]
+  paragraphs?: string[]
   samples?: DocCodeSample[]
   links?: DocLink[]
 }

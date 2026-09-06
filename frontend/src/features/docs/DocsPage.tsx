@@ -92,7 +92,7 @@ export function DocsPage() {
               {section.heading ? (
                 <h3 className="text-base font-medium">{section.heading}</h3>
               ) : null}
-              {section.paragraphs.map((paragraph) => (
+              {section.paragraphs?.map((paragraph) => (
                 <p key={paragraph} className="text-sm leading-relaxed text-muted-foreground">
                   {paragraph}
                 </p>
