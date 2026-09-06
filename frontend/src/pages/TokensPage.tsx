@@ -32,6 +32,11 @@ interface TokenGrant {
   canDelete: boolean
 }
 
+interface IntegrationGrant {
+  integrationKey: string
+  canUse: boolean
+}
+
 interface ApiToken {
   id: number
   name: string
@@ -41,6 +46,7 @@ interface ApiToken {
   lastUsedAt: string | null
   createdAt: string
   grants: TokenGrant[]
+  integrationGrants: IntegrationGrant[]
 }
 
 const emptyGrant = (): TokenGrant => ({
@@ -58,6 +64,7 @@ export function TokensPage() {
   const [name, setName] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [grants, setGrants] = useState<TokenGrant[]>([emptyGrant()])
+  const [emailCanUse, setEmailCanUse] = useState(false)
   const [createdToken, setCreatedToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,6 +92,7 @@ export function TokensPage() {
           name,
           expiresAt: expiresAt || null,
           grants,
+          integrationGrants: [{ integrationKey: 'email', canUse: emailCanUse }],
         }),
       }),
     onSuccess: (data) => {
@@ -104,6 +112,7 @@ export function TokensPage() {
     setName('')
     setExpiresAt('')
     setGrants([emptyGrant()])
+    setEmailCanUse(false)
     setCreatedToken(null)
     setError(null)
   }
@@ -157,15 +166,22 @@ export function TokensPage() {
                       <TableCell>{token.name}</TableCell>
                       <TableCell className="font-mono text-xs">{token.prefix}…</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {token.grants.length === 0
-                          ? t('common.none')
-                          : token.grants
-                              .map((g) =>
+                        {[
+                          ...(token.grants.length === 0
+                            ? []
+                            : token.grants.map((g) =>
                                 g.resourceId == null
                                   ? t('tokens.global')
                                   : (resourceLabel.get(g.resourceId) ?? `#${g.resourceId}`),
-                              )
-                              .join(', ')}
+                              )),
+                          ...(token.integrationGrants ?? [])
+                            .filter((g) => g.canUse)
+                            .map((g) =>
+                              g.integrationKey === 'email'
+                                ? t('tokens.integrationEmail')
+                                : g.integrationKey,
+                            ),
+                        ].join(', ') || t('common.none')}
                       </TableCell>
                       <TableCell>
                         {token.revokedAt ? (
@@ -303,6 +319,14 @@ export function TokensPage() {
                     </div>
                   </div>
                 ))}
+                <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={emailCanUse}
+                    onChange={(e) => setEmailCanUse(e.target.checked)}
+                  />
+                  <span>{t('tokens.integrationEmailGrant')}</span>
+                </label>
               </div>
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api, getToken } from '@/lib/api'
+import { copyToClipboard } from '@/lib/clipboard'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceCustomApi } from '@/types/resourceApi'
@@ -130,7 +131,7 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
 
   async function copyUrl() {
     try {
-      await navigator.clipboard.writeText(fullUrl)
+      await copyToClipboard(fullUrl)
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1500)
     } catch {

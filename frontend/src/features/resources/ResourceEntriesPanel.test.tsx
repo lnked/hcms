@@ -51,10 +51,20 @@ describe('ResourceEntriesPanel import/export', () => {
     expect(screen.getByLabelText('Format')).toBeInTheDocument()
     expect(screen.getByText('title')).toBeInTheDocument()
 
+    const allFieldsToggle = screen.getByRole('button', { name: 'All fields' })
+    expect(allFieldsToggle).toHaveAttribute('aria-pressed', 'true')
+    await user.click(allFieldsToggle)
+    expect(allFieldsToggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('checkbox', { name: 'title' })).not.toBeChecked()
+    await user.click(allFieldsToggle)
+    expect(allFieldsToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('checkbox', { name: 'title' })).toBeChecked()
+
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
 
     await user.click(screen.getByRole('button', { name: 'Import' }))
     expect(await screen.findByText('Import entries')).toBeInTheDocument()
+    expect(screen.getByLabelText('Drop a file here or click')).toBeInTheDocument()
     expect(screen.getByLabelText('Or paste content')).toBeInTheDocument()
   })
 })

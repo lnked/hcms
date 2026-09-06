@@ -58,4 +58,56 @@ final class TokenGrantRepository
 
         return GrantPolicy::allows($rows, $resourceId, $action);
     }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function integrationGrantsForToken(int $tokenId): array
+    {
+        return $this->db->select(
+            'SELECT id, token_id, integration_key, can_use
+             FROM cms_token_integration_grants
+             WHERE token_id = :token_id
+             ORDER BY id ASC',
+            ['token_id' => $tokenId],
+        );
+    }
+
+    /**
+     * @param list<array{integrationKey: string, canUse: bool}> $grants
+     */
+    public function replaceIntegrationGrants(int $tokenId, array $grants): void
+    {
+        $this->db->execute(
+            'DELETE FROM cms_token_integration_grants WHERE token_id = :token_id',
+            ['token_id' => $tokenId],
+        );
+        foreach ($grants as $grant) {
+            if (!$grant['canUse']) {
+                continue;
+            }
+            $this->db->execute(
+                'INSERT INTO cms_token_integration_grants (token_id, integration_key, can_use)
+                 VALUES (:token_id, :integration_key, 1)',
+                [
+                    'token_id' => $tokenId,
+                    'integration_key' => $grant['integrationKey'],
+                ],
+            );
+        }
+    }
+
+    public function allowsIntegration(int $tokenId, string $integrationKey): bool
+    {
+        $row = $this->db->selectOne(
+            'SELECT can_use FROM cms_token_integration_grants
+             WHERE token_id = :token_id AND integration_key = :integration_key',
+            [
+                'token_id' => $tokenId,
+                'integration_key' => $integrationKey,
+            ],
+        );
+
+        return $row !== null && (bool) $row['can_use'];
+    }
 }

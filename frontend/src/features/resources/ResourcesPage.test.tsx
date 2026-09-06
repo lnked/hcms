@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -34,6 +35,10 @@ vi.mock('@/lib/api', () => ({
   ]),
 }))
 
+vi.mock('@/lib/clipboard', () => ({
+  copyToClipboard: vi.fn(async () => undefined),
+}))
+
 describe('ResourcesPage', () => {
   it('lists resources', async () => {
     const client = new QueryClient()
@@ -48,6 +53,28 @@ describe('ResourcesPage', () => {
     )
 
     expect(await screen.findByText('Articles')).toBeInTheDocument()
-    expect(screen.getByText('/api/articles')).toBeInTheDocument()
+    const endpoint = screen.getByRole('button', { name: '/api/articles' })
+    expect(endpoint).toBeInTheDocument()
+    expect(endpoint.className).toContain('decoration-dashed')
+  })
+
+  it('copies endpoint and shows toast', async () => {
+    const { copyToClipboard } = await import('@/lib/clipboard')
+    const user = userEvent.setup()
+    const client = new QueryClient()
+    render(
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <ResourcesPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </I18nProvider>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: '/api/articles' }))
+
+    expect(copyToClipboard).toHaveBeenCalledWith('/api/articles')
+    expect(await screen.findByRole('status')).toHaveTextContent('Value copied')
   })
 })

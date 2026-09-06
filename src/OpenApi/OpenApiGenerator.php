@@ -8,6 +8,8 @@ use Cms\Core\Config;
 use Cms\Core\MetadataCache;
 use Cms\Core\Version;
 use Cms\Fields\FieldRepository;
+use Cms\Integrations\IntegrationApiRepository;
+use Cms\Integrations\IntegrationApiService;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
@@ -20,6 +22,7 @@ final class OpenApiGenerator
         private readonly ?FieldRepository $fields = null,
         private readonly ?MetadataCache $metadata = null,
         private readonly ?ResourceApiRepository $apis = null,
+        private readonly ?IntegrationApiRepository $integrationApis = null,
     ) {
     }
 
@@ -129,19 +132,64 @@ final class OpenApiGenerator
             }
         }
 
+        $tags[] = [
+            'name' => 'Integrations',
+            'description' => 'Token-only integration endpoints (Email grant required).',
+        ];
+        $schemas['EmailSendRequest'] = [
+            'type' => 'object',
+            'required' => ['to'],
+            'properties' => [
+                'to' => ['type' => 'string', 'format' => 'email'],
+                'subject' => ['type' => 'string'],
+                'html' => ['type' => 'string'],
+                'text' => ['type' => 'string'],
+                'fromEmail' => ['type' => 'string', 'format' => 'email'],
+                'fromName' => ['type' => 'string'],
+                'vars' => [
+                    'type' => 'object',
+                    'additionalProperties' => ['type' => 'string'],
+                ],
+            ],
+        ];
+        $schemas['EmailSendResponse'] = [
+            'type' => 'object',
+            'properties' => [
+                'data' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'ok' => ['type' => 'boolean'],
+                        'provider' => ['type' => 'string'],
+                        'to' => ['type' => 'string', 'format' => 'email'],
+                    ],
+                ],
+            ],
+        ];
+        $paths['/integrations/email/send'] = $this->emailSendPath('Built-in send endpoint');
+        if ($this->integrationApis !== null) {
+            foreach ($this->integrationApis->enabledForIntegration(IntegrationApiService::EMAIL_KEY) as $row) {
+                $slug = (string) ($row['slug'] ?? '');
+                if ($slug === '' || $slug === 'send') {
+                    continue;
+                }
+                $label = (string) ($row['label'] ?? $slug);
+                $paths['/integrations/email/' . $slug] = $this->emailSendPath('Custom email API: ' . $label);
+            }
+        }
+
         return [
             'openapi' => '3.0.3',
             'info' => [
                 'title' => 'HCMS API',
                 'version' => Version::current(),
-                'description' => 'Generated public API for published resources.',
+                'description' => 'Generated public API for published resources and integrations.',
             ],
             'servers' => [
                 ['url' => rtrim($this->config->appUrl, '/') . '/api'],
                 ['url' => rtrim($this->config->appUrl, '/') . '/api/v1'],
             ],
             'tags' => $tags,
-            'paths' => $paths === [] ? new \stdClass() : $paths,
+            'paths' => $paths,
             'components' => [
                 'securitySchemes' => [
                     'bearerAuth' => [
@@ -150,10 +198,46 @@ final class OpenApiGenerator
                         'bearerFormat' => 'API token',
                     ],
                 ],
-                'schemas' => $schemas === [] ? new \stdClass() : $schemas,
+                'schemas' => $schemas,
             ],
             'security' => [
                 ['bearerAuth' => []],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emailSendPath(string $summary): array
+    {
+        return [
+            'post' => [
+                'tags' => ['Integrations'],
+                'summary' => $summary,
+                'security' => [['bearerAuth' => []]],
+                'requestBody' => [
+                    'required' => true,
+                    'content' => [
+                        'application/json' => [
+                            'schema' => ['$ref' => '#/components/schemas/EmailSendRequest'],
+                        ],
+                    ],
+                ],
+                'responses' => [
+                    '200' => [
+                        'description' => 'Email accepted by provider',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => ['$ref' => '#/components/schemas/EmailSendResponse'],
+                            ],
+                        ],
+                    ],
+                    '401' => ['description' => 'Unauthorized'],
+                    '403' => ['description' => 'Forbidden — missing Email grant'],
+                    '422' => ['description' => 'Validation error'],
+                    '502' => ['description' => 'Provider error'],
+                ],
             ],
         ];
     }

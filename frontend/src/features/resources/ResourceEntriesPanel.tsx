@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -61,14 +62,26 @@ export function ResourceEntriesPanel({
   const [importOpen, setImportOpen] = useState(false)
   const [importFormat, setImportFormat] = useState<ExportFormat>('json')
   const [importFile, setImportFile] = useState<File | null>(null)
+  const [importDragging, setImportDragging] = useState(false)
   const [importPaste, setImportPaste] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
 
   const schemaFieldNames = useMemo(
     () => fields.filter((f) => !(f.hidden ?? false)).map((f) => f.name),
     [fields],
   )
+
+  const allExportFieldNames = useMemo(
+    () => [...SYSTEM_EXPORT_FIELDS, ...schemaFieldNames],
+    [schemaFieldNames],
+  )
+
+  const allExportFieldsSelected =
+    exportAll ||
+    (allExportFieldNames.length > 0 &&
+      allExportFieldNames.every((name) => exportFields.includes(name)))
 
   const queryKey = useMemo(
     () => ['resource-entries', resourceId, page, search, sort] as const,
@@ -204,7 +217,7 @@ export function ResourceEntriesPanel({
   function openExport() {
     setExportFormat('json')
     setExportAll(true)
-    setExportFields([...SYSTEM_EXPORT_FIELDS, ...schemaFieldNames])
+    setExportFields(allExportFieldNames)
     setExportError(null)
     setExportOpen(true)
   }
@@ -212,22 +225,36 @@ export function ResourceEntriesPanel({
   function openImport() {
     setImportFormat('json')
     setImportFile(null)
+    setImportDragging(false)
     setImportPaste('')
     setImportError(null)
     setImportResult(null)
     setImportOpen(true)
   }
 
-  function toggleExportField(name: string) {
-    setExportAll(false)
-    setExportFields((prev) =>
-      prev.includes(name) ? prev.filter((f) => f !== name) : [...prev, name],
-    )
+  function assignImportFile(file: File | null) {
+    setImportFile(file)
+    setImportResult(null)
+    setImportError(null)
   }
 
-  function selectAllExportFields() {
+  function toggleExportField(name: string) {
+    const base = exportAll ? allExportFieldNames : exportFields
+    const next = base.includes(name) ? base.filter((f) => f !== name) : [...base, name]
+    const selectedAll =
+      allExportFieldNames.length > 0 && allExportFieldNames.every((field) => next.includes(field))
+    setExportAll(selectedAll)
+    setExportFields(next)
+  }
+
+  function toggleAllExportFields() {
+    if (allExportFieldsSelected) {
+      setExportAll(false)
+      setExportFields([])
+      return
+    }
     setExportAll(true)
-    setExportFields([...SYSTEM_EXPORT_FIELDS, ...schemaFieldNames])
+    setExportFields(allExportFieldNames)
   }
 
   if (!published) {
@@ -386,7 +413,13 @@ export function ResourceEntriesPanel({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label>{t('entries.fields')}</Label>
-                <Button type="button" size="sm" variant="ghost" onClick={selectAllExportFields}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={allExportFieldsSelected ? 'secondary' : 'ghost'}
+                  aria-pressed={allExportFieldsSelected}
+                  onClick={toggleAllExportFields}
+                >
                   {t('entries.selectAllFields')}
                 </Button>
               </div>
@@ -457,16 +490,71 @@ export function ResourceEntriesPanel({
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="import-file">{t('entries.importFile')}</Label>
-              <Input
+              <Label>{t('entries.importFile')}</Label>
+              <input
+                ref={importFileInputRef}
                 id="import-file"
                 type="file"
+                className="hidden"
                 accept={importFormat === 'csv' ? '.csv,text/csv' : '.json,application/json'}
                 onChange={(e) => {
-                  setImportFile(e.target.files?.[0] ?? null)
-                  setImportResult(null)
+                  assignImportFile(e.target.files?.[0] ?? null)
+                  e.target.value = ''
                 }}
               />
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={t('entries.importDropzone')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    importFileInputRef.current?.click()
+                  }
+                }}
+                onClick={() => importFileInputRef.current?.click()}
+                onDragEnter={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setImportDragging(true)
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setImportDragging(true)
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const next = e.relatedTarget as Node | null
+                  if (next && e.currentTarget.contains(next)) return
+                  setImportDragging(false)
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setImportDragging(false)
+                  assignImportFile(e.dataTransfer.files?.[0] ?? null)
+                }}
+                className={cn(
+                  'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors',
+                  importDragging
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/40',
+                )}
+              >
+                <Upload className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 space-y-0.5">
+                  <p className="truncate text-sm font-medium">
+                    {importFile ? importFile.name : t('entries.importDropzone')}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {importFile
+                      ? t('entries.importDropzoneChange')
+                      : t('entries.importDropzoneHint')}
+                  </p>
+                </div>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="import-paste">{t('entries.importPaste')}</Label>

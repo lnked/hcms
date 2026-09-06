@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.33.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Email public APIs + import UX",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "POST /api/integrations/email/send and custom /{slug} endpoints (token-only, Email grant)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Integrations: custom email API CRUD, path copy, and playground"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "API tokens: Email integration grant (canUse)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Resources Data: import drag-and-drop / file picker polish; export select-all"
+        },
+        {
+          "type": "changed",
+          "area": "tooling",
+          "text": "Move clean.php under scripts/; drop one-shot fix.php/fix2.php from tree"
+        }
+      ]
+    },
+    {
       "version": "0.32.0",
       "date": "2026-09-06",
       "channel": "stable",

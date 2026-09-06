@@ -41,6 +41,7 @@ use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
+use Cms\Http\Controllers\PublicIntegrationApiController;
 use Cms\Http\Controllers\ResourceApiController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SettingsController;
@@ -48,6 +49,8 @@ use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Http\Controllers\UsersController;
 use Cms\Install\Installer;
+use Cms\Integrations\IntegrationApiRepository;
+use Cms\Integrations\IntegrationApiService;
 use Cms\Mail\EmailIntegration;
 use Cms\Mail\Mailer;
 use Cms\Media\MediaService;
@@ -339,6 +342,7 @@ final class Kernel
                 $this->db !== null ? new FieldRepository($this->db) : null,
                 $this->db !== null ? $metadata : null,
                 $this->db !== null ? new ResourceApiRepository($this->db) : null,
+                $this->db !== null ? new IntegrationApiRepository($this->db) : null,
             ),
         );
 
@@ -848,6 +852,30 @@ final class Kernel
 
         if ($this->db !== null) {
             $resourceApiRepo = new ResourceApiRepository($this->db);
+            $integrationApiService = new IntegrationApiService(
+                new IntegrationApiRepository($this->db),
+                $metadata,
+            );
+            $settingsForMail = new Settings($this->db);
+            $emailIntegration = new EmailIntegration($settingsForMail);
+            $mailer = new Mailer($settingsForMail, $emailIntegration);
+            $tokenGrants = new TokenGrantRepository($this->db);
+            $publicIntegrations = new PublicIntegrationApiController(
+                $mailer,
+                $integrationApiService,
+                $tokenGrants,
+            );
+            foreach (['/api', '/api/v1'] as $apiPrefix) {
+                $this->router->add('POST', $apiPrefix . '/integrations/email/send', function (Request $request, array $params, ?AuthContext $context) use ($publicIntegrations): Response {
+                    unset($params);
+
+                    return $publicIntegrations->sendEmail($request, $context);
+                }, true, 'api');
+                $this->router->add('POST', $apiPrefix . '/integrations/email/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicIntegrations): Response {
+                    return $publicIntegrations->sendEmailCustom($request, (string) $params['slug'], $context);
+                }, true, 'api');
+            }
+
             $publicApi = new PublicApiController(
                 new QueryEngine(
                     $this->db,
@@ -856,7 +884,7 @@ final class Kernel
                     $resourceApiRepo,
                 ),
                 new ResourceRepository($this->db),
-                new TokenGrantRepository($this->db),
+                $tokenGrants,
                 $resourceApiRepo,
             );
             foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
@@ -954,9 +982,14 @@ final class Kernel
 
             $settings = new Settings($this->db);
             $emailIntegration = new EmailIntegration($settings);
+            $integrationApiService = new IntegrationApiService(
+                new IntegrationApiRepository($this->db),
+                $metadata,
+            );
             $integrations = new IntegrationsController(
                 $emailIntegration,
                 new Mailer($settings, $emailIntegration),
+                $integrationApiService,
                 $this->audit ?? new AuditLogger($this->db),
             );
             $this->router->add('GET', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
@@ -982,6 +1015,43 @@ final class Kernel
                 }
 
                 return $integrations->testEmail($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/integrations/email/apis', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->listEmailApis($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/integrations/email/apis', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->createEmailApi($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->getEmailApi($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PATCH', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->updateEmailApi($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->deleteEmailApi($request, $context, (int) $params['id']);
             });
         }
     }

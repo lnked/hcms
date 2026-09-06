@@ -6,15 +6,18 @@ declare(strict_types=1);
  * TEMP test helper — wipe install state for re-install.
  * DELETE THIS FILE after testing.
  *
- * Usage:
- *   /clean.php              → status + confirm button
- *   /clean.php?confirm=1    → run wipe (also accepts POST confirm=1)
+ * Usage (from project root):
+ *   php scripts/clean.php              → status + confirm prompt
+ *   php scripts/clean.php --confirm    → run wipe
+ *   # or via browser if scripts/ is exposed:
+ *   /scripts/clean.php?confirm=1
  */
 
-$root = __DIR__;
+$root = dirname(__DIR__);
 $envFile = $root . '/.env';
 $lockFile = $root . '/storage/installed.lock';
-$confirm = ($_GET['confirm'] ?? $_POST['confirm'] ?? '') === '1';
+$confirm = ($_GET['confirm'] ?? $_POST['confirm'] ?? '') === '1'
+    || (PHP_SAPI === 'cli' && in_array('--confirm', $argv ?? [], true));
 
 header('Content-Type: text/html; charset=utf-8');
 
@@ -411,7 +414,10 @@ if (!$confirm) {
 
     echo '<form method="post"><input type="hidden" name="confirm" value="1"/>';
     echo '<button type="submit">Wipe DB + install state</button></form>';
-    echo '<p><a href="/install.php">install.php</a> · <a href="/admin">/admin</a> · <a href="/fix2.php">fix2.php</a></p>';
+    echo '<p><a href="/install.php">install.php</a> · <a href="/admin">/admin</a></p>';
+    if (PHP_SAPI === 'cli' || PHP_SAPI === 'phpdbg') {
+        echo '<p class="muted">CLI: re-run with <code>--confirm</code> to wipe.</p>';
+    }
     echo '</body></html>';
     exit;
 }
@@ -440,6 +446,6 @@ if ($error !== null) {
     echo '<p class="err">' . h($error) . '</p>';
 }
 echo '<pre>' . h(implode("\n", $log === [] ? ['(nothing to do)'] : $log)) . '</pre>';
-echo '<p><a href="/install.php">→ install.php</a> · <a href="/clean.php">clean again</a></p>';
-echo '<p class="err">DELETE clean.php when done testing.</p>';
+echo '<p><a href="/install.php">→ install.php</a> · <a href="/scripts/clean.php">clean again</a></p>';
+echo '<p class="err">DELETE scripts/clean.php when done testing.</p>';
 echo '</body></html>';

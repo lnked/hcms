@@ -32,7 +32,14 @@ final class ApiTokenService
              ORDER BY id DESC",
         );
 
-        return array_map(fn (array $row): array => $this->serialize($row, $this->grants->forToken((int) $row['id'])), $rows);
+        return array_map(
+            fn (array $row): array => $this->serialize(
+                $row,
+                $this->grants->forToken((int) $row['id']),
+                $this->grants->integrationGrantsForToken((int) $row['id']),
+            ),
+            $rows,
+        );
     }
 
     /**
@@ -45,7 +52,11 @@ final class ApiTokenService
             throw new RuntimeException('Token not found', 404);
         }
 
-        return $this->serialize($row, $this->grants->forToken($id));
+        return $this->serialize(
+            $row,
+            $this->grants->forToken($id),
+            $this->grants->integrationGrantsForToken($id),
+        );
     }
 
     /**
@@ -69,9 +80,11 @@ final class ApiTokenService
             throw new InvalidArgumentException('grants must be an array');
         }
         $normalized = $this->normalizeGrants($grantInput);
+        $integrationGrants = $this->normalizeIntegrationGrants($payload['integrationGrants'] ?? []);
 
         $issued = $this->tokens->issue('api', null, $name, $expiresAt);
         $this->grants->replace($issued['id'], $normalized);
+        $this->grants->replaceIntegrationGrants($issued['id'], $integrationGrants);
 
         return [
             'token' => $issued['token'],
@@ -93,6 +106,9 @@ final class ApiTokenService
             throw new InvalidArgumentException('grants must be an array');
         }
         $this->grants->replace($id, $this->normalizeGrants($grantInput));
+        if (array_key_exists('integrationGrants', $payload)) {
+            $this->grants->replaceIntegrationGrants($id, $this->normalizeIntegrationGrants($payload['integrationGrants']));
+        }
 
         return $this->get($id);
     }
@@ -151,11 +167,42 @@ final class ApiTokenService
     }
 
     /**
+     * @param mixed $input
+     * @return list<array{integrationKey: string, canUse: bool}>
+     */
+    private function normalizeIntegrationGrants(mixed $input): array
+    {
+        if (!is_array($input)) {
+            return [];
+        }
+        $allowed = ['email'];
+        $out = [];
+        foreach ($input as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $key = isset($item['integrationKey']) && is_string($item['integrationKey'])
+                ? trim($item['integrationKey'])
+                : '';
+            if ($key === '' || !in_array($key, $allowed, true)) {
+                throw new InvalidArgumentException('Unknown integrationKey: ' . $key);
+            }
+            $out[] = [
+                'integrationKey' => $key,
+                'canUse' => (bool) ($item['canUse'] ?? false),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param array<string, mixed> $row
      * @param list<array<string, mixed>> $grants
+     * @param list<array<string, mixed>> $integrationGrants
      * @return array<string, mixed>
      */
-    private function serialize(array $row, array $grants): array
+    private function serialize(array $row, array $grants, array $integrationGrants = []): array
     {
         return [
             'id' => (int) $row['id'],
@@ -174,6 +221,11 @@ final class ApiTokenService
                 'canUpdate' => (bool) $g['can_update'],
                 'canDelete' => (bool) $g['can_delete'],
             ], $grants),
+            'integrationGrants' => array_map(static fn (array $g): array => [
+                'id' => (int) $g['id'],
+                'integrationKey' => (string) $g['integration_key'],
+                'canUse' => (bool) $g['can_use'],
+            ], $integrationGrants),
         ];
     }
 }

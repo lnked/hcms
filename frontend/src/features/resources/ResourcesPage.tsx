@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { copyToClipboard } from '@/lib/clipboard'
 import type { Resource } from '@/types/resource'
 
 export function ResourcesPage() {
@@ -47,10 +48,14 @@ export function ResourcesPage() {
   }, [])
 
   const copyEndpoint = async (endpoint: string) => {
-    await navigator.clipboard.writeText(endpoint)
-    setCopiedToast(true)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setCopiedToast(false), 2000)
+    try {
+      await copyToClipboard(endpoint)
+      setCopiedToast(true)
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+      toastTimer.current = setTimeout(() => setCopiedToast(false), 2000)
+    } catch {
+      // ignore — nothing to show if clipboard is fully blocked
+    }
   }
 
   const resources = query.data ?? []
@@ -99,7 +104,7 @@ export function ResourcesPage() {
                     <TableCell className="font-mono text-xs">
                       <button
                         type="button"
-                        className="cursor-pointer underline underline-offset-2 hover:text-primary"
+                        className="cursor-pointer underline decoration-dashed underline-offset-2 hover:text-primary"
                         onClick={() => void copyEndpoint(resource.endpoint)}
                       >
                         {resource.endpoint}
