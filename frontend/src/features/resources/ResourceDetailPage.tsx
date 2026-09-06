@@ -241,6 +241,7 @@ export function ResourceDetailPage() {
       {tab === 'data' ? (
         <ResourceEntriesPanel
           resourceId={resource.id}
+          resourceSlug={resource.slug}
           fields={fieldsQuery.data ?? schema}
           published={resource.status === 'published'}
         />

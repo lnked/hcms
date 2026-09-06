@@ -49,6 +49,7 @@ use Cms\Http\Controllers\UsersController;
 use Cms\Install\Installer;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
+use Cms\Resources\EntryImportExportService;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
@@ -608,10 +609,12 @@ final class Kernel
                 new ResourceRepository($this->db),
                 new FieldRepository($this->db),
             );
+            $entryImportExport = new EntryImportExportService($queryEngine);
             $entries = new EntriesController(
                 $queryEngine,
                 new ResourceRepository($this->db),
                 $audit,
+                $entryImportExport,
             );
             $this->router->add('GET', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
                 if ($context === null) {
@@ -626,6 +629,20 @@ final class Kernel
                 }
 
                 return $entries->create($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/entries/export', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->export($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/entries/import', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->import($request, $context, (int) $params['id']);
             });
             $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
                 if ($context === null) {

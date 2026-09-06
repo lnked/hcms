@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.30.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Resource entries CSV/JSON import/export",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources → Data: export all entries as CSV or JSON with field selection"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources → Data: import entries from CSV/JSON (create-only; ids ignored)"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Admin API: GET .../entries/export and POST .../entries/import"
+        }
+      ]
+    },
+    {
       "version": "0.29.0",
       "date": "2026-09-06",
       "channel": "stable",

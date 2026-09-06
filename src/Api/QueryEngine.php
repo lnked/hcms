@@ -88,6 +88,20 @@ final class QueryEngine
 
     /**
      * @param array{public?: bool} $options
+     * @return list<array<string, mixed>>
+     */
+    public function listAll(string $slug, array $options = []): array
+    {
+        [, $table, $fieldMap] = $this->resolve($slug, $options);
+        $rows = $this->db->select(
+            'SELECT * FROM `' . $table . '` WHERE `deleted_at` IS NULL ORDER BY `id` ASC',
+        );
+
+        return array_map(fn (array $row): array => $this->serialize($row, $fieldMap), $rows);
+    }
+
+    /**
+     * @param array{public?: bool} $options
      * @return array<string, mixed>
      */
     public function find(string $slug, int $id, array $options = []): array
