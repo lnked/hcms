@@ -26,6 +26,16 @@
   --sidebar-foreground: oklch(0.22 0.02 250);
   --sidebar-border: oklch(0.9 0.015 250);
   --sidebar-accent: oklch(0.94 0.03 250);
+  --sh-class: #0550ae;
+  --sh-identifier: #24292f;
+  --sh-sign: #6e7781;
+  --sh-property: #0550ae;
+  --sh-entity: #116329;
+  --sh-jsxliterals: #8250df;
+  --sh-string: #0a3069;
+  --sh-keyword: #cf222e;
+  --sh-comment: #6e7781;
+  --sh-space: transparent;
 }
 
 .dark {
@@ -51,6 +61,16 @@
   --sidebar-foreground: oklch(0.95 0.01 250);
   --sidebar-border: #4e4e4e;
   --sidebar-accent: oklch(0.3 0.04 255);
+  --sh-class: #7ee787;
+  --sh-identifier: #e6edf3;
+  --sh-sign: #8b949e;
+  --sh-property: #79c0ff;
+  --sh-entity: #7ee787;
+  --sh-jsxliterals: #d2a8ff;
+  --sh-string: #a5d6ff;
+  --sh-keyword: #ff7b72;
+  --sh-comment: #8b949e;
+  --sh-space: transparent;
 }
 
 @theme inline {
@@ -90,3 +110,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+.docs-code .sh__line {
+  display: block;
+  min-height: 1.25em;
+}
+

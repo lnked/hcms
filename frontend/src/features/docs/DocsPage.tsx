@@ -102,6 +102,7 @@ export function DocsPage() {
                   key={`${sample.language}-${sample.label ?? ''}-${sample.code.slice(0, 40)}`}
                   code={sample.code}
                   label={sample.label}
+                  language={sample.language}
                 />
               ))}
               {section.links && section.links.length > 0 ? (

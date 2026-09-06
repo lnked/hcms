@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.38.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Docs code highlighting + copy UX",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Documentation: syntax highlighting for code samples (sugar-high)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Documentation: copy control is an icon button in the top-right of each code block"
+        }
+      ]
+    },
+    {
       "version": "0.37.0",
       "date": "2026-09-06",
       "channel": "stable",
