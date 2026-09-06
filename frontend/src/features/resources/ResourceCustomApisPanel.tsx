@@ -341,6 +341,27 @@ export function ResourceCustomApisPanel({
                   const relatedFields = relatedFieldsQuery.data?.[join.relatedSlug] ?? []
                   return (
                     <div key={index} className="space-y-3 rounded-md border p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium">
+                          {t('resources.customApis.joinItem', { n: index + 1 })}
+                        </p>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0"
+                          aria-label={t('resources.customApis.removeJoin')}
+                          title={t('resources.customApis.removeJoin')}
+                          onClick={() =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              joins: prev.joins.filter((_, i) => i !== index),
+                            }))
+                          }
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label>{t('resources.customApis.joinAs')}</Label>
@@ -420,18 +441,6 @@ export function ResourceCustomApisPanel({
                           </div>
                         </div>
                       ) : null}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            joins: prev.joins.filter((_, i) => i !== index),
-                          }))
-                        }
-                      >
-                        {t('resources.customApis.removeJoin')}
-                      </Button>
                     </div>
                   )
                 })

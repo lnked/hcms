@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { GripVertical, Plus, Settings2, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,8 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const { t } = useI18n()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [overIndex, setOverIndex] = useState<number | null>(null)
+  const dragIndexRef = useRef<number | null>(null)
   const editFormRef = useRef<HTMLDivElement>(null)
   const scrollToEditRef = useRef(false)
 
@@ -46,16 +48,50 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     }
   }
 
-  function onDrop(targetIndex: number) {
-    if (dragIndex === null || dragIndex === targetIndex) {
-      setDragIndex(null)
-      return
-    }
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= schema.length || to >= schema.length) return
     const next = [...schema]
-    const [moved] = next.splice(dragIndex, 1)
-    next.splice(targetIndex, 0, moved)
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
     onChange(next.map((field, i) => ({ ...field, sortOrder: i })))
+    setEditingIndex((current) => {
+      if (current === null) return null
+      if (current === from) return to
+      if (from < current && to >= current) return current - 1
+      if (from > current && to <= current) return current + 1
+      return current
+    })
+  }
+
+  function onGripDragStart(index: number, event: DragEvent<HTMLButtonElement>) {
+    dragIndexRef.current = index
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(index))
+    // Defer paint so React re-render does not cancel the native drag.
+    requestAnimationFrame(() => setDragIndex(index))
+  }
+
+  function onGripDragEnd() {
+    dragIndexRef.current = null
     setDragIndex(null)
+    setOverIndex(null)
+  }
+
+  function onRowDragOver(index: number, event: DragEvent<HTMLLIElement>) {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    if (overIndex !== index) setOverIndex(index)
+  }
+
+  function onRowDrop(index: number, event: DragEvent<HTMLLIElement>) {
+    event.preventDefault()
+    const raw = event.dataTransfer.getData('text/plain')
+    const from = dragIndexRef.current ?? (raw === '' ? null : Number(raw))
+    dragIndexRef.current = null
+    setDragIndex(null)
+    setOverIndex(null)
+    if (from === null || Number.isNaN(from)) return
+    reorder(from, index)
   }
 
   function changeType(index: number, type: FieldTypeName) {
@@ -99,15 +135,27 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
       <ul className="space-y-2">
         {schema.map((field, index) => (
           <li
-            key={`${field.id ?? 'new'}-${index}`}
-            draggable
-            onDragStart={() => setDragIndex(index)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => onDrop(index)}
-            className={cn('rounded-lg border bg-card', dragIndex === index && 'opacity-60')}
+            key={field.id != null ? `field-${field.id}` : `new-${field.name || index}`}
+            onDragOver={(e) => onRowDragOver(index, e)}
+            onDrop={(e) => onRowDrop(index, e)}
+            className={cn(
+              'rounded-lg border bg-card',
+              dragIndex === index && 'opacity-60',
+              overIndex === index && dragIndex !== null && dragIndex !== index && 'border-primary',
+            )}
           >
             <div className="flex items-center gap-2 px-3 py-2">
-              <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground" />
+              <button
+                type="button"
+                draggable
+                aria-label={t('schema.reorder')}
+                title={t('schema.reorder')}
+                className="inline-flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent active:cursor-grabbing"
+                onDragStart={(e) => onGripDragStart(index, e)}
+                onDragEnd={onGripDragEnd}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">

@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.28.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Media library views, schema drag reorder",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Media: sticky upload dropzone, denser list grid, and table view toggle"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Schema builder: reliable field reorder via grip handle (native drag no longer cancelled by React re-render)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Sidebar: Swagger brand icon for API docs; changelog moved below settings"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Custom APIs: join cards show numbered title with icon remove control"
+        }
+      ]
+    },
+    {
       "version": "0.27.0",
       "date": "2026-09-06",
       "channel": "stable",

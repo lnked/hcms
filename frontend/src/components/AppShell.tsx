@@ -1,6 +1,5 @@
 import {
   Activity,
-  BookOpen,
   FileText,
   Image,
   KeyRound,
@@ -13,7 +12,7 @@ import {
   Sun,
   Users,
 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -57,6 +56,18 @@ function SidebarLabel({ collapsed, children }: { collapsed: boolean; children: R
   )
 }
 
+/** Official Swagger mark (Simple Icons), brand green #85EA2D */
+function SwaggerIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+      <path
+        fill="currentColor"
+        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm4.691 18.194a.793.793 0 0 1-.791.791H8.1a.793.793 0 0 1-.791-.791V5.806c0-.436.355-.791.791-.791h7.8c.436 0 .791.355.791.791v12.388zm-1.184-9.682h-5.014v1.38h5.014zm0 2.761h-5.014v1.379h5.014zm0 2.76h-5.014v1.38h5.014z"
+      />
+    </svg>
+  )
+}
+
 export function AppShell() {
   const { t, setLocale } = useI18n()
   const { resolved, toggleLightDark } = useTheme()
@@ -89,10 +100,10 @@ export function AppShell() {
     { to: '/resources', label: t('nav.resources'), icon: FileText },
     { to: '/media', label: t('nav.media'), icon: Image },
     { to: '/logs', label: t('nav.logs'), icon: Activity },
-    { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
     { to: '/settings/tokens', label: t('nav.tokens'), icon: KeyRound },
     { to: '/settings/users', label: t('nav.users'), icon: Users },
     { to: '/settings/system', label: t('nav.system'), icon: Settings },
+    { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
   ]
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -159,11 +170,11 @@ export function AppShell() {
             href="/api/docs"
             title={collapsed ? t('nav.docs') : undefined}
             className={cn(
-              'flex items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
+              'flex items-center rounded-md py-2 text-sm text-[#85EA2D] hover:bg-sidebar-accent',
               collapsed ? 'justify-center px-0' : 'gap-2 px-3',
             )}
           >
-            <BookOpen className="h-4 w-4 shrink-0" />
+            <SwaggerIcon className="h-4 w-4 shrink-0" />
             <SidebarLabel collapsed={collapsed}>{t('nav.docs')}</SidebarLabel>
           </a>
         </nav>
