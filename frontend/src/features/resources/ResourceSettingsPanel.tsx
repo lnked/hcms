@@ -16,16 +16,18 @@ interface ResourceSettingsPanelProps {
 const selectClass =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
+const DEFAULT_SPAM: NonNullable<ResourceSettings['spam']> = {
+  honeypotField: '',
+  minSubmitMs: 0,
+  rateLimitPerMinute: 0,
+  requireCaptcha: false,
+  maxLinks: 0,
+  blocklist: [],
+  rejectDuplicates: true,
+}
+
 function cloneSettings(settings: ResourceSettings): ResourceSettings {
-  const spam = settings.spam ?? {
-    honeypotField: '',
-    minSubmitMs: 0,
-    rateLimitPerMinute: 0,
-    requireCaptcha: false,
-    maxLinks: 0,
-    blocklist: [],
-    rejectDuplicates: true,
-  }
+  const spam = settings.spam ?? DEFAULT_SPAM
   return {
     ...settings,
     public: { ...settings.public },
@@ -78,10 +80,10 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
     setMessage(null)
   }
 
-  function patchSpam(partial: Partial<ResourceSettings['spam']>) {
+  function patchSpam(partial: Partial<NonNullable<ResourceSettings['spam']>>) {
     setSettings((prev) => ({
       ...prev,
-      spam: { ...prev.spam, ...partial },
+      spam: { ...(prev.spam ?? DEFAULT_SPAM), ...partial },
     }))
     setMessage(null)
   }
