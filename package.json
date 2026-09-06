@@ -9,10 +9,10 @@
     "typecheck": "npm run typecheck --prefix frontend",
     "test": "npm run test --prefix frontend",
     "qa": "npm run qa --prefix frontend",
-    "prerelease": "bash scripts/prerelease.sh",
-    "prerelease:patch": "bash scripts/prerelease.sh patch",
-    "prerelease:minor": "bash scripts/prerelease.sh minor",
-    "prerelease:major": "bash scripts/prerelease.sh major",
+    "bump": "bash scripts/prerelease.sh",
+    "bump:patch": "bash scripts/prerelease.sh patch",
+    "bump:minor": "bash scripts/prerelease.sh minor",
+    "bump:major": "bash scripts/prerelease.sh major",
     "release": "PUBLISH=1 bash scripts/release.sh",
     "release:dry": "bash scripts/release.sh"
   }

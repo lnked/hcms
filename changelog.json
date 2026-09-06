@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.32.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Hosting layout one-shot fixers",
+      "changes": [
+        {
+          "type": "added",
+          "area": "tooling",
+          "text": "fix.php: one-shot shared-hosting layout fixer (nested public_html / CMS_PUBLIC_DIR)"
+        },
+        {
+          "type": "added",
+          "area": "tooling",
+          "text": "fix2.php: sync admin SPA assets across public/public_html/admin folders"
+        }
+      ]
+    },
+    {
       "version": "0.31.0",
       "date": "2026-09-06",
       "channel": "stable",
@@ -29,7 +47,7 @@
         {
           "type": "added",
           "area": "tooling",
-          "text": "npm scripts: prerelease / release / release:dry"
+          "text": "npm scripts: bump / release / release:dry (avoid npm prerelease lifecycle)"
         }
       ]
     },
