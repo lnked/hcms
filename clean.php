@@ -144,6 +144,53 @@ function clean_wipe_files(string $root): array
         }
     }
 
+    // Package files from release zip — wipe so next install re-downloads (fixes stale Installer HY093).
+    foreach (['src', 'vendor', 'database'] as $dirName) {
+        $dir = $root . '/' . $dirName;
+        if (!is_dir($dir)) {
+            continue;
+        }
+        $it = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($it as $item) {
+            $p = $item->getPathname();
+            if ($item->isDir()) {
+                @rmdir($p);
+            } else {
+                @unlink($p);
+            }
+        }
+        @rmdir($dir);
+        $log[] = 'rmtree ' . $dirName;
+    }
+
+    $adminDir = $root . '/public/admin';
+    if (is_dir($adminDir)) {
+        $it = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($adminDir, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($it as $item) {
+            $p = $item->getPathname();
+            if ($item->isDir()) {
+                @rmdir($p);
+            } else {
+                @unlink($p);
+            }
+        }
+        @rmdir($adminDir);
+        $log[] = 'rmtree public/admin';
+    }
+
+    foreach ([$root . '/VERSION', $root . '/changelog.json', $root . '/composer.json', $root . '/composer.lock'] as $path) {
+        if (is_file($path)) {
+            @unlink($path);
+            $log[] = 'unlink ' . str_replace($root . '/', '', $path);
+        }
+    }
+
     return $log;
 }
 
@@ -157,7 +204,7 @@ if (!$confirm) {
     echo '.warn{background:#fef2f2;border:1px solid #fecaca;padding:12px;border-radius:8px;margin:16px 0}';
     echo 'button{background:#18181b;color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}</style></head><body>';
     echo '<h1>HCMS clean.php (TEMP)</h1>';
-    echo '<div class="warn"><strong>Test only.</strong> Deletes .env, installed.lock, cms_*/res_* tables, uploads/backups cache junk. Delete this file after testing.</div>';
+    echo '<div class="warn"><strong>Test only.</strong> Deletes .env, installed.lock, cms_*/res_* tables, uploads/backups, and package dirs (src/vendor/database/public/admin) so install re-downloads. Delete this file after testing.</div>';
     echo '<p>.env: ' . ($hasEnv ? 'yes' : 'no') . '</p>';
     echo '<p>installed.lock: ' . ($hasLock ? 'yes' : 'no') . '</p>';
     echo '<p>DB: ' . h($env['DB_DATABASE'] ?? '(none)') . ' @ ' . h($env['DB_HOST'] ?? '-') . '</p>';

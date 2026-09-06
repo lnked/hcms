@@ -24,9 +24,9 @@ final class ReleaseDownloader
     /**
      * @return array<string, mixed>
      */
-    public function download(): array
+    public function download(bool $force = false): array
     {
-        if ($this->srcReady()) {
+        if (!$force && $this->srcReady()) {
             return ['skipped' => true, 'reason' => 'src_present'];
         }
 

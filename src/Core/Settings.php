@@ -65,15 +65,15 @@ final class Settings
         );
         if ($existing === null) {
             $this->db->execute(
-                'INSERT INTO cms_settings (`key`, value_json, updated_at) VALUES (:key, :value, :now)',
-                ['key' => $key, 'value' => $encoded, 'now' => $now],
+                'INSERT INTO cms_settings (`key`, value_json, updated_at) VALUES (?, ?, ?)',
+                [$key, $encoded, $now],
             );
 
             return;
         }
         $this->db->execute(
-            'UPDATE cms_settings SET value_json = :value, updated_at = :now WHERE `key` = :key',
-            ['key' => $key, 'value' => $encoded, 'now' => $now],
+            'UPDATE cms_settings SET value_json = ?, updated_at = ? WHERE `key` = ?',
+            [$encoded, $now, $key],
         );
     }
 }

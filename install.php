@@ -35,11 +35,16 @@ $root = __DIR__;
 $lock = $root . '/storage/installed.lock';
 $autoload = $root . '/vendor/autoload.php';
 $action = $_GET['action'] ?? null;
+/** @var array<string, mixed>|null $requestBody */
+$requestBody = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode((string) file_get_contents('php://input'), true);
-    if (is_array($input) && isset($input['action']) && is_string($input['action'])) {
-        $action = $input['action'];
+    $decoded = json_decode((string) file_get_contents('php://input'), true);
+    if (is_array($decoded)) {
+        $requestBody = $decoded;
+        if (isset($decoded['action']) && is_string($decoded['action'])) {
+            $action = $decoded['action'];
+        }
     }
 }
 
@@ -51,7 +56,7 @@ if (is_file($lock) && $wantsJson && $action !== 'status') {
 }
 
 if ($wantsJson) {
-    cms_install_api($root, $autoload, $lock, is_string($action) ? $action : 'status');
+    cms_install_api($root, $autoload, $lock, is_string($action) ? $action : 'status', $requestBody);
 }
 
 if (is_file($lock)) {
@@ -77,9 +82,11 @@ function cms_install_send(int $status, array $payload)
 }
 
 /** @return never */
-function cms_install_api(string $root, string $autoload, string $lock, string $action)
+function cms_install_api(string $root, string $autoload, string $lock, string $action, ?array $requestBody = null)
 {
     try {
+        $force = is_array($requestBody) && !empty($requestBody['force']);
+
         if (is_file($autoload)) {
             require $autoload;
             $paths = new Cms\Core\Paths($root);
@@ -93,11 +100,12 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
                 cms_install_send(200, ['data' => $downloader->srcReady() ? ['skipped' => true] : $downloader->latestManifest()]);
             }
             if ($action === 'download') {
-                cms_install_send(200, $downloader->download());
+                cms_install_send(200, $downloader->download($force));
             }
             if ($action === 'test-connection') {
-                $input = json_decode((string) file_get_contents('php://input'), true);
-                $db = is_array($input) && isset($input['database']) && is_array($input['database']) ? $input['database'] : [];
+                $db = is_array($requestBody) && isset($requestBody['database']) && is_array($requestBody['database'])
+                    ? $requestBody['database']
+                    : [];
                 $result = $installer->testConnection($db);
                 cms_install_send($result['ok'] ? 200 : 400, $result);
             }
@@ -105,8 +113,7 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
                 if (is_file($lock)) {
                     cms_install_send(403, ['error' => ['code' => 'INSTALLED', 'message' => 'CMS is already installed']]);
                 }
-                $input = json_decode((string) file_get_contents('php://input'), true);
-                $installer->complete(is_array($input) ? $input : []);
+                $installer->complete(is_array($requestBody) ? $requestBody : []);
                 cms_install_send(200, ['ok' => true, 'adminUrl' => '/admin']);
             }
 
@@ -123,7 +130,7 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
         }
 
         if ($action === 'download') {
-            cms_install_inline_download($root);
+            cms_install_inline_download($root, $force);
         }
 
         cms_install_send(409, [
@@ -156,9 +163,9 @@ function cms_install_requirements(string $root): array
 }
 
 /** @return never */
-function cms_install_inline_download(string $root)
+function cms_install_inline_download(string $root, bool $force = false)
 {
-    if (is_file($root . '/src/bootstrap.php')) {
+    if (!$force && is_file($root . '/src/bootstrap.php')) {
         cms_install_send(200, ['skipped' => true, 'reason' => 'src_present']);
     }
 
@@ -565,6 +572,7 @@ function cms_install_html(): string
         <div id="req" class="checks"></div>
         <div class="row-actions">
           <button type="button" id="btnDownload">Download latest / continue</button>
+          <button type="button" id="btnForceDl" class="secondary" style="display:none">Re-download files</button>
         </div>
         <div id="dlProgress" class="progress-wrap">
           <div class="progress-track"><div id="dlFill" class="progress-fill"></div></div>
@@ -738,11 +746,12 @@ function cms_install_html(): string
       return msg;
     }
 
-    async function doDownload() {
+    async function doDownload(force = false) {
       $('dlLog').textContent = '';
       $('dlLog').className = 'status muted';
       $('dlRetryWrap').style.display = 'none';
       $('btnDownload').disabled = true;
+      $('btnForceDl').disabled = true;
       $('btnRetry').disabled = true;
       try {
         runPhasedProgress('dlProgress', 'dlFill', 'dlLabel', [
@@ -752,24 +761,30 @@ function cms_install_html(): string
           { pct: 78, label: 'Verifying…', indeterminate: true },
           { pct: 90, label: 'Extracting…', indeterminate: true }
         ]);
-        const status = await api('status');
-        if (status.srcReady) {
-          clearInterval(progressTimer);
-          setProgress('dlProgress', 'dlFill', 'dlLabel', 100, 'Files already present');
-          $('dlLog').className = 'status ok';
-          $('dlLog').textContent = 'Files already present — download skipped';
-          setTimeout(() => setWizardStep(1), 350);
-          return;
+        if (!force) {
+          const status = await api('status');
+          if (status.srcReady) {
+            clearInterval(progressTimer);
+            setProgress('dlProgress', 'dlFill', 'dlLabel', 100, 'Files already present');
+            $('dlLog').className = 'status ok';
+            $('dlLog').textContent = 'Files already present — continue, or re-download to refresh.';
+            $('btnForceDl').style.display = '';
+            $('btnDownload').disabled = !reqOk;
+            $('btnForceDl').disabled = !reqOk;
+            setTimeout(() => setWizardStep(1), 350);
+            return;
+          }
         }
         try {
           await api('latest');
           setProgress('dlProgress', 'dlFill', 'dlLabel', 22, 'Fetching release…');
         } catch (_) { /* optional when vendor missing */ }
-        const r = await api('download');
+        const r = await api('download', { force: !!force });
         clearInterval(progressTimer);
         setProgress('dlProgress', 'dlFill', 'dlLabel', 100, 'Done');
         $('dlLog').className = 'status ok';
         $('dlLog').textContent = r.skipped ? 'Files already present' : ('Downloaded ' + r.version);
+        $('btnForceDl').style.display = '';
         setTimeout(() => setWizardStep(1), 350);
       } catch (e) {
         clearInterval(progressTimer);
@@ -778,6 +793,7 @@ function cms_install_html(): string
         $('dlLog').textContent = friendlyDownloadError(e.message || 'Download failed');
         $('dlRetryWrap').style.display = 'flex';
         $('btnDownload').disabled = !reqOk;
+        $('btnForceDl').disabled = !reqOk;
         $('btnRetry').disabled = false;
       }
     }
@@ -858,16 +874,18 @@ function cms_install_html(): string
       if (s.installed) { location.href = '/admin'; return; }
       if (s.srcReady) {
         $('dlLog').className = 'status ok';
-        $('dlLog').textContent = 'Files already present — download skipped';
-        setWizardStep(1);
+        $('dlLog').textContent = 'Files already present — continue, or re-download to refresh.';
+        $('btnForceDl').style.display = '';
+        $('btnDownload').textContent = 'Continue';
       }
     }).catch((e) => {
       $('req').innerHTML = `<div class="check fail"><span class="dot">!</span><span>${e.message}</span></div>`;
       $('btnDownload').disabled = true;
     });
 
-    $('btnDownload').onclick = () => doDownload();
-    $('btnRetry').onclick = () => doDownload();
+    $('btnDownload').onclick = () => doDownload(false);
+    $('btnForceDl').onclick = () => doDownload(true);
+    $('btnRetry').onclick = () => doDownload(true);
 
     const db = () => ({
       host: $('dbHost').value, port: Number($('dbPort').value), name: $('dbName').value,

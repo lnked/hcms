@@ -142,11 +142,11 @@ final class Installer
         ];
         foreach ($settings as $key => $value) {
             $connection->execute(
-                'INSERT INTO cms_settings (`key`, value_json, updated_at) VALUES (:key, :value, :now)',
+                'INSERT INTO cms_settings (`key`, value_json, updated_at) VALUES (?, ?, ?)',
                 [
-                    'key' => $key,
-                    'value' => json_encode($value, JSON_UNESCAPED_SLASHES),
-                    'now' => date('Y-m-d H:i:s'),
+                    $key,
+                    json_encode($value, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+                    $now,
                 ],
             );
         }
