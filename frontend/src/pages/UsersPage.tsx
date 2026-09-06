@@ -46,6 +46,8 @@ export function UsersPage() {
   const me = useQuery({
     queryKey: ['auth-me', getToken()],
     queryFn: () => api<AuthUser>('/admin/api/auth/me'),
+    staleTime: 30_000,
+    refetchOnMount: false,
   })
 
   const users = useQuery({

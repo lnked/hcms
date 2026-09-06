@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.18.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Media dropzone, smoother sidebar",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Media: drag & drop + multi-file upload with progress"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Smooth sidebar collapse/expand animation; pointer cursor on buttons"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "RequireAuth loading gate; Users page auth-me refetch loop"
+        }
+      ]
+    },
+    {
       "version": "0.17.0",
       "date": "2026-09-06",
       "channel": "stable",

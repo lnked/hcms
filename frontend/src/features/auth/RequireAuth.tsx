@@ -25,7 +25,9 @@ export function RequireAuth() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   }
 
-  if (me.isLoading || me.isFetching) {
+  // Only block on initial load — background refetch must not unmount Outlet
+  // (UsersPage shares auth-me; remount+refetch would loop forever).
+  if (!me.data && (me.isLoading || me.isPending)) {
     return (
       <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
         Loading…

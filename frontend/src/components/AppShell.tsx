@@ -13,7 +13,7 @@ import {
   Sun,
   Users,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -25,6 +25,7 @@ import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
 import { useTheme } from '@/theme'
 
 const SIDEBAR_COLLAPSED_KEY = 'hcms.sidebar.collapsed'
+const SIDEBAR_EASE = 'duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]'
 
 function readCollapsed(): boolean {
   try {
@@ -40,6 +41,20 @@ function writeCollapsed(collapsed: boolean) {
   } catch {
     // ignore
   }
+}
+
+function SidebarLabel({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+        collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100',
+      )}
+      aria-hidden={collapsed}
+    >
+      {children}
+    </span>
+  )
 }
 
 export function AppShell() {
@@ -82,8 +97,7 @@ export function AppShell() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'flex items-center gap-2 rounded-md py-2 text-sm hover:bg-sidebar-accent',
-      collapsed ? 'justify-center px-0' : 'px-3',
+      'flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
       isActive && 'bg-sidebar-accent font-medium',
     )
 
@@ -94,24 +108,30 @@ export function AppShell() {
     <div className="min-h-svh">
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-30 flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200',
+          'fixed inset-y-0 left-0 z-30 flex flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width]',
+          SIDEBAR_EASE,
           collapsed ? 'w-14' : 'w-60',
         )}
       >
-        <div
-          className={cn(
-            'flex h-14 shrink-0 items-center',
-            collapsed ? 'justify-center px-1' : 'justify-between px-3',
-          )}
-        >
-          {!collapsed ? (
-            <div className="px-1 text-sm font-semibold tracking-tight">HCMS</div>
-          ) : null}
+        <div className="flex h-14 shrink-0 items-center gap-1 px-3">
+          <div
+            className={cn(
+              'overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width]',
+              SIDEBAR_EASE,
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-24 flex-1 opacity-100',
+            )}
+            aria-hidden={collapsed}
+          >
+            HCMS
+          </div>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-sidebar-foreground"
+            className={cn(
+              'h-8 w-8 shrink-0 text-sidebar-foreground',
+              collapsed && 'mx-auto',
+            )}
             onClick={toggleCollapsed}
             aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
             title={collapsed ? t('nav.expand') : t('nav.collapse')}
@@ -124,7 +144,7 @@ export function AppShell() {
           </Button>
         </div>
 
-        <nav className={cn('flex flex-1 flex-col gap-1', collapsed ? 'px-1.5' : 'px-2')}>
+        <nav className="flex flex-1 flex-col gap-1 px-2">
           {nav.map((item) => (
             <NavLink
               key={item.to}
@@ -134,78 +154,73 @@ export function AppShell() {
               className={linkClass}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {!collapsed ? <span className="truncate">{item.label}</span> : null}
+              <SidebarLabel collapsed={collapsed}>{item.label}</SidebarLabel>
             </NavLink>
           ))}
           <a
             href="/api/docs"
             title={collapsed ? t('nav.docs') : undefined}
-            className={cn(
-              'flex items-center gap-2 rounded-md py-2 text-sm hover:bg-sidebar-accent',
-              collapsed ? 'justify-center px-0' : 'px-3',
-            )}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
           >
             <BookOpen className="h-4 w-4 shrink-0" />
-            {!collapsed ? <span className="truncate">{t('nav.docs')}</span> : null}
+            <SidebarLabel collapsed={collapsed}>{t('nav.docs')}</SidebarLabel>
           </a>
         </nav>
 
-        <div
-          className={cn('space-y-2 border-t border-sidebar-border', collapsed ? 'p-1.5' : 'p-2')}
-        >
+        <div className="space-y-2 border-t border-sidebar-border p-2">
           <button
             type="button"
             onClick={toggleLightDark}
             title={t('nav.themeToggle')}
             aria-label={t('nav.themeToggle')}
             aria-pressed={isDark}
-            className={cn(
-              'flex w-full items-center rounded-md text-sm hover:bg-sidebar-accent',
-              collapsed ? 'justify-center px-0 py-2' : 'justify-between gap-2 px-3 py-2',
-            )}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
           >
-            {!collapsed ? (
-              <span className="flex items-center gap-2 truncate">
-                {isDark ? (
-                  <Moon className="h-4 w-4 shrink-0" />
-                ) : (
-                  <Sun className="h-4 w-4 shrink-0" />
-                )}
-                <span className="truncate">{themeLabel}</span>
-              </span>
-            ) : isDark ? (
+            {isDark ? (
               <Moon className="h-4 w-4 shrink-0" />
             ) : (
               <Sun className="h-4 w-4 shrink-0" />
             )}
-            {!collapsed ? (
+            <SidebarLabel collapsed={collapsed}>{themeLabel}</SidebarLabel>
+            <span
+              className={cn(
+                'relative ml-auto h-5 w-9 shrink-0 rounded-full transition-[opacity,colors]',
+                SIDEBAR_EASE,
+                isDark ? 'bg-primary' : 'bg-muted-foreground/30',
+                collapsed ? 'max-w-0 opacity-0' : 'max-w-9 opacity-100',
+              )}
+              aria-hidden={collapsed}
+            >
               <span
                 className={cn(
-                  'relative h-5 w-9 shrink-0 rounded-full transition-colors',
-                  isDark ? 'bg-primary' : 'bg-muted-foreground/30',
+                  'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-background shadow transition-transform',
+                  SIDEBAR_EASE,
+                  isDark && 'translate-x-4',
                 )}
-              >
-                <span
-                  className={cn(
-                    'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-background shadow transition-transform',
-                    isDark && 'translate-x-4',
-                  )}
-                />
-              </span>
-            ) : null}
+              />
+            </span>
           </button>
 
           <div
             className={cn(
-              'flex items-center gap-2 py-1 text-xs text-muted-foreground',
-              collapsed ? 'flex-col justify-center' : 'justify-between px-2',
+              'flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground transition-[justify-content]',
+              SIDEBAR_EASE,
+              collapsed ? 'justify-center' : 'justify-between',
             )}
             title={collapsed ? `v${version.data?.current ?? '…'}` : undefined}
           >
-            <span className={cn(collapsed && 'sr-only')}>v{version.data?.current ?? '…'}</span>
+            <span
+              className={cn(
+                'overflow-hidden whitespace-nowrap transition-[opacity,max-width]',
+                SIDEBAR_EASE,
+                collapsed ? 'max-w-0 opacity-0' : 'max-w-16 opacity-100',
+              )}
+            >
+              v{version.data?.current ?? '…'}
+            </span>
             {version.data?.updateAvailable ? (
               <span
-                className="h-2 w-2 rounded-full bg-emerald-500"
+                className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
                 title={t('common.updateAvailable')}
               />
             ) : null}
@@ -215,7 +230,8 @@ export function AppShell() {
 
       <main
         className={cn(
-          'min-h-svh p-8 transition-[margin] duration-200',
+          'min-h-svh p-8 transition-[margin-left]',
+          SIDEBAR_EASE,
           collapsed ? 'ml-14' : 'ml-60',
         )}
       >
