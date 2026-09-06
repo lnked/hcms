@@ -47,7 +47,7 @@ function SidebarLabel({ collapsed, children }: { collapsed: boolean; children: R
   return (
     <span
       className={cn(
-        'overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+        'min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
         collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100',
       )}
       aria-hidden={collapsed}
@@ -97,7 +97,8 @@ export function AppShell() {
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
+      'flex items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
+      collapsed ? 'justify-center px-0' : 'gap-2 px-3',
       isActive && 'bg-sidebar-accent font-medium',
     )
 
@@ -113,25 +114,22 @@ export function AppShell() {
           collapsed ? 'w-14' : 'w-60',
         )}
       >
-        <div className="flex h-14 shrink-0 items-center gap-1 px-3">
-          <div
-            className={cn(
-              'overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width]',
-              SIDEBAR_EASE,
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-24 flex-1 opacity-100',
-            )}
-            aria-hidden={collapsed}
-          >
-            HCMS
-          </div>
+        <div
+          className={cn(
+            'flex h-14 shrink-0 items-center',
+            collapsed ? 'justify-center' : 'gap-1 px-3',
+          )}
+        >
+          {!collapsed ? (
+            <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
+              HCMS
+            </div>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className={cn(
-              'h-8 w-8 shrink-0 text-sidebar-foreground',
-              collapsed && 'mx-auto',
-            )}
+            className="h-8 w-8 shrink-0 text-sidebar-foreground"
             onClick={toggleCollapsed}
             aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
             title={collapsed ? t('nav.expand') : t('nav.collapse')}
@@ -144,7 +142,7 @@ export function AppShell() {
           </Button>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-1 px-2">
+        <nav className={cn('flex flex-1 flex-col gap-1', collapsed ? 'px-1' : 'px-2')}>
           {nav.map((item) => (
             <NavLink
               key={item.to}
@@ -160,21 +158,27 @@ export function AppShell() {
           <a
             href="/api/docs"
             title={collapsed ? t('nav.docs') : undefined}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
+            className={cn(
+              'flex items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
+              collapsed ? 'justify-center px-0' : 'gap-2 px-3',
+            )}
           >
             <BookOpen className="h-4 w-4 shrink-0" />
             <SidebarLabel collapsed={collapsed}>{t('nav.docs')}</SidebarLabel>
           </a>
         </nav>
 
-        <div className="space-y-2 border-t border-sidebar-border p-2">
+        <div className={cn('space-y-2 border-t border-sidebar-border', collapsed ? 'p-1' : 'p-2')}>
           <button
             type="button"
             onClick={toggleLightDark}
             title={t('nav.themeToggle')}
             aria-label={t('nav.themeToggle')}
             aria-pressed={isDark}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
+            className={cn(
+              'flex w-full cursor-pointer items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
+              collapsed ? 'justify-center px-0' : 'gap-2 px-3',
+            )}
           >
             {isDark ? (
               <Moon className="h-4 w-4 shrink-0" />
@@ -184,10 +188,10 @@ export function AppShell() {
             <SidebarLabel collapsed={collapsed}>{themeLabel}</SidebarLabel>
             <span
               className={cn(
-                'relative ml-auto h-5 w-9 shrink-0 rounded-full transition-[opacity,colors]',
+                'relative h-5 w-9 min-w-0 shrink-0 rounded-full transition-[opacity,max-width,colors]',
                 SIDEBAR_EASE,
                 isDark ? 'bg-primary' : 'bg-muted-foreground/30',
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-9 opacity-100',
+                collapsed ? 'max-w-0 opacity-0' : 'ml-auto max-w-9 opacity-100',
               )}
               aria-hidden={collapsed}
             >
@@ -203,21 +207,14 @@ export function AppShell() {
 
           <div
             className={cn(
-              'flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground transition-[justify-content]',
-              SIDEBAR_EASE,
-              collapsed ? 'justify-center' : 'justify-between',
+              'flex items-center py-1 text-xs text-muted-foreground',
+              collapsed ? 'justify-center' : 'justify-between gap-2 px-2',
             )}
             title={collapsed ? `v${version.data?.current ?? '…'}` : undefined}
           >
-            <span
-              className={cn(
-                'overflow-hidden whitespace-nowrap transition-[opacity,max-width]',
-                SIDEBAR_EASE,
-                collapsed ? 'max-w-0 opacity-0' : 'max-w-16 opacity-100',
-              )}
-            >
-              v{version.data?.current ?? '…'}
-            </span>
+            {!collapsed ? (
+              <span className="whitespace-nowrap">v{version.data?.current ?? '…'}</span>
+            ) : null}
             {version.data?.updateAvailable ? (
               <span
                 className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"

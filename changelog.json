@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.27.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Center collapsed sidebar controls",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Collapsed sidebar: expand button, nav icons, theme toggle, and update indicator are centered"
+        }
+      ]
+    },
+    {
       "version": "0.26.0",
       "date": "2026-09-06",
       "channel": "stable",
