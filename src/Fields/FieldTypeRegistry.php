@@ -28,6 +28,7 @@ final class FieldTypeRegistry
             new Types\EnumType(),
             new Types\ImageType(),
             new Types\FileType(),
+            new Types\RelationType(),
         ] as $type) {
             $this->register($type);
         }

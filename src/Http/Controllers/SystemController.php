@@ -47,6 +47,37 @@ final class SystemController
         ]);
     }
 
+    public function stats(Request $request, AuthContext $auth): Response
+    {
+        unset($request, $auth);
+        $resources = (int) (($this->db->selectOne('SELECT COUNT(*) AS c FROM cms_resources') ?? [])['c'] ?? 0);
+        $tokens = (int) (($this->db->selectOne(
+            "SELECT COUNT(*) AS c FROM cms_tokens WHERE type = 'api' AND revoked_at IS NULL",
+        ) ?? [])['c'] ?? 0);
+        $apiRequests = (int) (($this->db->selectOne('SELECT COUNT(*) AS c FROM cms_api_logs') ?? [])['c'] ?? 0);
+
+        $tables = $this->db->select(
+            "SELECT TABLE_NAME AS name FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE 'res_%'",
+        );
+        $records = 0;
+        foreach ($tables as $table) {
+            $name = (string) ($table['name'] ?? '');
+            if ($name === '' || !preg_match('/^res_[a-z][a-z0-9_]*$/', $name)) {
+                continue;
+            }
+            $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $name . '`');
+            $records += (int) ($count['c'] ?? 0);
+        }
+
+        return Response::data([
+            'resources' => $resources,
+            'records' => $records,
+            'apiRequests' => $apiRequests,
+            'apiKeys' => $tokens,
+        ]);
+    }
+
     public function changelog(Request $request): Response
     {
         $since = $request->query('since');

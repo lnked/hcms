@@ -130,7 +130,17 @@ final class ResourceService
             $update['status'] = $status;
         }
         if (isset($payload['settings']) && is_array($payload['settings'])) {
-            $update['settings'] = $payload['settings'];
+            $existingSettings = $existing['settings_json'] ?? [];
+            if (is_string($existingSettings)) {
+                $decoded = json_decode($existingSettings, true);
+                $existingSettings = is_array($decoded) ? $decoded : [];
+            }
+            if (!is_array($existingSettings)) {
+                $existingSettings = [];
+            }
+            $update['settings'] = self::normalizeSettings(
+                array_replace_recursive($existingSettings, $payload['settings']),
+            );
         }
 
         $resource = $this->resources->update($id, $update);
@@ -195,7 +205,7 @@ final class ResourceService
      */
     public static function defaultSettings(array $override = []): array
     {
-        $defaults = [
+        return self::normalizeSettings(array_replace_recursive([
             'apiEnabled' => true,
             'public' => [
                 'read' => false,
@@ -209,9 +219,34 @@ final class ResourceService
             'filtering' => true,
             'deleteStrategy' => 'hard',
             'softDelete' => false,
-        ];
+        ], $override));
+    }
 
-        return array_replace_recursive($defaults, $override);
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    public static function normalizeSettings(array $settings): array
+    {
+        $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $strategy = ($settings['deleteStrategy'] ?? 'hard') === 'soft' ? 'soft' : 'hard';
+        $softDelete = $strategy === 'soft' || (bool) ($settings['softDelete'] ?? false);
+
+        return [
+            'apiEnabled' => (bool) ($settings['apiEnabled'] ?? true),
+            'public' => [
+                'read' => (bool) ($public['read'] ?? false),
+                'create' => (bool) ($public['create'] ?? false),
+                'update' => (bool) ($public['update'] ?? false),
+                'delete' => (bool) ($public['delete'] ?? false),
+            ],
+            'pagination' => (bool) ($settings['pagination'] ?? true),
+            'search' => (bool) ($settings['search'] ?? true),
+            'sorting' => (bool) ($settings['sorting'] ?? true),
+            'filtering' => (bool) ($settings['filtering'] ?? true),
+            'deleteStrategy' => $softDelete ? 'soft' : 'hard',
+            'softDelete' => $softDelete,
+        ];
     }
 
     /**
@@ -225,6 +260,9 @@ final class ResourceService
             $decoded = json_decode($settings, true);
             $settings = is_array($decoded) ? $decoded : [];
         }
+        if (!is_array($settings)) {
+            $settings = [];
+        }
 
         return [
             'id' => (int) $row['id'],
@@ -234,7 +272,7 @@ final class ResourceService
             'apiVersion' => $row['api_version'],
             'status' => $row['status'],
             'schemaVersion' => (int) $row['schema_version'],
-            'settings' => $settings,
+            'settings' => self::normalizeSettings($settings),
             'label' => $row['content_type_label'] ?? $row['slug'],
             'contentTypeSlug' => $row['content_type_slug'] ?? $row['slug'],
             'isSystem' => (int) ($row['is_system'] ?? 0) === 1,

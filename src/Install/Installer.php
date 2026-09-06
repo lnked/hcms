@@ -13,7 +13,36 @@ use RuntimeException;
 
 final class Installer
 {
-    public function __construct(private readonly Paths $paths)
+    /**
+     * Release / project entries that must live above the HTTP document root
+     * when the installer itself was unpacked into public_html (or public, …).
+     *
+     * @var list<string>
+     */
+    private const PROJECT_ROOT_ENTRIES = [
+        'src',
+        'vendor',
+        'database',
+        'storage',
+        'frontend',
+        'tests',
+        'composer.json',
+        'composer.lock',
+        'composer.phar',
+        'VERSION',
+        'changelog.json',
+        'install.php',
+        'clean.php',
+        '.env',
+        '.env.example',
+        'phpunit.xml',
+        'phpunit.xml.dist',
+        'README.md',
+        'LICENSE',
+        'LICENSE.md',
+    ];
+
+    public function __construct(private Paths $paths)
     {
     }
 
@@ -28,12 +57,17 @@ final class Installer
     public function status(): array
     {
         $srcReady = is_file($this->paths->root . '/src/bootstrap.php');
+        $rootName = basename(rtrim($this->paths->root, '/\\'));
+        $insideWebRoot = Paths::isKnownWebRootName($rootName);
 
         return [
             'installed' => $this->isInstalled(),
             'srcReady' => $srcReady,
             'version' => Version::current(),
             'requirements' => $this->requirements(),
+            'installRootName' => $rootName,
+            'insideWebRoot' => $insideWebRoot,
+            'suggestedPublicDir' => $insideWebRoot ? $rootName : 'public',
         ];
     }
 
@@ -42,10 +76,18 @@ final class Installer
      */
     public function requirements(): array
     {
-        $rootWritable = is_writable($this->paths->root);
+        $root = rtrim($this->paths->root, '/\\');
+        $rootWritable = is_writable($root);
         $storageWritable = is_dir($this->paths->storage())
             ? is_writable($this->paths->storage())
-            : is_writable($this->paths->root);
+            : $rootWritable;
+
+        // Unpacked into hosting docroot → non-public tree must go to the parent.
+        $parentWritable = true;
+        if (Paths::isKnownWebRootName(basename($root))) {
+            $parent = dirname($root);
+            $parentWritable = is_dir($parent) && is_writable($parent);
+        }
 
         $checks = [
             'php' => version_compare(PHP_VERSION, '8.3.0', '>='),
@@ -54,7 +96,7 @@ final class Installer
             'mbstring' => extension_loaded('mbstring'),
             'zip' => extension_loaded('zip') || class_exists(\ZipArchive::class),
             'http' => function_exists('curl_init') || (bool) ini_get('allow_url_fopen'),
-            'writable' => $rootWritable && $storageWritable,
+            'writable' => $rootWritable && $storageWritable && $parentWritable,
         ];
 
         return [

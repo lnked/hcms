@@ -7,8 +7,10 @@ namespace Cms\System;
 use Cms\Core\Paths;
 
 /**
- * Keeps the built admin SPA under CMS_PUBLIC_DIR/admin in sync.
- * Release zips always ship public/admin; shared hosting often uses public_html.
+ * Keeps the built admin SPA reachable for both PHP spa() and static /admin/* rewrites.
+ *
+ * Release zips ship public/admin. Hosting may use CMS_PUBLIC_DIR=public_html while
+ * root .htaccess still rewrites to public/ — both trees must stay in sync.
  */
 final class AdminUiPublisher
 {
@@ -17,47 +19,108 @@ final class AdminUiPublisher
     }
 
     /**
-     * After unpack: publish admin into the live public dir and drop a stale legacy copy.
+     * After unpack / on spa heal: sync the newest complete admin tree to every live candidate.
      */
     public function publishFromReleaseTree(): void
     {
-        $live = $this->paths->public() . '/admin';
-        $legacy = $this->paths->root . '/public/admin';
-
-        if ($this->paths->publicDir === 'public') {
+        $dirs = $this->candidateAdminDirs();
+        $source = $this->newestCompleteAdmin($dirs);
+        if ($source === null) {
             return;
         }
 
-        if (is_dir($legacy) && realpath($legacy) !== realpath($live)) {
-            $this->replaceDir($legacy, $live);
-            $this->removeDir($legacy);
+        foreach ($dirs as $target) {
+            if ($this->samePath($source, $target)) {
+                continue;
+            }
+            if ($this->shouldReplace($source, $target)) {
+                $this->replaceDir($source, $target);
+            }
         }
     }
 
     /**
-     * Self-heal for installs where update wrote into public/ but SPA reads public_html/.
-     *
      * @return string Absolute path to a usable admin index.html
      */
     public function resolveIndex(): string
     {
-        $primary = $this->paths->adminIndex();
-        $legacy = $this->paths->root . '/public/admin/index.html';
+        $this->publishFromReleaseTree();
 
+        $primary = $this->paths->adminIndex();
         if ($this->indexAssetsExist($primary)) {
             return $primary;
         }
 
-        if ($legacy !== $primary && $this->indexAssetsExist($legacy)) {
-            $this->publishFromReleaseTree();
-            if ($this->indexAssetsExist($primary)) {
-                return $primary;
+        foreach ($this->candidateAdminDirs() as $dir) {
+            $index = $dir . '/index.html';
+            if ($this->indexAssetsExist($index)) {
+                return $index;
             }
-
-            return $legacy;
         }
 
         return $primary;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function candidateAdminDirs(): array
+    {
+        $dirs = [
+            $this->paths->public() . '/admin',
+            $this->paths->root . '/public/admin',
+            $this->paths->root . '/public_html/admin',
+            $this->paths->root . '/admin',
+        ];
+
+        $unique = [];
+        $seen = [];
+        foreach ($dirs as $dir) {
+            $key = $this->normalizePath($dir);
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $unique[] = $dir;
+        }
+
+        return $unique;
+    }
+
+    /**
+     * @param list<string> $dirs
+     */
+    private function newestCompleteAdmin(array $dirs): ?string
+    {
+        $best = null;
+        $bestMtime = -1;
+        foreach ($dirs as $dir) {
+            $index = $dir . '/index.html';
+            if (!$this->indexAssetsExist($index)) {
+                continue;
+            }
+            $mtime = (int) filemtime($index);
+            if ($mtime >= $bestMtime) {
+                $bestMtime = $mtime;
+                $best = $dir;
+            }
+        }
+
+        return $best;
+    }
+
+    private function shouldReplace(string $source, string $target): bool
+    {
+        $sourceIndex = $source . '/index.html';
+        $targetIndex = $target . '/index.html';
+        if (!$this->indexAssetsExist($sourceIndex)) {
+            return false;
+        }
+        if (!$this->indexAssetsExist($targetIndex)) {
+            return true;
+        }
+
+        return filemtime($sourceIndex) > filemtime($targetIndex);
     }
 
     private function indexAssetsExist(string $indexPath): bool
@@ -77,6 +140,22 @@ final class AdminUiPublisher
         }
 
         return true;
+    }
+
+    private function samePath(string $a, string $b): bool
+    {
+        $ra = realpath($a);
+        $rb = realpath($b);
+        if ($ra !== false && $rb !== false) {
+            return $ra === $rb;
+        }
+
+        return $this->normalizePath($a) === $this->normalizePath($b);
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return rtrim(str_replace('\\', '/', $path), '/');
     }
 
     private function replaceDir(string $src, string $dest): void

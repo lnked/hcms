@@ -50,7 +50,7 @@ final class MigrationService
         $desired = [];
         foreach ($fieldRows as $row) {
             $spec = is_string($row['spec_json']) ? json_decode((string) $row['spec_json'], true) : $row['spec_json'];
-            $desired[] = $this->mapper->columnFor([
+            $column = $this->mapper->columnFor([
                 'name' => $row['name'],
                 'type' => $row['type'],
                 'nullable' => is_array($spec) ? ($spec['nullable'] ?? true) : true,
@@ -58,6 +58,9 @@ final class MigrationService
                 'indexed' => is_array($spec) ? ($spec['indexed'] ?? false) : false,
                 'config' => is_array($spec) && is_array($spec['config'] ?? null) ? $spec['config'] : [],
             ]);
+            if ($column !== null) {
+                $desired[] = $column;
+            }
         }
 
         $exists = $this->tableExists($table);

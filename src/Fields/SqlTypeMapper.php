@@ -19,7 +19,7 @@ final class SqlTypeMapper
     /**
      * @param array<string, mixed> $field serialized field
      */
-    public function columnFor(array $field): ColumnDefinition
+    public function columnFor(array $field): ?ColumnDefinition
     {
         $name = (string) $field['name'];
         $type = (string) $field['type'];
@@ -32,6 +32,10 @@ final class SqlTypeMapper
         $indexed = (bool) ($field['indexed'] ?? false) || $unique;
         $config = is_array($field['config'] ?? null) ? $field['config'] : [];
 
+        if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+            return null;
+        }
+
         $sqlType = match ($type) {
             'string', 'email' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
             'url' => 'VARCHAR(2048)',
@@ -43,7 +47,7 @@ final class SqlTypeMapper
             'datetime' => 'DATETIME',
             'uuid' => 'CHAR(36)',
             'enum' => 'VARCHAR(64)',
-            'image', 'file' => 'BIGINT UNSIGNED',
+            'image', 'file', 'relation' => 'BIGINT UNSIGNED',
             default => throw new InvalidArgumentException('Unsupported SQL mapping for ' . $type),
         };
 
@@ -52,7 +56,7 @@ final class SqlTypeMapper
             sqlType: $sqlType,
             nullable: $nullable,
             unique: $unique,
-            indexed: $indexed,
+            indexed: $indexed || $type === 'relation',
         );
     }
 

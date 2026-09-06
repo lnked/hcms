@@ -374,6 +374,14 @@ final class Kernel
 
                 return $system->version($request, $context);
             });
+            $this->router->add('GET', '/admin/api/system/stats', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->stats($request, $context);
+            });
             $this->router->add('GET', '/admin/api/system/changelog', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
                 unset($params, $context);
 

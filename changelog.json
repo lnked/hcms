@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.15.1",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Fix admin asset mismatch public vs public_html",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "updater",
+          "text": "Keep public/admin and public_html/admin in sync (do not delete public/admin); heal stale complete trees by mtime"
+        },
+        {
+          "type": "fixed",
+          "area": "updater",
+          "text": "Preserve root .htaccess on update so CMS_PUBLIC_DIR rewrites are not overwritten by the release template"
+        }
+      ]
+    },
+    {
       "version": "0.15.0",
       "date": "2026-09-06",
       "channel": "stable",

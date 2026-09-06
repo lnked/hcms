@@ -16,6 +16,7 @@ final class UpdateService
 {
     private const PRESERVE = [
         '.env',
+        '.htaccess',
         'storage/installed.lock',
         'storage/uploads',
         'storage/logs',
@@ -23,6 +24,7 @@ final class UpdateService
         'storage/backups',
         'storage/update.lock',
         'storage/update-status.json',
+        'storage/update.job.json',
     ];
 
     public function __construct(

@@ -29,12 +29,12 @@ final class PublicApiController
 
             return match ($request->method) {
                 'GET' => $id === null
-                    ? Response::json($this->query->list($slug, $request->query))
-                    : Response::data($this->query->find($slug, (int) $id)),
-                'POST' => Response::data($this->query->create($slug, $request->json()), 201),
+                    ? Response::json($this->query->list($slug, $request->query, ['public' => true]))
+                    : Response::data($this->query->find($slug, (int) $id, ['public' => true])),
+                'POST' => Response::data($this->query->create($slug, $request->json(), ['public' => true]), 201),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : Response::data($this->query->patch($slug, (int) $id, $request->json())),
+                    : Response::data($this->query->patch($slug, (int) $id, $request->json(), ['public' => true])),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
                     : $this->delete($slug, (int) $id),
@@ -58,7 +58,7 @@ final class PublicApiController
 
     private function delete(string $slug, int $id): Response
     {
-        $this->query->delete($slug, $id);
+        $this->query->delete($slug, $id, ['public' => true]);
 
         return new Response(204, '');
     }

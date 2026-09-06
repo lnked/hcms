@@ -8,6 +8,7 @@ use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
 use Cms\Resources\ResourceRepository;
+use Cms\Resources\ResourceService;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -22,24 +23,45 @@ final class QueryEngine
 
     /**
      * @param array<string, string> $query
+     * @param array{public?: bool} $options
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function list(string $slug, array $query): array
+    public function list(string $slug, array $query, array $options = []): array
     {
-        [$resource, $table, $fieldMap] = $this->resolve($slug);
-        unset($resource);
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $settings = $this->settingsOf($resource);
+        $public = (bool) ($options['public'] ?? false);
 
         $page = max(1, (int) ($query['page'] ?? 1));
         $limit = min(100, max(1, (int) ($query['limit'] ?? 20)));
+        if ($public && !($settings['pagination'] ?? true)) {
+            $page = 1;
+            $limit = 100;
+        }
         $offset = ($page - 1) * $limit;
 
         $where = [];
         $params = [];
-        $this->applyFilters($query, $fieldMap, $where, $params);
-        $this->applySearch($query, $fieldMap, $where, $params);
+        if (!$public || ($settings['filtering'] ?? true)) {
+            $this->applyFilters($query, $fieldMap, $where, $params);
+        } elseif ($this->hasFilterParams($query)) {
+            throw new InvalidArgumentException('Filtering is disabled for this resource');
+        }
+        if (!$public || ($settings['search'] ?? true)) {
+            $this->applySearch($query, $fieldMap, $where, $params);
+        } elseif (($query['search'] ?? '') !== '') {
+            throw new InvalidArgumentException('Search is disabled for this resource');
+        }
 
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
-        $orderSql = $this->orderSql($query, $fieldMap);
+        if ($public && !($settings['sorting'] ?? true)) {
+            if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
+                throw new InvalidArgumentException('Sorting is disabled for this resource');
+            }
+            $orderSql = ' ORDER BY `id` ASC';
+        } else {
+            $orderSql = $this->orderSql($query, $fieldMap);
+        }
 
         $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
         $total = $countRow === null ? 0 : (int) $countRow['c'];
@@ -61,11 +83,12 @@ final class QueryEngine
     }
 
     /**
+     * @param array{public?: bool} $options
      * @return array<string, mixed>
      */
-    public function find(string $slug, int $id): array
+    public function find(string $slug, int $id, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug);
+        [, $table, $fieldMap] = $this->resolve($slug, $options);
         $row = $this->db->selectOne('SELECT * FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
         if ($row === null) {
             throw new RuntimeException('Resource not found', 404);
@@ -76,11 +99,12 @@ final class QueryEngine
 
     /**
      * @param array<string, mixed> $payload
+     * @param array{public?: bool} $options
      * @return array<string, mixed>
      */
-    public function create(string $slug, array $payload): array
+    public function create(string $slug, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug);
+        [, $table, $fieldMap] = $this->resolve($slug, $options);
         $data = $this->validatePayload($payload, $fieldMap, false);
         $now = date('Y-m-d H:i:s');
         $data['created_at'] = $now;
@@ -93,16 +117,17 @@ final class QueryEngine
             $data,
         );
 
-        return $this->find($slug, (int) $this->db->lastInsertId());
+        return $this->find($slug, (int) $this->db->lastInsertId(), $options);
     }
 
     /**
      * @param array<string, mixed> $payload
+     * @param array{public?: bool} $options
      * @return array<string, mixed>
      */
-    public function patch(string $slug, int $id, array $payload): array
+    public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug);
+        [, $table, $fieldMap] = $this->resolve($slug, $options);
         $existing = $this->db->selectOne('SELECT id FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
         if ($existing === null) {
             throw new RuntimeException('Resource not found', 404);
@@ -110,7 +135,7 @@ final class QueryEngine
 
         $data = $this->validatePayload($payload, $fieldMap, true);
         if ($data === []) {
-            return $this->find($slug, $id);
+            return $this->find($slug, $id, $options);
         }
         $data['updated_at'] = date('Y-m-d H:i:s');
         $sets = [];
@@ -123,12 +148,15 @@ final class QueryEngine
             $data,
         );
 
-        return $this->find($slug, $id);
+        return $this->find($slug, $id, $options);
     }
 
-    public function delete(string $slug, int $id): void
+    /**
+     * @param array{public?: bool} $options
+     */
+    public function delete(string $slug, int $id, array $options = []): void
     {
-        [, $table] = $this->resolve($slug);
+        [, $table] = $this->resolve($slug, $options);
         $affected = $this->db->execute('DELETE FROM `' . $table . '` WHERE id = :id', ['id' => $id]);
         if ($affected === 0) {
             throw new RuntimeException('Resource not found', 404);
@@ -136,18 +164,18 @@ final class QueryEngine
     }
 
     /**
+     * @param array{public?: bool} $options
      * @return array{0: array<string, mixed>, 1: string, 2: array<string, array<string, mixed>>}
      */
-    private function resolve(string $slug): array
+    private function resolve(string $slug, array $options = []): array
     {
+        $public = (bool) ($options['public'] ?? false);
         $resource = $this->resources->findBySlug($slug);
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
             throw new RuntimeException('Resource not found', 404);
         }
-        $settings = is_string($resource['settings_json'])
-            ? json_decode((string) $resource['settings_json'], true)
-            : $resource['settings_json'];
-        if (is_array($settings) && ($settings['apiEnabled'] ?? true) === false) {
+        $settings = $this->settingsOf($resource);
+        if ($public && ($settings['apiEnabled'] ?? true) === false) {
             throw new RuntimeException('API disabled for resource', 403);
         }
 
@@ -166,6 +194,38 @@ final class QueryEngine
     }
 
     /**
+     * @param array<string, mixed> $resource
+     * @return array<string, mixed>
+     */
+    private function settingsOf(array $resource): array
+    {
+        $settings = $resource['settings_json'] ?? [];
+        if (is_string($settings)) {
+            $decoded = json_decode($settings, true);
+            $settings = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($settings)) {
+            $settings = [];
+        }
+
+        return ResourceService::normalizeSettings($settings);
+    }
+
+    /**
+     * @param array<string, string> $query
+     */
+    private function hasFilterParams(array $query): bool
+    {
+        foreach ($query as $key => $_) {
+            if (str_starts_with($key, 'filter[')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<string, array<string, mixed>> $fieldMap
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
@@ -175,6 +235,11 @@ final class QueryEngine
         $out = [];
         foreach ($fieldMap as $name => $meta) {
             $spec = $meta['spec'];
+            $type = (string) $meta['type'];
+            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                continue;
+            }
             if (!($spec['writable'] ?? true)) {
                 continue;
             }
@@ -192,7 +257,7 @@ final class QueryEngine
                 $out[$name] = null;
                 continue;
             }
-            $out[$name] = $this->castValue($value, (string) $meta['type'], $name);
+            $out[$name] = $this->castValue($value, $type, $name);
         }
 
         return $out;
@@ -201,7 +266,9 @@ final class QueryEngine
     private function castValue(mixed $value, string $type, string $name): mixed
     {
         return match ($type) {
-            'integer' => is_numeric($value) ? (int) $value : throw new InvalidArgumentException('Invalid integer: ' . $name),
+            'integer', 'relation', 'image', 'file' => is_numeric($value)
+                ? (int) $value
+                : throw new InvalidArgumentException('Invalid integer: ' . $name),
             'float' => is_numeric($value) ? (float) $value : throw new InvalidArgumentException('Invalid float: ' . $name),
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
                 ?? throw new InvalidArgumentException('Invalid boolean: ' . $name),
@@ -328,10 +395,18 @@ final class QueryEngine
             'updatedAt' => $row['updated_at'] ?? null,
         ];
         foreach ($fieldMap as $name => $meta) {
+            $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+            if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                continue;
+            }
             if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
                 continue;
             }
-            $out[$name] = $row[$name] ?? null;
+            $value = $row[$name] ?? null;
+            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
+                $value = (int) $value;
+            }
+            $out[$name] = $value;
         }
 
         return $out;
