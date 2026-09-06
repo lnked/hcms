@@ -17,6 +17,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     message: string,
+    public readonly fields: Record<string, string[]> = {},
   ) {
     super(message)
   }
@@ -144,9 +145,16 @@ export async function installApi<T>(
     },
     body: JSON.stringify({ action, ...body }),
   })
-  const payload = (await response.json()) as T & { error?: { message?: string } }
+  const payload = (await response.json()) as T & {
+    error?: { code?: string; message?: string; fields?: Record<string, string[]> }
+  }
   if (!response.ok) {
-    throw new Error(payload.error?.message ?? 'Install request failed')
+    throw new ApiError(
+      response.status,
+      payload.error?.code ?? 'ERROR',
+      payload.error?.message ?? 'Install request failed',
+      payload.error?.fields ?? {},
+    )
   }
   return payload
 }

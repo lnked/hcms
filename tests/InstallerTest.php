@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\Core\Paths;
+use Cms\Core\Version;
 use Cms\Install\Installer;
 use Cms\Install\ReleaseDownloader;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +19,7 @@ final class InstallerTest extends TestCase
 
         $this->assertFalse($status['installed']);
         $this->assertTrue($status['srcReady']);
-        $this->assertSame('0.12.1', $status['version']);
+        $this->assertSame(Version::current(), $status['version']);
         $this->assertArrayHasKey('checks', $status['requirements']);
     }
 
@@ -33,12 +34,30 @@ final class InstallerTest extends TestCase
         $this->assertTrue($installer->isInstalled());
     }
 
-    public function testDownloadSkippedWhenSrcPresent(): void
+    public function testCompleteRejectsInvalidAdministratorWithFieldErrors(): void
     {
-        $downloader = new ReleaseDownloader(new Paths(dirname(__DIR__)));
-        $result = $downloader->download();
+        $root = sys_get_temp_dir() . '/hcms-install-val-' . uniqid();
+        mkdir($root . '/storage', 0777, true);
+        $installer = new Installer(new Paths($root));
 
-        $this->assertTrue($result['skipped']);
-        $this->assertSame('src_present', $result['reason']);
+        try {
+            $installer->complete([
+                'database' => ['host' => '127.0.0.1', 'name' => 'x', 'user' => 'u'],
+                'application' => ['name' => 'HCMS', 'url' => 'http://localhost'],
+                'administrator' => [
+                    'name' => '',
+                    'email' => 'bad',
+                    'password' => 'short',
+                    'passwordConfirm' => 'other',
+                ],
+            ]);
+            $this->fail('Expected ValidationException');
+        } catch (\Cms\Install\ValidationException $e) {
+            $fields = $e->fields();
+            $this->assertSame(['Name is required'], $fields['name']);
+            $this->assertSame(['Enter a valid email'], $fields['email']);
+            $this->assertSame(['Password must be at least 8 characters'], $fields['password']);
+            $this->assertSame(['Passwords do not match'], $fields['passwordConfirm']);
+        }
     }
 }

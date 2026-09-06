@@ -145,6 +145,14 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
                 'message' => 'Download CMS files first or run composer install',
             ],
         ]);
+    } catch (Cms\Install\ValidationException $e) {
+        cms_install_send(422, [
+            'error' => [
+                'code' => 'VALIDATION_ERROR',
+                'message' => $e->getMessage(),
+                'fields' => $e->fields(),
+            ],
+        ]);
     } catch (Throwable $e) {
         cms_install_send(400, ['error' => ['code' => 'INSTALL_ERROR', 'message' => $e->getMessage()]]);
     }
@@ -413,6 +421,61 @@ function cms_install_html(): string
       border-color: var(--teal);
       box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
     }
+    .lang-select {
+      position: relative;
+    }
+    .lang-select select {
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      padding: 10px 44px 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink);
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .lang-select select:hover {
+      border-color: #94a3b8;
+    }
+    .lang-select select:focus {
+      outline: none;
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
+    }
+    .lang-select::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      transform: translateY(-60%) rotate(45deg);
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+    }
+    .lang-select:focus-within::after {
+      border-color: var(--teal-deep);
+    }
+    input.invalid, select.invalid {
+      border-color: var(--err);
+    }
+    input.invalid:focus, select.invalid:focus {
+      border-color: var(--err);
+      box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+    }
+    .field-error {
+      margin: 4px 0 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--err);
+    }
+    .field-error:empty { display: none; }
     .row-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
     button {
       font: inherit;
@@ -435,22 +498,43 @@ function cms_install_html(): string
       border: 1px solid var(--line);
     }
     button.secondary:hover:not(:disabled) { background: #f8fafc; }
-    button.ghost {
-      background: transparent;
-      color: var(--teal-deep);
-      border: 1px solid rgba(13,148,136,0.35);
-      padding: 8px 12px;
-      font-size: 13px;
+    .input-with-actions {
+      position: relative;
     }
-    .field-head {
+    .input-with-actions input {
+      padding-right: 76px;
+    }
+    .input-actions {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 12px;
+      gap: 2px;
     }
-    .field-head label { margin: 0; }
-    .field-actions { display: flex; gap: 6px; }
+    button.icon-btn {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      box-shadow: none;
+    }
+    button.icon-btn:hover:not(:disabled) {
+      background: rgba(13, 148, 136, 0.1);
+      color: var(--teal-deep);
+    }
+    button.icon-btn:active:not(:disabled) { transform: none; }
+    button.icon-btn svg {
+      width: 16px;
+      height: 16px;
+      display: block;
+    }
     .progress-wrap {
       display: none;
       margin-top: 16px;
@@ -592,9 +676,13 @@ function cms_install_html(): string
       <div id="s1" class="step">
         <h2>Database</h2>
         <label for="dbHost">Host</label><input id="dbHost" value="127.0.0.1"/>
+        <p class="field-error" id="errDbHost"></p>
         <label for="dbPort">Port</label><input id="dbPort" value="3306"/>
+        <p class="field-error" id="errDbPort"></p>
         <label for="dbName">Name</label><input id="dbName" value="hcms"/>
+        <p class="field-error" id="errDbName"></p>
         <label for="dbUser">User</label><input id="dbUser" value="root"/>
+        <p class="field-error" id="errDbUser"></p>
         <label for="dbPass">Password</label><input id="dbPass" type="password"/>
         <label for="dbCharset">Charset</label><input id="dbCharset" value="utf8mb4"/>
         <div class="row-actions">
@@ -606,15 +694,21 @@ function cms_install_html(): string
       <div id="s2" class="step">
         <h2>Application</h2>
         <label for="appName">Name</label><input id="appName" value="HCMS"/>
+        <p class="field-error" id="errAppName"></p>
         <label for="appUrl">URL</label><input id="appUrl"/>
+        <p class="field-error" id="errAppUrl"></p>
         <label for="appTz">Timezone</label><input id="appTz" value="UTC"/>
+        <p class="field-error" id="errAppTz"></p>
         <label for="appLang">Language</label>
-        <select id="appLang">
-          <option value="en" selected>English</option>
-          <option value="ru">Русский</option>
-        </select>
+        <div class="lang-select">
+          <select id="appLang" aria-label="Language">
+            <option value="en" selected>English</option>
+            <option value="ru">Русский</option>
+          </select>
+        </div>
         <label for="appPublicDir">Web root folder</label>
         <input id="appPublicDir" list="publicDirList" value="public" placeholder="public"/>
+        <p class="field-error" id="errAppPublicDir"></p>
         <datalist id="publicDirList">
           <option value="public"></option>
           <option value="public_html"></option>
@@ -629,20 +723,34 @@ function cms_install_html(): string
       <div id="s3" class="step">
         <h2>Administrator</h2>
         <label for="admName">Name</label><input id="admName"/>
+        <p class="field-error" id="errAdmName"></p>
         <label for="admEmail">Email</label><input id="admEmail" type="email"/>
-        <div class="field-head">
-          <label for="admPass">Password</label>
-          <div class="field-actions">
-            <button type="button" id="btnGenPass" class="ghost">Generate</button>
-            <button type="button" id="btnCopyPass" class="ghost">Copy</button>
+        <p class="field-error" id="errAdmEmail"></p>
+        <label for="admPass">Password</label>
+        <div class="input-with-actions">
+          <input id="admPass" type="password" autocomplete="new-password"/>
+          <div class="input-actions">
+            <button type="button" id="btnGenPass" class="icon-btn" title="Generate" aria-label="Generate password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+                <polyline points="21 3 21 9 15 9"/>
+              </svg>
+            </button>
+            <button type="button" id="btnCopyPass" class="icon-btn" title="Copy" aria-label="Copy password">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
           </div>
         </div>
-        <input id="admPass" type="password" autocomplete="new-password"/>
+        <p class="field-error" id="errAdmPass"></p>
         <div class="strength" id="strengthBox" hidden>
           <div class="strength-track"><div id="strengthFill" class="strength-fill"></div></div>
           <p id="strengthLabel" class="strength-label"></p>
         </div>
         <label for="admPass2">Confirm</label><input id="admPass2" type="password" autocomplete="new-password"/>
+        <p class="field-error" id="errAdmPass2"></p>
         <div class="row-actions">
           <button type="button" id="btnInstall">Install</button>
         </div>
@@ -739,9 +847,125 @@ function cms_install_html(): string
       try { data = await res.json(); } catch (_) {}
       if (!res.ok) {
         const msg = data.error?.message || data.error || 'Request failed';
-        throw new Error(typeof msg === 'string' ? msg : 'Request failed');
+        const err = new Error(typeof msg === 'string' ? msg : 'Request failed');
+        err.code = data.error?.code || '';
+        err.fields = data.error?.fields && typeof data.error.fields === 'object' ? data.error.fields : {};
+        throw err;
       }
       return data;
+    }
+
+    const fieldErrorMap = {
+      dbHost: 'errDbHost',
+      dbPort: 'errDbPort',
+      dbName: 'errDbName',
+      dbUser: 'errDbUser',
+      appName: 'errAppName',
+      appUrl: 'errAppUrl',
+      appTz: 'errAppTz',
+      appPublicDir: 'errAppPublicDir',
+      admName: 'errAdmName',
+      admEmail: 'errAdmEmail',
+      admPass: 'errAdmPass',
+      admPass2: 'errAdmPass2'
+    };
+    const adminApiFields = {
+      name: 'admName',
+      email: 'admEmail',
+      password: 'admPass',
+      passwordConfirm: 'admPass2'
+    };
+
+    function firstFieldMessage(value) {
+      if (Array.isArray(value)) return value[0] || '';
+      return typeof value === 'string' ? value : '';
+    }
+
+    function clearFieldErrors(ids) {
+      ids.forEach((id) => {
+        const input = $(id);
+        if (input) input.classList.remove('invalid');
+        const errId = fieldErrorMap[id];
+        if (errId && $(errId)) $(errId).textContent = '';
+      });
+    }
+
+    function setFieldErrors(errors) {
+      Object.entries(errors).forEach(([key, value]) => {
+        const msg = firstFieldMessage(value);
+        if (!msg) return;
+        const inputId = adminApiFields[key] || key;
+        const errId = fieldErrorMap[inputId];
+        if ($(inputId)) $(inputId).classList.add('invalid');
+        if (errId && $(errId)) $(errId).textContent = msg;
+      });
+    }
+
+    function validateDatabase() {
+      const ids = ['dbHost', 'dbPort', 'dbName', 'dbUser'];
+      clearFieldErrors(ids);
+      const errors = {};
+      if (!$('dbHost').value.trim()) errors.dbHost = 'Host is required';
+      const port = Number($('dbPort').value);
+      if (!$('dbPort').value.trim() || !Number.isFinite(port) || port < 1 || port > 65535) {
+        errors.dbPort = 'Enter a valid port (1–65535)';
+      }
+      if (!$('dbName').value.trim()) errors.dbName = 'Database name is required';
+      if (!$('dbUser').value.trim()) errors.dbUser = 'User is required';
+      setFieldErrors(errors);
+      return Object.keys(errors).length === 0;
+    }
+
+    function validateApplication() {
+      const ids = ['appName', 'appUrl', 'appTz', 'appPublicDir'];
+      clearFieldErrors(ids);
+      const errors = {};
+      if (!$('appName').value.trim()) errors.appName = 'Name is required';
+      const url = $('appUrl').value.trim();
+      if (!url) {
+        errors.appUrl = 'URL is required';
+      } else {
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            errors.appUrl = 'URL must start with http:// or https://';
+          }
+        } catch (_) {
+          errors.appUrl = 'Enter a valid URL';
+        }
+      }
+      if (!$('appTz').value.trim()) errors.appTz = 'Timezone is required';
+      if (!$('appPublicDir').value.trim()) errors.appPublicDir = 'Web root folder is required';
+      setFieldErrors(errors);
+      return Object.keys(errors).length === 0;
+    }
+
+    function validateAdministrator() {
+      const ids = ['admName', 'admEmail', 'admPass', 'admPass2'];
+      clearFieldErrors(ids);
+      const errors = {};
+      const name = $('admName').value.trim();
+      const email = $('admEmail').value.trim();
+      const password = $('admPass').value;
+      const confirm = $('admPass2').value;
+      if (!name) errors.admName = 'Name is required';
+      if (!email) {
+        errors.admEmail = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.admEmail = 'Enter a valid email';
+      }
+      if (!password) {
+        errors.admPass = 'Password is required';
+      } else if (password.length < 8) {
+        errors.admPass = 'Password must be at least 8 characters';
+      }
+      if (!confirm) {
+        errors.admPass2 = 'Please confirm the password';
+      } else if (password !== confirm) {
+        errors.admPass2 = 'Passwords do not match';
+      }
+      setFieldErrors(errors);
+      return Object.keys(errors).length === 0;
     }
 
     function renderRequirements(checks) {
@@ -863,6 +1087,7 @@ function cms_install_html(): string
       $('admPass2').type = 'text';
       $('admPass').value = out;
       $('admPass2').value = out;
+      clearFieldErrors(['admPass', 'admPass2']);
       updateStrength();
     }
 
@@ -912,6 +1137,7 @@ function cms_install_html(): string
     });
 
     $('btnTest').onclick = async () => {
+      if (!validateDatabase()) return;
       try {
         const r = await api('test-connection', { database: db() });
         $('dbMsg').className = r.ok ? 'status ok' : 'status err';
@@ -921,16 +1147,32 @@ function cms_install_html(): string
         $('dbMsg').textContent = e.message;
       }
     };
-    $('btnDb').onclick = () => setWizardStep(2);
-    $('btnApp').onclick = () => setWizardStep(3);
+    $('btnDb').onclick = () => {
+      if (!validateDatabase()) return;
+      setWizardStep(2);
+    };
+    $('btnApp').onclick = () => {
+      if (!validateApplication()) return;
+      setWizardStep(3);
+    };
 
     $('btnGenPass').onclick = () => generatePassword();
     $('btnCopyPass').onclick = () => copyPassword();
     $('admPass').addEventListener('input', updateStrength);
+    ['admName', 'admEmail', 'admPass', 'admPass2'].forEach((id) => {
+      $(id).addEventListener('input', () => clearFieldErrors([id]));
+    });
+    ['dbHost', 'dbPort', 'dbName', 'dbUser'].forEach((id) => {
+      $(id).addEventListener('input', () => clearFieldErrors([id]));
+    });
+    ['appName', 'appUrl', 'appTz', 'appPublicDir'].forEach((id) => {
+      $(id).addEventListener('input', () => clearFieldErrors([id]));
+    });
 
     $('btnInstall').onclick = async () => {
       $('instMsg').textContent = '';
       $('instMsg').className = 'status';
+      if (!validateAdministrator()) return;
       $('btnInstall').disabled = true;
       try {
         runPhasedProgress('instProgress', 'instFill', 'instLabel', [
@@ -961,8 +1203,14 @@ function cms_install_html(): string
       } catch (e) {
         clearInterval(progressTimer);
         resetProgress('instProgress', 'instFill', 'instLabel');
-        $('instMsg').className = 'status err';
-        $('instMsg').textContent = e.message;
+        if (e.fields && Object.keys(e.fields).length) {
+          setFieldErrors(e.fields);
+          $('instMsg').className = 'status';
+          $('instMsg').textContent = '';
+        } else {
+          $('instMsg').className = 'status err';
+          $('instMsg').textContent = e.message;
+        }
         $('btnInstall').disabled = false;
       }
     };

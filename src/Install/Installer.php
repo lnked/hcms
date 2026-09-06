@@ -99,8 +99,27 @@ final class Installer
         $password = isset($admin['password']) && is_string($admin['password']) ? $admin['password'] : '';
         $confirm = isset($admin['passwordConfirm']) && is_string($admin['passwordConfirm']) ? $admin['passwordConfirm'] : '';
 
-        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8 || $password !== $confirm) {
-            throw new RuntimeException('Invalid administrator data');
+        $fields = [];
+        if ($name === '') {
+            $fields['name'] = ['Name is required'];
+        }
+        if ($email === '') {
+            $fields['email'] = ['Email is required'];
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $fields['email'] = ['Enter a valid email'];
+        }
+        if ($password === '') {
+            $fields['password'] = ['Password is required'];
+        } elseif (strlen($password) < 8) {
+            $fields['password'] = ['Password must be at least 8 characters'];
+        }
+        if ($confirm === '') {
+            $fields['passwordConfirm'] = ['Please confirm the password'];
+        } elseif ($password !== $confirm) {
+            $fields['passwordConfirm'] = ['Passwords do not match'];
+        }
+        if ($fields !== []) {
+            throw new ValidationException($fields);
         }
 
         $appName = isset($app['name']) && is_string($app['name']) ? trim($app['name']) : 'HCMS';
@@ -118,6 +137,8 @@ final class Installer
         $this->ensurePublicDir($publicDir);
 
         $connection = Connection::connect($db);
+        // Lock absent but tables may remain from a partial / cleaned install.
+        $this->dropCmsTables($connection);
         $this->runMigrations($connection);
         $secret = bin2hex(random_bytes(32));
 
@@ -184,6 +205,27 @@ final class Installer
             }
             $connection->execRaw($statement);
         }
+    }
+
+    /**
+     * Drop leftover cms_* / res_* tables so a re-install without lock can seed cleanly.
+     */
+    private function dropCmsTables(Connection $connection): void
+    {
+        $connection->execRaw('SET FOREIGN_KEY_CHECKS=0');
+        $rows = $connection->select(
+            "SELECT TABLE_NAME AS name FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND (TABLE_NAME LIKE 'cms_%' OR TABLE_NAME LIKE 'res_%')",
+        );
+        foreach ($rows as $row) {
+            $name = (string) ($row['name'] ?? '');
+            if ($name === '' || preg_match('/^(cms|res)_[A-Za-z0-9_]+$/', $name) !== 1) {
+                continue;
+            }
+            $connection->execRaw('DROP TABLE IF EXISTS `' . str_replace('`', '``', $name) . '`');
+        }
+        $connection->execRaw('SET FOREIGN_KEY_CHECKS=1');
     }
 
     /**
