@@ -111,15 +111,17 @@ final class Installer
         $this->runMigrations($connection);
         $secret = bin2hex(random_bytes(32));
 
+        $now = date('Y-m-d H:i:s');
         $connection->execute(
             'INSERT INTO cms_users (name, email, password_hash, status, created_at, updated_at)
-             VALUES (:name, :email, :hash, :status, :now, :now)',
+             VALUES (:name, :email, :hash, :status, :created_at, :updated_at)',
             [
                 'name' => $name,
                 'email' => $email,
                 'hash' => Password::hash($password),
                 'status' => 'active',
-                'now' => date('Y-m-d H:i:s'),
+                'created_at' => $now,
+                'updated_at' => $now,
             ],
         );
 
