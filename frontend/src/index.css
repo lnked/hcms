@@ -116,9 +116,7 @@
 }
 
 .docs-code code {
-  display: block;
   line-height: inherit;
-  white-space: normal;
 }
 
 .docs-code .sh__line {
