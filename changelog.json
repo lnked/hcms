@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.25.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Fix dialog viewport scroll under RemoveScroll",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Dialog scroll lives on Dialog.Content (h-dvh + overflow-y-auto) so Radix RemoveScroll allows it; modal card is overflow-hidden and sized by content"
+        }
+      ]
+    },
+    {
       "version": "0.24.0",
       "date": "2026-09-06",
       "channel": "stable",
