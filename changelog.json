@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.35.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "API tokens grant label polish",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "API tokens: clearer RU label for adding a resource grant"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "What's new dialog: spacing between changelog list and actions"
+        }
+      ]
+    },
+    {
       "version": "0.34.0",
       "date": "2026-09-06",
       "channel": "stable",

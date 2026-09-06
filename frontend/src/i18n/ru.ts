@@ -423,7 +423,7 @@ export const ru: Record<MessageKey, string> = {
   'tokens.createHint': 'Права с resourceId=null действуют на все ресурсы.',
   'tokens.copyOnce': 'Скопируйте токен сейчас — он больше не покажется.',
   'tokens.expires': 'Истекает (необязательно)',
-  'tokens.addGrant': 'Добавить право',
+  'tokens.addGrant': 'Добавить право на ресурс',
   'tokens.allResources': 'Все ресурсы (глобально)',
   'tokens.canRead': 'Чтение',
   'tokens.canCreate': 'Создание',

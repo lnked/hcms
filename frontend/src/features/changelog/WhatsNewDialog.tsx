@@ -50,7 +50,8 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
           <DialogTitle>{t('whatsNew.title', { version: version.current })}</DialogTitle>
           <DialogDescription>{t('whatsNew.description')}</DialogDescription>
         </DialogHeader>
-        <ul className="max-h-64 space-y-2 overflow-auto text-sm">
+
+        <ul className="max-h-64 space-y-2 overflow-auto text-sm mb-2">
           {(query.data ?? []).flatMap((release) =>
             release.changes.map((change) => (
               <li key={`${release.version}-${change.text}`}>
@@ -59,6 +60,7 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
             )),
           )}
         </ul>
+
         <div className="flex justify-end gap-2">
           <Button
             variant="outline"
