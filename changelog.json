@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.19.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Demo seed script",
+      "changes": [
+        {
+          "type": "added",
+          "area": "cli",
+          "text": "scripts/seed-demo.php — create demo resources with random entries (100–300) covering all field types via Admin API"
+        }
+      ]
+    },
+    {
       "version": "0.18.0",
       "date": "2026-09-06",
       "channel": "stable",
