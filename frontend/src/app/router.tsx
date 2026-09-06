@@ -11,6 +11,7 @@ import { ResourcesPage } from '@/features/resources/ResourcesPage'
 import { MediaPage } from '@/features/media/MediaPage'
 import { LogsPage } from '@/features/logs/LogsPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import { SystemPage } from '@/pages/SystemPage'
 import { TokensPage } from '@/pages/TokensPage'
 import { UsersPage } from '@/pages/UsersPage'
@@ -32,6 +33,7 @@ export function AppRouter() {
             <Route path="logs" element={<LogsPage />} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="settings/system" element={<SystemPage />} />
+            <Route path="settings/integrations" element={<IntegrationsPage />} />
             <Route path="settings/tokens" element={<TokensPage />} />
             <Route path="settings/users" element={<UsersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

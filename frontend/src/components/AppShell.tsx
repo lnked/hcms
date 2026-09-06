@@ -7,6 +7,7 @@ import {
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
+  Plug,
   ScrollText,
   Settings,
   Sun,
@@ -102,6 +103,7 @@ export function AppShell() {
     { to: '/logs', label: t('nav.logs'), icon: Activity },
     { to: '/settings/tokens', label: t('nav.tokens'), icon: KeyRound },
     { to: '/settings/users', label: t('nav.users'), icon: Users },
+    { to: '/settings/integrations', label: t('nav.integrations'), icon: Plug },
     { to: '/settings/system', label: t('nav.system'), icon: Settings },
     { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
   ]

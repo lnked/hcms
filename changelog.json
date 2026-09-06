@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.31.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Email integrations: Resend, Postmark, Mailgun",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Integrations page: configure transactional email via Resend, Postmark, or Mailgun"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Admin API: GET/PUT /admin/api/integrations/email and POST .../test"
+        },
+        {
+          "type": "added",
+          "area": "core",
+          "text": "Mailer with Resend/Postmark/Mailgun transports; API keys stored per provider in cms_settings"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "API access: show Save only when CORS settings are dirty"
+        },
+        {
+          "type": "added",
+          "area": "tooling",
+          "text": "npm scripts: prerelease / release / release:dry"
+        }
+      ]
+    },
+    {
       "version": "0.30.0",
       "date": "2026-09-06",
       "channel": "stable",

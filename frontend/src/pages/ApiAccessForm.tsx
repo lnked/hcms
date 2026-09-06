@@ -22,19 +22,26 @@ export function ApiAccessForm({
   const [unrestricted, setUnrestricted] = useState(initial.unrestricted)
   const [originsText, setOriginsText] = useState(initial.allowedOrigins.join('\n'))
 
+  const parseOrigins = (text: string) =>
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+  const allowedOrigins = parseOrigins(originsText)
+  const originsChanged =
+    allowedOrigins.length !== initial.allowedOrigins.length ||
+    allowedOrigins.some((origin, i) => origin !== initial.allowedOrigins[i])
+  const isDirty = unrestricted !== initial.unrestricted || (!unrestricted && originsChanged)
+
   const saveApiAccess = useMutation({
-    mutationFn: () => {
-      const allowedOrigins = originsText
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-      return api<{ apiAccess: ApiAccessSettings }>('/admin/api/settings', {
+    mutationFn: () =>
+      api<{ apiAccess: ApiAccessSettings }>('/admin/api/settings', {
         method: 'PATCH',
         body: JSON.stringify({
           apiAccess: { unrestricted, allowedOrigins },
         }),
-      })
-    },
+      }),
     onSuccess: (data) => {
       if (data.apiAccess) {
         setUnrestricted(data.apiAccess.unrestricted)
@@ -70,9 +77,11 @@ export function ApiAccessForm({
           <p className="text-xs text-muted-foreground">{t('system.apiAccessOriginsHint')}</p>
         </div>
       ) : null}
-      <Button disabled={saveApiAccess.isPending} onClick={() => saveApiAccess.mutate()}>
-        {saveApiAccess.isPending ? t('common.saving') : t('system.apiAccessSave')}
-      </Button>
+      {isDirty ? (
+        <Button disabled={saveApiAccess.isPending} onClick={() => saveApiAccess.mutate()}>
+          {saveApiAccess.isPending ? t('common.saving') : t('system.apiAccessSave')}
+        </Button>
+      ) : null}
     </>
   )
 }

@@ -36,6 +36,7 @@ use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
@@ -47,6 +48,8 @@ use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Http\Controllers\UsersController;
 use Cms\Install\Installer;
+use Cms\Mail\EmailIntegration;
+use Cms\Mail\Mailer;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\EntryImportExportService;
@@ -947,6 +950,38 @@ final class Kernel
                 }
 
                 return $settingsController->update($request);
+            });
+
+            $settings = new Settings($this->db);
+            $emailIntegration = new EmailIntegration($settings);
+            $integrations = new IntegrationsController(
+                $emailIntegration,
+                new Mailer($settings, $emailIntegration),
+                $this->audit ?? new AuditLogger($this->db),
+            );
+            $this->router->add('GET', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->getEmail($request, $context);
+            });
+            $this->router->add('PUT', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->updateEmail($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/integrations/email/test', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->testEmail($request, $context);
             });
         }
     }
