@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.39.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Email docs + Integrations CodeBlock",
+      "changes": [
+        {
+          "type": "added",
+          "area": "docs",
+          "text": "Email integrations guide with admin/public API and fetch/curl examples"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Integrations: CodeBlock usage examples for /send and custom email APIs"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Resources list: fetch examples use shared CodeBlock and collapse by default"
+        }
+      ]
+    },
+    {
       "version": "0.38.0",
       "date": "2026-09-06",
       "channel": "stable",

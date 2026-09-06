@@ -57,7 +57,25 @@ describe('ResourcesPage', () => {
     expect(endpoint).toBeInTheDocument()
     expect(endpoint.className).toContain('decoration-dashed')
     expect(screen.getByText('Usage example')).toBeInTheDocument()
-    expect(screen.getByText(/fetch\('/)).toBeInTheDocument()
+    expect(document.querySelector('.docs-code')).toBeNull()
+  })
+
+  it('expands fetch example on click', async () => {
+    const user = userEvent.setup()
+    const client = new QueryClient()
+    render(
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <ResourcesPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </I18nProvider>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Usage example' }))
+
+    expect(document.querySelector('.docs-code')?.textContent).toMatch(/fetch\('/)
   })
 
   it('copies endpoint and shows toast', async () => {
@@ -94,7 +112,8 @@ describe('ResourcesPage', () => {
       </I18nProvider>,
     )
 
-    await user.click(await screen.findByRole('button', { name: 'Copy fetch' }))
+    await user.click(await screen.findByRole('button', { name: 'Usage example' }))
+    await user.click(await screen.findByRole('button', { name: 'Copy' }))
 
     expect(copyToClipboard).toHaveBeenCalledWith(
       expect.stringContaining("fetch('"),

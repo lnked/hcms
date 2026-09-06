@@ -97,6 +97,7 @@ export const ru: Record<MessageKey, string> = {
   'integrations.email.endpoints.useInPlayground': 'Playground',
   'integrations.email.endpoints.authHint':
     'Нужен Bearer API-токен с правом Email (или admin-сессия).',
+  'integrations.email.endpoints.example': 'Пример использования',
   'integrations.email.apis.title': 'Кастомные email API',
   'integrations.email.apis.hint': 'Именованные эндпоинты с опциональными шаблонами subject/html/text.',
   'integrations.email.apis.create': 'Добавить эндпоинт',

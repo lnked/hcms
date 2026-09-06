@@ -4,11 +4,13 @@ Admin: `/admin/api/*` (Bearer admin token).
 Public: `/api/{slug}` and `/api/v1/{slug}` for **published** resources.  
 Docs: `/api/docs`.
 
+Email / Integrations: see [integrations-email.md](./integrations-email.md).
+
 ## Admin tokens
 
 ```http
 GET    /admin/api/tokens
-POST   /admin/api/tokens          # body: { name, expiresAt?, grants[] }
+POST   /admin/api/tokens          # body: { name, expiresAt?, grants[], integrationGrants[] }
 GET    /admin/api/tokens/{id}
 PUT    /admin/api/tokens/{id}/grants
 DELETE /admin/api/tokens/{id}     # revoke
@@ -16,6 +18,8 @@ DELETE /admin/api/tokens/{id}     # revoke
 
 Grant: `{ resourceId: null|number, canRead, canCreate, canUpdate, canDelete }`.  
 `resourceId: null` = global. Empty grants → deny on private methods.
+
+Integration grant: `{ integrationKey: "email", canUse: true }` — required for `POST /api/integrations/email/*`.
 
 ## Admin entries
 
@@ -57,3 +61,13 @@ GET /api/{slug}/{apiSlug}/{id}
 
 Admin CRUD: `/admin/api/resources/{id}/apis`.  
 `apiSlug` must start with a letter (not numeric-only) so it does not collide with entry ids.
+
+## Email integrations
+
+```http
+POST /api/integrations/email/send
+POST /api/integrations/email/{slug}
+```
+
+Requires Bearer API token with Email `integrationGrant` (or admin token).  
+Full setup + examples: [integrations-email.md](./integrations-email.md).

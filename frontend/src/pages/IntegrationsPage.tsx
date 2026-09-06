@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CodeBlock } from '@/features/docs/CodeBlock'
+import { useI18n, type MessageKey } from '@/i18n'
 import { api, ApiError, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
-import { useI18n, type MessageKey } from '@/i18n'
+import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
 
 type EmailProvider = 'resend' | 'postmark' | 'mailgun'
 type MailgunRegion = 'us' | 'eu'
@@ -445,6 +447,11 @@ export function IntegrationsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">{t('integrations.email.endpoints.authHint')}</p>
+          <CodeBlock
+            code={buildEmailSendFetchExample(SEND_PATH)}
+            language="js"
+            label={t('integrations.email.endpoints.example')}
+          />
         </CardContent>
       </Card>
 
@@ -478,44 +485,51 @@ export function IntegrationsPage() {
               {(apisQuery.data ?? []).map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
+                  className="space-y-3 rounded-md border px-3 py-2"
                 >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{item.label}</span>
-                      <Badge variant={item.enabled ? 'default' : 'secondary'}>
-                        {item.enabled ? t('common.enabled') : t('common.disabled')}
-                      </Badge>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{item.label}</span>
+                        <Badge variant={item.enabled ? 'default' : 'secondary'}>
+                          {item.enabled ? t('common.enabled') : t('common.disabled')}
+                        </Badge>
+                      </div>
+                      <button
+                        type="button"
+                        className="font-mono text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => void copyPath(item.path)}
+                        title={t('integrations.email.endpoints.copy')}
+                      >
+                        {item.path}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="font-mono text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => void copyPath(item.path)}
-                      title={t('integrations.email.endpoints.copy')}
-                    >
-                      {item.path}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setPlaygroundPath(item.path)}>
+                        {t('integrations.email.endpoints.useInPlayground')}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
+                        {t('common.edit')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={deleteApi.isPending}
+                        onClick={() => {
+                          if (confirm(t('integrations.email.apis.deleteConfirm', { slug: item.slug }))) {
+                            deleteApi.mutate(item.id)
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setPlaygroundPath(item.path)}>
-                      {t('integrations.email.endpoints.useInPlayground')}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
-                      {t('common.edit')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={deleteApi.isPending}
-                      onClick={() => {
-                        if (confirm(t('integrations.email.apis.deleteConfirm', { slug: item.slug }))) {
-                          deleteApi.mutate(item.id)
-                        }
-                      }}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
+                  <CodeBlock
+                    code={buildEmailSendFetchExample(item.path, { withVars: true })}
+                    language="js"
+                    label={t('integrations.email.endpoints.example')}
+                  />
                 </div>
               ))}
             </div>

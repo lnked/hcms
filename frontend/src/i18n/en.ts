@@ -93,6 +93,7 @@ export const en = {
   'integrations.email.endpoints.useInPlayground': 'Playground',
   'integrations.email.endpoints.authHint':
     'Requires Bearer API token with Email grant (or admin session token).',
+  'integrations.email.endpoints.example': 'Usage example',
   'integrations.email.apis.title': 'Custom email APIs',
   'integrations.email.apis.hint': 'Named endpoints with optional default subject/html/text templates.',
   'integrations.email.apis.create': 'Add endpoint',

@@ -298,7 +298,7 @@ export function ResourcesPage() {
                     </TableRow>
                     <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={5} className="border-t-0 pt-0 pb-4">
-                        <ResourceFetchExample resource={resource} />
+                        <ResourceFetchExample resource={resource} collapsible />
                       </TableCell>
                     </TableRow>
                   </Fragment>

@@ -71,7 +71,7 @@ Authorization: Bearer <token>
 - OpenAPI: `/api/openapi.json`
 - Swagger UI: `/api/docs`
 
-В админке: **Settings → System** — язык и CORS/origins для public API; у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter).
+В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter).
 
 ## Quality
 
