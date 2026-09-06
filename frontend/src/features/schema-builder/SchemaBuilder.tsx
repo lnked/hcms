@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
-import { emptyField, FIELD_TYPES, type SchemaField } from '@/types/field'
+import { emptyField, FIELD_TYPES, type FieldTypeName, type SchemaField } from '@/types/field'
 import { cn } from '@/lib/utils'
 
 interface SchemaBuilderProps {
   schema: SchemaField[]
   onChange: (schema: SchemaField[]) => void
 }
+
+const selectClass = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm'
 
 export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const { t } = useI18n()
@@ -45,6 +47,28 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     next.splice(targetIndex, 0, moved)
     onChange(next.map((field, i) => ({ ...field, sortOrder: i })))
     setDragIndex(null)
+  }
+
+  function changeType(index: number, type: FieldTypeName) {
+    const field = schema[index]
+    const base = emptyField(type, field.sortOrder)
+    updateAt(index, {
+      ...base,
+      id: field.id,
+      name: field.name,
+      label: field.label,
+      description: field.description,
+    })
+  }
+
+  function patchConfig(index: number, patch: Record<string, unknown>) {
+    const field = schema[index]
+    const nextConfig = { ...field.config, ...patch }
+    const cardinality = nextConfig.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+    updateAt(index, {
+      config: nextConfig,
+      writable: field.type === 'relation' && cardinality === 'oneToMany' ? false : field.writable,
+    })
   }
 
   return (
@@ -129,19 +153,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                 <div className="space-y-2">
                   <Label>{t('common.type')}</Label>
                   <select
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className={selectClass}
                     value={field.type}
-                    onChange={(e) =>
-                      updateAt(index, {
-                        type: e.target.value,
-                        config:
-                          e.target.value === 'enum'
-                            ? { options: ['draft', 'published'] }
-                            : e.target.value === 'string'
-                              ? { maxLength: 255 }
-                              : {},
-                      })
-                    }
+                    onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
                   >
                     {FIELD_TYPES.map((type) => (
                       <option key={type} value={type}>
@@ -191,6 +205,47 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   />
                   {t('schema.sortable')}
                 </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.filterable}
+                    onChange={(e) => updateAt(index, { filterable: e.target.checked })}
+                  />
+                  {t('schema.filterable')}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.readable}
+                    onChange={(e) => updateAt(index, { readable: e.target.checked })}
+                  />
+                  {t('schema.readable')}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.writable}
+                    disabled={field.type === 'relation' && field.config.cardinality === 'oneToMany'}
+                    onChange={(e) => updateAt(index, { writable: e.target.checked })}
+                  />
+                  {t('schema.writable')}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.hidden}
+                    onChange={(e) => updateAt(index, { hidden: e.target.checked })}
+                  />
+                  {t('schema.hidden')}
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={field.readonly}
+                    onChange={(e) => updateAt(index, { readonly: e.target.checked })}
+                  />
+                  {t('schema.readonly')}
+                </label>
                 {field.type === 'enum' ? (
                   <div className="space-y-2 md:col-span-2">
                     <Label>{t('schema.options')}</Label>
@@ -211,6 +266,54 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       }
                     />
                   </div>
+                ) : null}
+                {field.type === 'relation' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>{t('schema.relation.relatedSlug')}</Label>
+                      <Input
+                        value={String(field.config.relatedSlug ?? '')}
+                        onChange={(e) => patchConfig(index, { relatedSlug: e.target.value })}
+                        placeholder="posts"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('schema.relation.cardinality')}</Label>
+                      <select
+                        className={selectClass}
+                        value={field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'}
+                        onChange={(e) => {
+                          const cardinality =
+                            e.target.value === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+                          updateAt(index, {
+                            config: { ...field.config, cardinality },
+                            writable: cardinality === 'oneToMany' ? false : true,
+                          })
+                        }}
+                      >
+                        <option value="manyToOne">{t('schema.relation.manyToOne')}</option>
+                        <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{t('schema.relation.labelField')}</Label>
+                      <Input
+                        value={String(field.config.labelField ?? 'id')}
+                        onChange={(e) => patchConfig(index, { labelField: e.target.value })}
+                        placeholder="title"
+                      />
+                    </div>
+                    {field.config.cardinality === 'oneToMany' ? (
+                      <div className="space-y-2">
+                        <Label>{t('schema.relation.foreignKey')}</Label>
+                        <Input
+                          value={String(field.config.foreignKey ?? '')}
+                          onChange={(e) => patchConfig(index, { foreignKey: e.target.value })}
+                          placeholder="post_id"
+                        />
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
             ) : null}

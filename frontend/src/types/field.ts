@@ -13,6 +13,7 @@ export type FieldTypeName =
   | 'enum'
   | 'image'
   | 'file'
+  | 'relation'
 
 export interface SchemaField {
   id?: number
@@ -51,9 +52,11 @@ export const FIELD_TYPES: FieldTypeName[] = [
   'enum',
   'image',
   'file',
+  'relation',
 ]
 
 export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): SchemaField {
+  const isRelation = type === 'relation'
   return {
     name: '',
     type,
@@ -72,8 +75,14 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
     filterable: true,
     readable: true,
     writable: true,
-    config:
-      type === 'enum'
+    config: isRelation
+      ? {
+          cardinality: 'manyToOne',
+          relatedSlug: '',
+          labelField: 'id',
+          foreignKey: '',
+        }
+      : type === 'enum'
         ? { options: ['draft', 'published'] }
         : type === 'string'
           ? { maxLength: 255 }

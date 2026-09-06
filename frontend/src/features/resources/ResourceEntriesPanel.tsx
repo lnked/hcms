@@ -210,6 +210,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
             values={values}
             onChange={setValues}
             disabled={save.isPending}
+            entryId={editing?.id ?? null}
           />
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <div className="mt-4 flex justify-end gap-2">

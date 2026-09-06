@@ -1,0 +1,188 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useI18n } from '@/i18n'
+import { getToken } from '@/lib/api'
+import type { SchemaField } from '@/types/field'
+import type { Resource } from '@/types/resource'
+
+interface ResourceApiPlaygroundProps {
+  resource: Resource
+  fields: SchemaField[]
+}
+
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+
+const controlClass =
+  'flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+
+const METHODS: HttpMethod[] = ['GET', 'POST', 'PATCH', 'DELETE']
+
+export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroundProps) {
+  const { t } = useI18n()
+  const [method, setMethod] = useState<HttpMethod>('GET')
+  const [path, setPath] = useState(resource.endpoint)
+  const [query, setQuery] = useState('limit=20')
+  const [body, setBody] = useState('{\n  \n}')
+  const [status, setStatus] = useState<number | null>(null)
+  const [responseText, setResponseText] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    setPath(resource.endpoint)
+  }, [resource.endpoint])
+
+  const endpoints = useMemo(
+    () => [
+      `GET ${resource.endpoint}`,
+      `GET ${resource.endpoint}/:id`,
+      `POST ${resource.endpoint}`,
+      `PATCH ${resource.endpoint}/:id`,
+      `DELETE ${resource.endpoint}/:id`,
+    ],
+    [resource.endpoint],
+  )
+
+  const fullUrl = useMemo(() => {
+    const q = query.trim()
+    return q ? `${path}?${q.replace(/^\?/, '')}` : path
+  }, [path, query])
+
+  async function send() {
+    setSending(true)
+    setStatus(null)
+    setResponseText(null)
+    try {
+      const headers = new Headers({ Accept: 'application/json' })
+      const token = getToken()
+      if (token) headers.set('Authorization', `Bearer ${token}`)
+      const init: RequestInit = { method, headers }
+      if (method === 'POST' || method === 'PATCH') {
+        headers.set('Content-Type', 'application/json')
+        init.body = body
+      }
+      const res = await fetch(fullUrl, init)
+      setStatus(res.status)
+      const text = await res.text()
+      try {
+        setResponseText(JSON.stringify(JSON.parse(text), null, 2))
+      } catch {
+        setResponseText(text || '(empty)')
+      }
+    } catch (err) {
+      setStatus(0)
+      setResponseText(err instanceof Error ? err.message : t('common.requestFailed'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function copyUrl() {
+    try {
+      await navigator.clipboard.writeText(fullUrl)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('resources.playground.title')}</CardTitle>
+        <CardDescription>{t('resources.playground.hint')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1 font-mono text-sm text-muted-foreground">
+          {endpoints.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+
+        {fields.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {t('resources.playground.fieldsHint', { count: fields.length })}
+          </p>
+        ) : null}
+
+        <div className="grid gap-3 md:grid-cols-[8rem_1fr]">
+          <div className="space-y-2">
+            <Label htmlFor="api-method">{t('resources.playground.method')}</Label>
+            <select
+              id="api-method"
+              className={controlClass + ' h-9'}
+              value={method}
+              onChange={(e) => setMethod(e.target.value as HttpMethod)}
+            >
+              {METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="api-path">{t('resources.playground.path')}</Label>
+            <Input
+              id="api-path"
+              className="font-mono"
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="api-query">{t('resources.playground.query')}</Label>
+          <textarea
+            id="api-query"
+            className={controlClass + ' h-20 font-mono'}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="limit=20&sort=id"
+          />
+        </div>
+
+        {method === 'POST' || method === 'PATCH' ? (
+          <div className="space-y-2">
+            <Label htmlFor="api-body">{t('resources.playground.body')}</Label>
+            <textarea
+              id="api-body"
+              className={controlClass + ' h-36 font-mono'}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+            />
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={sending} onClick={() => void send()}>
+            {sending ? t('resources.playground.sending') : t('resources.playground.send')}
+          </Button>
+          <Button variant="outline" onClick={() => void copyUrl()}>
+            {copied ? t('resources.playground.copied') : t('resources.playground.copyUrl')}
+          </Button>
+          <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
+            {t('resources.openDocs')}
+          </Button>
+        </div>
+
+        {status !== null ? (
+          <div className="space-y-2">
+            <p className="text-sm">
+              <span className="text-muted-foreground">{t('resources.playground.status')}: </span>
+              <span className="font-mono font-medium">{status}</span>
+            </p>
+            <pre className="max-h-80 overflow-auto rounded-md border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap">
+              {responseText}
+            </pre>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}

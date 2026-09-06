@@ -4,19 +4,22 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlayground'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
+import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
-type Tab = 'overview' | 'schema' | 'data' | 'api'
+type Tab = 'overview' | 'schema' | 'data' | 'settings' | 'api'
 
 const tabKeys = {
   overview: 'resources.tab.overview',
   schema: 'resources.tab.schema',
   data: 'resources.tab.data',
+  settings: 'resources.tab.settings',
   api: 'resources.tab.api',
 } as const
 
@@ -128,8 +131,8 @@ export function ResourceDetailPage() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b pb-2">
-        {(['overview', 'schema', 'data', 'api'] as Tab[]).map((item) => (
+      <div className="flex flex-wrap gap-2 border-b pb-2">
+        {(['overview', 'schema', 'data', 'settings', 'api'] as Tab[]).map((item) => (
           <Button
             key={item}
             size="sm"
@@ -227,29 +230,15 @@ export function ResourceDetailPage() {
         />
       ) : null}
 
+      {tab === 'settings' ? (
+        <ResourceSettingsPanel
+          resource={resource}
+          onSaved={() => void queryClient.invalidateQueries({ queryKey: ['resource', resourceId] })}
+        />
+      ) : null}
+
       {tab === 'api' ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('resources.api')}</CardTitle>
-            <CardDescription>{t('resources.apiHint')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2 font-mono text-sm">
-            <p>GET {resource.endpoint}</p>
-            <p>GET {resource.endpoint}/:id</p>
-            <p>POST {resource.endpoint}</p>
-            <p>PATCH {resource.endpoint}/:id</p>
-            <p>DELETE {resource.endpoint}/:id</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() =>
-                window.open(`/api/docs#/${encodeURIComponent(resource.label)}`, '_blank')
-              }
-            >
-              {t('resources.openDocs')}
-            </Button>
-          </CardContent>
-        </Card>
+        <ResourceApiPlayground resource={resource} fields={fieldsQuery.data ?? schema} />
       ) : null}
     </div>
   )

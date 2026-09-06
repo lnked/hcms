@@ -30,4 +30,11 @@ final class MediaPathsTest extends TestCase
         $this->assertSame('public', Paths::normalizePublicDir('../etc'));
         $this->assertSame('public_html', Paths::normalizePublicDir('public_html'));
     }
+
+    public function testKnownWebRootNames(): void
+    {
+        $this->assertTrue(Paths::isKnownWebRootName('public_html'));
+        $this->assertTrue(Paths::isKnownWebRootName('public'));
+        $this->assertFalse(Paths::isKnownWebRootName('celebro.ru'));
+    }
 }

@@ -58,6 +58,9 @@ export function InstallPage() {
   useEffect(() => {
     void installApi<InstallStatus>('status').then((s) => {
       setStatus(s)
+      if (s.suggestedPublicDir) {
+        setApp((prev) => ({ ...prev, publicDir: s.suggestedPublicDir ?? prev.publicDir }))
+      }
       if (s.srcReady) {
         setMessage(t('install.filesPresent'))
         setStep(1)
@@ -367,10 +370,12 @@ export function InstallPage() {
                 </datalist>
                 <FieldError errors={fieldErrors} id="publicDir" />
                 <p className="text-xs text-muted-foreground">
-                  {t('install.publicDirHint', {
-                    admin: '/admin',
-                    nested: `/{folder}/admin`,
-                  })}
+                  {status?.insideWebRoot
+                    ? t('install.publicDirHintInside', { folder: app.publicDir })
+                    : t('install.publicDirHint', {
+                        admin: '/admin',
+                        nested: `/${app.publicDir}/admin`,
+                      })}
                 </p>
               </div>
               <Button

@@ -1,6 +1,44 @@
 {
   "releases": [
     {
+      "version": "0.16.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Resource settings, API playground, relations",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resource Settings tab: public CRUD flags, pagination/search/sort/filter, delete strategy"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "API playground on resource (try GET/POST/PATCH/DELETE with live response)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Dashboard stats from /admin/api/system/stats"
+        },
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "Field readable/writable/filterable/hidden/readonly toggles; relation type (manyToOne/oneToMany)"
+        },
+        {
+          "type": "fixed",
+          "area": "api",
+          "text": "Honor resource query flags on public API; admin entries ignore apiEnabled"
+        },
+        {
+          "type": "fixed",
+          "area": "install",
+          "text": "Flatten install into hosting public_html / www / htdocs without nesting"
+        }
+      ]
+    },
+    {
       "version": "0.15.1",
       "date": "2026-09-06",
       "channel": "stable",

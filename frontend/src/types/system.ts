@@ -35,6 +35,9 @@ export interface InstallStatus {
   installed: boolean
   srcReady: boolean
   version: string
+  installRootName?: string
+  insideWebRoot?: boolean
+  suggestedPublicDir?: string
   requirements: {
     ok: boolean
     phpVersion: string

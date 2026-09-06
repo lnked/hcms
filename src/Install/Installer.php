@@ -33,6 +33,8 @@ final class Installer
         'changelog.json',
         'install.php',
         'clean.php',
+        'fix.php',
+        'fix2.php',
         '.env',
         '.env.example',
         'phpunit.xml',
@@ -124,6 +126,24 @@ final class Installer
     }
 
     /**
+     * Place public assets under the hosting document root and keep the rest above it when needed.
+     */
+    public function preparePublicLayout(string $publicDir): Paths
+    {
+        $publicDir = Paths::normalizePublicDir($publicDir);
+        $rootName = basename(rtrim($this->paths->root, '/\\'));
+
+        // Already sitting in a hosting docroot → always flatten using that folder name.
+        if (Paths::isKnownWebRootName($rootName)) {
+            $publicDir = $rootName;
+        }
+
+        $this->ensurePublicDir($publicDir);
+
+        return $this->paths;
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
     public function complete(array $payload): void
@@ -176,7 +196,8 @@ final class Installer
                 : 'public',
         );
 
-        $this->ensurePublicDir($publicDir);
+        $paths = $this->preparePublicLayout($publicDir);
+        $publicDir = $paths->publicDir;
 
         $connection = Connection::connect($db);
         // Lock absent but tables may remain from a partial / cleaned install.
@@ -320,8 +341,18 @@ final class Installer
 
     private function ensurePublicDir(string $publicDir): void
     {
-        $target = $this->paths->root . '/' . $publicDir;
-        $default = $this->paths->root . '/public';
+        $root = rtrim($this->paths->root, '/\\');
+
+        // Already inside hosting docroot (…/public_html): keep public scripts here,
+        // lift src/vendor/storage/… one level above — never create public_html/public_html.
+        if (basename($root) === $publicDir) {
+            $this->paths = $this->flattenIntoHostingWebRoot($publicDir);
+
+            return;
+        }
+
+        $target = $root . '/' . $publicDir;
+        $default = $root . '/public';
 
         if ($publicDir === 'public') {
             if (!is_dir($default)) {
@@ -332,6 +363,11 @@ final class Installer
         }
 
         if (is_dir($target)) {
+            if (is_dir($default) && realpath($default) !== realpath($target)) {
+                $this->mergeDirectoryContents($default, $target);
+                $this->removeDirectory($default);
+            }
+
             return;
         }
 
@@ -344,6 +380,141 @@ final class Installer
         }
 
         throw new RuntimeException('Missing web root directory (expected public/ or ' . $publicDir . '/)');
+    }
+
+    /**
+     * Shared-hosting layout: install ran from …/public_html (or public).
+     * Document root stays the current folder; project root becomes its parent.
+     */
+    private function flattenIntoHostingWebRoot(string $publicDir): Paths
+    {
+        $webRoot = rtrim($this->paths->root, '/\\');
+        $projectRoot = dirname($webRoot);
+
+        if ($projectRoot === $webRoot || $projectRoot === '/' || $projectRoot === '.') {
+            throw new RuntimeException('Cannot place project files above ' . $publicDir . ' (no parent directory)');
+        }
+        if (!is_dir($projectRoot) || !is_writable($projectRoot)) {
+            throw new RuntimeException(
+                'Parent of ' . $publicDir . ' must be writable to store non-public CMS files',
+            );
+        }
+
+        $nestedPublic = $webRoot . '/public';
+        if (is_dir($nestedPublic)) {
+            $this->mergeDirectoryContents($nestedPublic, $webRoot);
+            $this->removeDirectory($nestedPublic);
+        }
+
+        $nestedSame = $webRoot . '/' . $publicDir;
+        if (is_dir($nestedSame)) {
+            $sameReal = realpath($nestedSame);
+            $webReal = realpath($webRoot);
+            if ($sameReal !== false && $webReal !== false && $sameReal !== $webReal) {
+                $this->mergeDirectoryContents($nestedSame, $webRoot);
+                $this->removeDirectory($nestedSame);
+            }
+        }
+
+        foreach (self::PROJECT_ROOT_ENTRIES as $name) {
+            $from = $webRoot . '/' . $name;
+            if (!file_exists($from)) {
+                continue;
+            }
+            $this->moveEntry($from, $projectRoot . '/' . $name);
+        }
+
+        if (!is_file($webRoot . '/index.php')) {
+            throw new RuntimeException(
+                'Missing index.php in ' . $publicDir . ' after layout flatten (download CMS files first)',
+            );
+        }
+
+        return new Paths($projectRoot, $publicDir);
+    }
+
+    private function mergeDirectoryContents(string $source, string $destination): void
+    {
+        if (!is_dir($source)) {
+            return;
+        }
+        if (!is_dir($destination) && !mkdir($destination, 0775, true) && !is_dir($destination)) {
+            throw new RuntimeException('Unable to create directory: ' . $destination);
+        }
+
+        $items = scandir($source);
+        if ($items === false) {
+            throw new RuntimeException('Unable to read directory: ' . $source);
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $this->moveEntry($source . '/' . $item, $destination . '/' . $item);
+        }
+    }
+
+    private function moveEntry(string $from, string $to): void
+    {
+        if (!file_exists($from)) {
+            return;
+        }
+
+        if (!file_exists($to)) {
+            $parent = dirname($to);
+            if (!is_dir($parent) && !mkdir($parent, 0775, true) && !is_dir($parent)) {
+                throw new RuntimeException('Unable to create directory: ' . $parent);
+            }
+            if (!@rename($from, $to)) {
+                throw new RuntimeException('Unable to move ' . basename($from) . ' → ' . $to);
+            }
+
+            return;
+        }
+
+        if (is_dir($from) && is_dir($to)) {
+            $this->mergeDirectoryContents($from, $to);
+            $this->removeDirectory($from);
+
+            return;
+        }
+
+        if (is_file($from) && is_file($to)) {
+            if (!@unlink($to) || !@rename($from, $to)) {
+                throw new RuntimeException('Unable to replace ' . $to);
+            }
+
+            return;
+        }
+
+        throw new RuntimeException('Cannot move ' . $from . ' over conflicting path ' . $to);
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $items = scandir($path);
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $full = $path . '/' . $item;
+            if (is_dir($full)) {
+                $this->removeDirectory($full);
+            } else {
+                @unlink($full);
+            }
+        }
+
+        @rmdir($path);
     }
 
     private function writeRootHtaccess(string $publicDir): void
@@ -359,6 +530,8 @@ final class Installer
 
     RewriteRule ^install\\.php\$ - [L]
     RewriteRule ^clean\\.php\$ - [L]
+    RewriteRule ^fix\\.php\$ - [L]
+    RewriteRule ^fix2\\.php\$ - [L]
     RewriteRule ^{$publicDir}/ - [L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)\$ {$publicDir}/\$1 [L]

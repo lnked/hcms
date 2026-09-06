@@ -89,6 +89,14 @@ final class Paths
         return $dir;
     }
 
+    /**
+     * Common shared-hosting / local document-root folder names.
+     */
+    public static function isKnownWebRootName(string $name): bool
+    {
+        return in_array($name, ['public', 'public_html', 'www', 'htdocs'], true);
+    }
+
     private static function detectPublicDir(string $root): string
     {
         $envFile = $root . '/.env';

@@ -1116,6 +1116,9 @@ function cms_install_html(): string
     api('status').then((s) => {
       renderRequirements(s.requirements?.checks || {});
       if (s.installed) { location.href = '/admin'; return; }
+      if (s.suggestedPublicDir) {
+        $('appPublicDir').value = s.suggestedPublicDir;
+      }
       if (s.srcReady) {
         $('dlLog').className = 'status ok';
         $('dlLog').textContent = 'Files already present — continue, or re-download to refresh.';

@@ -1,0 +1,183 @@
+import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { useI18n } from '@/i18n'
+import { api } from '@/lib/api'
+import type { Resource, ResourceSettings } from '@/types/resource'
+
+interface ResourceSettingsPanelProps {
+  resource: Resource
+  onSaved?: () => void
+}
+
+const selectClass =
+  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
+
+function cloneSettings(settings: ResourceSettings): ResourceSettings {
+  return {
+    ...settings,
+    public: { ...settings.public },
+  }
+}
+
+export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPanelProps) {
+  const { t } = useI18n()
+  const queryClient = useQueryClient()
+  const [settings, setSettings] = useState(() => cloneSettings(resource.settings))
+  const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSettings(cloneSettings(resource.settings))
+  }, [resource.settings])
+
+  const save = useMutation({
+    mutationFn: () =>
+      api<Resource>(`/admin/api/resources/${resource.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ settings }),
+      }),
+    onSuccess: (data) => {
+      setSettings(cloneSettings(data.settings))
+      setMessage(t('resources.settings.saved'))
+      queryClient.setQueryData(['resource', resource.id], data)
+      void queryClient.invalidateQueries({ queryKey: ['resources'] })
+      onSaved?.()
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
+  function patch(partial: Partial<ResourceSettings>) {
+    setSettings((prev) => ({ ...prev, ...partial }))
+    setMessage(null)
+  }
+
+  function patchPublic(key: keyof ResourceSettings['public'], value: boolean) {
+    setSettings((prev) => ({
+      ...prev,
+      public: { ...prev.public, [key]: value },
+    }))
+    setMessage(null)
+  }
+
+  function setDeleteStrategy(strategy: 'hard' | 'soft') {
+    setSettings((prev) => ({
+      ...prev,
+      deleteStrategy: strategy,
+      softDelete: strategy === 'soft',
+    }))
+    setMessage(null)
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('resources.settings.title')}</CardTitle>
+        <CardDescription>{t('resources.settings.hint')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.apiEnabled}
+              onChange={(e) => patch({ apiEnabled: e.target.checked })}
+            />
+            {t('resources.settings.apiEnabled')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.pagination}
+              onChange={(e) => patch({ pagination: e.target.checked })}
+            />
+            {t('resources.settings.pagination')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.search}
+              onChange={(e) => patch({ search: e.target.checked })}
+            />
+            {t('resources.settings.search')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.sorting}
+              onChange={(e) => patch({ sorting: e.target.checked })}
+            />
+            {t('resources.settings.sorting')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.filtering}
+              onChange={(e) => patch({ filtering: e.target.checked })}
+            />
+            {t('resources.settings.filtering')}
+          </label>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-sm font-medium">{t('resources.settings.publicAccess')}</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={settings.public.read}
+                onChange={(e) => patchPublic('read', e.target.checked)}
+              />
+              {t('resources.settings.publicRead')}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={settings.public.create}
+                onChange={(e) => patchPublic('create', e.target.checked)}
+              />
+              {t('resources.settings.publicCreate')}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={settings.public.update}
+                onChange={(e) => patchPublic('update', e.target.checked)}
+              />
+              {t('resources.settings.publicUpdate')}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={settings.public.delete}
+                onChange={(e) => patchPublic('delete', e.target.checked)}
+              />
+              {t('resources.settings.publicDelete')}
+            </label>
+          </div>
+        </div>
+
+        <div className="max-w-xs space-y-2">
+          <Label htmlFor="delete-strategy">{t('resources.settings.deleteStrategy')}</Label>
+          <select
+            id="delete-strategy"
+            className={selectClass}
+            value={settings.deleteStrategy}
+            onChange={(e) => setDeleteStrategy(e.target.value === 'soft' ? 'soft' : 'hard')}
+          >
+            <option value="hard">{t('resources.settings.deleteHard')}</option>
+            <option value="soft">{t('resources.settings.deleteSoft')}</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button disabled={save.isPending} onClick={() => save.mutate()}>
+            {save.isPending ? t('common.saving') : t('common.save')}
+          </Button>
+          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
