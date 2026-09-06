@@ -27,7 +27,7 @@ export function AppRouter() {
             <Route index element={<DashboardPage />} />
             <Route path="resources" element={<ResourcesPage />} />
             <Route path="resources/new" element={<CreateResourcePage />} />
-            <Route path="resources/:id" element={<ResourceDetailPage />} />
+            <Route path="resources/:id/:tab?" element={<ResourceDetailPage />} />
             <Route path="media" element={<MediaPage />} />
             <Route path="logs" element={<LogsPage />} />
             <Route path="changelog" element={<ChangelogPage />} />

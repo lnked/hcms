@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.20.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Icon actions, resource tab URLs",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Table row actions (resources/entries/users) use icon buttons in one row instead of stacked text labels"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Resource detail tabs are URL-backed (/resources/:id/:tab) for shareable deep links"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "API playground: save custom resource endpoint path from the path field"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Entry editor dialog scrolls within viewport (max-height + sticky footer actions)"
+        },
+        {
+          "type": "changed",
+          "area": "cli",
+          "text": "seed-demo.php: CLI-only gate, .env defaults, --host/--insecure/--delay-ms for remote seeding"
+        }
+      ]
+    },
+    {
       "version": "0.19.0",
       "date": "2026-09-06",
       "channel": "stable",

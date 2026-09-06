@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
-import { getToken } from '@/lib/api'
+import { api, getToken } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
@@ -20,8 +21,15 @@ const controlClass =
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PATCH', 'DELETE']
 
+function normalizeEndpoint(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+}
+
 export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroundProps) {
   const { t } = useI18n()
+  const queryClient = useQueryClient()
   const [method, setMethod] = useState<HttpMethod>('GET')
   const [path, setPath] = useState(resource.endpoint)
   const [query, setQuery] = useState('limit=20')
@@ -30,6 +38,10 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
   const [responseText, setResponseText] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  const normalizedPath = normalizeEndpoint(path)
+  const pathDirty = normalizedPath !== '' && normalizedPath !== resource.endpoint
 
   const endpoints = useMemo(
     () => [
@@ -44,8 +56,24 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
 
   const fullUrl = useMemo(() => {
     const q = query.trim()
-    return q ? `${path}?${q.replace(/^\?/, '')}` : path
-  }, [path, query])
+    const base = normalizedPath || path
+    return q ? `${base}?${q.replace(/^\?/, '')}` : base
+  }, [normalizedPath, path, query])
+
+  const saveEndpoint = useMutation({
+    mutationFn: () =>
+      api<Resource>(`/admin/api/resources/${resource.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ endpoint: normalizedPath }),
+      }),
+    onSuccess: (data) => {
+      setPath(data.endpoint)
+      setMessage(t('resources.playground.pathSaved'))
+      queryClient.setQueryData(['resource', resource.id], data)
+      void queryClient.invalidateQueries({ queryKey: ['resources'] })
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
 
   async function send() {
     setSending(true)
@@ -127,7 +155,10 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
               id="api-path"
               className="font-mono"
               value={path}
-              onChange={(e) => setPath(e.target.value)}
+              onChange={(e) => {
+                setPath(e.target.value)
+                setMessage(null)
+              }}
             />
           </div>
         </div>
@@ -155,7 +186,15 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
           </div>
         ) : null}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            disabled={!pathDirty || saveEndpoint.isPending}
+            onClick={() => saveEndpoint.mutate()}
+          >
+            {saveEndpoint.isPending
+              ? t('common.saving')
+              : t('resources.playground.savePath')}
+          </Button>
           <Button disabled={sending} onClick={() => void send()}>
             {sending ? t('resources.playground.sending') : t('resources.playground.send')}
           </Button>
@@ -165,6 +204,7 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
           <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
             {t('resources.openDocs')}
           </Button>
+          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
         </div>
 
         {status !== null ? (

@@ -188,6 +188,8 @@ export const ru: Record<MessageKey, string> = {
   'resources.playground.fieldsHint': 'полей в схеме: {count}',
   'resources.playground.method': 'Метод',
   'resources.playground.path': 'Путь',
+  'resources.playground.savePath': 'Сохранить путь',
+  'resources.playground.pathSaved': 'Путь сохранён',
   'resources.playground.query': 'Query string',
   'resources.playground.body': 'JSON body',
   'resources.playground.send': 'Отправить',

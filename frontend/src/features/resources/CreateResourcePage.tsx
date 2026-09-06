@@ -70,7 +70,7 @@ export function CreateResourcePage() {
           description: description || undefined,
         }),
       })
-      navigate(`/resources/${resource.id}`)
+      navigate(`/resources/${resource.id}/overview`)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.createFailed'))
     } finally {

@@ -184,6 +184,8 @@ export const en = {
   'resources.playground.fieldsHint': '{count} schema fields available',
   'resources.playground.method': 'Method',
   'resources.playground.path': 'Path',
+  'resources.playground.savePath': 'Save path',
+  'resources.playground.pathSaved': 'Path saved',
   'resources.playground.query': 'Query string',
   'resources.playground.body': 'JSON body',
   'resources.playground.send': 'Send',

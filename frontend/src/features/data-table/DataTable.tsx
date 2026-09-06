@@ -1,3 +1,4 @@
+import { Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -57,7 +58,7 @@ export function DataTable({ fields, rows, onEdit, onDelete, sort, onSort }: Data
               )}
             </TableHead>
           ))}
-          <TableHead className="w-40 text-right">{t('common.actions')}</TableHead>
+          <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -76,13 +77,27 @@ export function DataTable({ fields, rows, onEdit, onDelete, sort, onSort }: Data
                   {formatCell(row[col.name], t)}
                 </TableCell>
               ))}
-              <TableCell className="space-x-2 text-right">
-                <Button size="sm" variant="outline" onClick={() => onEdit(row)}>
-                  {t('common.edit')}
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => onDelete(row)}>
-                  {t('common.delete')}
-                </Button>
+              <TableCell className="text-right">
+                <div className="inline-flex items-center justify-end gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label={t('common.edit')}
+                    title={t('common.edit')}
+                    onClick={() => onEdit(row)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    aria-label={t('common.delete')}
+                    title={t('common.delete')}
+                    onClick={() => onDelete(row)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))

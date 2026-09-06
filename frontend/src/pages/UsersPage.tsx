@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Ban, CircleCheck, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -148,27 +149,41 @@ export function UsersPage() {
                             {user.status === 'active' ? t('users.active') : t('users.disabled')}
                           </Badge>
                         </TableCell>
-                        <TableCell className="space-x-2 text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={toggleStatus.isPending}
-                            onClick={() => toggleStatus.mutate(user)}
-                          >
-                            {user.status === 'active' ? t('users.disable') : t('users.enable')}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            disabled={isSelf || remove.isPending}
-                            onClick={() => {
-                              if (window.confirm(t('users.deleteConfirm', { name: user.name }))) {
-                                remove.mutate(user.id)
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={toggleStatus.isPending}
+                              aria-label={
+                                user.status === 'active' ? t('users.disable') : t('users.enable')
                               }
-                            }}
-                          >
-                            {t('common.delete')}
-                          </Button>
+                              title={
+                                user.status === 'active' ? t('users.disable') : t('users.enable')
+                              }
+                              onClick={() => toggleStatus.mutate(user)}
+                            >
+                              {user.status === 'active' ? (
+                                <Ban className="h-4 w-4" />
+                              ) : (
+                                <CircleCheck className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={isSelf || remove.isPending}
+                              aria-label={t('common.delete')}
+                              title={t('common.delete')}
+                              onClick={() => {
+                                if (window.confirm(t('users.deleteConfirm', { name: user.name }))) {
+                                  remove.mutate(user.id)
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )

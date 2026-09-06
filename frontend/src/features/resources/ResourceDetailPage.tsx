@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlayground'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
@@ -10,10 +10,12 @@ import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPane
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
-type Tab = 'overview' | 'schema' | 'data' | 'settings' | 'api'
+const TABS = ['overview', 'schema', 'data', 'settings', 'api'] as const
+type Tab = (typeof TABS)[number]
 
 const tabKeys = {
   overview: 'resources.tab.overview',
@@ -23,15 +25,26 @@ const tabKeys = {
   api: 'resources.tab.api',
 } as const
 
+function isTab(value: string | undefined): value is Tab {
+  return TABS.includes(value as Tab)
+}
+
 export function ResourceDetailPage() {
   const { t } = useI18n()
-  const { id } = useParams()
+  const { id, tab: tabParam } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const resourceId = Number(id)
-  const [tab, setTab] = useState<Tab>('overview')
+  const tab: Tab = isTab(tabParam) ? tabParam : 'overview'
   const [draftSchema, setDraftSchema] = useState<SchemaField[] | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!Number.isFinite(resourceId) || resourceId <= 0) return
+    if (!isTab(tabParam)) {
+      navigate(`/resources/${resourceId}/overview`, { replace: true })
+    }
+  }, [navigate, resourceId, tabParam])
 
   const query = useQuery({
     queryKey: ['resource', resourceId],
@@ -132,15 +145,16 @@ export function ResourceDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 border-b pb-2">
-        {(['overview', 'schema', 'data', 'settings', 'api'] as Tab[]).map((item) => (
-          <Button
+        {TABS.map((item) => (
+          <Link
             key={item}
-            size="sm"
-            variant={tab === item ? 'default' : 'ghost'}
-            onClick={() => setTab(item)}
+            to={`/resources/${resource.id}/${item}`}
+            className={cn(
+              buttonVariants({ size: 'sm', variant: tab === item ? 'default' : 'ghost' }),
+            )}
           >
             {t(tabKeys[item])}
-          </Button>
+          </Link>
         ))}
       </div>
 
@@ -240,7 +254,7 @@ export function ResourceDetailPage() {
 
       {tab === 'api' ? (
         <ResourceApiPlayground
-          key={`api-${resource.id}-${resource.endpoint}`}
+          key={`api-${resource.id}`}
           resource={resource}
           fields={fieldsQuery.data ?? schema}
         />

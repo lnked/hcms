@@ -9,55 +9,79 @@ declare(strict_types=1);
  * Covers all field types: string, text, integer, float, boolean, date, datetime,
  * email, url, uuid, json, enum, image, file, relation (manyToOne + oneToMany).
  *
- * Usage:
+ * CLI only (not a web page):
  *   php scripts/seed-demo.php --email=admin@example.com --password=secret
- *   php scripts/seed-demo.php --url=http://127.0.0.1:8080 --email=... --password=... --min=100 --max=300
- *   php scripts/seed-demo.php ... --force   # delete existing demo_* first
+ *   php scripts/seed-demo.php --url=https://api.2js.ru --email=... --password=...
+ *   php scripts/seed-demo.php ... --force --insecure
+ *   # same server, bad TLS SAN:
+ *   php scripts/seed-demo.php --url=https://127.0.0.1 --host=api.2js.ru --insecure ...
  *
- * Env fallbacks: CMS_BASE_URL / APP_URL, CMS_EMAIL, CMS_PASSWORD
+ * Env fallbacks: CMS_BASE_URL / APP_URL (also from project .env), CMS_EMAIL, CMS_PASSWORD
  */
+
+if (PHP_SAPI !== 'cli' && PHP_SAPI !== 'phpdbg') {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "CLI only — do not open in a browser.\n\n"
+        . "SSH example:\n"
+        . "  php scripts/seed-demo.php --url=https://api.2js.ru --email=ADMIN --password=SECRET\n";
+    // exit 0: some hosts map non-zero process exit to HTTP 500
+    exit(0);
+}
+
+$root = dirname(__DIR__);
+loadDotEnv($root . '/.env');
 
 $opts = getopt('', [
     'url::',
+    'host::',
     'email::',
     'password::',
     'min::',
     'max::',
+    'delay-ms::',
     'force',
+    'insecure',
     'help',
 ]);
 
 if (isset($opts['help'])) {
     fwrite(STDOUT, <<<TXT
-Seed demo resources for HCMS.
+Seed demo resources for HCMS (CLI only).
 
-  --url=URL          Base URL (default: http://127.0.0.1:8080)
+  --url=URL          Base URL (default: APP_URL from .env, else http://127.0.0.1:8080)
+  --host=HOST        Optional Host header (vhost when using 127.0.0.1)
   --email=EMAIL      Admin email
   --password=PASS    Admin password
   --min=N            Min entries per resource (default: 100)
   --max=N            Max entries per resource (default: 300)
+  --delay-ms=N       Pause between entry creates (default: 220, keeps under ~300 req/min)
   --force            Delete existing demo_* resources before seeding
+  --insecure         Skip TLS certificate verification (bad/mismatched SAN)
 
 TXT);
     exit(0);
 }
 
-$baseUrl = rtrim((string) ($opts['url'] ?? getenv('CMS_BASE_URL') ?: getenv('APP_URL') ?: 'http://127.0.0.1:8080'), '/');
-$email = (string) ($opts['email'] ?? getenv('CMS_EMAIL') ?: '');
-$password = (string) ($opts['password'] ?? getenv('CMS_PASSWORD') ?: '');
+$baseUrl = rtrim((string) ($opts['url'] ?? envFirst(['CMS_BASE_URL', 'APP_URL']) ?: 'http://127.0.0.1:8080'), '/');
+$hostHeader = (string) ($opts['host'] ?? '');
+$email = (string) ($opts['email'] ?? envFirst(['CMS_EMAIL']) ?: '');
+$password = (string) ($opts['password'] ?? envFirst(['CMS_PASSWORD']) ?: '');
 $minCount = max(1, (int) ($opts['min'] ?? 100));
 $maxCount = max($minCount, (int) ($opts['max'] ?? 300));
+$delayMs = max(0, (int) ($opts['delay-ms'] ?? 220));
 $force = isset($opts['force']);
+$insecure = isset($opts['insecure']);
 
 if ($email === '' || $password === '') {
     fwrite(STDERR, "Error: --email and --password are required (or CMS_EMAIL / CMS_PASSWORD).\n");
     exit(1);
 }
 
-$client = new DemoApiClient($baseUrl);
+$client = new DemoApiClient($baseUrl, $insecure, $hostHeader !== '' ? $hostHeader : null);
 $faker = new DemoFaker();
 
-out("Login → {$baseUrl}");
+out('Login → ' . $baseUrl . ($insecure ? ' (insecure TLS)' : '') . ($hostHeader !== '' ? " Host: {$hostHeader}" : ''));
 $auth = $client->request('POST', '/admin/api/auth/login', [
     'email' => $email,
     'password' => $password,
@@ -69,6 +93,9 @@ if ($token === '') {
 }
 $client->setToken($token);
 out('OK, admin token acquired');
+if ($delayMs > 0) {
+    out("Entry delay: {$delayMs}ms (override with --delay-ms=0)");
+}
 
 if ($force) {
     $listed = $client->request('GET', '/admin/api/resources');
@@ -138,7 +165,7 @@ $authors = seedResource($client, $faker, [
             'public_id' => $f->uuid(),
         ];
     },
-]);
+], $delayMs);
 $authorIds = $authors['entryIds'];
 out("Authors ready: {$authorsCount} entries");
 
@@ -168,7 +195,7 @@ $categories = seedResource($client, $faker, [
             'is_featured' => $f->bool(0.25),
         ];
     },
-]);
+], $delayMs);
 $categoryIds = $categories['entryIds'];
 out("Categories ready: {$categoriesCount} entries");
 
@@ -241,7 +268,7 @@ $articles = seedResource($client, $faker, [
             'category_id' => $f->maybe(0.85) ? $f->pick($categoryIds) : null,
         ];
     },
-]);
+], $delayMs);
 out("Articles ready: {$articlesCount} entries");
 
 // ─── 4. Events ──────────────────────────────────────────────────────────────
@@ -297,7 +324,7 @@ seedResource($client, $faker, [
             'organizer_id' => $f->maybe(0.9) ? $f->pick($authorIds) : null,
         ];
     },
-]);
+], $delayMs);
 out("Events ready: {$eventsCount} entries");
 
 out('');
@@ -322,7 +349,7 @@ out('Public read enabled on all of them (/api/{slug}).');
  * } $spec
  * @return array{id: int, entryIds: list<int>}
  */
-function seedResource(DemoApiClient $client, DemoFaker $faker, array $spec): array
+function seedResource(DemoApiClient $client, DemoFaker $faker, array $spec, int $delayMs = 220): array
 {
     out('');
     out("Create resource {$spec['slug']}…");
@@ -373,6 +400,9 @@ function seedResource(DemoApiClient $client, DemoFaker $faker, array $spec): arr
         }
         if ($i % $progressEvery === 0 || $i === $count) {
             out("    {$i}/{$count}");
+        }
+        if ($delayMs > 0 && $i < $count) {
+            usleep($delayMs * 1000);
         }
     }
 
@@ -433,8 +463,11 @@ final class DemoApiClient
 {
     private string $token = '';
 
-    public function __construct(private readonly string $baseUrl)
-    {
+    public function __construct(
+        private readonly string $baseUrl,
+        private readonly bool $insecure = false,
+        private readonly ?string $hostHeader = null,
+    ) {
     }
 
     public function setToken(string $token): void
@@ -443,69 +476,110 @@ final class DemoApiClient
     }
 
     /**
+     * @return array<int, mixed>
+     */
+    private function tlsOpts(): array
+    {
+        if (!$this->insecure) {
+            return [];
+        }
+
+        return [
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+        ];
+    }
+
+    /**
+     * @param list<string> $headers
+     * @return list<string>
+     */
+    private function withHost(array $headers): array
+    {
+        if ($this->hostHeader !== null && $this->hostHeader !== '') {
+            $headers[] = 'Host: ' . $this->hostHeader;
+        }
+
+        return $headers;
+    }
+
+    /**
      * @param array<string, mixed>|null $json
      * @return array<string, mixed>
      */
     public function request(string $method, string $path, ?array $json = null): array
     {
-        $ch = curl_init($this->baseUrl . $path);
-        if ($ch === false) {
-            throw new RuntimeException('curl_init failed');
-        }
-
-        $headers = ['Accept: application/json'];
-        if ($this->token !== '') {
-            $headers[] = 'Authorization: Bearer ' . $this->token;
-        }
-
-        $opts = [
-            CURLOPT_CUSTOMREQUEST => strtoupper($method),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true,
-            CURLOPT_TIMEOUT => 120,
-        ];
-
-        if ($json !== null) {
-            $body = json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if ($body === false) {
-                throw new RuntimeException('json_encode failed');
+        $attempt = 0;
+        $maxAttempts = 12;
+        while (true) {
+            $attempt++;
+            $ch = curl_init($this->baseUrl . $path);
+            if ($ch === false) {
+                throw new RuntimeException('curl_init failed');
             }
-            $headers[] = 'Content-Type: application/json';
-            $opts[CURLOPT_POSTFIELDS] = $body;
-        }
 
-        $opts[CURLOPT_HTTPHEADER] = $headers;
-        curl_setopt_array($ch, $opts);
+            $headers = $this->withHost(['Accept: application/json']);
+            if ($this->token !== '') {
+                $headers[] = 'Authorization: Bearer ' . $this->token;
+            }
 
-        $raw = curl_exec($ch);
-        if ($raw === false) {
-            $err = curl_error($ch);
+            $opts = [
+                CURLOPT_CUSTOMREQUEST => strtoupper($method),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER => true,
+                CURLOPT_TIMEOUT => 120,
+            ] + $this->tlsOpts();
+
+            if ($json !== null) {
+                $body = json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if ($body === false) {
+                    throw new RuntimeException('json_encode failed');
+                }
+                $headers[] = 'Content-Type: application/json';
+                $opts[CURLOPT_POSTFIELDS] = $body;
+            }
+
+            $opts[CURLOPT_HTTPHEADER] = $headers;
+            curl_setopt_array($ch, $opts);
+
+            $raw = curl_exec($ch);
+            if ($raw === false) {
+                $err = curl_error($ch);
+                curl_close($ch);
+                throw new RuntimeException('HTTP error: ' . $err);
+            }
+
+            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             curl_close($ch);
-            throw new RuntimeException('HTTP error: ' . $err);
+
+            $rawHeaders = substr($raw, 0, $headerSize);
+            $responseBody = substr($raw, $headerSize);
+            if ($status === 204) {
+                return [];
+            }
+
+            /** @var mixed $decoded */
+            $decoded = json_decode($responseBody, true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException("Invalid JSON from {$method} {$path} (HTTP {$status}): " . substr($responseBody, 0, 300));
+            }
+
+            if ($status === 429 && $attempt < $maxAttempts) {
+                $wait = retryAfterSeconds($rawHeaders, $attempt);
+                out("  rate-limited (429), sleep {$wait}s then retry ({$attempt}/{$maxAttempts})…");
+                sleep($wait);
+                continue;
+            }
+
+            if ($status >= 400) {
+                $msg = (string) ($decoded['error']['message'] ?? $decoded['message'] ?? $responseBody);
+                throw new RuntimeException("{$method} {$path} → HTTP {$status}: {$msg}");
+            }
+
+            /** @var array<string, mixed> $decoded */
+            return $decoded;
         }
-
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        curl_close($ch);
-
-        $responseBody = substr($raw, $headerSize);
-        if ($status === 204) {
-            return [];
-        }
-
-        /** @var mixed $decoded */
-        $decoded = json_decode($responseBody, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException("Invalid JSON from {$method} {$path} (HTTP {$status}): " . substr($responseBody, 0, 300));
-        }
-
-        if ($status >= 400) {
-            $msg = (string) ($decoded['error']['message'] ?? $decoded['message'] ?? $responseBody);
-            throw new RuntimeException("{$method} {$path} → HTTP {$status}: {$msg}");
-        }
-
-        /** @var array<string, mixed> $decoded */
-        return $decoded;
     }
 
     /**
@@ -513,43 +587,60 @@ final class DemoApiClient
      */
     public function upload(string $absolutePath, string $mime): array
     {
-        $ch = curl_init($this->baseUrl . '/admin/api/media');
-        if ($ch === false) {
-            throw new RuntimeException('curl_init failed');
-        }
+        $attempt = 0;
+        $maxAttempts = 12;
+        while (true) {
+            $attempt++;
+            $ch = curl_init($this->baseUrl . '/admin/api/media');
+            if ($ch === false) {
+                throw new RuntimeException('curl_init failed');
+            }
 
-        $cfile = new CURLFile($absolutePath, $mime, basename($absolutePath));
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 120,
-            CURLOPT_HTTPHEADER => [
+            $cfile = new CURLFile($absolutePath, $mime, basename($absolutePath));
+            $headers = $this->withHost([
                 'Accept: application/json',
                 'Authorization: Bearer ' . $this->token,
-            ],
-            CURLOPT_POSTFIELDS => ['file' => $cfile],
-        ]);
+            ]);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HEADER => true,
+                CURLOPT_TIMEOUT => 120,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => ['file' => $cfile],
+            ] + $this->tlsOpts());
 
-        $raw = curl_exec($ch);
-        if ($raw === false) {
-            $err = curl_error($ch);
+            $raw = curl_exec($ch);
+            if ($raw === false) {
+                $err = curl_error($ch);
+                curl_close($ch);
+                throw new RuntimeException('Upload failed: ' . $err);
+            }
+            $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             curl_close($ch);
-            throw new RuntimeException('Upload failed: ' . $err);
-        }
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
-        /** @var mixed $decoded */
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || $status >= 400) {
-            $msg = is_array($decoded)
-                ? (string) ($decoded['error']['message'] ?? $raw)
-                : (string) $raw;
-            throw new RuntimeException("Upload → HTTP {$status}: {$msg}");
-        }
+            $rawHeaders = substr($raw, 0, $headerSize);
+            $responseBody = substr($raw, $headerSize);
 
-        /** @var array<string, mixed> $decoded */
-        return $decoded;
+            /** @var mixed $decoded */
+            $decoded = json_decode($responseBody, true);
+            if ($status === 429 && $attempt < $maxAttempts) {
+                $wait = retryAfterSeconds($rawHeaders, $attempt);
+                out("  rate-limited (429) on upload, sleep {$wait}s…");
+                sleep($wait);
+                continue;
+            }
+            if (!is_array($decoded) || $status >= 400) {
+                $msg = is_array($decoded)
+                    ? (string) ($decoded['error']['message'] ?? $responseBody)
+                    : (string) $responseBody;
+                throw new RuntimeException("Upload → HTTP {$status}: {$msg}");
+            }
+
+            /** @var array<string, mixed> $decoded */
+            return $decoded;
+        }
     }
 }
 
@@ -729,4 +820,65 @@ final class DemoFaker
 
         return $path;
     }
+}
+
+function retryAfterSeconds(string $rawHeaders, int $attempt): int
+{
+    if (preg_match('/^Retry-After:\s*(\d+)\s*$/mi', $rawHeaders, $m) === 1) {
+        return max(1, (int) $m[1]);
+    }
+
+    // exponential backoff capped at 60s if header missing
+    return min(60, 5 * $attempt);
+}
+
+function loadDotEnv(string $path): void
+{
+    if (!is_file($path) || !is_readable($path)) {
+        return;
+    }
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return;
+    }
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+        if ($key === '') {
+            continue;
+        }
+        if (
+            (str_starts_with($value, '"') && str_ends_with($value, '"'))
+            || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+        ) {
+            $value = substr($value, 1, -1);
+        }
+        if (getenv($key) === false) {
+            putenv("{$key}={$value}");
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
+/**
+ * @param list<string> $keys
+ */
+function envFirst(array $keys): string
+{
+    foreach ($keys as $key) {
+        $v = getenv($key);
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+        if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+            return $_ENV[$key];
+        }
+    }
+
+    return '';
 }

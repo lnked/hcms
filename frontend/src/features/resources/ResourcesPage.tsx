@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { Trash2, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -72,7 +73,7 @@ export function ResourcesPage() {
                     <TableCell>
                       <Link
                         className="font-medium hover:underline"
-                        to={`/resources/${resource.id}`}
+                        to={`/resources/${resource.id}/overview`}
                       >
                         {resource.label}
                       </Link>
@@ -92,31 +93,37 @@ export function ResourcesPage() {
                         {resource.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="space-x-2 text-right">
-                      {resource.status !== 'published' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={publish.isPending}
-                          onClick={() => publish.mutate(resource.id)}
-                        >
-                          {t('resources.publish')}
-                        </Button>
-                      ) : null}
-                      {!resource.isSystem ? (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={remove.isPending}
-                          onClick={() => {
-                            if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
-                              remove.mutate(resource.id)
-                            }
-                          }}
-                        >
-                          {t('common.delete')}
-                        </Button>
-                      ) : null}
+                    <TableCell className="text-right">
+                      <div className="inline-flex items-center justify-end gap-1">
+                        {resource.status !== 'published' ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={publish.isPending}
+                            aria-label={t('resources.publish')}
+                            title={t('resources.publish')}
+                            onClick={() => publish.mutate(resource.id)}
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                        {!resource.isSystem ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={remove.isPending}
+                            aria-label={t('common.delete')}
+                            title={t('common.delete')}
+                            onClick={() => {
+                              if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
+                                remove.mutate(resource.id)
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
