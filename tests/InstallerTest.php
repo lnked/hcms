@@ -7,7 +7,6 @@ namespace Cms\Tests;
 use Cms\Core\Paths;
 use Cms\Core\Version;
 use Cms\Install\Installer;
-use Cms\Install\ReleaseDownloader;
 use PHPUnit\Framework\TestCase;
 
 final class InstallerTest extends TestCase

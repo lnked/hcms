@@ -12,6 +12,27 @@ export function clearToken(): void {
   sessionStorage.removeItem(TOKEN_KEY)
 }
 
+let redirectingToLogin = false
+
+/** Drop stale session and bounce to login (after reinstall / revoked token). */
+export function handleUnauthorized(requestPath: string): void {
+  if (requestPath.includes('/admin/api/auth/login')) {
+    return
+  }
+  clearToken()
+  // Session probe — RequireAuth soft-navigates to /login.
+  if (requestPath.includes('/admin/api/auth/me')) {
+    return
+  }
+  const path = window.location.pathname
+  if (path === '/admin/login' || path.endsWith('/login') || redirectingToLogin) {
+    return
+  }
+  redirectingToLogin = true
+  const next = `${path}${window.location.search}`
+  window.location.assign(`/admin/login?from=${encodeURIComponent(next)}`)
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -41,15 +62,19 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   const payload = (await response.json()) as {
     data?: T
-    error?: { code?: string; message?: string }
+    error?: { code?: string; message?: string; fields?: Record<string, string[]> }
     current?: string
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized(path)
+    }
     throw new ApiError(
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Request failed',
+      payload.error?.fields ?? {},
     )
   }
 
@@ -89,6 +114,9 @@ export async function apiPage<T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized(path)
+    }
     throw new ApiError(
       response.status,
       payload.error?.code ?? 'ERROR',
@@ -119,6 +147,9 @@ export async function apiUpload<T>(path: string, file: File, fieldName = 'file')
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleUnauthorized(path)
+    }
     throw new ApiError(
       response.status,
       payload.error?.code ?? 'ERROR',

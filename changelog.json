@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.13.2",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Stale session recovery & update public_html",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Clear dead admin tokens after reinstall; validate session via /auth/me and redirect on 401"
+        },
+        {
+          "type": "fixed",
+          "area": "updater",
+          "text": "Map release public/admin into CMS_PUBLIC_DIR (e.g. public_html) on update"
+        },
+        {
+          "type": "added",
+          "area": "dev",
+          "text": "clean.php fully wipes MySQL database (DROP/CREATE) for reinstall testing"
+        }
+      ]
+    },
+    {
       "version": "0.13.1",
       "date": "2026-09-06",
       "channel": "stable",

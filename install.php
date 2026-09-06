@@ -764,7 +764,7 @@ function cms_install_html(): string
         <div class="done-panel">
           <h2>Installation completed</h2>
           <p class="status muted">CMS is ready.</p>
-          <a href="/admin">Open Admin Panel</a>
+          <a href="/admin" onclick="try{sessionStorage.removeItem('hcms_token')}catch(e){}">Open Admin Panel</a>
         </div>
       </div>
     </div>
@@ -1197,6 +1197,7 @@ function cms_install_html(): string
             passwordConfirm: $('admPass2').value
           }
         });
+        try { sessionStorage.removeItem('hcms_token'); } catch (e) {}
         clearInterval(progressTimer);
         setProgress('instProgress', 'instFill', 'instLabel', 100, 'Done');
         setWizardStep(4);

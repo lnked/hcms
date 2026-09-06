@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { useI18n, type Locale } from '@/i18n'
-import { ApiError, installApi } from '@/lib/api'
+import { ApiError, clearToken, installApi } from '@/lib/api'
 import type { InstallStatus } from '@/types/system'
 
 const stepKeys = [
@@ -19,6 +19,12 @@ type FieldErrors = Partial<Record<string, string>>
 
 function firstMessage(value: string[] | undefined): string | undefined {
   return value?.[0]
+}
+
+function FieldError({ errors, id }: { errors: FieldErrors; id: string }) {
+  const msg = errors[id]
+  if (!msg) return null
+  return <p className="text-xs font-medium text-destructive">{msg}</p>
 }
 
 export function InstallPage() {
@@ -171,6 +177,8 @@ export function InstallPage() {
         application: { ...app, language: locale },
         administrator: admin,
       })
+      // Previous install's admin token is dead — don't carry it into /admin.
+      clearToken()
       setDone(true)
     } catch (err) {
       if (err instanceof ApiError && Object.keys(err.fields).length > 0) {
@@ -217,12 +225,6 @@ export function InstallPage() {
     ['password', 'common.password'],
     ['charset', 'install.charset'],
   ] as const
-
-  function FieldError({ id }: { id: string }) {
-    const msg = fieldErrors[id]
-    if (!msg) return null
-    return <p className="text-xs font-medium text-destructive">{msg}</p>
-  }
 
   return (
     <div className="mx-auto max-w-lg py-16">
@@ -282,7 +284,7 @@ export function InstallPage() {
                       }))
                     }}
                   />
-                  <FieldError id={key} />
+                  <FieldError errors={fieldErrors} id={key} />
                 </div>
               ))}
               <div className="flex gap-2">
@@ -315,7 +317,7 @@ export function InstallPage() {
                     setApp({ ...app, name: e.target.value })
                   }}
                 />
-                <FieldError id="name" />
+                <FieldError errors={fieldErrors} id="name" />
               </div>
               <div className="space-y-2">
                 <Label>{t('install.url')}</Label>
@@ -327,7 +329,7 @@ export function InstallPage() {
                     setApp({ ...app, url: e.target.value })
                   }}
                 />
-                <FieldError id="url" />
+                <FieldError errors={fieldErrors} id="url" />
               </div>
               <div className="space-y-2">
                 <Label>{t('install.timezone')}</Label>
@@ -339,7 +341,7 @@ export function InstallPage() {
                     setApp({ ...app, timezone: e.target.value })
                   }}
                 />
-                <FieldError id="timezone" />
+                <FieldError errors={fieldErrors} id="timezone" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="app-language">{t('common.language')}</Label>
@@ -363,7 +365,7 @@ export function InstallPage() {
                   <option value="www" />
                   <option value="htdocs" />
                 </datalist>
-                <FieldError id="publicDir" />
+                <FieldError errors={fieldErrors} id="publicDir" />
                 <p className="text-xs text-muted-foreground">
                   {t('install.publicDirHint', {
                     admin: '/admin',
@@ -395,7 +397,7 @@ export function InstallPage() {
                     setAdmin({ ...admin, name: e.target.value })
                   }}
                 />
-                <FieldError id="name" />
+                <FieldError errors={fieldErrors} id="name" />
               </div>
               <div className="space-y-2">
                 <Label>{t('common.email')}</Label>
@@ -408,7 +410,7 @@ export function InstallPage() {
                     setAdmin({ ...admin, email: e.target.value })
                   }}
                 />
-                <FieldError id="email" />
+                <FieldError errors={fieldErrors} id="email" />
               </div>
               <div className="space-y-2">
                 <Label>{t('common.password')}</Label>
@@ -421,7 +423,7 @@ export function InstallPage() {
                     setAdmin({ ...admin, password: e.target.value })
                   }}
                 />
-                <FieldError id="password" />
+                <FieldError errors={fieldErrors} id="password" />
               </div>
               <div className="space-y-2">
                 <Label>{t('common.confirm')}</Label>
@@ -434,7 +436,7 @@ export function InstallPage() {
                     setAdmin({ ...admin, passwordConfirm: e.target.value })
                   }}
                 />
-                <FieldError id="passwordConfirm" />
+                <FieldError errors={fieldErrors} id="passwordConfirm" />
               </div>
               <Button onClick={() => void complete()}>{t('install.install')}</Button>
             </>

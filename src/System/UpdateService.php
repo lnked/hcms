@@ -197,7 +197,7 @@ final class UpdateService
         if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new RuntimeException('Unable to create backup directory');
         }
-        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', 'public/admin', 'database'] as $rel) {
+        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', $this->adminRel(), 'database'] as $rel) {
             $src = $this->paths->root . '/' . $rel;
             if (!file_exists($src)) {
                 continue;
@@ -210,7 +210,7 @@ final class UpdateService
 
     private function rollback(string $backupDir): void
     {
-        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', 'public/admin', 'database'] as $rel) {
+        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', $this->adminRel(), 'database'] as $rel) {
             $src = $backupDir . '/' . $rel;
             if (!file_exists($src)) {
                 continue;
@@ -266,6 +266,7 @@ final class UpdateService
             if (str_contains($normalized, '..')) {
                 continue;
             }
+            $normalized = $this->mapReleasePath($normalized);
             if ($this->shouldPreserve($normalized)) {
                 continue;
             }
@@ -289,6 +290,27 @@ final class UpdateService
             fclose($stream);
         }
         $zip->close();
+    }
+
+    private function adminRel(): string
+    {
+        return $this->paths->publicDir . '/admin';
+    }
+
+    /**
+     * Release zips always ship admin under public/; remap to CMS_PUBLIC_DIR when needed.
+     */
+    private function mapReleasePath(string $relative): string
+    {
+        $publicDir = $this->paths->publicDir;
+        if ($publicDir === 'public') {
+            return $relative;
+        }
+        if ($relative === 'public' || str_starts_with($relative, 'public/')) {
+            return $publicDir . substr($relative, strlen('public'));
+        }
+
+        return $relative;
     }
 
     private function shouldPreserve(string $relative): bool

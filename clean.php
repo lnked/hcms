@@ -57,6 +57,7 @@ function clean_wipe_db(array $env): array
     $user = $env['DB_USERNAME'] ?? 'root';
     $pass = $env['DB_PASSWORD'] ?? '';
     $charset = $env['DB_CHARSET'] ?? 'utf8mb4';
+    $collation = $env['DB_COLLATION'] ?? 'utf8mb4_unicode_ci';
 
     if ($db === '') {
         $log[] = 'DB skip: no DB_DATABASE in .env';
@@ -64,37 +65,121 @@ function clean_wipe_db(array $env): array
         return $log;
     }
 
-    $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $db, $charset);
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    ]);
+    if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $db)) {
+        throw new RuntimeException('Refusing to wipe DB with unsafe name: ' . $db);
+    }
 
-    $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+    $charsetIdent = preg_match('/^[A-Za-z0-9_]+$/', $charset) ? $charset : 'utf8mb4';
+    $collationIdent = preg_match('/^[A-Za-z0-9_]+$/', $collation) ? $collation : 'utf8mb4_unicode_ci';
+    $ident = '`' . str_replace('`', '``', $db) . '`';
+
+    try {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%d;charset=%s', $host, $port, $charsetIdent),
+            $user,
+            $pass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+        );
+    } catch (PDOException $e) {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', $host, $port, $db, $charsetIdent),
+            $user,
+            $pass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION],
+        );
+        $log[] = 'DB: connected with dbname (server-level connect failed)';
+    }
+
     $schema = $pdo->quote($db);
-    $tables = $pdo->query(
-        'SELECT TABLE_NAME FROM information_schema.TABLES'
+
+    $objects = $pdo->query(
+        'SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES'
         . " WHERE TABLE_SCHEMA = {$schema}"
-        . " AND (TABLE_NAME LIKE 'cms_%' OR TABLE_NAME LIKE 'res_%')",
-    )->fetchAll(PDO::FETCH_COLUMN);
-
-    foreach ($tables as $table) {
-        $name = (string) $table;
-        $pdo->exec('DROP TABLE IF EXISTS `' . str_replace('`', '``', $name) . '`');
-        $log[] = 'DROP TABLE ' . $name;
+        . ' ORDER BY TABLE_NAME',
+    )->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($objects as $row) {
+        $log[] = 'found ' . (string) $row['TABLE_TYPE'] . ' ' . (string) $row['TABLE_NAME'];
     }
-    $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
-
-    if ($tables === []) {
-        $log[] = 'DB: no cms_*/res_* tables found';
+    if ($objects === []) {
+        $log[] = 'DB: no tables/views before wipe';
     }
+
+    $recreated = false;
+    try {
+        $pdo->exec('DROP DATABASE IF EXISTS ' . $ident);
+        $pdo->exec(
+            'CREATE DATABASE ' . $ident
+            . ' CHARACTER SET ' . $charsetIdent
+            . ' COLLATE ' . $collationIdent,
+        );
+        $pdo->exec('USE ' . $ident);
+        $log[] = 'DROP DATABASE ' . $db;
+        $log[] = 'CREATE DATABASE ' . $db . ' (' . $charsetIdent . '/' . $collationIdent . ')';
+        $recreated = true;
+    } catch (PDOException $e) {
+        $log[] = 'DROP/CREATE DATABASE denied — falling back to object wipe: ' . $e->getMessage();
+        $pdo->exec('USE ' . $ident);
+    }
+
+    if (!$recreated) {
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        $left = $pdo->query(
+            'SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES'
+            . " WHERE TABLE_SCHEMA = {$schema}",
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($left as $row) {
+            $name = (string) $row['TABLE_NAME'];
+            $safe = '`' . str_replace('`', '``', $name) . '`';
+            if ((string) $row['TABLE_TYPE'] === 'VIEW') {
+                $pdo->exec('DROP VIEW IF EXISTS ' . $safe);
+                $log[] = 'DROP VIEW ' . $name;
+            } else {
+                $pdo->exec('DROP TABLE IF EXISTS ' . $safe);
+                $log[] = 'DROP TABLE ' . $name;
+            }
+        }
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+
+        $routines = $pdo->query(
+            'SELECT ROUTINE_NAME, ROUTINE_TYPE FROM information_schema.ROUTINES'
+            . " WHERE ROUTINE_SCHEMA = {$schema}",
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($routines as $row) {
+            $name = (string) $row['ROUTINE_NAME'];
+            $safe = '`' . str_replace('`', '``', $name) . '`';
+            $kind = strtoupper((string) $row['ROUTINE_TYPE']) === 'FUNCTION' ? 'FUNCTION' : 'PROCEDURE';
+            $pdo->exec('DROP ' . $kind . ' IF EXISTS ' . $safe);
+            $log[] = 'DROP ' . $kind . ' ' . $name;
+        }
+
+        $events = $pdo->query(
+            'SELECT EVENT_NAME FROM information_schema.EVENTS'
+            . " WHERE EVENT_SCHEMA = {$schema}",
+        )->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($events as $name) {
+            $event = (string) $name;
+            $safe = '`' . str_replace('`', '``', $event) . '`';
+            $pdo->exec('DROP EVENT IF EXISTS ' . $safe);
+            $log[] = 'DROP EVENT ' . $event;
+        }
+    }
+
+    $remaining = (int) $pdo->query(
+        'SELECT COUNT(*) FROM information_schema.TABLES'
+        . " WHERE TABLE_SCHEMA = {$schema}",
+    )->fetchColumn();
+    $log[] = $remaining === 0
+        ? 'DB empty — ready for install'
+        : 'DB warning: ' . $remaining . ' object(s) still present';
 
     return $log;
 }
 
 /**
+ * @param array<string, string> $env
  * @return list<string>
  */
-function clean_wipe_files(string $root): array
+function clean_wipe_files(string $root, array $env = []): array
 {
     $log = [];
     $paths = [
@@ -167,8 +252,22 @@ function clean_wipe_files(string $root): array
         $log[] = 'rmtree ' . $dirName;
     }
 
-    $adminDir = $root . '/public/admin';
-    if (is_dir($adminDir)) {
+    $publicDirs = [];
+    $fromEnv = $env['CMS_PUBLIC_DIR'] ?? '';
+    if (is_string($fromEnv) && preg_match('/^[A-Za-z0-9_-]{1,64}$/', $fromEnv)) {
+        $publicDirs[] = $fromEnv;
+    }
+    foreach (['public', 'public_html'] as $candidate) {
+        if (!in_array($candidate, $publicDirs, true)) {
+            $publicDirs[] = $candidate;
+        }
+    }
+
+    foreach ($publicDirs as $publicDir) {
+        $adminDir = $root . '/' . $publicDir . '/admin';
+        if (!is_dir($adminDir)) {
+            continue;
+        }
         $it = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($adminDir, FilesystemIterator::SKIP_DOTS),
             RecursiveIteratorIterator::CHILD_FIRST,
@@ -182,7 +281,7 @@ function clean_wipe_files(string $root): array
             }
         }
         @rmdir($adminDir);
-        $log[] = 'rmtree public/admin';
+        $log[] = 'rmtree ' . $publicDir . '/admin';
     }
 
     foreach ([$root . '/VERSION', $root . '/changelog.json', $root . '/composer.json', $root . '/composer.lock'] as $path) {
@@ -205,12 +304,12 @@ if (!$confirm) {
     echo '.warn{background:#fef2f2;border:1px solid #fecaca;padding:12px;border-radius:8px;margin:16px 0}';
     echo 'button{background:#18181b;color:#fff;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}</style></head><body>';
     echo '<h1>HCMS clean.php (TEMP)</h1>';
-    echo '<div class="warn"><strong>Test only.</strong> Deletes .env, installed.lock, cms_*/res_* tables, uploads/backups, and package dirs (src/vendor/database/public/admin) so install re-downloads. Delete this file after testing.</div>';
+    echo '<div class="warn"><strong>Test only.</strong> Drops the entire MySQL database from .env and recreates it empty, then deletes .env, installed.lock, uploads/backups, and package dirs so install can re-run clean. Delete this file after testing.</div>';
     echo '<p>.env: ' . ($hasEnv ? 'yes' : 'no') . '</p>';
     echo '<p>installed.lock: ' . ($hasLock ? 'yes' : 'no') . '</p>';
-    echo '<p>DB: ' . h($env['DB_DATABASE'] ?? '(none)') . ' @ ' . h($env['DB_HOST'] ?? '-') . '</p>';
+    echo '<p>DB: <strong>' . h($env['DB_DATABASE'] ?? '(none)') . '</strong> @ ' . h($env['DB_HOST'] ?? '-') . ' — will be <code>DROP DATABASE</code> + <code>CREATE DATABASE</code></p>';
     echo '<form method="post"><input type="hidden" name="confirm" value="1"/>';
-    echo '<button type="submit">Wipe install state</button></form>';
+    echo '<button type="submit">Wipe DB + install state</button></form>';
     echo '<p><a href="/install.php">install.php</a> · <a href="/admin">/admin</a></p>';
     echo '</body></html>';
     exit;
@@ -223,7 +322,7 @@ try {
     } else {
         $log[] = 'DB skip: no .env (tables not dropped)';
     }
-    $log = array_merge($log, clean_wipe_files($root));
+    $log = array_merge($log, clean_wipe_files($root, $env));
     $ok = true;
     $error = null;
 } catch (Throwable $e) {

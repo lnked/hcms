@@ -10,6 +10,7 @@ const setToken = vi.fn()
 vi.mock('@/lib/api', () => ({
   api: vi.fn(async () => ({ token: 'abc123', user: { id: 1, name: 'A', email: 'a@b.c' } })),
   setToken: (...args: unknown[]) => setToken(...args),
+  clearToken: vi.fn(),
 }))
 
 describe('LoginPage', () => {

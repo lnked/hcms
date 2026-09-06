@@ -14,6 +14,8 @@ final class ChangelogRepositoryTest extends TestCase
     {
         $releases = (new ChangelogRepository(new Paths(dirname(__DIR__))))->all();
         $this->assertNotSame([], $releases);
-        $this->assertSame('0.12.0', $releases[0]['version']);
+        $versions = array_map(static fn (array $r): string => (string) $r['version'], $releases);
+        $this->assertContains('0.12.0', $versions);
+        $this->assertSame(trim((string) file_get_contents(dirname(__DIR__) . '/VERSION')), $releases[0]['version']);
     }
 }

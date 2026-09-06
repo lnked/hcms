@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { useI18n } from '@/i18n'
-import { api, setToken } from '@/lib/api'
+import { api, clearToken, setToken } from '@/lib/api'
 import type { AuthUser } from '@/types/system'
 
 export function LoginPage() {
@@ -17,11 +17,17 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
+  // Drop stale session from a previous install before issuing a new token.
+  useEffect(() => {
+    clearToken()
+  }, [])
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setPending(true)
     setError(null)
     try {
+      clearToken()
       const data = await api<{ token: string; user: AuthUser }>('/admin/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
