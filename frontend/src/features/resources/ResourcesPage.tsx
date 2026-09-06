@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { Trash2, Upload } from 'lucide-react'
+import { Code2, Pencil, Trash2, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,8 +24,9 @@ import {
 } from '@/components/ui/table'
 import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { useI18n } from '@/i18n'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
+import { showError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import type { Resource } from '@/types/resource'
 
@@ -58,8 +59,6 @@ export function ResourcesPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [copiedToast, setCopiedToast] = useState(false)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [importOpen, setImportOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
@@ -69,6 +68,7 @@ export function ResourcesPage() {
   const [importSlug, setImportSlug] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<PackageImportResult | null>(null)
+  const [openExampleId, setOpenExampleId] = useState<number | null>(null)
   const importFileInputRef = useRef<HTMLInputElement>(null)
 
   const query = useQuery({
@@ -132,22 +132,16 @@ export function ResourcesPage() {
       void queryClient.invalidateQueries({ queryKey: ['resources'] })
       navigate(`/resources/${result.resource.id}/overview`)
     },
-    onError: (err) =>
-      setImportError(err instanceof Error ? err.message : t('resources.package.importFailed')),
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : t('resources.package.importFailed')
+      setImportError(message)
+      if (!(err instanceof ApiError)) showError(message)
+    },
   })
-
-  useEffect(() => {
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-    }
-  }, [])
 
   const copyEndpoint = async (endpoint: string) => {
     try {
       await copyToClipboard(endpoint)
-      setCopiedToast(true)
-      if (toastTimer.current) clearTimeout(toastTimer.current)
-      toastTimer.current = setTimeout(() => setCopiedToast(false), 2000)
     } catch {
       // ignore
     }
@@ -277,6 +271,29 @@ export function ResourcesPage() {
                               <Upload className="h-4 w-4" />
                             </Button>
                           ) : null}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('common.edit')}
+                            title={t('common.edit')}
+                            onClick={() => navigate(`/resources/${resource.id}/overview`)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('resources.fetchExample')}
+                            title={t('resources.fetchExample')}
+                            aria-expanded={openExampleId === resource.id}
+                            onClick={() =>
+                              setOpenExampleId((prev) =>
+                                prev === resource.id ? null : resource.id,
+                              )
+                            }
+                          >
+                            <Code2 className="h-4 w-4" />
+                          </Button>
                           {!resource.isSystem ? (
                             <Button
                               size="icon"
@@ -296,11 +313,13 @@ export function ResourcesPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                    <TableRow className="hover:bg-transparent">
-                      <TableCell colSpan={5} className="border-t-0 pt-0 pb-4">
-                        <ResourceFetchExample resource={resource} collapsible />
-                      </TableCell>
-                    </TableRow>
+                    {openExampleId === resource.id ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={5} className="border-t-0 pt-0 pb-4">
+                          <ResourceFetchExample resource={resource} showLabel={false} />
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
                   </Fragment>
                 ))}
               </TableBody>
@@ -455,15 +474,6 @@ export function ResourcesPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {copiedToast ? (
-        <div
-          role="status"
-          className="fixed right-4 bottom-4 z-50 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg"
-        >
-          {t('common.copied')}
-        </div>
-      ) : null}
     </div>
   )
 }

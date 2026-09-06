@@ -14,6 +14,15 @@ export interface ResourceSettings {
   filtering: boolean
   deleteStrategy: 'hard' | 'soft'
   softDelete: boolean
+  spam?: {
+    honeypotField: string
+    minSubmitMs: number
+    rateLimitPerMinute: number
+    requireCaptcha: boolean
+    maxLinks: number
+    blocklist: string[]
+    rejectDuplicates: boolean
+  }
 }
 
 export interface Resource {

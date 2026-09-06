@@ -4,6 +4,11 @@ server {
     root /var/www/hcms/public;   # or .../public_html if CMS_PUBLIC_DIR=public_html
     index index.php;
 
+    # Uploads live outside the web root; deny if misconfigured aliases expose them.
+    location ^~ /storage/ {
+        deny all;
+    }
+
     location = /install.php {
         alias /var/www/hcms/install.php;
         include fastcgi_params;
@@ -15,11 +20,16 @@ server {
         try_files $uri /index.php?$query_string;
     }
 
-    location ~ \.php$ {
+    # Only the front controller may execute as PHP.
+    location = /index.php {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param HTTP_AUTHORIZATION $http_authorization;
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+
+    location ~* \.(?:php|phtml|phar)$ {
+        deny all;
     }
 
     location ~ /\.(env|git) {

@@ -211,11 +211,13 @@ export function ResourceDetailPage() {
               </p>
             </CardContent>
           </Card>
+
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle>{t('resources.fetchExample')}</CardTitle>
               <CardDescription>{t('resources.fetchExampleHint')}</CardDescription>
             </CardHeader>
+
             <CardContent>
               <ResourceFetchExample resource={resource} showLabel={false} />
             </CardContent>

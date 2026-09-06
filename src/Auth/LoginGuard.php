@@ -33,6 +33,16 @@ final class LoginGuard
         return $this->limiter->retryAfter();
     }
 
+    public function failureCount(string $ip, string $email): int
+    {
+        $max = 0;
+        foreach ($this->buckets($ip, $email) as $bucket) {
+            $max = max($max, $this->limiter->hits($bucket));
+        }
+
+        return $max;
+    }
+
     /**
      * @return list<string>
      */

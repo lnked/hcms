@@ -28,6 +28,7 @@ export interface AuthUser {
   id: number
   name: string
   email: string
+  totpEnabled?: boolean
   changelogSeenVersion: string | null
 }
 

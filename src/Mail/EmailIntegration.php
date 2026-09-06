@@ -17,6 +17,8 @@ use InvalidArgumentException;
  *   enabled: bool,
  *   fromEmail: string,
  *   fromName: string,
+ *   dailyQuota: int,
+ *   allowedRecipientDomains: list<string>,
  *   resend: ProviderKeys,
  *   postmark: ProviderKeys,
  *   mailgun: MailgunKeys
@@ -53,7 +55,6 @@ final class EmailIntegration
         $postmark = $this->readProviderKeys($stored, 'postmark', $defaults['postmark']);
         $mailgun = $this->readMailgunKeys($stored, $defaults['mailgun']);
 
-        // Migrate legacy flat apiKey into active provider bucket.
         if (
             is_string($stored['apiKey'] ?? null)
             && $stored['apiKey'] !== ''
@@ -70,11 +71,22 @@ final class EmailIntegration
             }
         }
 
+        $domains = [];
+        if (is_array($stored['allowedRecipientDomains'] ?? null)) {
+            foreach ($stored['allowedRecipientDomains'] as $domain) {
+                if (is_string($domain) && trim($domain) !== '') {
+                    $domains[] = strtolower(trim($domain));
+                }
+            }
+        }
+
         return [
             'provider' => $provider,
             'enabled' => (bool) ($stored['enabled'] ?? false),
             'fromEmail' => is_string($stored['fromEmail'] ?? null) ? $stored['fromEmail'] : '',
             'fromName' => is_string($stored['fromName'] ?? null) ? $stored['fromName'] : '',
+            'dailyQuota' => max(0, (int) ($stored['dailyQuota'] ?? 100)),
+            'allowedRecipientDomains' => array_values(array_unique($domains)),
             'resend' => $resend,
             'postmark' => $postmark,
             'mailgun' => $mailgun,
@@ -82,13 +94,13 @@ final class EmailIntegration
     }
 
     /**
-     * Public API shape — never includes raw api keys.
-     *
      * @return array{
      *   provider: string,
      *   enabled: bool,
      *   fromEmail: string,
      *   fromName: string,
+     *   dailyQuota: int,
+     *   allowedRecipientDomains: list<string>,
      *   apiKeyConfigured: bool,
      *   apiKeyMasked: string|null,
      *   mailgunDomain: string,
@@ -115,6 +127,8 @@ final class EmailIntegration
             'enabled' => $config['enabled'],
             'fromEmail' => $config['fromEmail'],
             'fromName' => $config['fromName'],
+            'dailyQuota' => $config['dailyQuota'],
+            'allowedRecipientDomains' => $config['allowedRecipientDomains'],
             'apiKeyConfigured' => $active['apiKeyConfigured'],
             'apiKeyMasked' => $active['apiKeyMasked'],
             'mailgunDomain' => $config['mailgun']['domain'],
@@ -130,6 +144,8 @@ final class EmailIntegration
      *   enabled: bool,
      *   fromEmail: string,
      *   fromName: string,
+     *   dailyQuota: int,
+     *   allowedRecipientDomains: list<string>,
      *   apiKeyConfigured: bool,
      *   apiKeyMasked: string|null,
      *   mailgunDomain: string,
@@ -180,6 +196,30 @@ final class EmailIntegration
             $current['fromName'] = trim($payload['fromName']);
         }
 
+        if (array_key_exists('dailyQuota', $payload)) {
+            if (!is_int($payload['dailyQuota']) && !(is_string($payload['dailyQuota']) && ctype_digit($payload['dailyQuota']))) {
+                throw new InvalidArgumentException('dailyQuota must be an integer');
+            }
+            $current['dailyQuota'] = max(0, (int) $payload['dailyQuota']);
+        }
+
+        if (array_key_exists('allowedRecipientDomains', $payload)) {
+            if (!is_array($payload['allowedRecipientDomains'])) {
+                throw new InvalidArgumentException('allowedRecipientDomains must be an array');
+            }
+            $domains = [];
+            foreach ($payload['allowedRecipientDomains'] as $domain) {
+                if (!is_string($domain)) {
+                    continue;
+                }
+                $domain = strtolower(trim($domain));
+                if ($domain !== '' && preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $domain) === 1) {
+                    $domains[] = $domain;
+                }
+            }
+            $current['allowedRecipientDomains'] = array_values(array_unique($domains));
+        }
+
         if (array_key_exists('apiKey', $payload)) {
             if (!is_string($payload['apiKey'])) {
                 throw new InvalidArgumentException('apiKey must be a string');
@@ -212,12 +252,13 @@ final class EmailIntegration
             $current['mailgun']['region'] = $region;
         }
 
-        // Persist without legacy flat apiKey.
         $this->settings->set(self::SETTING_KEY, [
             'provider' => $current['provider'],
             'enabled' => $current['enabled'],
             'fromEmail' => $current['fromEmail'],
             'fromName' => $current['fromName'],
+            'dailyQuota' => $current['dailyQuota'],
+            'allowedRecipientDomains' => $current['allowedRecipientDomains'],
             'resend' => $current['resend'],
             'postmark' => $current['postmark'],
             'mailgun' => $current['mailgun'],
@@ -236,6 +277,8 @@ final class EmailIntegration
             'enabled' => false,
             'fromEmail' => '',
             'fromName' => '',
+            'dailyQuota' => 100,
+            'allowedRecipientDomains' => [],
             'resend' => ['apiKey' => ''],
             'postmark' => ['apiKey' => ''],
             'mailgun' => ['apiKey' => '', 'domain' => '', 'region' => 'us'],
@@ -260,6 +303,20 @@ final class EmailIntegration
             'mailgun' => $config['mailgun']['apiKey'],
             default => $config['resend']['apiKey'],
         };
+    }
+
+    public function assertRecipientAllowed(string $to): void
+    {
+        $config = $this->raw();
+        $domains = $config['allowedRecipientDomains'];
+        if ($domains === []) {
+            return;
+        }
+        $parts = explode('@', strtolower($to));
+        $domain = $parts[1] ?? '';
+        if ($domain === '' || !in_array($domain, $domains, true)) {
+            throw new InvalidArgumentException('Recipient domain is not allowed');
+        }
     }
 
     /**

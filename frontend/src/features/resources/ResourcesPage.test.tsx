@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { AppToast } from '@/components/AppToast'
 import { I18nProvider } from '@/i18n'
 import { ResourcesPage } from './ResourcesPage'
 
@@ -35,9 +36,41 @@ vi.mock('@/lib/api', () => ({
   ]),
 }))
 
-vi.mock('@/lib/clipboard', () => ({
-  copyToClipboard: vi.fn(async () => undefined),
+const toastListeners = new Set<(toast: { kind: string; message: string }) => void>()
+
+vi.mock('@/lib/toast', () => ({
+  onToast: (listener: (toast: { kind: string; message: string }) => void) => {
+    toastListeners.add(listener)
+    return () => {
+      toastListeners.delete(listener)
+    }
+  },
+  showSuccess: (message: string) => {
+    for (const listener of toastListeners) {
+      listener({ kind: 'success', message })
+    }
+  },
+  showError: (message: string) => {
+    for (const listener of toastListeners) {
+      listener({ kind: 'error', message })
+    }
+  },
+  showToast: (kind: string, message: string) => {
+    for (const listener of toastListeners) {
+      listener({ kind, message })
+    }
+  },
 }))
+
+vi.mock('@/lib/clipboard', async () => {
+  const { showSuccess } = await import('@/lib/toast')
+  return {
+    isCopiedToastMessage: (message: string) => message === '__hcms_copied__',
+    copyToClipboard: vi.fn(async () => {
+      showSuccess('__hcms_copied__')
+    }),
+  }
+})
 
 describe('ResourcesPage', () => {
   it('lists resources', async () => {
@@ -56,7 +89,7 @@ describe('ResourcesPage', () => {
     const endpoint = screen.getByRole('button', { name: '/api/articles' })
     expect(endpoint).toBeInTheDocument()
     expect(endpoint.className).toContain('decoration-dashed')
-    expect(screen.getByText('Usage example')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Usage example' })).toBeInTheDocument()
     expect(document.querySelector('.docs-code')).toBeNull()
   })
 
@@ -87,6 +120,7 @@ describe('ResourcesPage', () => {
         <QueryClientProvider client={client}>
           <MemoryRouter>
             <ResourcesPage />
+            <AppToast />
           </MemoryRouter>
         </QueryClientProvider>
       </I18nProvider>,
@@ -115,11 +149,7 @@ describe('ResourcesPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Usage example' }))
     await user.click(await screen.findByRole('button', { name: 'Copy' }))
 
-    expect(copyToClipboard).toHaveBeenCalledWith(
-      expect.stringContaining("fetch('"),
-    )
-    expect(copyToClipboard).toHaveBeenCalledWith(
-      expect.stringContaining('/api/articles?limit=20'),
-    )
+    expect(copyToClipboard).toHaveBeenCalledWith(expect.stringContaining("fetch('"))
+    expect(copyToClipboard).toHaveBeenCalledWith(expect.stringContaining('/api/articles?limit=20'))
   })
 })

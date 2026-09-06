@@ -16,6 +16,7 @@ import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { useI18n } from '@/i18n'
 import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
+import { showError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 
@@ -169,8 +170,11 @@ export function ResourceEntriesPanel({
       setExportOpen(false)
       setExportError(null)
     },
-    onError: (err) =>
-      setExportError(err instanceof Error ? err.message : t('entries.exportFailed')),
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : t('entries.exportFailed')
+      setExportError(message)
+      showError(message)
+    },
   })
 
   const doImport = useMutation({
@@ -192,8 +196,12 @@ export function ResourceEntriesPanel({
       setImportError(null)
       void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
     },
-    onError: (err) =>
-      setImportError(err instanceof Error ? err.message : t('entries.importFailed')),
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : t('entries.importFailed')
+      setImportError(message)
+      // api() already toasts ApiError; toast local validation too
+      if (!(err instanceof ApiError)) showError(message)
+    },
   })
 
   function openCreate() {

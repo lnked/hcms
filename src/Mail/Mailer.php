@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Mail;
 
+use Cms\Auth\RateLimiter;
+use Cms\Auth\RateLimitStore;
 use Cms\Core\Settings;
 use InvalidArgumentException;
 
@@ -12,6 +14,7 @@ final class Mailer
     public function __construct(
         private readonly Settings $settings,
         private readonly EmailIntegration $email,
+        private readonly ?RateLimitStore $rateLimitStore = null,
     ) {
     }
 
@@ -48,7 +51,7 @@ final class Mailer
      * @param array{subject?: string, html?: string, text?: string} $defaults
      * @return array{ok: true, provider: string, to: string}
      */
-    public function sendIntegration(array $payload, array $defaults = [], bool $allowFromOverride = true): array
+    public function sendIntegration(array $payload, array $defaults = [], bool $allowFromOverride = true, ?int $tokenId = null): array
     {
         $config = $this->requireReadyConfig();
 
@@ -56,6 +59,9 @@ final class Mailer
         if ($to === '' || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
             throw new InvalidArgumentException('to must be a valid email');
         }
+
+        $this->email->assertRecipientAllowed($to);
+        $this->assertDailyQuota($tokenId);
 
         $vars = [];
         if (isset($payload['vars']) && is_array($payload['vars'])) {
@@ -117,6 +123,8 @@ final class Mailer
      *   enabled: bool,
      *   fromEmail: string,
      *   fromName: string,
+     *   dailyQuota: int,
+     *   allowedRecipientDomains: list<string>,
      *   resend: array{apiKey: string},
      *   postmark: array{apiKey: string},
      *   mailgun: array{apiKey: string, domain: string, region: string}
@@ -196,6 +204,8 @@ final class Mailer
      *   enabled: bool,
      *   fromEmail: string,
      *   fromName: string,
+     *   dailyQuota: int,
+     *   allowedRecipientDomains: list<string>,
      *   resend: array{apiKey: string},
      *   postmark: array{apiKey: string},
      *   mailgun: array{apiKey: string, domain: string, region: string}
@@ -209,5 +219,18 @@ final class Mailer
         }
 
         return new MailgunTransport($apiKey, $domain, $config['mailgun']['region']);
+    }
+
+    private function assertDailyQuota(?int $tokenId): void
+    {
+        $quota = $this->email->raw()['dailyQuota'];
+        if ($quota <= 0 || $this->rateLimitStore === null) {
+            return;
+        }
+        $limiter = new RateLimiter($this->rateLimitStore, 86400, $quota);
+        $bucket = 'email:day:' . ($tokenId !== null ? 'token:' . $tokenId : 'global');
+        if (!$limiter->hit($bucket)) {
+            throw new InvalidArgumentException('Daily email send quota exceeded');
+        }
     }
 }

@@ -22,6 +22,8 @@ final class ResourceServiceTest extends TestCase
         $this->assertTrue($settings['apiEnabled']);
         $this->assertFalse($settings['softDelete']);
         $this->assertSame('hard', $settings['deleteStrategy']);
+        $this->assertSame('', $settings['spam']['honeypotField']);
+        $this->assertFalse($settings['spam']['requireCaptcha']);
     }
 
     public function testSoftDeleteStrategyNormalization(): void

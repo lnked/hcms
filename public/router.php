@@ -13,6 +13,15 @@ if ($path === '/install.php' || str_starts_with($path, '/install.php')) {
 
 $file = __DIR__ . $path;
 if ($path !== '/' && is_file($file)) {
+    // Never execute arbitrary PHP under the public tree (uploads must stay outside).
+    if (preg_match('/\.(?:php|phtml|phar)$/i', $path) === 1) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo 'Forbidden';
+
+        return true;
+    }
+
     return false;
 }
 

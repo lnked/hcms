@@ -1,6 +1,59 @@
 {
   "releases": [
     {
+      "version": "0.40.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Antifraud hardening",
+      "changes": [
+        {
+          "type": "security",
+          "area": "auth",
+          "text": "Disable user revokes tokens; disabled accounts rejected on token resolve"
+        },
+        {
+          "type": "security",
+          "area": "api",
+          "text": "Rate limits for /media and anonymous public writes; trusted proxy IP resolution"
+        },
+        {
+          "type": "security",
+          "area": "api",
+          "text": "Per-resource spam policy (honeypot, minSubmitMs, captcha, duplicates, blocklist)"
+        },
+        {
+          "type": "security",
+          "area": "integrations",
+          "text": "Email daily quota + recipient domain allowlist"
+        },
+        {
+          "type": "security",
+          "area": "media",
+          "text": "MIME allowlist for uploads"
+        },
+        {
+          "type": "security",
+          "area": "media",
+          "text": "Block script execution in uploads (htaccess/nginx, disk .txt for sources, never store .php)"
+        },
+        {
+          "type": "changed",
+          "area": "media",
+          "text": "Source uploads (PHP/JS/HTML/…) accepted as text/plain + .txt attachment"
+        },
+        {
+          "type": "added",
+          "area": "auth",
+          "text": "Optional admin TOTP 2FA + login captcha after failed attempts"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Logs security tab: anomaly IP stats and IP deny list"
+        }
+      ]
+    },
+    {
       "version": "0.39.0",
       "date": "2026-09-06",
       "channel": "stable",

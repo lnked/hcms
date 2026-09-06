@@ -87,16 +87,41 @@ final class MediaController
         }
 
         $contents = (string) file_get_contents($file['path']);
+        $mime = strtolower(trim(explode(';', $file['mime'])[0]));
+        $inline = $this->isInlineSafeMime($mime);
+        $filename = $this->safeDownloadName($file['name']);
 
         return new Response(
             200,
             $contents,
             [
-                'Content-Type' => $file['mime'],
+                'Content-Type' => $mime !== '' ? $mime : 'application/octet-stream',
                 'Content-Length' => (string) strlen($contents),
-                'Content-Disposition' => 'inline; filename="' . addslashes($file['name']) . '"',
+                'Content-Disposition' => ($inline ? 'inline' : 'attachment')
+                    . '; filename="' . $filename . '"'
+                    . "; filename*=UTF-8''" . rawurlencode($file['name']),
                 'Cache-Control' => 'public, max-age=86400',
+                'X-Content-Type-Options' => 'nosniff',
             ],
         );
+    }
+
+    private function isInlineSafeMime(string $mime): bool
+    {
+        return match (true) {
+            str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml' => true,
+            $mime === 'application/pdf' => true,
+            str_starts_with($mime, 'video/') => true,
+            default => false,
+        };
+    }
+
+    private function safeDownloadName(string $name): string
+    {
+        $base = basename(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $name));
+        $ascii = preg_replace('/["\\\\\\r\\n]+/', '_', $base) ?? 'file';
+        $ascii = preg_replace('/[^\x20-\x7E]/', '_', $ascii) ?? 'file';
+
+        return $ascii !== '' ? $ascii : 'file';
     }
 }

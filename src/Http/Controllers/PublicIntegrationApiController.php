@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
+use Cms\Audit\AuditLogger;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Integrations\IntegrationApiService;
@@ -20,6 +21,7 @@ final class PublicIntegrationApiController
         private readonly Mailer $mailer,
         private readonly IntegrationApiService $apis,
         private readonly TokenGrantRepository $grants,
+        private readonly ?AuditLogger $audit = null,
     ) {
     }
 
@@ -31,10 +33,13 @@ final class PublicIntegrationApiController
         }
 
         try {
-            $result = $this->mailer->sendIntegration($request->json(), [], true);
+            $tokenId = $auth !== null && !$auth->isAdmin() ? $auth->tokenId() : null;
+            $result = $this->mailer->sendIntegration($request->json(), [], true, $tokenId);
 
             return Response::data($result);
         } catch (InvalidArgumentException $e) {
+            $this->auditDenied($request, $auth, $e->getMessage());
+
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (MailProviderException $e) {
             return Response::error('PROVIDER_ERROR', $e->getMessage(), 502);
@@ -64,6 +69,7 @@ final class PublicIntegrationApiController
         $allowFromOverride = (bool) ($settings['allowFromOverride'] ?? true);
 
         try {
+            $tokenId = $auth !== null && !$auth->isAdmin() ? $auth->tokenId() : null;
             $result = $this->mailer->sendIntegration(
                 $request->json(),
                 [
@@ -72,10 +78,13 @@ final class PublicIntegrationApiController
                     'text' => is_string($defaults['text'] ?? null) ? $defaults['text'] : '',
                 ],
                 $allowFromOverride,
+                $tokenId,
             );
 
             return Response::data($result);
         } catch (InvalidArgumentException $e) {
+            $this->auditDenied($request, $auth, $e->getMessage());
+
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (MailProviderException $e) {
             return Response::error('PROVIDER_ERROR', $e->getMessage(), 502);
@@ -100,5 +109,23 @@ final class PublicIntegrationApiController
         }
 
         return null;
+    }
+
+    private function auditDenied(Request $request, ?AuthContext $auth, string $reason): void
+    {
+        if ($this->audit === null) {
+            return;
+        }
+        if (!str_contains(strtolower($reason), 'quota') && !str_contains(strtolower($reason), 'domain')) {
+            return;
+        }
+        $this->audit->log(
+            $request,
+            'integration.email.denied',
+            $auth?->userId(),
+            'integration',
+            'email',
+            ['reason' => $reason],
+        );
     }
 }

@@ -13,6 +13,7 @@ use Cms\Auth\AuthContext;
 use Cms\Auth\DatabaseRateLimitStore;
 use Cms\Auth\LoginGuard;
 use Cms\Auth\RateLimiter;
+use Cms\Auth\RateLimitStore;
 use Cms\Auth\TokenGrantRepository;
 use Cms\Auth\TokenService;
 use Cms\Auth\UsersRepository;
@@ -62,6 +63,9 @@ use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourcePackageService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
+use Cms\Security\CaptchaVerifier;
+use Cms\Security\IpBlockRepository;
+use Cms\Security\SpamGuard;
 use Cms\System\AdminUiPublisher;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
@@ -85,6 +89,11 @@ final class Kernel
         private readonly ?AuditLogger $audit,
         private readonly ?ApiLogRepository $apiLogs,
         private readonly int $adminTtlHours,
+        private readonly ?RateLimiter $mediaLimiter = null,
+        private readonly ?RateLimiter $anonWriteLimiter = null,
+        private readonly ?RateLimitStore $rateLimitStore = null,
+        private readonly ?IpBlockRepository $ipBlocks = null,
+        private readonly ?Settings $runtimeSettings = null,
     ) {
     }
 
@@ -101,6 +110,11 @@ final class Kernel
         $ipLimiter = null;
         $tokenLimiter = null;
         $apiTokenLimiter = null;
+        $mediaLimiter = null;
+        $anonWriteLimiter = null;
+        $rateLimitStore = null;
+        $ipBlocks = null;
+        $runtimeSettings = null;
         $loginGuard = null;
         $audit = null;
         $apiLogs = null;
@@ -139,6 +153,19 @@ final class Kernel
                 60,
                 max(1, $settings->int('security.rate_limit_api_token_per_minute', 120)),
             );
+            $mediaLimiter = new RateLimiter(
+                $store,
+                60,
+                max(1, $settings->int('security.rate_limit_media_per_minute', 60)),
+            );
+            $anonWriteLimiter = new RateLimiter(
+                $store,
+                60,
+                max(1, $settings->int('security.rate_limit_anon_write_per_minute', 20)),
+            );
+            $rateLimitStore = $store;
+            $runtimeSettings = $settings;
+            $ipBlocks = new IpBlockRepository($db);
             $audit = new AuditLogger($db);
             $apiLogs = new ApiLogRepository($db);
         }
@@ -159,6 +186,11 @@ final class Kernel
             $audit,
             $apiLogs,
             $adminTtlHours,
+            $mediaLimiter,
+            $anonWriteLimiter,
+            $rateLimitStore,
+            $ipBlocks,
+            $runtimeSettings,
         );
         $kernel->registerRoutes();
 
@@ -194,6 +226,14 @@ final class Kernel
 
         if ($this->isSpaPath($request->path)) {
             return $this->spa();
+        }
+
+        if ($this->runtimeSettings !== null) {
+            $trusted = ClientIp::normalizeTrustedList($this->runtimeSettings->get('security.trusted_proxies'));
+            $request = $request->withIp(ClientIp::resolve($request->ip, $request->header('x-forwarded-for'), $trusted));
+        }
+        if ($this->ipBlocks !== null && $this->ipBlocks->isBlocked($request->ip)) {
+            return $this->withSecurityHeaders(Response::error('FORBIDDEN', 'IP blocked', 403));
         }
 
         $apiAccess = null;
@@ -326,6 +366,9 @@ final class Kernel
         $user = null;
         if ($token['user_id'] !== null) {
             $user = $this->tokens->userById((int) $token['user_id']);
+            if ($user === null || ($user['status'] ?? '') !== 'active') {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
         }
 
         return new AuthContext($token, $user);
@@ -333,8 +376,19 @@ final class Kernel
 
     private function registerRoutes(): void
     {
+        $captcha = $this->runtimeSettings !== null ? new CaptchaVerifier($this->runtimeSettings) : null;
+        $usersRepo = $this->db !== null ? new UsersRepository($this->db) : null;
         $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
-            ? new AuthController($this->tokens, $this->loginGuard, $this->audit, $this->adminTtlHours)
+            ? new AuthController(
+                $this->tokens,
+                $this->loginGuard,
+                $this->audit,
+                $this->adminTtlHours,
+                $captcha,
+                $this->runtimeSettings,
+                $this->ipBlocks,
+                $usersRepo,
+            )
             : null;
         $metadata = new MetadataCache(new FileCache($this->paths->cache()));
         $docs = new DocsController(
@@ -373,6 +427,42 @@ final class Kernel
             }
 
             return $auth->me($request, $context);
+        });
+
+        $this->router->add('GET', '/admin/api/auth/captcha', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->captchaConfig($request);
+        }, true);
+
+        $this->router->add('POST', '/admin/api/auth/totp/setup', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->totpSetup($request, $context);
+        });
+
+        $this->router->add('POST', '/admin/api/auth/totp/enable', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->totpEnable($request, $context);
+        });
+
+        $this->router->add('POST', '/admin/api/auth/totp/disable', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->totpDisable($request, $context);
         });
 
         if ($this->db !== null) {
@@ -735,7 +825,7 @@ final class Kernel
             });
 
             $users = new UsersController(
-                new UsersService(new UsersRepository($this->db)),
+                new UsersService(new UsersRepository($this->db), $this->tokens),
                 $audit,
             );
             $this->router->add('GET', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
@@ -769,7 +859,9 @@ final class Kernel
                 return $users->delete($request, $context, (int) $params['id']);
             });
 
-            $mediaService = new MediaService($this->db, $this->paths);
+            $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');
+            $mimes = is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
+            $mediaService = new MediaService($this->db, $this->paths, $mimes);
             $media = new MediaController(
                 $mediaService,
                 $audit,
@@ -840,6 +932,8 @@ final class Kernel
             $logs = new LogsController(
                 new AuditRepository($this->db),
                 new ApiLogRepository($this->db),
+                $this->ipBlocks,
+                $audit,
             );
             $this->router->add('GET', '/admin/api/logs/audit', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
                 unset($params);
@@ -856,6 +950,37 @@ final class Kernel
                 }
 
                 return $logs->api($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/logs/anomalies', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->anomalies($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/logs/ip-blocks', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->ipBlocks($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/logs/ip-blocks', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->blockIp($request, $context);
+            });
+            $this->router->add('DELETE', '/admin/api/logs/ip-blocks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $logs->unblockIp($request, $context, (int) $params['id']);
             });
         }
 
@@ -888,12 +1013,13 @@ final class Kernel
             );
             $settingsForMail = new Settings($this->db);
             $emailIntegration = new EmailIntegration($settingsForMail);
-            $mailer = new Mailer($settingsForMail, $emailIntegration);
+            $mailer = new Mailer($settingsForMail, $emailIntegration, $this->rateLimitStore);
             $tokenGrants = new TokenGrantRepository($this->db);
             $publicIntegrations = new PublicIntegrationApiController(
                 $mailer,
                 $integrationApiService,
                 $tokenGrants,
+                $this->audit,
             );
             foreach (['/api', '/api/v1'] as $apiPrefix) {
                 $this->router->add('POST', $apiPrefix . '/integrations/email/send', function (Request $request, array $params, ?AuthContext $context) use ($publicIntegrations): Response {
@@ -906,6 +1032,12 @@ final class Kernel
                 }, true, 'api');
             }
 
+            $spamGuard = ($this->runtimeSettings !== null)
+                ? new SpamGuard(
+                    $captcha ?? new CaptchaVerifier($this->runtimeSettings),
+                    $this->rateLimitStore,
+                )
+                : null;
             $publicApi = new PublicApiController(
                 new QueryEngine(
                     $this->db,
@@ -916,6 +1048,7 @@ final class Kernel
                 new ResourceRepository($this->db),
                 $tokenGrants,
                 $resourceApiRepo,
+                $spamGuard,
             );
             foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
                 $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
@@ -1114,15 +1247,31 @@ final class Kernel
         if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json') {
             return false;
         }
-        if (preg_match('#^/media/\\d+$#', $path) === 1) {
-            return false;
-        }
 
-        return str_starts_with($path, '/admin/api') || str_starts_with($path, '/api/');
+        return str_starts_with($path, '/admin/api')
+            || str_starts_with($path, '/api/')
+            || preg_match('#^/media/\\d+$#', $path) === 1;
     }
 
     private function rateLimit(Request $request, ?AuthContext $auth): ?Response
     {
+        if (preg_match('#^/media/\\d+$#', $request->path) === 1 && $this->mediaLimiter !== null) {
+            if (!$this->mediaLimiter->hit('media:ip:' . $request->ip)) {
+                return Response::tooManyRequests($this->mediaLimiter->retryAfter(), $this->mediaLimiter->limit());
+            }
+        }
+
+        if (
+            $this->anonWriteLimiter !== null
+            && $auth === null
+            && in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+            && str_starts_with($request->path, '/api/')
+        ) {
+            if (!$this->anonWriteLimiter->hit('anon-write:ip:' . $request->ip)) {
+                return Response::tooManyRequests($this->anonWriteLimiter->retryAfter(), $this->anonWriteLimiter->limit());
+            }
+        }
+
         if ($this->ipLimiter !== null) {
             if (!$this->ipLimiter->hit('ip:' . $request->ip)) {
                 return Response::tooManyRequests($this->ipLimiter->retryAfter(), $this->ipLimiter->limit());

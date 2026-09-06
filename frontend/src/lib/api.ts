@@ -1,3 +1,5 @@
+import { showError } from '@/lib/toast'
+
 const TOKEN_KEY = 'hcms_token'
 
 export function getToken(): string | null {
@@ -44,6 +46,27 @@ export class ApiError extends Error {
   }
 }
 
+function shouldToastApiError(path: string, status: number, code: string): boolean {
+  if (path.includes('/admin/api/auth/login')) return false
+  if (path.includes('/admin/api/auth/me')) return false
+  if (status === 401) return false
+  if (code === 'TOTP_REQUIRED' || code === 'CAPTCHA_REQUIRED') return false
+  return true
+}
+
+function throwApiError(
+  path: string,
+  status: number,
+  code: string,
+  message: string,
+  fields: Record<string, string[]> = {},
+): never {
+  if (shouldToastApiError(path, status, code)) {
+    showError(message)
+  }
+  throw new ApiError(status, code, message, fields)
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
@@ -55,7 +78,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(path, { ...init, headers })
+  let response: Response
+  try {
+    response = await fetch(path, { ...init, headers })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Request failed'
+    showError(message)
+    throw err instanceof Error ? err : new Error(message)
+  }
+
   if (response.status === 204) {
     return undefined as T
   }
@@ -70,7 +101,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (response.status === 401) {
       handleUnauthorized(path)
     }
-    throw new ApiError(
+    throwApiError(
+      path,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Request failed',
@@ -106,7 +138,15 @@ export async function apiPage<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const response = await fetch(path, { ...init, headers })
+  let response: Response
+  try {
+    response = await fetch(path, { ...init, headers })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Request failed'
+    showError(message)
+    throw err instanceof Error ? err : new Error(message)
+  }
+
   const payload = (await response.json()) as {
     data?: T[]
     meta?: PageMeta
@@ -117,7 +157,8 @@ export async function apiPage<T>(
     if (response.status === 401) {
       handleUnauthorized(path)
     }
-    throw new ApiError(
+    throwApiError(
+      path,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Request failed',
@@ -140,7 +181,15 @@ export async function apiUpload<T>(path: string, file: File, fieldName = 'file')
   const body = new FormData()
   body.append(fieldName, file)
 
-  const response = await fetch(path, { method: 'POST', headers, body })
+  let response: Response
+  try {
+    response = await fetch(path, { method: 'POST', headers, body })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upload failed'
+    showError(message)
+    throw err instanceof Error ? err : new Error(message)
+  }
+
   const payload = (await response.json()) as {
     data?: T
     error?: { code?: string; message?: string }
@@ -150,7 +199,8 @@ export async function apiUpload<T>(path: string, file: File, fieldName = 'file')
     if (response.status === 401) {
       handleUnauthorized(path)
     }
-    throw new ApiError(
+    throwApiError(
+      path,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Upload failed',
@@ -168,22 +218,32 @@ export async function installApi<T>(
   action: string,
   body: Record<string, unknown> = {},
 ): Promise<T> {
-  const response = await fetch(`/install.php?action=${encodeURIComponent(action)}`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action, ...body }),
-  })
+  let response: Response
+  try {
+    response = await fetch(`/install.php?action=${encodeURIComponent(action)}`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action, ...body }),
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Install request failed'
+    showError(message)
+    throw err instanceof Error ? err : new Error(message)
+  }
+
   const payload = (await response.json()) as T & {
     error?: { code?: string; message?: string; fields?: Record<string, string[]> }
   }
   if (!response.ok) {
+    const message = payload.error?.message ?? 'Install request failed'
+    showError(message)
     throw new ApiError(
       response.status,
       payload.error?.code ?? 'ERROR',
-      payload.error?.message ?? 'Install request failed',
+      message,
       payload.error?.fields ?? {},
     )
   }

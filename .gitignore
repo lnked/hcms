@@ -7,9 +7,17 @@
 /frontend/dist/
 /storage/*
 !/storage/.gitkeep
+!/storage/.htaccess
+!/storage/cache/
+/storage/cache/**
 !/storage/cache/.gitkeep
+!/storage/logs/
+/storage/logs/**
 !/storage/logs/.gitkeep
+!/storage/uploads/
+/storage/uploads/**
 !/storage/uploads/.gitkeep
+!/storage/uploads/.htaccess
 /public/admin/assets/
 /public/admin/index.html
 .php-cs-fixer.cache

@@ -235,11 +235,26 @@ final class Installer
             'security.rate_limit_ip_per_minute' => 120,
             'security.rate_limit_token_per_minute' => 300,
             'security.rate_limit_api_token_per_minute' => 120,
+            'security.rate_limit_media_per_minute' => 60,
+            'security.rate_limit_anon_write_per_minute' => 20,
+            'security.trusted_proxies' => [],
+            'security.login_captcha_after_failures' => 2,
+            'security.ip_auto_block_after_login_blocks' => 3,
+            'security.ip_auto_block_window_seconds' => 3600,
+            'security.ip_auto_block_ttl_seconds' => 3600,
+            'security.captcha' => [
+                'enabled' => false,
+                'provider' => 'turnstile',
+                'siteKey' => '',
+                'secretKey' => '',
+            ],
             'integrations.email' => [
                 'provider' => 'resend',
                 'enabled' => false,
                 'fromEmail' => '',
                 'fromName' => '',
+                'dailyQuota' => 100,
+                'allowedRecipientDomains' => [],
                 'resend' => ['apiKey' => ''],
                 'postmark' => ['apiKey' => ''],
                 'mailgun' => ['apiKey' => '', 'domain' => '', 'region' => 'us'],
@@ -260,6 +275,7 @@ final class Installer
         $this->writeEnv($db, $appUrl, $secret, $publicDir);
         $this->writeRootHtaccess($publicDir);
         $this->writeWebHtaccess($publicDir);
+        $this->writeStorageHtaccess();
         $this->writeLock();
     }
 
@@ -556,6 +572,10 @@ final class Installer
     RewriteRule ^fix\\.php\$ - [L]
     RewriteRule ^fix2\\.php\$ - [L]
     RewriteRule ^{$publicDir}/ - [L]
+
+    # Never expose storage (uploads, logs, cache) if docroot is project root.
+    RewriteRule ^storage(/|$) - [F,L]
+
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)\$ {$publicDir}/\$1 [L]
 </IfModule>
@@ -606,6 +626,61 @@ HTACCESS;
 
         if (file_put_contents($path, $contents) === false) {
             throw new RuntimeException('Unable to write web root .htaccess');
+        }
+    }
+
+    private function writeStorageHtaccess(): void
+    {
+        $storage = $this->paths->storage();
+        if (!is_dir($storage) && !mkdir($storage, 0775, true) && !is_dir($storage)) {
+            throw new RuntimeException('Unable to create storage directory');
+        }
+
+        $denyAll = <<<'HTACCESS'
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>
+
+HTACCESS;
+
+        if (file_put_contents($storage . '/.htaccess', $denyAll) === false) {
+            throw new RuntimeException('Unable to write storage/.htaccess');
+        }
+
+        $uploads = $this->paths->media();
+        if (!is_dir($uploads) && !mkdir($uploads, 0775, true) && !is_dir($uploads)) {
+            throw new RuntimeException('Unable to create uploads directory');
+        }
+
+        $uploadsHtaccess = <<<'HTACCESS'
+# Uploaded files must never execute as scripts.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>
+
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py
+RemoveType .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+HTACCESS;
+
+        if (file_put_contents($uploads . '/.htaccess', $uploadsHtaccess) === false) {
+            throw new RuntimeException('Unable to write storage/uploads/.htaccess');
         }
     }
 

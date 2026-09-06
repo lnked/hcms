@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,9 +6,15 @@ import { I18nProvider } from '@/i18n'
 import { LoginPage } from './LoginPage'
 
 const setToken = vi.fn()
+const api = vi.fn(async (path: string) => {
+  if (path.includes('/auth/captcha')) {
+    return { enabled: false, provider: null, siteKey: '' }
+  }
+  return { token: 'abc123', user: { id: 1, name: 'A', email: 'a@b.c' } }
+})
 
 vi.mock('@/lib/api', () => ({
-  api: vi.fn(async () => ({ token: 'abc123', user: { id: 1, name: 'A', email: 'a@b.c' } })),
+  api: (...args: unknown[]) => api(...(args as [string])),
   setToken: (...args: unknown[]) => setToken(...args),
   clearToken: vi.fn(),
 }))
@@ -16,6 +22,7 @@ vi.mock('@/lib/api', () => ({
 describe('LoginPage', () => {
   beforeEach(() => {
     setToken.mockClear()
+    api.mockClear()
   })
 
   it('submits credentials and stores token', async () => {
@@ -27,6 +34,8 @@ describe('LoginPage', () => {
         </MemoryRouter>
       </I18nProvider>,
     )
+
+    await waitFor(() => expect(api).toHaveBeenCalled())
 
     await user.type(screen.getByLabelText('Email'), 'admin@example.com')
     await user.type(screen.getByLabelText('Password'), 'secret12')

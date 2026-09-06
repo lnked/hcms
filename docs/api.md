@@ -48,7 +48,7 @@ API tokens need matching grants; admin tokens bypass grants.
 
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.
 
-Rate limits: IP + per-token (admin vs API limits from settings). 429 includes `Retry-After` and `X-RateLimit-Limit`.
+Rate limits: IP + per-token (admin vs API limits from settings); separate buckets for `/media/{id}` and anonymous writes. 429 includes `Retry-After` and `X-RateLimit-Limit`. Public create can use per-resource `settings.spam` (honeypot, captcha, duplicates, …).
 
 ## Custom resource APIs
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
@@ -16,10 +17,30 @@ const selectClass =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 function cloneSettings(settings: ResourceSettings): ResourceSettings {
+  const spam = settings.spam ?? {
+    honeypotField: '',
+    minSubmitMs: 0,
+    rateLimitPerMinute: 0,
+    requireCaptcha: false,
+    maxLinks: 0,
+    blocklist: [],
+    rejectDuplicates: true,
+  }
   return {
     ...settings,
     public: { ...settings.public },
+    spam: {
+      ...spam,
+      blocklist: [...(spam.blocklist ?? [])],
+    },
   }
+}
+
+function isPublicWriteUnprotected(settings: ResourceSettings): boolean {
+  if (!settings.public.create) return false
+  const spam = settings.spam
+  if (!spam) return true
+  return !spam.honeypotField && !spam.requireCaptcha && spam.minSubmitMs <= 0
 }
 
 export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPanelProps) {
@@ -57,6 +78,14 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
     setMessage(null)
   }
 
+  function patchSpam(partial: Partial<ResourceSettings['spam']>) {
+    setSettings((prev) => ({
+      ...prev,
+      spam: { ...prev.spam, ...partial },
+    }))
+    setMessage(null)
+  }
+
   function setDeleteStrategy(strategy: 'hard' | 'soft') {
     setSettings((prev) => ({
       ...prev,
@@ -73,6 +102,11 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
         <CardDescription>{t('resources.settings.hint')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {isPublicWriteUnprotected(settings) ? (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            {t('resources.settings.unprotectedWarning')}
+          </p>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -151,6 +185,84 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.publicDelete')}
             </label>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-sm font-medium">{t('resources.settings.spamTitle')}</p>
+          <p className="text-xs text-muted-foreground">{t('resources.settings.spamHint')}</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="honeypot">{t('resources.settings.honeypot')}</Label>
+              <Input
+                id="honeypot"
+                value={settings.spam?.honeypotField ?? ''}
+                onChange={(e) => patchSpam({ honeypotField: e.target.value })}
+                placeholder="website"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="min-submit">{t('resources.settings.minSubmitMs')}</Label>
+              <Input
+                id="min-submit"
+                type="number"
+                min={0}
+                value={settings.spam?.minSubmitMs ?? 0}
+                onChange={(e) => patchSpam({ minSubmitMs: Number(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spam-rl">{t('resources.settings.rateLimitPerMinute')}</Label>
+              <Input
+                id="spam-rl"
+                type="number"
+                min={0}
+                value={settings.spam?.rateLimitPerMinute ?? 0}
+                onChange={(e) => patchSpam({ rateLimitPerMinute: Number(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="max-links">{t('resources.settings.maxLinks')}</Label>
+              <Input
+                id="max-links"
+                type="number"
+                min={0}
+                value={settings.spam?.maxLinks ?? 0}
+                onChange={(e) => patchSpam({ maxLinks: Number(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.spam?.requireCaptcha ?? false}
+              onChange={(e) => patchSpam({ requireCaptcha: e.target.checked })}
+            />
+            {t('resources.settings.requireCaptcha')}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={settings.spam?.rejectDuplicates ?? true}
+              onChange={(e) => patchSpam({ rejectDuplicates: e.target.checked })}
+            />
+            {t('resources.settings.rejectDuplicates')}
+          </label>
+          <div className="space-y-2">
+            <Label htmlFor="blocklist">{t('resources.settings.blocklist')}</Label>
+            <Input
+              id="blocklist"
+              value={(settings.spam?.blocklist ?? []).join(', ')}
+              onChange={(e) =>
+                patchSpam({
+                  blocklist: e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="casino, crypto"
+            />
           </div>
         </div>
 

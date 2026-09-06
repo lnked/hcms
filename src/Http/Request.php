@@ -186,4 +186,18 @@ final class Request
     {
         return $this->query[$key] ?? $default;
     }
+
+    public function withIp(string $ip): self
+    {
+        return new self(
+            $this->method,
+            $this->path,
+            $this->query,
+            $this->headers,
+            $this->body,
+            $this->rawBody,
+            $ip,
+            $this->userAgent,
+        );
+    }
 }

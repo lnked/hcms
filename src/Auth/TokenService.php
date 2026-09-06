@@ -96,13 +96,27 @@ final class TokenService
         );
     }
 
+    public function revokeAllForUser(int $userId, ?string $type = null): int
+    {
+        $sql = 'UPDATE cms_tokens SET revoked_at = :now WHERE user_id = :user_id AND revoked_at IS NULL';
+        $params = [
+            'now' => date('Y-m-d H:i:s'),
+            'user_id' => $userId,
+        ];
+        if ($type !== null) {
+            $sql .= ' AND type = :type';
+            $params['type'] = $type;
+        }
+        return $this->db->execute($sql, $params);
+    }
+
     /**
      * @return array<string, mixed>|null
      */
     public function userById(int $id): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, changelog_seen_version, created_at FROM cms_users WHERE id = :id',
+            'SELECT id, name, email, status, totp_enabled, changelog_seen_version, created_at FROM cms_users WHERE id = :id',
             ['id' => $id],
         );
     }

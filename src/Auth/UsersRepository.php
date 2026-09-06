@@ -19,7 +19,7 @@ final class UsersRepository
     public function all(): array
     {
         return $this->db->select(
-            'SELECT id, name, email, status, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, totp_enabled, last_login_at, created_at, updated_at
              FROM cms_users
              ORDER BY id ASC',
         );
@@ -31,7 +31,7 @@ final class UsersRepository
     public function find(int $id): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, totp_enabled, totp_secret, last_login_at, created_at, updated_at
              FROM cms_users WHERE id = :id',
             ['id' => $id],
         );
@@ -43,7 +43,7 @@ final class UsersRepository
     public function findByEmail(string $email): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, password_hash, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, password_hash, totp_enabled, totp_secret, last_login_at, created_at, updated_at
              FROM cms_users WHERE email = :email LIMIT 1',
             ['email' => $email],
         );
@@ -125,6 +125,19 @@ final class UsersRepository
         }
 
         $this->db->execute('DELETE FROM cms_users WHERE id = :id', ['id' => $id]);
+    }
+
+    public function setTotp(int $id, ?string $secret, bool $enabled): void
+    {
+        $this->db->execute(
+            'UPDATE cms_users SET totp_secret = :secret, totp_enabled = :enabled, updated_at = :updated_at WHERE id = :id',
+            [
+                'id' => $id,
+                'secret' => $secret,
+                'enabled' => $enabled ? 1 : 0,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ],
+        );
     }
 
     private function passwordHash(int $id): string

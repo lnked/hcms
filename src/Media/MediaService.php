@@ -13,10 +13,134 @@ final class MediaService
 {
     private const MAX_BYTES = 10_485_760; // 10 MB
 
+    /** @var list<string> */
+    private const DEFAULT_ALLOWED_MIMES = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/svg+xml',
+        'application/pdf',
+        'text/plain',
+        'text/csv',
+        'video/mp4',
+        'video/webm',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/zip',
+    ];
+
+    /** MIME → disk extension (never trust client filename for storage). */
+    private const MIME_EXTENSIONS = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+        'image/svg+xml' => 'svg',
+        'application/pdf' => 'pdf',
+        'text/plain' => 'txt',
+        'text/csv' => 'csv',
+        'video/mp4' => 'mp4',
+        'video/webm' => 'webm',
+        'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+        'application/zip' => 'zip',
+    ];
+
+    /**
+     * Script / markup sources — accepted, but always stored as text/plain + .txt.
+     *
+     * @var list<string>
+     */
+    private const SOURCE_EXTENSIONS = [
+        'php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps',
+        'cgi', 'pl', 'py', 'rb', 'asp', 'aspx', 'jsp', 'jspx', 'shtml', 'shtm',
+        'sh', 'bash', 'ps1', 'vbs',
+        'html', 'htm', 'xhtml', 'js', 'mjs', 'css',
+        'htaccess', 'htpasswd', 'ini', 'env',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const SOURCE_MIMES = [
+        'text/x-php',
+        'application/x-php',
+        'application/x-httpd-php',
+        'text/x-python',
+        'text/x-script.python',
+        'application/x-python',
+        'application/x-python-code',
+        'text/javascript',
+        'application/javascript',
+        'application/x-javascript',
+        'text/css',
+        'text/html',
+        'application/xhtml+xml',
+        'application/x-sh',
+        'application/x-shellscript',
+        'text/x-shellscript',
+        'text/x-c',
+        'text/x-c++',
+        'text/x-java-source',
+        'text/x-ruby',
+        'text/x-perl',
+        'application/x-perl',
+    ];
+
+    /** Always reject — never store as source text. */
+    private const BINARY_BLOCKED_EXTENSIONS = [
+        'exe', 'dll', 'so', 'msi', 'com', 'bat', 'cmd',
+    ];
+
+    private const UPLOADS_HTACCESS = <<<'HTACCESS'
+# Prevent script execution if this directory is ever web-reachable.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>
+
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py
+RemoveType .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+
+HTACCESS;
+
+    /** @var list<string>|null */
+    private readonly ?array $allowedMimes;
+
+    /**
+     * @param list<string>|null $allowedMimes null = default allowlist
+     */
     public function __construct(
         private readonly Connection $db,
         private readonly Paths $paths,
+        ?array $allowedMimes = null,
     ) {
+        $this->allowedMimes = $allowedMimes;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function allowedMimes(): array
+    {
+        return $this->allowedMimes ?? self::DEFAULT_ALLOWED_MIMES;
     }
 
     /**
@@ -99,11 +223,12 @@ final class MediaService
             throw new InvalidArgumentException('File too large (max 10MB)');
         }
 
-        $mime = trim($mime) !== '' ? trim($mime) : 'application/octet-stream';
-        $extRaw = pathinfo($originalName, PATHINFO_EXTENSION);
-        $safeExt = preg_replace('/[^a-z0-9]/i', '', strtolower((string) $extRaw));
-        $ext = is_string($safeExt) && $safeExt !== '' ? $safeExt : 'bin';
+        $normalized = $this->normalizeUpload($originalName, $mime);
+        $mime = $normalized['mime'];
+        $originalName = $normalized['originalName'];
+        $ext = $normalized['ext'];
 
+        $this->ensureUploadsProtected();
         $relative = date('Y/m') . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
         $absolute = $this->paths->media() . '/' . $relative;
         $dir = dirname($absolute);
@@ -113,6 +238,8 @@ final class MediaService
         if (file_put_contents($absolute, $bytes) === false) {
             throw new RuntimeException('Failed to store media file');
         }
+        // Drop execute bits — uploaded files must never be executable.
+        @chmod($absolute, 0644);
 
         $width = null;
         $height = null;
@@ -210,6 +337,160 @@ final class MediaService
     private function findRow(int $id): ?array
     {
         return $this->db->selectOne('SELECT * FROM cms_media WHERE id = :id', ['id' => $id]);
+    }
+
+    /**
+     * @return array{mime: string, originalName: string, ext: string}
+     */
+    private function normalizeUpload(string $originalName, string $mime): array
+    {
+        if ($originalName === '' || str_contains($originalName, "\0")) {
+            throw new InvalidArgumentException('Invalid filename');
+        }
+
+        $mime = strtolower(trim(explode(';', trim($mime) !== '' ? $mime : 'application/octet-stream')[0]));
+        $this->assertNotBinaryExecutable($originalName);
+
+        if ($this->isSourceAsText($originalName, $mime)) {
+            // Never keep a script MIME or .php (etc.) on disk — plain text only.
+            return [
+                'mime' => 'text/plain',
+                'originalName' => $this->sourceDisplayName($originalName),
+                'ext' => 'txt',
+            ];
+        }
+
+        $this->assertMimeAllowed($mime);
+        $this->assertFilenameSafe($originalName);
+
+        return [
+            'mime' => $mime,
+            'originalName' => $this->basenameOnly($originalName),
+            'ext' => $this->extensionForMime($mime),
+        ];
+    }
+
+    private function isSourceAsText(string $originalName, string $mime): bool
+    {
+        if (in_array($mime, self::SOURCE_MIMES, true)) {
+            return true;
+        }
+
+        $hasSourceExt = $this->filenameHasAnyExtension($originalName, self::SOURCE_EXTENSIONS);
+        if (!$hasSourceExt) {
+            return false;
+        }
+
+        // Script-looking name with a binary/image MIME → reject (polyglot / rename attack).
+        if (
+            str_starts_with($mime, 'image/')
+            || str_starts_with($mime, 'video/')
+            || str_starts_with($mime, 'audio/')
+            || $mime === 'application/pdf'
+            || $mime === 'application/zip'
+            || str_contains($mime, 'officedocument')
+            || $mime === 'application/msword'
+            || $mime === 'application/vnd.ms-excel'
+        ) {
+            throw new InvalidArgumentException('Executable or script file type is not allowed');
+        }
+
+        return str_starts_with($mime, 'text/')
+            || $mime === 'application/octet-stream'
+            || $mime === 'application/json'
+            || $mime === 'application/xml'
+            || $mime === 'text/xml';
+    }
+
+    private function sourceDisplayName(string $originalName): string
+    {
+        $base = $this->basenameOnly($originalName);
+        if (!str_ends_with(strtolower($base), '.txt')) {
+            $base .= '.txt';
+        }
+
+        return $base;
+    }
+
+    private function basenameOnly(string $originalName): string
+    {
+        $base = basename(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $originalName));
+
+        return $base !== '' ? $base : 'file';
+    }
+
+    private function assertMimeAllowed(string $mime): void
+    {
+        $allowed = $this->allowedMimes();
+        $normalized = strtolower(trim(explode(';', $mime)[0]));
+        foreach ($allowed as $entry) {
+            if (strcasecmp($entry, $normalized) === 0) {
+                return;
+            }
+        }
+
+        throw new InvalidArgumentException('MIME type not allowed: ' . $normalized);
+    }
+
+    private function assertFilenameSafe(string $originalName): void
+    {
+        $blocked = [...self::SOURCE_EXTENSIONS, ...self::BINARY_BLOCKED_EXTENSIONS];
+        if ($this->filenameHasAnyExtension($originalName, $blocked)) {
+            throw new InvalidArgumentException('Executable or script file type is not allowed');
+        }
+    }
+
+    private function assertNotBinaryExecutable(string $originalName): void
+    {
+        if ($this->filenameHasAnyExtension($originalName, self::BINARY_BLOCKED_EXTENSIONS)) {
+            throw new InvalidArgumentException('Executable or script file type is not allowed');
+        }
+    }
+
+    /**
+     * @param list<string> $extensions
+     */
+    private function filenameHasAnyExtension(string $originalName, array $extensions): bool
+    {
+        $base = strtolower($this->basenameOnly($originalName));
+        $parts = preg_split('/\./', $base) ?: [];
+        foreach ($parts as $part) {
+            $clean = preg_replace('/[^a-z0-9]/i', '', $part);
+            if (is_string($clean) && $clean !== '' && in_array($clean, $extensions, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function extensionForMime(string $mime): string
+    {
+        $normalized = strtolower(trim(explode(';', $mime)[0]));
+
+        return self::MIME_EXTENSIONS[$normalized] ?? 'bin';
+    }
+
+    private function ensureUploadsProtected(): void
+    {
+        $media = $this->paths->media();
+        if (!is_dir($media) && !mkdir($media, 0755, true) && !is_dir($media)) {
+            throw new RuntimeException('Cannot create media directory');
+        }
+
+        $htaccess = $media . '/.htaccess';
+        if (!is_file($htaccess)) {
+            @file_put_contents($htaccess, self::UPLOADS_HTACCESS);
+        }
+
+        $storageDeny = $this->paths->storage() . '/.htaccess';
+        if (!is_file($storageDeny)) {
+            @file_put_contents(
+                $storageDeny,
+                "<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n"
+                . "<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n",
+            );
+        }
     }
 
     /**

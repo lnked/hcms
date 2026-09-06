@@ -35,6 +35,103 @@ interface AdminUser {
   updatedAt: string | null
 }
 
+function TotpSetup({ onDone }: { onDone: () => void }) {
+  const { t } = useI18n()
+  const [secret, setSecret] = useState<string | null>(null)
+  const [otpauthUrl, setOtpauthUrl] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+
+  const setup = useMutation({
+    mutationFn: () =>
+      api<{ secret: string; otpauthUrl: string }>('/admin/api/auth/totp/setup', { method: 'POST' }),
+    onSuccess: (data) => {
+      setSecret(data.secret)
+      setOtpauthUrl(data.otpauthUrl)
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
+  const enable = useMutation({
+    mutationFn: () =>
+      api('/admin/api/auth/totp/enable', {
+        method: 'POST',
+        body: JSON.stringify({ totpCode: code }),
+      }),
+    onSuccess: () => {
+      setMessage(t('users.totpEnabledOk'))
+      onDone()
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
+  return (
+    <div className="space-y-3">
+      {!secret ? (
+        <Button disabled={setup.isPending} onClick={() => setup.mutate()}>
+          {t('users.totpSetup')}
+        </Button>
+      ) : (
+        <>
+          <p className="break-all font-mono text-xs">{secret}</p>
+          {otpauthUrl ? <p className="break-all text-xs text-muted-foreground">{otpauthUrl}</p> : null}
+          <div className="flex max-w-xs gap-2">
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder={t('login.totp')}
+            />
+            <Button disabled={enable.isPending || code.length < 6} onClick={() => enable.mutate()}>
+              {t('users.totpConfirm')}
+            </Button>
+          </div>
+        </>
+      )}
+      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+    </div>
+  )
+}
+
+function TotpDisable({ onDone }: { onDone: () => void }) {
+  const { t } = useI18n()
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+  const disable = useMutation({
+    mutationFn: () =>
+      api('/admin/api/auth/totp/disable', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+      }),
+    onSuccess: () => {
+      setMessage(t('users.totpDisabledOk'))
+      onDone()
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
+  return (
+    <div className="flex max-w-md flex-wrap items-end gap-2">
+      <div className="space-y-2">
+        <Label htmlFor="totp-disable-password">{t('common.password')}</Label>
+        <Input
+          id="totp-disable-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+      <Button
+        variant="outline"
+        disabled={disable.isPending || password.length < 8}
+        onClick={() => disable.mutate()}
+      >
+        {t('users.totpDisable')}
+      </Button>
+      {message ? <p className="w-full text-sm text-muted-foreground">{message}</p> : null}
+    </div>
+  )
+}
+
 export function UsersPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
@@ -191,6 +288,27 @@ export function UsersPage() {
                 )}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('users.totpTitle')}</CardTitle>
+          <CardDescription>{t('users.totpHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm">
+            {me.data?.totpEnabled ? t('users.totpEnabled') : t('users.totpDisabled')}
+          </p>
+          {!me.data?.totpEnabled ? (
+            <TotpSetup
+              onDone={() => void queryClient.invalidateQueries({ queryKey: ['auth-me'] })}
+            />
+          ) : (
+            <TotpDisable
+              onDone={() => void queryClient.invalidateQueries({ queryKey: ['auth-me'] })}
+            />
           )}
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/i18n'
 import { ApiError, getToken, handleUnauthorized } from '@/lib/api'
+import { showError } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
 
 interface ResourceExportPanelProps {
@@ -48,8 +49,11 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
       URL.revokeObjectURL(url)
     },
     onSuccess: () => setError(null),
-    onError: (err) =>
-      setError(err instanceof Error ? err.message : t('resources.package.exportFailed')),
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : t('resources.package.exportFailed')
+      setError(message)
+      showError(message)
+    },
   })
 
   return (

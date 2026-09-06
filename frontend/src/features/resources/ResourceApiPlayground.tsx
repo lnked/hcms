@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
+import { showError } from '@/lib/toast'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceCustomApi } from '@/types/resourceApi'
@@ -123,9 +124,19 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
       } catch {
         setResponseText(text || '(empty)')
       }
+      if (!res.ok) {
+        try {
+          const payload = JSON.parse(text) as { error?: { message?: string } }
+          showError(payload.error?.message ?? `HTTP ${res.status}`)
+        } catch {
+          showError(`HTTP ${res.status}`)
+        }
+      }
     } catch (err) {
+      const message = err instanceof Error ? err.message : t('common.requestFailed')
       setStatus(0)
-      setResponseText(err instanceof Error ? err.message : t('common.requestFailed'))
+      setResponseText(message)
+      showError(message)
     } finally {
       setSending(false)
     }

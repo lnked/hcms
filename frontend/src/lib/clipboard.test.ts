@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { copyToClipboard } from './clipboard'
+
+vi.mock('@/lib/toast', () => ({
+  showSuccess: vi.fn(),
+  showError: vi.fn(),
+  showToast: vi.fn(),
+  onToast: vi.fn(() => () => undefined),
+}))
 
 describe('copyToClipboard', () => {
   afterEach(() => {
@@ -8,15 +14,19 @@ describe('copyToClipboard', () => {
   })
 
   it('uses Clipboard API when available', async () => {
+    const { copyToClipboard } = await import('./clipboard')
+    const { showSuccess } = await import('./toast')
     const writeText = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('navigator', { clipboard: { writeText } })
 
     await copyToClipboard('/api/articles')
 
     expect(writeText).toHaveBeenCalledWith('/api/articles')
+    expect(showSuccess).toHaveBeenCalled()
   })
 
   it('falls back to execCommand when Clipboard API throws', async () => {
+    const { copyToClipboard } = await import('./clipboard')
     const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'))
     vi.stubGlobal('navigator', { clipboard: { writeText } })
     Object.defineProperty(document, 'execCommand', {

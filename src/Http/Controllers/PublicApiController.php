@@ -12,6 +12,8 @@ use Cms\Http\Response;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
+use Cms\Resources\ResourceService;
+use Cms\Security\SpamGuard;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -22,6 +24,7 @@ final class PublicApiController
         private readonly ResourceRepository $resources,
         private readonly TokenGrantRepository $grants,
         private readonly ?ResourceApiRepository $apis = null,
+        private readonly ?SpamGuard $spamGuard = null,
     ) {
     }
 
@@ -34,7 +37,7 @@ final class PublicApiController
                 'GET' => $id === null
                     ? Response::json($this->query->list($slug, $request->query, ['public' => true]))
                     : Response::data($this->query->find($slug, (int) $id, ['public' => true])),
-                'POST' => Response::data($this->query->create($slug, $request->json(), ['public' => true]), 201),
+                'POST' => $this->create($request, $slug, $auth),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
                     : Response::data($this->query->patch($slug, (int) $id, $request->json(), ['public' => true])),
@@ -74,6 +77,33 @@ final class PublicApiController
         } catch (RuntimeException $e) {
             return $this->runtimeError($e);
         }
+    }
+
+    private function create(Request $request, string $slug, ?AuthContext $auth): Response
+    {
+        $payload = $request->json();
+        if ($auth === null && $this->spamGuard !== null) {
+            $resource = $this->resources->findByPublicKey($slug);
+            $settings = [];
+            if ($resource !== null) {
+                $raw = $resource['settings_json'] ?? [];
+                if (is_string($raw)) {
+                    $decoded = json_decode($raw, true);
+                    $settings = is_array($decoded) ? $decoded : [];
+                } elseif (is_array($raw)) {
+                    $settings = $raw;
+                }
+                $settings = ResourceService::normalizeSettings($settings);
+            }
+            $this->spamGuard->assertCreateAllowed($request, $settings, $payload);
+            $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
+            if ($honeypot !== '') {
+                unset($payload[$honeypot]);
+            }
+            unset($payload['captchaToken'], $payload['_startedAt']);
+        }
+
+        return Response::data($this->query->create($slug, $payload, ['public' => true]), 201);
     }
 
     private function delete(string $slug, int $id): Response

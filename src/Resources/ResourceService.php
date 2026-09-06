@@ -272,6 +272,15 @@ final class ResourceService
             'filtering' => true,
             'deleteStrategy' => 'hard',
             'softDelete' => false,
+            'spam' => [
+                'honeypotField' => '',
+                'minSubmitMs' => 0,
+                'rateLimitPerMinute' => 0,
+                'requireCaptcha' => false,
+                'maxLinks' => 0,
+                'blocklist' => [],
+                'rejectDuplicates' => true,
+            ],
         ], $override));
     }
 
@@ -284,6 +293,15 @@ final class ResourceService
         $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
         $strategy = ($settings['deleteStrategy'] ?? 'hard') === 'soft' ? 'soft' : 'hard';
         $softDelete = $strategy === 'soft' || (bool) ($settings['softDelete'] ?? false);
+        $spam = is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
+        $blocklist = [];
+        if (is_array($spam['blocklist'] ?? null)) {
+            foreach ($spam['blocklist'] as $term) {
+                if (is_string($term) && trim($term) !== '') {
+                    $blocklist[] = trim($term);
+                }
+            }
+        }
 
         return [
             'apiEnabled' => (bool) ($settings['apiEnabled'] ?? true),
@@ -299,6 +317,15 @@ final class ResourceService
             'filtering' => (bool) ($settings['filtering'] ?? true),
             'deleteStrategy' => $softDelete ? 'soft' : 'hard',
             'softDelete' => $softDelete,
+            'spam' => [
+                'honeypotField' => is_string($spam['honeypotField'] ?? null) ? trim($spam['honeypotField']) : '',
+                'minSubmitMs' => max(0, (int) ($spam['minSubmitMs'] ?? 0)),
+                'rateLimitPerMinute' => max(0, (int) ($spam['rateLimitPerMinute'] ?? 0)),
+                'requireCaptcha' => (bool) ($spam['requireCaptcha'] ?? false),
+                'maxLinks' => max(0, (int) ($spam['maxLinks'] ?? 0)),
+                'blocklist' => $blocklist,
+                'rejectDuplicates' => (bool) ($spam['rejectDuplicates'] ?? true),
+            ],
         ];
     }
 

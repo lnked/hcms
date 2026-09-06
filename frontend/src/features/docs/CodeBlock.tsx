@@ -17,13 +17,25 @@ interface CodeBlockProps {
   code: string
   label?: string
   language?: DocLanguage
+  editable?: boolean
+  onChange?: (value: string) => void
+  rows?: number
+  id?: string
 }
 
-export function CodeBlock({ code, label, language = 'js' }: CodeBlockProps) {
+export function CodeBlock({
+  code,
+  label,
+  language = 'js',
+  editable = false,
+  onChange,
+  rows = 10,
+  id,
+}: CodeBlockProps) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const html = highlight(code, { lang: LANG_MAP[language] })
+  const html = editable ? '' : highlight(code, { lang: LANG_MAP[language] })
 
   async function copy() {
     try {
@@ -40,7 +52,11 @@ export function CodeBlock({ code, label, language = 'js' }: CodeBlockProps) {
 
   return (
     <div className="space-y-1.5">
-      {label ? <p className="text-xs font-medium text-muted-foreground">{label}</p> : null}
+      {label ? (
+        <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+          {label}
+        </label>
+      ) : null}
       <div className="relative">
         <Button
           type="button"
@@ -53,9 +69,20 @@ export function CodeBlock({ code, label, language = 'js' }: CodeBlockProps) {
         >
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
-        <pre className="docs-code overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs whitespace-pre">
-          <code dangerouslySetInnerHTML={{ __html: html }} />
-        </pre>
+        {editable ? (
+          <textarea
+            id={id}
+            rows={rows}
+            value={code}
+            spellCheck={false}
+            onChange={(e) => onChange?.(e.target.value)}
+            className="docs-code min-h-[200px] w-full resize-y rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs whitespace-pre shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        ) : (
+          <pre className="docs-code overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs whitespace-pre">
+            <code dangerouslySetInnerHTML={{ __html: html }} />
+          </pre>
+        )}
       </div>
     </div>
   )

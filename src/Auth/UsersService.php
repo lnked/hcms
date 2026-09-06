@@ -9,8 +9,10 @@ use RuntimeException;
 
 final class UsersService
 {
-    public function __construct(private readonly UsersRepository $users)
-    {
+    public function __construct(
+        private readonly UsersRepository $users,
+        private readonly ?TokenService $tokens = null,
+    ) {
     }
 
     /**
@@ -88,7 +90,16 @@ final class UsersService
             $data['password_hash'] = Password::hash($validated['password']);
         }
 
-        return $this->serialize($this->users->update($id, $data));
+        $updated = $this->serialize($this->users->update($id, $data));
+
+        $becameDisabled = isset($validated['status'])
+            && $validated['status'] === 'disabled'
+            && ($existing['status'] ?? '') !== 'disabled';
+        if ($becameDisabled && $this->tokens !== null) {
+            $this->tokens->revokeAllForUser($id);
+        }
+
+        return $updated;
     }
 
     public function delete(int $id, int $actorId): void
@@ -100,6 +111,9 @@ final class UsersService
             throw new RuntimeException('User not found', 404);
         }
 
+        if ($this->tokens !== null) {
+            $this->tokens->revokeAllForUser($id);
+        }
         $this->users->delete($id);
     }
 
@@ -120,8 +134,8 @@ final class UsersService
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new InvalidArgumentException('Valid email is required');
         }
-        if (strlen($password) < 8) {
-            throw new InvalidArgumentException('Password must be at least 8 characters');
+        if (!Password::meetsPolicy($password)) {
+            throw new InvalidArgumentException(Password::policyMessage());
         }
         if (!in_array($status, ['active', 'disabled'], true)) {
             throw new InvalidArgumentException('Invalid status');
@@ -158,8 +172,8 @@ final class UsersService
         }
         if (array_key_exists('password', $payload) && $payload['password'] !== null && $payload['password'] !== '') {
             $password = is_string($payload['password']) ? $payload['password'] : '';
-            if (strlen($password) < 8) {
-                throw new InvalidArgumentException('Password must be at least 8 characters');
+            if (!Password::meetsPolicy($password)) {
+                throw new InvalidArgumentException(Password::policyMessage());
             }
             $out['password'] = $password;
         }
@@ -189,6 +203,7 @@ final class UsersService
             'name' => $row['name'],
             'email' => $row['email'],
             'status' => $row['status'],
+            'totpEnabled' => (bool) ($row['totp_enabled'] ?? false),
             'lastLoginAt' => $row['last_login_at'] ?? null,
             'createdAt' => $row['created_at'] ?? null,
             'updatedAt' => $row['updated_at'] ?? null,

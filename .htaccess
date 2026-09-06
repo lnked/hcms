@@ -9,6 +9,10 @@
     RewriteRule ^clean\.php$ - [L]
     RewriteRule ^fix2\.php$ - [L]
     RewriteRule ^public/ - [L]
+
+    # Never expose storage (uploads, logs, cache) if docroot is project root.
+    RewriteRule ^storage(/|$) - [F,L]
+
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>

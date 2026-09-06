@@ -37,6 +37,11 @@ final class RateLimiter
         return $this->maxHits;
     }
 
+    public function hits(string $bucket): int
+    {
+        return $this->store->hits($bucket, $this->windowStart());
+    }
+
     private function windowStart(): DateTimeImmutable
     {
         $ts = (int) (floor(time() / $this->windowSeconds) * $this->windowSeconds);

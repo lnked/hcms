@@ -50,6 +50,10 @@ touch "$STAGE/storage/.gitkeep" \
   "$STAGE/storage/logs/.gitkeep" \
   "$STAGE/storage/uploads/.gitkeep"
 
+# Harden upload dirs even when storage/* is excluded from rsync
+cp -f "$ROOT/storage/.htaccess" "$STAGE/storage/.htaccess"
+cp -f "$ROOT/storage/uploads/.htaccess" "$STAGE/storage/uploads/.htaccess"
+
 # Keep built admin assets in the zip even if gitignored locally
 if [[ -d public/admin ]]; then
   rsync -a public/admin/ "$STAGE/public/admin/"

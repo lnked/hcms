@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CodeBlock } from '@/features/docs/CodeBlock'
-import { useI18n, type MessageKey } from '@/i18n'
 import { api, ApiError, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
+import { showError } from '@/lib/toast'
+import { useI18n, type MessageKey } from '@/i18n'
+import { CodeBlock } from '@/features/docs/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
 
 type EmailProvider = 'resend' | 'postmark' | 'mailgun'
@@ -25,6 +26,8 @@ interface EmailIntegrationConfig {
   enabled: boolean
   fromEmail: string
   fromName: string
+  dailyQuota: number
+  allowedRecipientDomains: string[]
   apiKeyConfigured: boolean
   apiKeyMasked: string | null
   mailgunDomain: string
@@ -93,6 +96,8 @@ export function IntegrationsPage() {
   const [enabled, setEnabled] = useState(false)
   const [fromEmail, setFromEmail] = useState('')
   const [fromName, setFromName] = useState('')
+  const [dailyQuota, setDailyQuota] = useState(100)
+  const [allowedDomains, setAllowedDomains] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [mailgunDomain, setMailgunDomain] = useState('')
   const [mailgunRegion, setMailgunRegion] = useState<MailgunRegion>('us')
@@ -124,6 +129,8 @@ export function IntegrationsPage() {
     setEnabled(query.data.enabled)
     setFromEmail(query.data.fromEmail)
     setFromName(query.data.fromName)
+    setDailyQuota(query.data.dailyQuota ?? 100)
+    setAllowedDomains((query.data.allowedRecipientDomains ?? []).join(', '))
     setMailgunDomain(query.data.mailgunDomain)
     setMailgunRegion(query.data.mailgunRegion === 'eu' ? 'eu' : 'us')
     setApiKey('')
@@ -147,6 +154,11 @@ export function IntegrationsPage() {
           enabled,
           fromEmail,
           fromName,
+          dailyQuota,
+          allowedRecipientDomains: allowedDomains
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean),
           mailgunDomain,
           mailgunRegion,
           ...(apiKey.trim() !== '' ? { apiKey: apiKey.trim() } : {}),
@@ -158,6 +170,8 @@ export function IntegrationsPage() {
       setEnabled(data.enabled)
       setFromEmail(data.fromEmail)
       setFromName(data.fromName)
+      setDailyQuota(data.dailyQuota ?? 100)
+      setAllowedDomains((data.allowedRecipientDomains ?? []).join(', '))
       setMailgunDomain(data.mailgunDomain)
       setMailgunRegion(data.mailgunRegion === 'eu' ? 'eu' : 'us')
       void queryClient.invalidateQueries({ queryKey: ['integrations-email'] })
@@ -239,16 +253,31 @@ export function IntegrationsPage() {
     },
     onSuccess: (data) => {
       setPlaygroundResult(JSON.stringify(data, null, 2))
+      if (data.status >= 400) {
+        const body = data.body
+        const message =
+          body &&
+          typeof body === 'object' &&
+          'error' in body &&
+          body.error &&
+          typeof body.error === 'object' &&
+          'message' in body.error &&
+          typeof body.error.message === 'string'
+            ? body.error.message
+            : `HTTP ${data.status}`
+        showError(message)
+      }
     },
     onError: (err) => {
-      setPlaygroundResult(err instanceof Error ? err.message : t('common.requestFailed'))
+      const message = err instanceof Error ? err.message : t('common.requestFailed')
+      setPlaygroundResult(message)
+      showError(message)
     },
   })
 
   const copyPath = async (path: string) => {
     try {
       await copyToClipboard(path)
-      setMessage(t('common.copied'))
     } catch {
       // ignore
     }
@@ -349,6 +378,25 @@ export function IntegrationsPage() {
                     onChange={(e) => setFromName(e.target.value)}
                     placeholder="HCMS"
                     autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-quota">{t('integrations.email.dailyQuota')}</Label>
+                  <Input
+                    id="email-quota"
+                    type="number"
+                    min={0}
+                    value={dailyQuota}
+                    onChange={(e) => setDailyQuota(Number(e.target.value) || 0)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-domains">{t('integrations.email.allowedDomains')}</Label>
+                  <Input
+                    id="email-domains"
+                    value={allowedDomains}
+                    onChange={(e) => setAllowedDomains(e.target.value)}
+                    placeholder="example.com, client.org"
                   />
                 </div>
               </div>
@@ -676,13 +724,14 @@ export function IntegrationsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email-pg-body">{t('integrations.email.playground.body')}</Label>
-            <textarea
+            <CodeBlock
               id="email-pg-body"
+              label={t('integrations.email.playground.body')}
+              code={playgroundBody}
+              language="js"
+              editable
               rows={10}
-              value={playgroundBody}
-              onChange={(e) => setPlaygroundBody(e.target.value)}
-              className="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onChange={setPlaygroundBody}
             />
           </div>
           <Button disabled={runPlayground.isPending} onClick={() => runPlayground.mutate()}>
@@ -690,11 +739,7 @@ export function IntegrationsPage() {
               ? t('integrations.email.playground.running')
               : t('integrations.email.playground.run')}
           </Button>
-          {playgroundResult ? (
-            <pre className="overflow-x-auto rounded-md border bg-muted p-3 text-xs whitespace-pre-wrap">
-              {playgroundResult}
-            </pre>
-          ) : null}
+          {playgroundResult ? <CodeBlock code={playgroundResult} language="js" /> : null}
           {runPlayground.error instanceof ApiError ? (
             <p className="text-sm text-destructive">{runPlayground.error.message}</p>
           ) : null}
