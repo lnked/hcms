@@ -44,6 +44,7 @@ use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\PublicIntegrationApiController;
 use Cms\Http\Controllers\ResourceApiController;
 use Cms\Http\Controllers\ResourceController;
+use Cms\Http\Controllers\ResourcePackageController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
@@ -58,6 +59,7 @@ use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\EntryImportExportService;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
+use Cms\Resources\ResourcePackageService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\System\AdminUiPublisher;
@@ -767,10 +769,38 @@ final class Kernel
                 return $users->delete($request, $context, (int) $params['id']);
             });
 
+            $mediaService = new MediaService($this->db, $this->paths);
             $media = new MediaController(
-                new MediaService($this->db, $this->paths),
+                $mediaService,
                 $audit,
             );
+
+            $packageService = new ResourcePackageService(
+                new ResourceRepository($this->db),
+                new ContentTypeRepository($this->db),
+                $fieldService,
+                $resourceApiService,
+                $resourceService,
+                $queryEngine,
+                $mediaService,
+                $migrationService,
+            );
+            $packages = new ResourcePackageController($packageService, $audit);
+            $this->router->add('POST', '/admin/api/resources/package/import', function (Request $request, array $params, ?AuthContext $context) use ($packages): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $packages->import($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/package/export', function (Request $request, array $params, ?AuthContext $context) use ($packages): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $packages->export($request, $context, (int) $params['id']);
+            });
             $this->router->add('GET', '/admin/api/media', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
                 unset($params);
                 if ($context === null) {

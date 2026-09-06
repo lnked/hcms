@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.36.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Resource package import/export",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Resource package export/import endpoints (schema, custom APIs, optional entries + media)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources: Export tab for portable .cms-resource.json packages"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources list: Import package with slug conflict rename and media remapping"
+        }
+      ]
+    },
+    {
       "version": "0.35.0",
       "date": "2026-09-06",
       "channel": "stable",

@@ -79,8 +79,29 @@ final class MediaService
 
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($tmp) ?: 'application/octet-stream';
-        $extRaw = pathinfo($name, PATHINFO_EXTENSION);
-        $safeExt = preg_replace('/[^a-z0-9]/i', '', strtolower($extRaw));
+        $bytes = file_get_contents($tmp);
+        if ($bytes === false) {
+            throw new RuntimeException('Failed to read upload');
+        }
+
+        return $this->storeFromBytes($bytes, $name, $mime);
+    }
+
+    /**
+     * Store raw bytes as a media item (used by resource package import).
+     *
+     * @return array<string, mixed>
+     */
+    public function storeFromBytes(string $bytes, string $originalName, string $mime): array
+    {
+        $size = strlen($bytes);
+        if ($size <= 0 || $size > self::MAX_BYTES) {
+            throw new InvalidArgumentException('File too large (max 10MB)');
+        }
+
+        $mime = trim($mime) !== '' ? trim($mime) : 'application/octet-stream';
+        $extRaw = pathinfo($originalName, PATHINFO_EXTENSION);
+        $safeExt = preg_replace('/[^a-z0-9]/i', '', strtolower((string) $extRaw));
         $ext = is_string($safeExt) && $safeExt !== '' ? $safeExt : 'bin';
 
         $relative = date('Y/m') . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
@@ -89,8 +110,8 @@ final class MediaService
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
             throw new RuntimeException('Cannot create media directory');
         }
-        if (!move_uploaded_file($tmp, $absolute)) {
-            throw new RuntimeException('Failed to store upload');
+        if (file_put_contents($absolute, $bytes) === false) {
+            throw new RuntimeException('Failed to store media file');
         }
 
         $width = null;
@@ -109,7 +130,7 @@ final class MediaService
              VALUES (:disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
             [
                 'disk_path' => $relative,
-                'original_name' => substr($name, 0, 255),
+                'original_name' => substr($originalName, 0, 255),
                 'mime' => substr($mime, 0, 128),
                 'size' => $size,
                 'width' => $width,
@@ -119,6 +140,34 @@ final class MediaService
         );
 
         return $this->get((int) $this->db->lastInsertId());
+    }
+
+    /**
+     * @return array{id: int, originalName: string, mime: string, width: ?int, height: ?int, contentBase64: string}|null
+     */
+    public function exportForPackage(int $id): ?array
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            return null;
+        }
+        $absolute = $this->paths->media() . '/' . $row['disk_path'];
+        if (!is_file($absolute)) {
+            return null;
+        }
+        $bytes = file_get_contents($absolute);
+        if ($bytes === false) {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'originalName' => (string) $row['original_name'],
+            'mime' => (string) $row['mime'],
+            'width' => $row['width'] === null ? null : (int) $row['width'],
+            'height' => $row['height'] === null ? null : (int) $row['height'],
+            'contentBase64' => base64_encode($bytes),
+        ];
     }
 
     public function delete(int $id): void

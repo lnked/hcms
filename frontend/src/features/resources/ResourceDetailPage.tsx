@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlayground'
 import { ResourceCustomApisPanel } from '@/features/resources/ResourceCustomApisPanel'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
+import { ResourceExportPanel } from '@/features/resources/ResourceExportPanel'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
@@ -15,7 +16,7 @@ import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
-const TABS = ['overview', 'schema', 'data', 'settings', 'api'] as const
+const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'] as const
 type Tab = (typeof TABS)[number]
 
 const tabKeys = {
@@ -24,6 +25,7 @@ const tabKeys = {
   data: 'resources.tab.data',
   settings: 'resources.tab.settings',
   api: 'resources.tab.api',
+  export: 'resources.tab.export',
 } as const
 
 function isTab(value: string | undefined): value is Tab {
@@ -270,6 +272,8 @@ export function ResourceDetailPage() {
           />
         </div>
       ) : null}
+
+      {tab === 'export' ? <ResourceExportPanel resource={resource} /> : null}
     </div>
   )
 }
