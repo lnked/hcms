@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.26.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Auto-load update preview on Update tab",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "System → Update tab fetches available version/changelog immediately on open; Check updates remains for manual refresh"
+        }
+      ]
+    },
+    {
       "version": "0.25.0",
       "date": "2026-09-06",
       "channel": "stable",

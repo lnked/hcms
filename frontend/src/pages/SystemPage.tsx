@@ -62,7 +62,6 @@ export function SystemPage() {
   const queryClient = useQueryClient()
   const [section, setSection] = useState<SystemSection>('version')
   const [ackBreaking, setAckBreaking] = useState(false)
-  const [preview, setPreview] = useState<UpdatePreview | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [trackUpdate, setTrackUpdate] = useState(false)
 
@@ -98,6 +97,32 @@ export function SystemPage() {
   const isUpdating =
     live?.state === 'running' || (trackUpdate && live?.state !== 'done' && live?.state !== 'failed')
 
+  const previewQuery = useQuery({
+    queryKey: ['update-preview'],
+    queryFn: () =>
+      api<UpdatePreview>('/admin/api/system/update/preview', { method: 'POST', body: '{}' }),
+    enabled: section === 'update' && !isUpdating,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  })
+
+  const preview = previewQuery.data ?? null
+
+  useEffect(() => {
+    if (section !== 'update' || !previewQuery.isError) return
+    setMessage(
+      previewQuery.error instanceof Error
+        ? previewQuery.error.message
+        : t('system.previewFailed'),
+    )
+  }, [section, previewQuery.isError, previewQuery.error, t])
+
+  useEffect(() => {
+    if (section !== 'update' || !previewQuery.isSuccess) return
+    setAckBreaking(false)
+    setMessage(null)
+  }, [section, previewQuery.dataUpdatedAt, previewQuery.isSuccess])
+
   useEffect(() => {
     if (!trackUpdate) return
     if (live?.state === 'done') {
@@ -108,17 +133,6 @@ export function SystemPage() {
     }
     return undefined
   }, [trackUpdate, live?.state])
-
-  const loadPreview = useMutation({
-    mutationFn: () =>
-      api<UpdatePreview>('/admin/api/system/update/preview', { method: 'POST', body: '{}' }),
-    onSuccess: (data) => {
-      setPreview(data)
-      setAckBreaking(false)
-      setMessage(null)
-    },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('system.previewFailed')),
-  })
 
   const runUpdate = useMutation({
     mutationFn: () =>
@@ -165,6 +179,7 @@ export function SystemPage() {
   const accessKey = apiAccess.data
     ? `${apiAccess.data.unrestricted}:${apiAccess.data.allowedOrigins.join('|')}`
     : 'loading'
+  const checking = previewQuery.isFetching
 
   const showProgress =
     isUpdating ||
@@ -265,10 +280,10 @@ export function SystemPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
-                disabled={loadPreview.isPending || isUpdating}
-                onClick={() => loadPreview.mutate()}
+                disabled={checking || isUpdating}
+                onClick={() => void previewQuery.refetch()}
               >
-                {loadPreview.isPending ? t('system.checking') : t('system.checkUpdates')}
+                {checking ? t('system.checking') : t('system.checkUpdates')}
               </Button>
               {preview?.updateAvailable ? (
                 <Button disabled={runDisabled} onClick={() => runUpdate.mutate()}>
