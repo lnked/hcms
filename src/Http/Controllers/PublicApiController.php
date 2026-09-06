@@ -100,7 +100,7 @@ final class PublicApiController
 
     private function authorize(string $method, string $slug, ?AuthContext $auth): void
     {
-        $resource = $this->resources->findBySlug($slug);
+        $resource = $this->resources->findByPublicKey($slug);
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
             throw new RuntimeException('Resource not found', 404);
         }
@@ -122,7 +122,7 @@ final class PublicApiController
 
     private function authorizeCustom(string $slug, string $apiSlug, ?AuthContext $auth): void
     {
-        $resource = $this->resources->findBySlug($slug);
+        $resource = $this->resources->findByPublicKey($slug);
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
             throw new RuntimeException('Resource not found', 404);
         }

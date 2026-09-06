@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Api;
 
+use Cms\Content\UrlSlug;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
@@ -571,7 +572,7 @@ final class QueryEngine
     private function resolve(string $slug, array $options = []): array
     {
         $public = (bool) ($options['public'] ?? false);
-        $resource = $this->resources->findBySlug($slug);
+        $resource = $this->resources->findByPublicKey($slug);
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
             throw new RuntimeException('Resource not found', 404);
         }
@@ -645,6 +646,9 @@ final class QueryEngine
                 continue;
             }
             if (!array_key_exists($name, $payload)) {
+                if ($type === 'slug') {
+                    continue;
+                }
                 if (!$partial && ($spec['required'] ?? false)) {
                     throw new InvalidArgumentException('Field required: ' . $name);
                 }
@@ -659,6 +663,36 @@ final class QueryEngine
                 continue;
             }
             $out[$name] = $this->castValue($value, $type, $name);
+        }
+
+        foreach ($fieldMap as $name => $meta) {
+            if ((string) $meta['type'] !== 'slug') {
+                continue;
+            }
+            $spec = $meta['spec'];
+            if (!($spec['writable'] ?? true)) {
+                continue;
+            }
+            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $associated = is_string($config['associatedWith'] ?? null) ? $config['associatedWith'] : '';
+            $maxLength = (int) ($config['maxLength'] ?? 255);
+            $current = $out[$name] ?? null;
+            if (($current === null || $current === '') && $associated !== '') {
+                $source = $out[$associated] ?? $payload[$associated] ?? null;
+                if (is_scalar($source) && (string) $source !== '') {
+                    $out[$name] = UrlSlug::from((string) $source, $maxLength);
+                }
+            } elseif (is_string($current) && $current !== '') {
+                $out[$name] = UrlSlug::from($current, $maxLength);
+            }
+
+            if (
+                !$partial
+                && ($spec['required'] ?? false)
+                && (!array_key_exists($name, $out) || $out[$name] === null || $out[$name] === '')
+            ) {
+                throw new InvalidArgumentException('Field required: ' . $name);
+            }
         }
 
         return $out;
@@ -677,6 +711,9 @@ final class QueryEngine
                 ? $value
                 : throw new InvalidArgumentException('Invalid email: ' . $name),
             'json' => is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_SLASHES),
+            'slug' => is_scalar($value)
+                ? UrlSlug::from((string) $value)
+                : throw new InvalidArgumentException('Invalid value: ' . $name),
             default => is_scalar($value) ? (string) $value : throw new InvalidArgumentException('Invalid value: ' . $name),
         };
     }

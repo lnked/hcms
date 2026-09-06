@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.23.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Slug field type, endpoint-based public routes",
+      "changes": [
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "New field type slug: associatedWith source field, unique by default, URL-safe auto-fill (incl. Cyrillic translit) in admin entry form and API writes"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "Public routes resolve by endpoint key first (/api/{key} or /api/v1/{key}), then slug; OpenAPI and custom API paths follow the resource endpoint"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Entry editor dialog scrolls as a whole (body overflow hidden); schema Add field scrolls to the new field form"
+        }
+      ]
+    },
+    {
       "version": "0.22.0",
       "date": "2026-09-06",
       "channel": "stable",

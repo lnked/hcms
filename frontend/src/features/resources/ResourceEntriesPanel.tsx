@@ -198,14 +198,14 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
       </CardContent>
 
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="overflow-hidden">
-          <DialogHeader className="shrink-0 pr-6">
+        <DialogContent>
+          <DialogHeader className="pr-6">
             <DialogTitle>
               {editing ? t('entries.edit', { id: editing.id }) : t('entries.new')}
             </DialogTitle>
             <DialogDescription>{t('entries.dialogHint')}</DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="overflow-hidden">
             <FormRenderer
               fields={fields}
               values={values}
@@ -215,7 +215,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
             />
             {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           </div>
-          <div className="mt-4 flex shrink-0 justify-end gap-2">
+          <div className="mt-4 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditorOpen(false)}>
               {t('common.cancel')}
             </Button>

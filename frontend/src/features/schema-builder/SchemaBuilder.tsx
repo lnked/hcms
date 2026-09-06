@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { GripVertical, Plus, Settings2, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const { t } = useI18n()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const editFormRef = useRef<HTMLDivElement>(null)
+  const scrollToEditRef = useRef(false)
+
+  useLayoutEffect(() => {
+    if (!scrollToEditRef.current || editingIndex === null || !editFormRef.current) return
+    scrollToEditRef.current = false
+    editFormRef.current.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }, [editingIndex, schema.length])
 
   function updateAt(index: number, patch: Partial<SchemaField>) {
     onChange(schema.map((field, i) => (i === index ? { ...field, ...patch } : field)))
@@ -27,6 +35,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   function addField() {
     const next = [...schema, emptyField('string', schema.length)]
     onChange(next)
+    scrollToEditRef.current = true
     setEditingIndex(next.length - 1)
   }
 
@@ -129,7 +138,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
             </div>
 
             {editingIndex === index ? (
-              <div className="grid gap-3 border-t p-3 md:grid-cols-2">
+              <div
+                ref={editFormRef}
+                className="grid scroll-mt-4 gap-3 border-t p-3 md:grid-cols-2"
+              >
                 <div className="space-y-2">
                   <Label>{t('common.name')}</Label>
                   <Input
@@ -265,6 +277,28 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         })
                       }
                     />
+                  </div>
+                ) : null}
+                {field.type === 'slug' ? (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>{t('schema.slug.associatedWith')}</Label>
+                    <select
+                      className={selectClass}
+                      value={String(field.config.associatedWith ?? '')}
+                      onChange={(e) => patchConfig(index, { associatedWith: e.target.value })}
+                    >
+                      <option value="">—</option>
+                      {schema
+                        .filter((candidate, candidateIndex) => {
+                          if (candidateIndex === index) return false
+                          return Boolean(candidate.name.trim())
+                        })
+                        .map((candidate) => (
+                          <option key={candidate.name} value={candidate.name}>
+                            {candidate.label || candidate.name}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                 ) : null}
                 {field.type === 'relation' ? (

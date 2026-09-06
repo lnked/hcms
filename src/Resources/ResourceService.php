@@ -59,7 +59,7 @@ final class ResourceService
             ? trim($payload['slug'])
             : Slug::fromName($name !== '' ? $name : $label);
         $endpoint = isset($payload['endpoint']) && is_string($payload['endpoint']) && $payload['endpoint'] !== ''
-            ? trim($payload['endpoint'])
+            ? self::normalizeEndpoint($payload['endpoint'])
             : '/api/' . $slug;
 
         if ($label === '') {
@@ -74,9 +74,10 @@ final class ResourceService
         if ($this->contentTypes->findBySlug($slug) !== null || $this->resources->findBySlug($slug) !== null) {
             throw new InvalidArgumentException('Slug already exists');
         }
-        if (!str_starts_with($endpoint, '/')) {
-            $endpoint = '/' . $endpoint;
+        if ($this->resources->findPublicKeyConflict($slug) !== null) {
+            throw new InvalidArgumentException('Slug conflicts with an existing endpoint');
         }
+        $this->assertEndpointAvailable($endpoint);
 
         $settings = self::defaultSettings(
             isset($payload['settings']) && is_array($payload['settings']) ? $payload['settings'] : [],
@@ -123,8 +124,9 @@ final class ResourceService
 
         $update = [];
         if (isset($payload['endpoint']) && is_string($payload['endpoint'])) {
-            $endpoint = trim($payload['endpoint']);
-            $update['endpoint'] = str_starts_with($endpoint, '/') ? $endpoint : '/' . $endpoint;
+            $endpoint = self::normalizeEndpoint($payload['endpoint']);
+            $this->assertEndpointAvailable($endpoint, $id);
+            $update['endpoint'] = $endpoint;
         }
         if (isset($payload['status']) && is_string($payload['status'])) {
             $status = $payload['status'];
@@ -205,6 +207,49 @@ final class ResourceService
         }
 
         $this->metadata?->invalidate();
+    }
+
+    public static function normalizeEndpoint(string $endpoint): string
+    {
+        $endpoint = trim($endpoint);
+        if ($endpoint !== '' && !str_starts_with($endpoint, '/')) {
+            $endpoint = '/' . $endpoint;
+        }
+
+        return rtrim($endpoint, '/') ?: '/';
+    }
+
+    public static function isValidEndpoint(string $endpoint): bool
+    {
+        return (bool) preg_match('#^/api(?:/v1)?/[a-z][a-z0-9_-]{0,62}$#', $endpoint);
+    }
+
+    public static function publicKeyFromEndpoint(string $endpoint): ?string
+    {
+        if (preg_match('#^/api(?:/v1)?/([a-z][a-z0-9_-]{0,62})$#', $endpoint, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[1];
+    }
+
+    private function assertEndpointAvailable(string $endpoint, ?int $exceptId = null): void
+    {
+        if (!self::isValidEndpoint($endpoint)) {
+            throw new InvalidArgumentException(
+                'Invalid endpoint. Use /api/{slug} or /api/v1/{slug} with a-z, 0-9, underscore or hyphen.',
+            );
+        }
+        $key = self::publicKeyFromEndpoint($endpoint);
+        if ($key === null) {
+            throw new InvalidArgumentException('Invalid endpoint');
+        }
+        if ($this->resources->findByEndpoint($endpoint, $exceptId) !== null) {
+            throw new InvalidArgumentException('Endpoint already exists');
+        }
+        if ($this->resources->findPublicKeyConflict($key, $exceptId) !== null) {
+            throw new InvalidArgumentException('Endpoint conflicts with another resource slug or endpoint');
+        }
     }
 
     /**

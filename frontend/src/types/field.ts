@@ -11,6 +11,7 @@ export type FieldTypeName =
   | 'uuid'
   | 'json'
   | 'enum'
+  | 'slug'
   | 'image'
   | 'file'
   | 'relation'
@@ -50,6 +51,7 @@ export const FIELD_TYPES: FieldTypeName[] = [
   'uuid',
   'json',
   'enum',
+  'slug',
   'image',
   'file',
   'relation',
@@ -65,13 +67,13 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
     description: '',
     required: false,
     nullable: true,
-    unique: false,
+    unique: type === 'slug',
     indexed: false,
     default: null,
     readonly: false,
     hidden: false,
-    searchable: type === 'string' || type === 'text' || type === 'email',
-    sortable: type === 'string' || type === 'integer' || type === 'datetime',
+    searchable: type === 'string' || type === 'text' || type === 'email' || type === 'slug',
+    sortable: type === 'string' || type === 'integer' || type === 'datetime' || type === 'slug',
     filterable: true,
     readable: true,
     writable: true,
@@ -84,8 +86,10 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
         }
       : type === 'enum'
         ? { options: ['draft', 'published'] }
-        : type === 'string'
-          ? { maxLength: 255 }
-          : {},
+        : type === 'slug'
+          ? { associatedWith: '', maxLength: 255 }
+          : type === 'string'
+            ? { maxLength: 255 }
+            : {},
   }
 }

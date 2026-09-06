@@ -34,4 +34,14 @@ final class ResourceServiceTest extends TestCase
         $this->assertTrue($byFlag['softDelete']);
         $this->assertSame('soft', $byFlag['deleteStrategy']);
     }
+
+    public function testEndpointHelpers(): void
+    {
+        $this->assertSame('/api/posts', ResourceService::normalizeEndpoint('api/posts/'));
+        $this->assertTrue(ResourceService::isValidEndpoint('/api/posts'));
+        $this->assertTrue(ResourceService::isValidEndpoint('/api/v1/my-posts'));
+        $this->assertFalse(ResourceService::isValidEndpoint('/api/blog/posts'));
+        $this->assertSame('posts', ResourceService::publicKeyFromEndpoint('/api/posts'));
+        $this->assertSame('my-posts', ResourceService::publicKeyFromEndpoint('/api/v1/my-posts'));
+    }
 }

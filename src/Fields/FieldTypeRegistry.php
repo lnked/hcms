@@ -26,6 +26,7 @@ final class FieldTypeRegistry
             new Types\UuidType(),
             new Types\JsonType(),
             new Types\EnumType(),
+            new Types\SlugType(),
             new Types\ImageType(),
             new Types\FileType(),
             new Types\RelationType(),

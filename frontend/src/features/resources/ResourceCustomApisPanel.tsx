@@ -273,7 +273,7 @@ export function ResourceCustomApisPanel({
                   placeholder="with-category"
                 />
                 <p className="font-mono text-xs text-muted-foreground">
-                  /api/{resource.slug}/{draft.slug || '…'}
+                  {resource.endpoint}/{draft.slug || '…'}
                 </p>
               </div>
             </div>

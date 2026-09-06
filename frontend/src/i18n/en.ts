@@ -246,6 +246,7 @@ export const en = {
   'schema.hidden': 'Hidden',
   'schema.readonly': 'Readonly',
   'schema.options': 'Options (comma-separated)',
+  'schema.slug.associatedWith': 'Associated with',
   'schema.relation.relatedSlug': 'Related slug',
   'schema.relation.cardinality': 'Cardinality',
   'schema.relation.manyToOne': 'Many → one',

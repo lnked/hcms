@@ -14,6 +14,7 @@ final class FieldTypeRegistryTest extends TestCase
         $registry = new FieldTypeRegistry();
         $this->assertContains('string', $registry->names());
         $this->assertContains('enum', $registry->names());
+        $this->assertContains('slug', $registry->names());
         $this->assertTrue($registry->has('email'));
         $this->assertSame('integer', $registry->get('integer')->name());
     }
@@ -22,5 +23,11 @@ final class FieldTypeRegistryTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         (new FieldTypeRegistry())->get('enum')->validateConfig(['options' => []]);
+    }
+
+    public function testSlugRequiresAssociatedWith(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new FieldTypeRegistry())->get('slug')->validateConfig(['associatedWith' => '']);
     }
 }

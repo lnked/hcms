@@ -37,7 +37,7 @@ final class SqlTypeMapper
         }
 
         $sqlType = match ($type) {
-            'string', 'email' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
+            'string', 'email', 'slug' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
             'url' => 'VARCHAR(2048)',
             'text', 'json' => 'TEXT',
             'integer' => 'INT',

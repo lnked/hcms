@@ -55,6 +55,78 @@ final class ResourceRepository
     }
 
     /**
+     * Resolve a public route segment (`/api/{key}` or `/api/v1/{key}`) by endpoint first, then slug.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByPublicKey(string $key): ?array
+    {
+        return $this->db->selectOne(
+            'SELECT r.*, ct.label AS content_type_label, ct.slug AS content_type_slug, ct.is_system
+             FROM cms_resources r
+             INNER JOIN cms_content_types ct ON ct.id = r.content_type_id
+             WHERE r.endpoint = :api
+                OR r.endpoint = :api_v1
+                OR r.slug = :key
+             ORDER BY
+                CASE
+                    WHEN r.endpoint = :api OR r.endpoint = :api_v1 THEN 0
+                    ELSE 1
+                END,
+                r.id ASC
+             LIMIT 1',
+            [
+                'key' => $key,
+                'api' => '/api/' . $key,
+                'api_v1' => '/api/v1/' . $key,
+            ],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findByEndpoint(string $endpoint, ?int $exceptId = null): ?array
+    {
+        $sql = 'SELECT r.*, ct.label AS content_type_label, ct.slug AS content_type_slug, ct.is_system
+             FROM cms_resources r
+             INNER JOIN cms_content_types ct ON ct.id = r.content_type_id
+             WHERE r.endpoint = :endpoint';
+        $params = ['endpoint' => $endpoint];
+        if ($exceptId !== null) {
+            $sql .= ' AND r.id <> :except_id';
+            $params['except_id'] = $exceptId;
+        }
+
+        return $this->db->selectOne($sql, $params);
+    }
+
+    /**
+     * Collision when another resource owns the same public key via slug or endpoint.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findPublicKeyConflict(string $key, ?int $exceptId = null): ?array
+    {
+        $sql = 'SELECT r.*, ct.label AS content_type_label, ct.slug AS content_type_slug, ct.is_system
+             FROM cms_resources r
+             INNER JOIN cms_content_types ct ON ct.id = r.content_type_id
+             WHERE (r.slug = :key OR r.endpoint = :api OR r.endpoint = :api_v1)';
+        $params = [
+            'key' => $key,
+            'api' => '/api/' . $key,
+            'api_v1' => '/api/v1/' . $key,
+        ];
+        if ($exceptId !== null) {
+            $sql .= ' AND r.id <> :except_id';
+            $params['except_id'] = $exceptId;
+        }
+        $sql .= ' ORDER BY r.id ASC LIMIT 1';
+
+        return $this->db->selectOne($sql, $params);
+    }
+
+    /**
      * @param array{
      *   content_type_id: int,
      *   slug: string,

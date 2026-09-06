@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { useI18n } from '@/i18n'
 import { api, apiPage, getToken } from '@/lib/api'
+import { slugifyUrl } from '@/lib/slugify'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import { cn } from '@/lib/utils'
@@ -35,6 +36,32 @@ function shouldRenderField(field: SchemaField): boolean {
   return field.writable && !field.readonly
 }
 
+function applySlugUpdates(
+  fields: SchemaField[],
+  values: EntryValues,
+  changedName: string,
+  changedValue: unknown,
+): EntryValues {
+  const next: EntryValues = { ...values, [changedName]: changedValue }
+  for (const field of fields) {
+    if (field.type !== 'slug') continue
+    const source = String(field.config.associatedWith ?? '')
+    if (!source || source !== changedName) continue
+    const maxLength = Number(field.config.maxLength ?? 255) || 255
+    const prevAuto = slugifyUrl(values[source] == null ? '' : String(values[source]), maxLength)
+    const currentSlug = values[field.name]
+    const slugEmpty = currentSlug == null || currentSlug === ''
+    if (slugEmpty || currentSlug === prevAuto) {
+      const generated = slugifyUrl(
+        changedValue == null ? '' : String(changedValue),
+        maxLength,
+      )
+      next[field.name] = generated === '' ? null : generated
+    }
+  }
+  return next
+}
+
 export function FormRenderer({ fields, values, onChange, disabled, entryId }: FormRendererProps) {
   const { t } = useI18n()
   const visible = fields
@@ -43,7 +70,7 @@ export function FormRenderer({ fields, values, onChange, disabled, entryId }: Fo
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   function set(name: string, value: unknown) {
-    onChange({ ...values, [name]: value })
+    onChange(applySlugUpdates(fields, values, name, value))
   }
 
   const resolvedEntryId =

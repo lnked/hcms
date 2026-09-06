@@ -10,6 +10,7 @@ use Cms\Core\Version;
 use Cms\Fields\FieldRepository;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceRepository;
+use Cms\Resources\ResourceService;
 
 final class OpenApiGenerator
 {
@@ -60,6 +61,8 @@ final class OpenApiGenerator
                 }
 
                 $slug = (string) $resource['slug'];
+                $pathKey = ResourceService::publicKeyFromEndpoint((string) ($resource['endpoint'] ?? ''))
+                    ?? $slug;
                 $label = (string) ($resource['content_type_label'] ?? $slug);
                 $tag = $label;
                 $tags[] = ['name' => $tag, 'description' => 'Resource `' . $slug . '`'];
@@ -71,8 +74,8 @@ final class OpenApiGenerator
                 $schemas[$inputName] = $this->inputSchema($fieldRows);
 
                 $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
-                $paths['/' . $slug] = $this->collectionPath($slug, $tag, $schemaName, $inputName, $public, $fieldRows);
-                $paths['/' . $slug . '/{id}'] = $this->itemPath($slug, $tag, $schemaName, $inputName, $public);
+                $paths['/' . $pathKey] = $this->collectionPath($slug, $tag, $schemaName, $inputName, $public, $fieldRows);
+                $paths['/' . $pathKey . '/{id}'] = $this->itemPath($slug, $tag, $schemaName, $inputName, $public);
 
                 if ($this->apis !== null) {
                     foreach ($this->apis->enabledForResource((int) $resource['id']) as $apiRow) {
@@ -104,7 +107,7 @@ final class OpenApiGenerator
                         $customSchemaName = $this->schemaName($slug . '_' . $apiSlug);
                         $schemas[$customSchemaName] = $customSchema;
 
-                        $paths['/' . $slug . '/' . $apiSlug] = $this->customCollectionPath(
+                        $paths['/' . $pathKey . '/' . $apiSlug] = $this->customCollectionPath(
                             $slug,
                             $apiSlug,
                             $apiLabel,
@@ -113,7 +116,7 @@ final class OpenApiGenerator
                             $apiPublicRead,
                             $fieldRows,
                         );
-                        $paths['/' . $slug . '/' . $apiSlug . '/{id}'] = $this->customItemPath(
+                        $paths['/' . $pathKey . '/' . $apiSlug . '/{id}'] = $this->customItemPath(
                             $slug,
                             $apiSlug,
                             $apiLabel,

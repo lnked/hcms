@@ -250,6 +250,7 @@ export const ru: Record<MessageKey, string> = {
   'schema.hidden': 'Скрытое',
   'schema.readonly': 'Только чтение',
   'schema.options': 'Опции (через запятую)',
+  'schema.slug.associatedWith': 'Связан с полем',
   'schema.relation.relatedSlug': 'Related slug',
   'schema.relation.cardinality': 'Кардинальность',
   'schema.relation.manyToOne': 'Many → one',

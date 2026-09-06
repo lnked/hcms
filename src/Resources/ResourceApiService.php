@@ -441,6 +441,7 @@ final class ResourceApiService
 
         $resourceSlug = (string) $resource['slug'];
         $apiSlug = (string) $row['slug'];
+        $base = rtrim((string) ($resource['endpoint'] ?? ('/api/' . $resourceSlug)), '/');
 
         return [
             'id' => (int) $row['id'],
@@ -452,7 +453,7 @@ final class ResourceApiService
             'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
             'joins' => is_array($joins) ? array_values($joins) : [],
             'settings' => self::normalizeSettings(is_array($settings) ? $settings : []),
-            'path' => '/api/' . $resourceSlug . '/' . $apiSlug,
+            'path' => $base . '/' . $apiSlug,
             'createdAt' => (string) $row['created_at'],
             'updatedAt' => (string) $row['updated_at'],
         ];
