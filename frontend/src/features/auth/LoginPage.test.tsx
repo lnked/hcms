@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { I18nProvider } from '@/i18n'
 import { LoginPage } from './LoginPage'
 
 const setToken = vi.fn()
@@ -19,9 +20,11 @@ describe('LoginPage', () => {
   it('submits credentials and stores token', async () => {
     const user = userEvent.setup()
     render(
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>,
+      <I18nProvider initialLocale="en">
+        <MemoryRouter>
+          <LoginPage />
+        </MemoryRouter>
+      </I18nProvider>,
     )
 
     await user.type(screen.getByLabelText('Email'), 'admin@example.com')

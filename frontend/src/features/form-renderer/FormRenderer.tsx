@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
+import { useI18n } from '@/i18n'
 import type { SchemaField } from '@/types/field'
 import { cn } from '@/lib/utils'
 
@@ -17,6 +18,7 @@ const controlClass =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 export function FormRenderer({ fields, values, onChange, disabled }: FormRendererProps) {
+  const { t } = useI18n()
   const writable = fields
     .filter((f) => f.writable && !f.hidden && !f.readonly)
     .slice()
@@ -45,7 +47,7 @@ export function FormRenderer({ fields, values, onChange, disabled }: FormRendere
         )
       })}
       {writable.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No writable fields in schema.</p>
+        <p className="text-sm text-muted-foreground">{t('entries.noWritable')}</p>
       ) : null}
     </div>
   )

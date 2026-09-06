@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useI18n } from '@/i18n'
 import { apiPage } from '@/lib/api'
 
 interface AuditRow {
@@ -37,6 +38,7 @@ interface ApiRow {
 type Tab = 'audit' | 'api'
 
 export function LogsPage() {
+  const { t } = useI18n()
   const [tab, setTab] = useState<Tab>('audit')
   const [page, setPage] = useState(1)
   const [action, setAction] = useState('')
@@ -63,8 +65,8 @@ export function LogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Logs</h1>
-        <p className="text-sm text-muted-foreground">Audit trail and public API request log.</p>
+        <h1 className="text-2xl font-semibold">{t('logs.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('logs.subtitle')}</p>
       </div>
 
       <div className="flex gap-2 border-b pb-2">
@@ -78,18 +80,16 @@ export function LogsPage() {
               setPage(1)
             }}
           >
-            {item === 'audit' ? 'Audit' : 'API'}
+            {item === 'audit' ? t('logs.audit') : t('logs.api')}
           </Button>
         ))}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{tab === 'audit' ? 'Audit logs' : 'API logs'}</CardTitle>
+          <CardTitle>{tab === 'audit' ? t('logs.auditTitle') : t('logs.apiTitle')}</CardTitle>
           <CardDescription>
-            {tab === 'audit'
-              ? 'Admin actions (no secrets).'
-              : 'Public /api requests — path only, no query/body/tokens.'}
+            {tab === 'audit' ? t('logs.auditHint') : t('logs.apiHint')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -103,13 +103,13 @@ export function LogsPage() {
               }}
             >
               <Input
-                placeholder="Filter action (e.g. auth.login)"
+                placeholder={t('logs.filterAction')}
                 value={action}
                 onChange={(e) => setAction(e.target.value)}
                 className="max-w-sm"
               />
               <Button type="submit" variant="outline">
-                Filter
+                {t('common.filter')}
               </Button>
             </form>
           ) : null}
@@ -118,18 +118,18 @@ export function LogsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Entity</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>IP</TableHead>
+                  <TableHead>{t('logs.when')}</TableHead>
+                  <TableHead>{t('logs.action')}</TableHead>
+                  <TableHead>{t('logs.entity')}</TableHead>
+                  <TableHead>{t('logs.user')}</TableHead>
+                  <TableHead>{t('logs.ip')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(audit.data?.data ?? []).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-muted-foreground">
-                      No audit events.
+                      {t('logs.noAudit')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -152,19 +152,19 @@ export function LogsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>When</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Path</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>ms</TableHead>
-                  <TableHead>Token</TableHead>
+                  <TableHead>{t('logs.when')}</TableHead>
+                  <TableHead>{t('logs.method')}</TableHead>
+                  <TableHead>{t('logs.path')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead>{t('logs.ms')}</TableHead>
+                  <TableHead>{t('logs.token')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(apiLogs.data?.data ?? []).length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-muted-foreground">
-                      No API requests logged yet.
+                      {t('logs.noApi')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -186,7 +186,11 @@ export function LogsPage() {
           {meta ? (
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>
-                Page {meta.page} / {meta.totalPages} · {meta.total} total
+                {t('common.pageOfTotal', {
+                  page: meta.page,
+                  totalPages: meta.totalPages,
+                  total: meta.total,
+                })}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -195,7 +199,7 @@ export function LogsPage() {
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  Prev
+                  {t('common.prev')}
                 </Button>
                 <Button
                   size="sm"
@@ -203,7 +207,7 @@ export function LogsPage() {
                   disabled={page >= meta.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

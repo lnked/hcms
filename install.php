@@ -608,7 +608,11 @@ function cms_install_html(): string
         <label for="appName">Name</label><input id="appName" value="HCMS"/>
         <label for="appUrl">URL</label><input id="appUrl"/>
         <label for="appTz">Timezone</label><input id="appTz" value="UTC"/>
-        <label for="appLang">Language</label><input id="appLang" value="en"/>
+        <label for="appLang">Language</label>
+        <select id="appLang">
+          <option value="en" selected>English</option>
+          <option value="ru">Русский</option>
+        </select>
         <label for="appPublicDir">Web root folder</label>
         <input id="appPublicDir" list="publicDirList" value="public" placeholder="public"/>
         <datalist id="publicDirList">

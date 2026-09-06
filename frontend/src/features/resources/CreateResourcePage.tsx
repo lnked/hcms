@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource } from '@/types/resource'
 
@@ -18,6 +19,7 @@ function slugify(value: string): string {
 }
 
 export function CreateResourcePage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [label, setLabel] = useState('')
   const [name, setName] = useState('')
@@ -70,7 +72,7 @@ export function CreateResourcePage() {
       })
       navigate(`/resources/${resource.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed')
+      setError(err instanceof Error ? err.message : t('common.createFailed'))
     } finally {
       setPending(false)
     }
@@ -79,20 +81,18 @@ export function CreateResourcePage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Create resource</h1>
-        <p className="text-sm text-muted-foreground">
-          Creates a Content Type and a draft API Resource (1:1).
-        </p>
+        <h1 className="text-2xl font-semibold">{t('resources.createTitle')}</h1>
+        <p className="text-sm text-muted-foreground">{t('resources.createSubtitle')}</p>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>General</CardTitle>
-          <CardDescription>Name, label and endpoint.</CardDescription>
+          <CardTitle>{t('resources.general')}</CardTitle>
+          <CardDescription>{t('resources.generalHint')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="label">Label</Label>
+              <Label htmlFor="label">{t('common.label')}</Label>
               <Input
                 id="label"
                 value={label}
@@ -102,7 +102,7 @@ export function CreateResourcePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t('common.name')}</Label>
               <Input
                 id="name"
                 value={name}
@@ -111,7 +111,7 @@ export function CreateResourcePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug</Label>
+              <Label htmlFor="slug">{t('common.slug')}</Label>
               <Input
                 id="slug"
                 value={slug}
@@ -127,7 +127,7 @@ export function CreateResourcePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endpoint">Endpoint</Label>
+              <Label htmlFor="endpoint">{t('common.endpoint')}</Label>
               <Input
                 id="endpoint"
                 value={endpoint}
@@ -140,7 +140,7 @@ export function CreateResourcePage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t('common.description')}</Label>
               <Input
                 id="description"
                 value={description}
@@ -150,10 +150,10 @@ export function CreateResourcePage() {
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={pending}>
-                {pending ? 'Creating…' : 'Create'}
+                {pending ? t('common.creating') : t('common.create')}
               </Button>
               <Button type="button" variant="outline" onClick={() => navigate('/resources')}>
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </form>

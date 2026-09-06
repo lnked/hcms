@@ -36,6 +36,7 @@ use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\ResourceController;
+use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Install\Installer;
@@ -706,6 +707,23 @@ final class Kernel
 
             return Response::data(['ok' => true, 'installed' => $this->installed]);
         }, true);
+
+        if ($this->db !== null) {
+            $settingsController = new SettingsController(new Settings($this->db));
+            $this->router->add('GET', '/admin/api/settings/locale', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+                unset($request, $params, $context);
+
+                return $settingsController->locale();
+            }, true);
+            $this->router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $settingsController->update($request);
+            });
+        }
     }
 
     private function withSecurityHeaders(Response $response): Response
@@ -725,7 +743,12 @@ final class Kernel
 
     private function shouldRateLimit(string $path): bool
     {
-        if ($path === '/admin/api/health' || $path === '/api/docs' || $path === '/api/openapi.json') {
+        if (
+            $path === '/admin/api/health'
+            || $path === '/admin/api/settings/locale'
+            || $path === '/api/docs'
+            || $path === '/api/openapi.json'
+        ) {
             return false;
         }
         if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json') {

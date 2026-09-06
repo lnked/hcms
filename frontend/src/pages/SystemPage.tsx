@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { LanguageSelect } from '@/components/LanguageSelect'
 import { api } from '@/lib/api'
+import { useI18n, type Locale } from '@/i18n'
 import type { SystemVersion } from '@/types/system'
 
 interface UpdatePreview {
@@ -28,6 +31,7 @@ interface UpdateStatus {
 }
 
 export function SystemPage() {
+  const { t, locale, setLocale } = useI18n()
   const queryClient = useQueryClient()
   const [ackBreaking, setAckBreaking] = useState(false)
   const [preview, setPreview] = useState<UpdatePreview | null>(null)
@@ -51,7 +55,7 @@ export function SystemPage() {
       setAckBreaking(false)
       setMessage(null)
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Preview failed'),
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('system.previewFailed')),
   })
 
   const runUpdate = useMutation({
@@ -61,43 +65,83 @@ export function SystemPage() {
         body: JSON.stringify({ acknowledgeBreaking: ackBreaking }),
       }),
     onSuccess: (data) => {
-      setMessage(`Update ${data.state}${data.step ? ` (${data.step})` : ''}`)
+      const state = t('system.updateState', { state: data.state })
+      setMessage(data.step ? `${state} (${data.step})` : state)
       void queryClient.invalidateQueries({ queryKey: ['system-version'] })
       void queryClient.invalidateQueries({ queryKey: ['update-status'] })
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Update failed'),
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('system.updateFailed')),
   })
+
+  const saveLanguage = useMutation({
+    mutationFn: (language: Locale) =>
+      api<{ language: string }>('/admin/api/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ language }),
+      }),
+    onSuccess: (data) => {
+      if (data.language === 'en' || data.language === 'ru') {
+        setLocale(data.language)
+      }
+      setMessage(t('system.languageSaved'))
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
+  function onLanguageChange(next: Locale) {
+    setLocale(next)
+    saveLanguage.mutate(next)
+  }
 
   const data = query.data
   const canUpdate = Boolean(preview?.updateAvailable && preview.backupReady)
   const needsAck = Boolean(preview?.hasBreaking)
   const runDisabled = !canUpdate || (needsAck && !ackBreaking) || runUpdate.isPending
+  const na = t('system.na')
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">System</h1>
+      <h1 className="text-2xl font-semibold">{t('system.title')}</h1>
+
       <Card>
         <CardHeader>
-          <CardTitle>Version</CardTitle>
-          <CardDescription>Product semver from VERSION / GitHub Releases.</CardDescription>
+          <CardTitle>{t('system.languageTitle')}</CardTitle>
+          <CardDescription>{t('system.languageHint')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>Current: {data?.current ?? '…'}</p>
-          <p>Latest: {data?.latest ?? 'n/a'}</p>
-          <p>Released: {data?.releasedAt ?? 'n/a'}</p>
-          <p>Channel: {data?.channel ?? 'stable'}</p>
-          <p>Update available: {data?.updateAvailable ? 'yes' : 'no'}</p>
-          <p>Last update state: {status.data?.state ?? 'idle'}</p>
+        <CardContent className="max-w-xs space-y-2">
+          <Label htmlFor="admin-language">{t('common.language')}</Label>
+          <LanguageSelect
+            id="admin-language"
+            value={locale}
+            onChange={onLanguageChange}
+            className={saveLanguage.isPending ? 'opacity-70' : undefined}
+          />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Update</CardTitle>
-          <CardDescription>
-            Downloads the latest release zip (sha256), preserves .env / uploads / lock, runs pending
-            SQL migrations.
-          </CardDescription>
+          <CardTitle>{t('system.version')}</CardTitle>
+          <CardDescription>{t('system.versionHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <p>{t('system.current', { value: data?.current ?? '…' })}</p>
+          <p>{t('system.latest', { value: data?.latest ?? na })}</p>
+          <p>{t('system.released', { value: data?.releasedAt ?? na })}</p>
+          <p>{t('system.channel', { value: data?.channel ?? 'stable' })}</p>
+          <p>
+            {t('system.updateAvailable', {
+              value: data?.updateAvailable ? t('common.yes') : t('common.no'),
+            })}
+          </p>
+          <p>{t('system.lastState', { value: status.data?.state ?? t('system.idle') })}</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('system.update')}</CardTitle>
+          <CardDescription>{t('system.updateHint')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -106,18 +150,20 @@ export function SystemPage() {
               disabled={loadPreview.isPending}
               onClick={() => loadPreview.mutate()}
             >
-              {loadPreview.isPending ? 'Checking…' : 'Check for updates'}
+              {loadPreview.isPending ? t('system.checking') : t('system.checkUpdates')}
             </Button>
             {preview?.updateAvailable ? (
               <Button disabled={runDisabled} onClick={() => runUpdate.mutate()}>
-                {runUpdate.isPending ? 'Updating…' : `Update to v${preview.to}`}
+                {runUpdate.isPending
+                  ? t('system.updating')
+                  : t('system.updateTo', { version: preview.to })}
               </Button>
             ) : null}
           </div>
 
           {preview?.hasBreaking ? (
             <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-              <p className="font-medium text-destructive">Breaking changes in this update</p>
+              <p className="font-medium text-destructive">{t('system.breakingTitle')}</p>
               <ul className="list-disc space-y-1 pl-5">
                 {preview.changes
                   .filter((c) => c.type === 'breaking')
@@ -126,7 +172,7 @@ export function SystemPage() {
                       <span className="font-mono text-xs">v{c.version}</span> — {c.text}
                       {c.migration ? (
                         <span className="block text-muted-foreground">
-                          Migration: {c.migration}
+                          {t('system.migration', { text: c.migration })}
                         </span>
                       ) : null}
                     </li>
@@ -138,18 +184,18 @@ export function SystemPage() {
                   checked={ackBreaking}
                   onChange={(e) => setAckBreaking(e.target.checked)}
                 />
-                I understand the breaking changes
+                {t('system.ackBreaking')}
               </label>
             </div>
           ) : null}
 
           {preview && !preview.updateAvailable ? (
-            <p className="text-sm text-muted-foreground">You are on the latest release.</p>
+            <p className="text-sm text-muted-foreground">{t('system.latestRelease')}</p>
           ) : null}
 
           {preview?.changes && preview.changes.length > 0 ? (
             <div className="space-y-1 text-sm">
-              <p className="font-medium">Changelog delta</p>
+              <p className="font-medium">{t('system.changelogDelta')}</p>
               <ul className="max-h-48 space-y-1 overflow-auto text-muted-foreground">
                 {preview.changes.map((c, i) => (
                   <li key={i}>

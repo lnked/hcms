@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { I18nProvider } from '@/i18n'
 import { emptyField } from '@/types/field'
 import { emptyValues, FormRenderer } from './FormRenderer'
 
@@ -17,7 +18,11 @@ function Harness() {
 describe('FormRenderer', () => {
   it('renders writable fields and toggles boolean', async () => {
     const user = userEvent.setup()
-    render(<Harness />)
+    render(
+      <I18nProvider initialLocale="en">
+        <Harness />
+      </I18nProvider>,
+    )
     expect(screen.getByLabelText(/Title/)).toBeInTheDocument()
     const checkbox = screen.getByRole('checkbox')
     expect(checkbox).not.toBeChecked()

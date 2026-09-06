@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { I18nProvider } from '@/i18n'
 import { ChangelogPage } from './ChangelogPage'
 
 vi.mock('@/lib/api', () => ({
@@ -19,9 +20,11 @@ describe('ChangelogPage', () => {
   it('renders releases', async () => {
     const client = new QueryClient()
     render(
-      <QueryClientProvider client={client}>
-        <ChangelogPage />
-      </QueryClientProvider>,
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <ChangelogPage />
+        </QueryClientProvider>
+      </I18nProvider>,
     )
 
     expect(await screen.findByText('v0.1.0')).toBeInTheDocument()

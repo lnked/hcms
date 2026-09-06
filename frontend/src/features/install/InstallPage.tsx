@@ -3,12 +3,20 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LanguageSelect } from '@/components/LanguageSelect'
+import { useI18n, type Locale } from '@/i18n'
 import { installApi } from '@/lib/api'
 import type { InstallStatus } from '@/types/system'
 
-const steps = ['Files', 'Database', 'Application', 'Administrator'] as const
+const stepKeys = [
+  'install.step.files',
+  'install.step.database',
+  'install.step.application',
+  'install.step.administrator',
+] as const
 
 export function InstallPage() {
+  const { t, locale, setLocale } = useI18n()
   const [step, setStep] = useState(0)
   const [status, setStatus] = useState<InstallStatus | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -25,7 +33,6 @@ export function InstallPage() {
     name: 'HCMS',
     url: window.location.origin,
     timezone: 'UTC',
-    language: 'en',
     publicDir: 'public',
   })
   const [admin, setAdmin] = useState({
@@ -39,25 +46,34 @@ export function InstallPage() {
     void installApi<InstallStatus>('status').then((s) => {
       setStatus(s)
       if (s.srcReady) {
-        setMessage('Files already present — download skipped')
+        setMessage(t('install.filesPresent'))
         setStep(1)
       }
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
   }, [])
+
+  function onLanguageChange(next: Locale) {
+    setLocale(next)
+  }
 
   async function download() {
     if (status?.srcReady) {
-      setMessage('Files already present — download skipped')
+      setMessage(t('install.filesPresent'))
       setStep(1)
       return
     }
-    setMessage('Downloading…')
+    setMessage(t('install.downloading'))
     try {
       const result = await installApi<{ skipped?: boolean; version?: string }>('download')
-      setMessage(result.skipped ? 'Files already present' : `Downloaded ${result.version}`)
+      setMessage(
+        result.skipped
+          ? t('install.filesPresentShort')
+          : t('install.downloaded', { version: result.version ?? '' }),
+      )
       setStep(1)
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Download failed')
+      setMessage(err instanceof Error ? err.message : t('install.downloadFailed'))
     }
   }
 
@@ -65,16 +81,22 @@ export function InstallPage() {
     const result = await installApi<{ ok: boolean; error?: string }>('test-connection', {
       database: db,
     })
-    setMessage(result.ok ? 'Connection successful' : (result.error ?? 'Failed'))
+    setMessage(
+      result.ok ? t('install.connectionOk') : (result.error ?? t('install.connectionFailed')),
+    )
   }
 
   async function complete() {
-    setMessage('Installing…')
+    setMessage(t('install.installing'))
     try {
-      await installApi('complete', { database: db, application: app, administrator: admin })
+      await installApi('complete', {
+        database: db,
+        application: { ...app, language: locale },
+        administrator: admin,
+      })
       setDone(true)
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Install failed')
+      setMessage(err instanceof Error ? err.message : t('install.failed'))
     }
   }
 
@@ -83,8 +105,8 @@ export function InstallPage() {
       <div className="mx-auto max-w-lg py-16">
         <Card>
           <CardHeader>
-            <CardTitle>Installation completed</CardTitle>
-            <CardDescription>CMS is ready.</CardDescription>
+            <CardTitle>{t('install.completedTitle')}</CardTitle>
+            <CardDescription>{t('install.completedDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button
@@ -92,7 +114,7 @@ export function InstallPage() {
                 window.location.href = '/admin'
               }}
             >
-              Open Admin Panel
+              {t('install.openAdmin')}
             </Button>
           </CardContent>
         </Card>
@@ -100,14 +122,37 @@ export function InstallPage() {
     )
   }
 
+  const dbFields = [
+    ['host', 'install.host'],
+    ['port', 'install.port'],
+    ['name', 'install.database'],
+    ['user', 'install.user'],
+    ['password', 'common.password'],
+    ['charset', 'install.charset'],
+  ] as const
+
   return (
     <div className="mx-auto max-w-lg py-16">
       <Card>
-        <CardHeader>
-          <CardTitle>Install HCMS</CardTitle>
-          <CardDescription>
-            Step {step + 1} / {steps.length}: {steps[step]}
-          </CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <CardTitle>{t('install.title')}</CardTitle>
+              <CardDescription>
+                {t('install.stepOf', {
+                  current: step + 1,
+                  total: stepKeys.length,
+                  name: t(stepKeys[step]),
+                })}
+              </CardDescription>
+            </div>
+            <div className="w-36 shrink-0 space-y-1">
+              <Label htmlFor="install-lang" className="text-xs text-muted-foreground">
+                {t('common.language')}
+              </Label>
+              <LanguageSelect id="install-lang" value={locale} onChange={onLanguageChange} />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {step === 0 ? (
@@ -116,32 +161,25 @@ export function InstallPage() {
                 <ul className="space-y-1 text-sm">
                   {Object.entries(status.requirements.checks).map(([key, ok]) => (
                     <li key={key} className={ok ? 'text-emerald-600' : 'text-destructive'}>
-                      {key}: {ok ? 'ok' : 'fail'}
+                      {key}: {ok ? t('install.ok') : t('install.fail')}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">Checking environment…</p>
+                <p className="text-sm text-muted-foreground">{t('install.checking')}</p>
               )}
-              <Button onClick={() => void download()}>Download latest / continue</Button>
+              <Button onClick={() => void download()}>{t('install.downloadContinue')}</Button>
             </>
           ) : null}
 
           {step === 1 ? (
             <>
-              {Object.entries({
-                host: 'Host',
-                port: 'Port',
-                name: 'Database',
-                user: 'User',
-                password: 'Password',
-                charset: 'Charset',
-              }).map(([key, label]) => (
+              {dbFields.map(([key, labelKey]) => (
                 <div key={key} className="space-y-2">
-                  <Label>{label}</Label>
+                  <Label>{t(labelKey)}</Label>
                   <Input
                     type={key === 'password' ? 'password' : 'text'}
-                    value={String(db[key as keyof typeof db])}
+                    value={String(db[key])}
                     onChange={(e) =>
                       setDb((prev) => ({
                         ...prev,
@@ -153,10 +191,10 @@ export function InstallPage() {
               ))}
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => void testConnection()}>
-                  Test connection
+                  {t('install.testConnection')}
                 </Button>
                 <Button type="button" onClick={() => setStep(2)}>
-                  Continue
+                  {t('common.continue')}
                 </Button>
               </div>
             </>
@@ -165,25 +203,29 @@ export function InstallPage() {
           {step === 2 ? (
             <>
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>{t('install.appName')}</Label>
                 <Input
                   value={app.name}
                   onChange={(e) => setApp({ ...app, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>URL</Label>
+                <Label>{t('install.url')}</Label>
                 <Input value={app.url} onChange={(e) => setApp({ ...app, url: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Timezone</Label>
+                <Label>{t('install.timezone')}</Label>
                 <Input
                   value={app.timezone}
                   onChange={(e) => setApp({ ...app, timezone: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Web root folder</Label>
+                <Label htmlFor="app-language">{t('common.language')}</Label>
+                <LanguageSelect id="app-language" value={locale} onChange={onLanguageChange} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('install.publicDir')}</Label>
                 <Input
                   value={app.publicDir}
                   onChange={(e) => setApp({ ...app, publicDir: e.target.value })}
@@ -197,26 +239,27 @@ export function InstallPage() {
                   <option value="htdocs" />
                 </datalist>
                 <p className="text-xs text-muted-foreground">
-                  Point the hosting document root at this folder. Admin URL will be{' '}
-                  <code className="font-mono">/admin</code>, not{' '}
-                  <code className="font-mono">/{'{folder}'}/admin</code>.
+                  {t('install.publicDirHint', {
+                    admin: '/admin',
+                    nested: `/{folder}/admin`,
+                  })}
                 </p>
               </div>
-              <Button onClick={() => setStep(3)}>Continue</Button>
+              <Button onClick={() => setStep(3)}>{t('common.continue')}</Button>
             </>
           ) : null}
 
           {step === 3 ? (
             <>
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>{t('install.adminName')}</Label>
                 <Input
                   value={admin.name}
                   onChange={(e) => setAdmin({ ...admin, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t('common.email')}</Label>
                 <Input
                   type="email"
                   value={admin.email}
@@ -224,7 +267,7 @@ export function InstallPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Password</Label>
+                <Label>{t('common.password')}</Label>
                 <Input
                   type="password"
                   value={admin.password}
@@ -232,14 +275,14 @@ export function InstallPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Confirm</Label>
+                <Label>{t('common.confirm')}</Label>
                 <Input
                   type="password"
                   value={admin.passwordConfirm}
                   onChange={(e) => setAdmin({ ...admin, passwordConfirm: e.target.value })}
                 />
               </div>
-              <Button onClick={() => void complete()}>Install</Button>
+              <Button onClick={() => void complete()}>{t('install.install')}</Button>
             </>
           ) : null}
 

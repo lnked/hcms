@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n } from '@/i18n'
 import { emptyField, FIELD_TYPES, type SchemaField } from '@/types/field'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +14,7 @@ interface SchemaBuilderProps {
 }
 
 export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
+  const { t } = useI18n()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
 
@@ -48,16 +50,16 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Fields</h2>
+        <h2 className="text-lg font-semibold">{t('schema.fields')}</h2>
         <Button type="button" size="sm" onClick={addField}>
           <Plus className="h-4 w-4" />
-          Add field
+          {t('schema.addField')}
         </Button>
       </div>
 
       {schema.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          No fields yet. Add string, email, enum and more.
+          {t('schema.empty')}
         </p>
       ) : null}
 
@@ -75,12 +77,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
               <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground" />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{field.label || field.name || 'Untitled'}</span>
+                  <span className="font-medium">
+                    {field.label || field.name || t('schema.untitled')}
+                  </span>
                   <Badge variant="outline">{field.type}</Badge>
                   {field.required ? (
-                    <Badge>Required</Badge>
+                    <Badge>{t('common.required')}</Badge>
                   ) : (
-                    <Badge variant="secondary">Optional</Badge>
+                    <Badge variant="secondary">{t('common.optional')}</Badge>
                   )}
                 </div>
                 <p className="truncate font-mono text-xs text-muted-foreground">
@@ -103,7 +107,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
             {editingIndex === index ? (
               <div className="grid gap-3 border-t p-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Name</Label>
+                  <Label>{t('common.name')}</Label>
                   <Input
                     value={field.name}
                     onChange={(e) =>
@@ -116,14 +120,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Label</Label>
+                  <Label>{t('common.label')}</Label>
                   <Input
                     value={field.label}
                     onChange={(e) => updateAt(index, { label: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Type</Label>
+                  <Label>{t('common.type')}</Label>
                   <select
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                     value={field.type}
@@ -147,7 +151,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label>{t('common.description')}</Label>
                   <Input
                     value={field.description ?? ''}
                     onChange={(e) => updateAt(index, { description: e.target.value })}
@@ -161,7 +165,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       updateAt(index, { required: e.target.checked, nullable: !e.target.checked })
                     }
                   />
-                  Required
+                  {t('common.required')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -169,7 +173,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     checked={field.unique}
                     onChange={(e) => updateAt(index, { unique: e.target.checked })}
                   />
-                  Unique
+                  {t('schema.unique')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -177,7 +181,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     checked={field.searchable}
                     onChange={(e) => updateAt(index, { searchable: e.target.checked })}
                   />
-                  Searchable
+                  {t('schema.searchable')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -185,11 +189,11 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     checked={field.sortable}
                     onChange={(e) => updateAt(index, { sortable: e.target.checked })}
                   />
-                  Sortable
+                  {t('schema.sortable')}
                 </label>
                 {field.type === 'enum' ? (
                   <div className="space-y-2 md:col-span-2">
-                    <Label>Options (comma-separated)</Label>
+                    <Label>{t('schema.options')}</Label>
                     <Input
                       value={
                         Array.isArray(field.config.options) ? field.config.options.join(', ') : ''

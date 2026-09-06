@@ -8,11 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Release, SystemVersion } from '@/types/system'
 import { useNavigate } from 'react-router-dom'
 
 export function WhatsNewDialog({ version }: { version: SystemVersion }) {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const shouldShow = useMemo(() => {
     if (!version.changelogSeenVersion) {
@@ -45,8 +47,8 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>What&apos;s new in v{version.current}</DialogTitle>
-          <DialogDescription>Changes since your last visit.</DialogDescription>
+          <DialogTitle>{t('whatsNew.title', { version: version.current })}</DialogTitle>
+          <DialogDescription>{t('whatsNew.description')}</DialogDescription>
         </DialogHeader>
         <ul className="max-h-64 space-y-2 overflow-auto text-sm">
           {(query.data ?? []).flatMap((release) =>
@@ -65,9 +67,9 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
               navigate('/changelog')
             }}
           >
-            Open Changelog
+            {t('whatsNew.open')}
           </Button>
-          <Button onClick={() => void dismiss()}>Close</Button>
+          <Button onClick={() => void dismiss()}>{t('common.close')}</Button>
         </div>
       </DialogContent>
     </Dialog>

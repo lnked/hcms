@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
+import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 
@@ -22,6 +23,7 @@ interface ResourceEntriesPanelProps {
 }
 
 export function ResourceEntriesPanel({ resourceId, fields, published }: ResourceEntriesPanelProps) {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -70,7 +72,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
       setError(null)
       void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
+    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const remove = useMutation({
@@ -103,10 +105,8 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Data</CardTitle>
-          <CardDescription>
-            Publish the resource to create its table and manage entries.
-          </CardDescription>
+          <CardTitle>{t('resources.data')}</CardTitle>
+          <CardDescription>{t('entries.publishFirst')}</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -119,10 +119,10 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
         <div>
-          <CardTitle>Data</CardTitle>
-          <CardDescription>Entries stored in the resource table.</CardDescription>
+          <CardTitle>{t('resources.data')}</CardTitle>
+          <CardDescription>{t('entries.hint')}</CardDescription>
         </div>
-        <Button onClick={openCreate}>New entry</Button>
+        <Button onClick={openCreate}>{t('entries.new')}</Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <form
@@ -134,21 +134,21 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
           }}
         >
           <Input
-            placeholder="Search…"
+            placeholder={t('entries.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="max-w-xs"
           />
           <Button type="submit" variant="outline">
-            Search
+            {t('common.search')}
           </Button>
         </form>
 
         {list.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : list.isError ? (
           <p className="text-sm text-destructive">
-            {list.error instanceof Error ? list.error.message : 'Failed to load entries'}
+            {list.error instanceof Error ? list.error.message : t('entries.loadFailed')}
           </p>
         ) : (
           <DataTable
@@ -161,7 +161,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
             }}
             onEdit={openEdit}
             onDelete={(row) => {
-              if (confirm(`Delete entry #${row.id}?`)) remove.mutate(row)
+              if (confirm(t('entries.deleteConfirm', { id: row.id }))) remove.mutate(row)
             }}
           />
         )}
@@ -169,7 +169,11 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
         {meta ? (
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
-              Page {meta.page} / {meta.totalPages} · {meta.total} total
+              {t('common.pageOfTotal', {
+                page: meta.page,
+                totalPages: meta.totalPages,
+                total: meta.total,
+              })}
             </span>
             <div className="flex gap-2">
               <Button
@@ -178,7 +182,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                Prev
+                {t('common.prev')}
               </Button>
               <Button
                 size="sm"
@@ -186,7 +190,7 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
                 disabled={page >= meta.totalPages}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next
+                {t('common.next')}
               </Button>
             </div>
           </div>
@@ -196,8 +200,10 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit #${editing.id}` : 'New entry'}</DialogTitle>
-            <DialogDescription>Values are validated against the resource schema.</DialogDescription>
+            <DialogTitle>
+              {editing ? t('entries.edit', { id: editing.id }) : t('entries.new')}
+            </DialogTitle>
+            <DialogDescription>{t('entries.dialogHint')}</DialogDescription>
           </DialogHeader>
           <FormRenderer
             fields={fields}
@@ -208,10 +214,10 @@ export function ResourceEntriesPanel({ resourceId, fields, published }: Resource
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditorOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button disabled={save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? 'Saving…' : 'Save'}
+              {save.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </div>
         </DialogContent>

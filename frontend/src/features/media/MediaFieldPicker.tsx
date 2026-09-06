@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n'
 import { apiUpload } from '@/lib/api'
 import type { MediaItem } from '@/types/media'
 
@@ -12,6 +13,7 @@ interface MediaFieldPickerProps {
 }
 
 export function MediaFieldPicker({ id, value, disabled, accept, onChange }: MediaFieldPickerProps) {
+  const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +40,7 @@ export function MediaFieldPicker({ id, value, disabled, accept, onChange }: Medi
               const item = await apiUpload<MediaItem>('/admin/api/media', file)
               onChange(item.id)
             } catch (err) {
-              setError(err instanceof Error ? err.message : 'Upload failed')
+              setError(err instanceof Error ? err.message : t('common.uploadFailed'))
             } finally {
               setBusy(false)
             }
@@ -51,7 +53,7 @@ export function MediaFieldPicker({ id, value, disabled, accept, onChange }: Medi
           disabled={disabled || busy}
           onClick={() => inputRef.current?.click()}
         >
-          {busy ? 'Uploading…' : 'Upload'}
+          {busy ? t('media.uploading') : t('media.upload')}
         </Button>
         {mediaId != null && !Number.isNaN(mediaId) ? (
           <>
@@ -70,11 +72,11 @@ export function MediaFieldPicker({ id, value, disabled, accept, onChange }: Medi
               disabled={disabled}
               onClick={() => onChange(null)}
             >
-              Clear
+              {t('media.clear')}
             </Button>
           </>
         ) : (
-          <span className="text-sm text-muted-foreground">No file</span>
+          <span className="text-sm text-muted-foreground">{t('media.noFile')}</span>
         )}
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

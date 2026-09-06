@@ -2,10 +2,12 @@ import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/i18n'
 import { api, apiPage, apiUpload } from '@/lib/api'
 import type { MediaItem } from '@/types/media'
 
 export function MediaPage() {
+  const { t } = useI18n()
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const [page, setPage] = useState(1)
@@ -22,7 +24,7 @@ export function MediaPage() {
       setError(null)
       void queryClient.invalidateQueries({ queryKey: ['media'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Upload failed'),
+    onError: (err) => setError(err instanceof Error ? err.message : t('common.uploadFailed')),
   })
 
   const remove = useMutation({
@@ -37,8 +39,8 @@ export function MediaPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Media</h1>
-          <p className="text-sm text-muted-foreground">Uploads for image/file fields (max 10MB).</p>
+          <h1 className="text-2xl font-semibold">{t('media.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('media.subtitle')}</p>
         </div>
         <div>
           <input
@@ -52,7 +54,7 @@ export function MediaPage() {
             }}
           />
           <Button disabled={upload.isPending} onClick={() => inputRef.current?.click()}>
-            {upload.isPending ? 'Uploading…' : 'Upload'}
+            {upload.isPending ? t('media.uploading') : t('media.upload')}
           </Button>
         </div>
       </div>
@@ -61,14 +63,14 @@ export function MediaPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Library</CardTitle>
-          <CardDescription>Public URL: /media/&#123;id&#125;</CardDescription>
+          <CardTitle>{t('media.library')}</CardTitle>
+          <CardDescription>{t('media.publicUrl')}</CardDescription>
         </CardHeader>
         <CardContent>
           {list.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
+            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No media yet.</p>
+            <p className="text-sm text-muted-foreground">{t('media.empty')}</p>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {items.map((item) => (
@@ -100,16 +102,18 @@ export function MediaPage() {
                         rel="noreferrer"
                         className="inline-flex h-8 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
                       >
-                        Open
+                        {t('common.open')}
                       </a>
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => {
-                          if (confirm(`Delete ${item.originalName}?`)) remove.mutate(item.id)
+                          if (confirm(t('media.deleteConfirm', { name: item.originalName }))) {
+                            remove.mutate(item.id)
+                          }
                         }}
                       >
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     </div>
                   </div>
@@ -120,9 +124,7 @@ export function MediaPage() {
 
           {meta ? (
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>
-                Page {meta.page} / {meta.totalPages}
-              </span>
+              <span>{t('common.pageOf', { page: meta.page, totalPages: meta.totalPages })}</span>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -130,7 +132,7 @@ export function MediaPage() {
                   disabled={page <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  Prev
+                  {t('common.prev')}
                 </Button>
                 <Button
                   size="sm"
@@ -138,7 +140,7 @@ export function MediaPage() {
                   disabled={page >= meta.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

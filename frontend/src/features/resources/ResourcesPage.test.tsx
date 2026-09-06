@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+import { I18nProvider } from '@/i18n'
 import { ResourcesPage } from './ResourcesPage'
 
 vi.mock('@/lib/api', () => ({
@@ -37,11 +38,13 @@ describe('ResourcesPage', () => {
   it('lists resources', async () => {
     const client = new QueryClient()
     render(
-      <QueryClientProvider client={client}>
-        <MemoryRouter>
-          <ResourcesPage />
-        </MemoryRouter>
-      </QueryClientProvider>,
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <ResourcesPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </I18nProvider>,
     )
 
     expect(await screen.findByText('Articles')).toBeInTheDocument()

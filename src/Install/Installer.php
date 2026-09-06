@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Install;
 
 use Cms\Auth\Password;
+use Cms\Core\Locale;
 use Cms\Core\Paths;
 use Cms\Core\Version;
 use Cms\Database\Connection;
@@ -105,7 +106,9 @@ final class Installer
         $appName = isset($app['name']) && is_string($app['name']) ? trim($app['name']) : 'HCMS';
         $appUrl = isset($app['url']) && is_string($app['url']) ? rtrim(trim($app['url']), '/') : 'http://localhost';
         $timezone = isset($app['timezone']) && is_string($app['timezone']) ? $app['timezone'] : 'UTC';
-        $language = isset($app['language']) && is_string($app['language']) ? $app['language'] : 'en';
+        $language = Locale::normalize(
+            isset($app['language']) && is_string($app['language']) ? $app['language'] : 'en',
+        );
         $publicDir = Paths::normalizePublicDir(
             isset($app['publicDir']) && is_string($app['publicDir']) && $app['publicDir'] !== ''
                 ? $app['publicDir']

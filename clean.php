@@ -70,10 +70,11 @@ function clean_wipe_db(array $env): array
     ]);
 
     $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+    $schema = $pdo->quote($db);
     $tables = $pdo->query(
-        "SELECT TABLE_NAME FROM information_schema.TABLES
-         WHERE TABLE_SCHEMA = " . $pdo->quote($db) . "
-           AND (TABLE_NAME LIKE 'cms_%' OR TABLE_NAME LIKE 'res_%')",
+        'SELECT TABLE_NAME FROM information_schema.TABLES'
+        . " WHERE TABLE_SCHEMA = {$schema}"
+        . " AND (TABLE_NAME LIKE 'cms_%' OR TABLE_NAME LIKE 'res_%')",
     )->fetchAll(PDO::FETCH_COLUMN);
 
     foreach ($tables as $table) {

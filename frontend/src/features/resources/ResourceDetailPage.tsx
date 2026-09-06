@@ -6,13 +6,22 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 
 type Tab = 'overview' | 'schema' | 'data' | 'api'
 
+const tabKeys = {
+  overview: 'resources.tab.overview',
+  schema: 'resources.tab.schema',
+  data: 'resources.tab.data',
+  api: 'resources.tab.api',
+} as const
+
 export function ResourceDetailPage() {
+  const { t } = useI18n()
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -58,24 +67,24 @@ export function ResourceDetailPage() {
       }),
     onSuccess: (data) => {
       setDraftSchema(null)
-      setMessage('Schema saved')
+      setMessage(t('resources.schemaSaved'))
       queryClient.setQueryData(['resource-fields', resourceId], data)
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Save failed'),
+    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const resource = query.data
 
   if (query.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
   }
 
   if (!resource) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-destructive">Resource not found.</p>
+        <p className="text-sm text-destructive">{t('resources.notFound')}</p>
         <Button variant="outline" onClick={() => navigate('/resources')}>
-          Back
+          {t('common.back')}
         </Button>
       </div>
     )
@@ -87,7 +96,7 @@ export function ResourceDetailPage() {
         <div>
           <p className="text-sm text-muted-foreground">
             <Link to="/resources" className="hover:underline">
-              Resources
+              {t('nav.resources')}
             </Link>{' '}
             / {resource.label}
           </p>
@@ -100,7 +109,7 @@ export function ResourceDetailPage() {
         <div className="flex gap-2">
           {resource.status !== 'published' ? (
             <Button disabled={publish.isPending} onClick={() => publish.mutate()}>
-              Publish
+              {t('resources.publish')}
             </Button>
           ) : null}
           {!resource.isSystem ? (
@@ -108,12 +117,12 @@ export function ResourceDetailPage() {
               variant="destructive"
               disabled={remove.isPending}
               onClick={() => {
-                if (confirm(`Delete resource "${resource.label}"?`)) {
+                if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
                   remove.mutate()
                 }
               }}
             >
-              Delete
+              {t('common.delete')}
             </Button>
           ) : null}
         </div>
@@ -127,7 +136,7 @@ export function ResourceDetailPage() {
             variant={tab === item ? 'default' : 'ghost'}
             onClick={() => setTab(item)}
           >
-            {item[0].toUpperCase() + item.slice(1)}
+            {t(tabKeys[item])}
           </Button>
         ))}
       </div>
@@ -136,33 +145,48 @@ export function ResourceDetailPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Overview</CardTitle>
-              <CardDescription>Metadata for this resource.</CardDescription>
+              <CardTitle>{t('resources.overview')}</CardTitle>
+              <CardDescription>{t('resources.overviewHint')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
-                <span className="text-muted-foreground">Slug:</span> {resource.slug}
+                <span className="text-muted-foreground">{t('resources.slugLabel')}</span>{' '}
+                {resource.slug}
               </p>
               <p>
-                <span className="text-muted-foreground">API version:</span> {resource.apiVersion}
+                <span className="text-muted-foreground">{t('resources.apiVersion')}</span>{' '}
+                {resource.apiVersion}
               </p>
               <p>
-                <span className="text-muted-foreground">Schema version:</span>{' '}
+                <span className="text-muted-foreground">{t('resources.schemaVersion')}</span>{' '}
                 {resource.schemaVersion}
               </p>
               <p>
-                <span className="text-muted-foreground">Fields:</span> {schema.length}
+                <span className="text-muted-foreground">{t('resources.fieldsCount')}</span>{' '}
+                {schema.length}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>API access</CardTitle>
+              <CardTitle>{t('resources.apiAccess')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p>API enabled: {resource.settings.apiEnabled ? 'yes' : 'no'}</p>
-              <p>Public read: {resource.settings.public.read ? 'yes' : 'no'}</p>
-              <p>Public create: {resource.settings.public.create ? 'yes' : 'no'}</p>
+              <p>
+                {t('resources.apiEnabled', {
+                  value: resource.settings.apiEnabled ? t('common.yes') : t('common.no'),
+                })}
+              </p>
+              <p>
+                {t('resources.publicRead', {
+                  value: resource.settings.public.read ? t('common.yes') : t('common.no'),
+                })}
+              </p>
+              <p>
+                {t('resources.publicCreate', {
+                  value: resource.settings.public.create ? t('common.yes') : t('common.no'),
+                })}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -172,14 +196,14 @@ export function ResourceDetailPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Schema</CardTitle>
-              <CardDescription>Source of truth for DB, API and Admin UI.</CardDescription>
+              <CardTitle>{t('resources.schema')}</CardTitle>
+              <CardDescription>{t('resources.schemaHint')}</CardDescription>
             </div>
             <Button
               disabled={!schemaDirty || saveSchema.isPending}
               onClick={() => saveSchema.mutate()}
             >
-              {saveSchema.isPending ? 'Saving…' : 'Save schema'}
+              {saveSchema.isPending ? t('common.saving') : t('resources.saveSchema')}
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -206,8 +230,8 @@ export function ResourceDetailPage() {
       {tab === 'api' ? (
         <Card>
           <CardHeader>
-            <CardTitle>API</CardTitle>
-            <CardDescription>Public endpoints for this published resource.</CardDescription>
+            <CardTitle>{t('resources.api')}</CardTitle>
+            <CardDescription>{t('resources.apiHint')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 font-mono text-sm">
             <p>GET {resource.endpoint}</p>
@@ -222,7 +246,7 @@ export function ResourceDetailPage() {
                 window.open(`/api/docs#/${encodeURIComponent(resource.label)}`, '_blank')
               }
             >
-              Open Documentation
+              {t('resources.openDocs')}
             </Button>
           </CardContent>
         </Card>

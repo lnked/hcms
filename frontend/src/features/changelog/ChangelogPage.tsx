@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { ChangeType, Release } from '@/types/system'
 
@@ -15,6 +16,7 @@ const typeVariant: Record<ChangeType, 'default' | 'secondary' | 'destructive' | 
 }
 
 export function ChangelogPage() {
+  const { t } = useI18n()
   const query = useQuery({
     queryKey: ['changelog'],
     queryFn: () => api<Release[]>('/admin/api/system/changelog'),
@@ -25,8 +27,8 @@ export function ChangelogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Changelog</h1>
-        <p className="text-sm text-muted-foreground">Product releases of the admin CMS.</p>
+        <h1 className="text-2xl font-semibold">{t('changelog.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('changelog.subtitle')}</p>
       </div>
       {releases.map((release) => (
         <Card key={release.version}>

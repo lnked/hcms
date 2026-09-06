@@ -11,10 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource } from '@/types/resource'
 
 export function ResourcesPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const query = useQuery({
@@ -39,31 +41,29 @@ export function ResourcesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Resources</h1>
-          <p className="text-sm text-muted-foreground">Content types published as API endpoints.</p>
+          <h1 className="text-2xl font-semibold">{t('resources.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('resources.subtitle')}</p>
         </div>
-        <Button onClick={() => navigate('/resources/new')}>+ Create resource</Button>
+        <Button onClick={() => navigate('/resources/new')}>{t('resources.create')}</Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All resources</CardTitle>
-          <CardDescription>{resources.length} total</CardDescription>
+          <CardTitle>{t('resources.all')}</CardTitle>
+          <CardDescription>{t('resources.total', { count: resources.length })}</CardDescription>
         </CardHeader>
         <CardContent>
           {resources.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No resources yet. Create one to get a draft API endpoint.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('resources.empty')}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Endpoint</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t('common.label')}</TableHead>
+                  <TableHead>{t('common.slug')}</TableHead>
+                  <TableHead>{t('common.endpoint')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -100,7 +100,7 @@ export function ResourcesPage() {
                           disabled={publish.isPending}
                           onClick={() => publish.mutate(resource.id)}
                         >
-                          Publish
+                          {t('resources.publish')}
                         </Button>
                       ) : null}
                       {!resource.isSystem ? (
@@ -109,12 +109,12 @@ export function ResourcesPage() {
                           variant="destructive"
                           disabled={remove.isPending}
                           onClick={() => {
-                            if (confirm(`Delete resource "${resource.label}"?`)) {
+                            if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
                               remove.mutate(resource.id)
                             }
                           }}
                         >
-                          Delete
+                          {t('common.delete')}
                         </Button>
                       ) : null}
                     </TableCell>
