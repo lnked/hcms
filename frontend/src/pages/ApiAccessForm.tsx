@@ -57,18 +57,19 @@ export function ApiAccessForm({
         />
         <span>{t('system.apiAccessUnrestricted')}</span>
       </label>
-      <div className="space-y-2">
-        <Label htmlFor="api-origins">{t('system.apiAccessOrigins')}</Label>
-        <textarea
-          id="api-origins"
-          rows={5}
-          disabled={unrestricted}
-          value={originsText}
-          onChange={(e) => setOriginsText(e.target.value)}
-          className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-        />
-        <p className="text-xs text-muted-foreground">{t('system.apiAccessOriginsHint')}</p>
-      </div>
+      {!unrestricted ? (
+        <div className="space-y-2">
+          <Label htmlFor="api-origins">{t('system.apiAccessOrigins')}</Label>
+          <textarea
+            id="api-origins"
+            rows={5}
+            value={originsText}
+            onChange={(e) => setOriginsText(e.target.value)}
+            className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          <p className="text-xs text-muted-foreground">{t('system.apiAccessOriginsHint')}</p>
+        </div>
+      ) : null}
       <Button disabled={saveApiAccess.isPending} onClick={() => saveApiAccess.mutate()}>
         {saveApiAccess.isPending ? t('common.saving') : t('system.apiAccessSave')}
       </Button>

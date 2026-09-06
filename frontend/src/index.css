@@ -44,12 +44,12 @@
   --accent: oklch(0.3 0.04 255);
   --accent-foreground: oklch(0.95 0.01 250);
   --destructive: oklch(0.7 0.18 22);
-  --border: oklch(0.95 0.01 250 / 12%);
-  --input: oklch(0.95 0.01 250 / 15%);
+  --border: #4f4f4f;
+  --input: #4f4f4f;
   --ring: oklch(0.72 0.14 255);
   --sidebar: oklch(0.2 0.03 260);
   --sidebar-foreground: oklch(0.95 0.01 250);
-  --sidebar-border: oklch(0.95 0.01 250 / 12%);
+  --sidebar-border: #4f4f4f;
   --sidebar-accent: oklch(0.3 0.04 255);
 }
 

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Trash2, Upload } from 'lucide-react'
@@ -20,6 +21,9 @@ export function ResourcesPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [copiedToast, setCopiedToast] = useState(false)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const query = useQuery({
     queryKey: ['resources'],
     queryFn: () => api<Resource[]>('/admin/api/resources'),
@@ -35,6 +39,19 @@ export function ResourcesPage() {
     mutationFn: (id: number) => api<void>(`/admin/api/resources/${id}`, { method: 'DELETE' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['resources'] }),
   })
+
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+    }
+  }, [])
+
+  const copyEndpoint = async (endpoint: string) => {
+    await navigator.clipboard.writeText(endpoint)
+    setCopiedToast(true)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setCopiedToast(false), 2000)
+  }
 
   const resources = query.data ?? []
 
@@ -79,7 +96,15 @@ export function ResourcesPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{resource.slug}</TableCell>
-                    <TableCell className="font-mono text-xs">{resource.endpoint}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <button
+                        type="button"
+                        className="cursor-pointer underline underline-offset-2 hover:text-primary"
+                        onClick={() => void copyEndpoint(resource.endpoint)}
+                      >
+                        {resource.endpoint}
+                      </button>
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -132,6 +157,15 @@ export function ResourcesPage() {
           )}
         </CardContent>
       </Card>
+
+      {copiedToast ? (
+        <div
+          role="status"
+          className="fixed right-4 bottom-4 z-50 rounded-md bg-emerald-600 px-4 py-2 text-sm text-white shadow-lg"
+        >
+          {t('common.copied')}
+        </div>
+      ) : null}
     </div>
   )
 }

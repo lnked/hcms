@@ -42,6 +42,7 @@ export const en = {
   'common.saveFailed': 'Save failed',
   'common.createFailed': 'Create failed',
   'common.uploadFailed': 'Upload failed',
+  'common.copied': 'Value copied',
 
   'locale.en': 'English',
   'locale.ru': 'Русский',

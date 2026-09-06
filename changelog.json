@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.29.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Admin UX polish: copy endpoints, dark borders",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources: click Endpoint to copy path; green toast confirms copy"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Dark theme borders/inputs use #4f4f4f instead of near-white"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Swagger nav opens in a new tab; darker green in light theme"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Public API domains: hide whitelist when unrestricted is enabled"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Media sticky upload dropzone offset top: 12px"
+        }
+      ]
+    },
+    {
       "version": "0.28.0",
       "date": "2026-09-06",
       "channel": "stable",

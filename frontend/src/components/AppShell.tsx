@@ -168,9 +168,11 @@ export function AppShell() {
           ))}
           <a
             href="/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
             title={collapsed ? t('nav.docs') : undefined}
             className={cn(
-              'flex items-center rounded-md py-2 text-sm text-[#85EA2D] hover:bg-sidebar-accent',
+              'flex items-center rounded-md py-2 text-sm text-[#5C9E14] hover:bg-sidebar-accent dark:text-[#85EA2D]',
               collapsed ? 'justify-center px-0' : 'gap-2 px-3',
             )}
           >

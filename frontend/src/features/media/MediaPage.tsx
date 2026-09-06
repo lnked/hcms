@@ -181,7 +181,7 @@ export function MediaPage() {
           enqueue(e.dataTransfer.files)
         }}
         className={cn(
-          'sticky top-0 z-20 flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-dashed px-4 py-3 transition-colors',
+          'sticky top-3 z-20 flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-dashed px-4 py-3 transition-colors',
           'bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85',
           dragging
             ? 'border-primary bg-primary/5'
