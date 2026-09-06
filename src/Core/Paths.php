@@ -6,8 +6,16 @@ namespace Cms\Core;
 
 final class Paths
 {
-    public function __construct(public readonly string $root)
+    public readonly string $publicDir;
+
+    public function __construct(public readonly string $root, ?string $publicDir = null)
     {
+        $this->publicDir = self::normalizePublicDir($publicDir ?? self::detectPublicDir($root));
+    }
+
+    public static function fromRoot(string $root): self
+    {
+        return new self($root);
     }
 
     public function envFile(): string
@@ -57,11 +65,51 @@ final class Paths
 
     public function public(): string
     {
-        return $this->root . '/public';
+        return $this->root . '/' . $this->publicDir;
     }
 
     public function adminIndex(): string
     {
-        return $this->root . '/public/admin/index.html';
+        return $this->public() . '/admin/index.html';
+    }
+
+    /**
+     * Safe folder name for the HTTP document root (e.g. public, public_html).
+     */
+    public static function normalizePublicDir(string $dir): string
+    {
+        $dir = trim(str_replace('\\', '/', $dir), '/');
+        if ($dir === '' || str_contains($dir, '..') || str_contains($dir, '/')) {
+            return 'public';
+        }
+        if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $dir)) {
+            return 'public';
+        }
+
+        return $dir;
+    }
+
+    private static function detectPublicDir(string $root): string
+    {
+        $envFile = $root . '/.env';
+        if (is_file($envFile)) {
+            foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+                $line = trim($line);
+                if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+                    continue;
+                }
+                [$k, $v] = explode('=', $line, 2);
+                if (trim($k) === 'CMS_PUBLIC_DIR') {
+                    return self::normalizePublicDir(trim($v));
+                }
+            }
+        }
+
+        // Prefer existing public_html when public/ is missing (shared hosting layout).
+        if (!is_dir($root . '/public') && is_dir($root . '/public_html')) {
+            return 'public_html';
+        }
+
+        return 'public';
     }
 }

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { TrailingSlashRedirect } from '@/app/TrailingSlashRedirect'
 import { AppShell } from '@/components/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
@@ -16,6 +17,7 @@ import { TokensPage } from '@/pages/TokensPage'
 export function AppRouter() {
   return (
     <BrowserRouter basename="/admin">
+      <TrailingSlashRedirect />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/install" element={<InstallPage />} />

@@ -147,6 +147,14 @@ final class Kernel
     public function handle(Request $request): Response
     {
         try {
+            $canonical = Request::trailingSlashRedirectTarget(
+                $request->method,
+                (string) ($_SERVER['REQUEST_URI'] ?? $request->path),
+            );
+            if ($canonical !== null) {
+                return $this->withSecurityHeaders(Response::redirect($canonical, 301));
+            }
+
             return $this->dispatch($request);
         } catch (Throwable $e) {
             return $this->exceptions->handle($e);

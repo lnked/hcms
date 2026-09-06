@@ -106,6 +106,13 @@ final class Installer
         $appUrl = isset($app['url']) && is_string($app['url']) ? rtrim(trim($app['url']), '/') : 'http://localhost';
         $timezone = isset($app['timezone']) && is_string($app['timezone']) ? $app['timezone'] : 'UTC';
         $language = isset($app['language']) && is_string($app['language']) ? $app['language'] : 'en';
+        $publicDir = Paths::normalizePublicDir(
+            isset($app['publicDir']) && is_string($app['publicDir']) && $app['publicDir'] !== ''
+                ? $app['publicDir']
+                : 'public',
+        );
+
+        $this->ensurePublicDir($publicDir);
 
         $connection = Connection::connect($db);
         $this->runMigrations($connection);
@@ -131,6 +138,7 @@ final class Installer
             'app.timezone' => $timezone,
             'app.language' => $language,
             'app.version' => Version::current(),
+            'app.public_dir' => $publicDir,
             'api.base_url' => $appUrl . '/api',
             'auth.admin_token_ttl_hours' => 12,
             'security.login_max_attempts' => 5,
@@ -151,7 +159,8 @@ final class Installer
             );
         }
 
-        $this->writeEnv($db, $appUrl, $secret);
+        $this->writeEnv($db, $appUrl, $secret, $publicDir);
+        $this->writeRootHtaccess($publicDir);
         $this->writeLock();
     }
 
@@ -192,7 +201,7 @@ final class Installer
     /**
      * @param array{host: string, port: int, database: string, username: string, password: string, charset: string} $db
      */
-    private function writeEnv(array $db, string $appUrl, string $secret): void
+    private function writeEnv(array $db, string $appUrl, string $secret, string $publicDir): void
     {
         $contents = implode("\n", [
             'APP_ENV=production',
@@ -208,11 +217,68 @@ final class Installer
             'DB_CHARSET=' . $db['charset'],
             '',
             'CMS_GITHUB_REPO=lnked/hcms',
+            'CMS_PUBLIC_DIR=' . $publicDir,
             '',
         ]);
 
         if (file_put_contents($this->paths->envFile(), $contents) === false) {
             throw new RuntimeException('Unable to write .env');
+        }
+    }
+
+    private function ensurePublicDir(string $publicDir): void
+    {
+        $target = $this->paths->root . '/' . $publicDir;
+        $default = $this->paths->root . '/public';
+
+        if ($publicDir === 'public') {
+            if (!is_dir($default)) {
+                throw new RuntimeException('Missing public/ directory (download CMS files first)');
+            }
+
+            return;
+        }
+
+        if (is_dir($target)) {
+            return;
+        }
+
+        if (is_dir($default)) {
+            if (!@rename($default, $target)) {
+                throw new RuntimeException('Unable to rename public/ → ' . $publicDir . '/');
+            }
+
+            return;
+        }
+
+        throw new RuntimeException('Missing web root directory (expected public/ or ' . $publicDir . '/)');
+    }
+
+    private function writeRootHtaccess(string $publicDir): void
+    {
+        $path = $this->paths->root . '/.htaccess';
+        $contents = <<<HTACCESS
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    DirectorySlash Off
+
+    RewriteRule ^install\\.php\$ - [L]
+    RewriteRule ^clean\\.php\$ - [L]
+    RewriteRule ^{$publicDir}/ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)\$ {$publicDir}/\$1 [L]
+</IfModule>
+
+Options -Indexes
+
+<FilesMatch "^\\.env">
+    Require all denied
+</FilesMatch>
+
+HTACCESS;
+
+        if (file_put_contents($path, $contents) === false) {
+            throw new RuntimeException('Unable to write root .htaccess');
         }
     }
 

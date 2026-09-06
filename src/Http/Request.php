@@ -99,6 +99,30 @@ final class Request
         return $path;
     }
 
+    /**
+     * GET/HEAD …/foo/ → /foo (keep query). POST/PUT/etc. never redirect.
+     */
+    public static function trailingSlashRedirectTarget(string $method, string $requestUri): ?string
+    {
+        $method = strtoupper($method);
+        if ($method !== 'GET' && $method !== 'HEAD') {
+            return null;
+        }
+
+        $parts = parse_url($requestUri);
+        $path = $parts['path'] ?? '/';
+        if (!is_string($path) || $path === '/' || !str_ends_with($path, '/')) {
+            return null;
+        }
+
+        $target = rtrim($path, '/') ?: '/';
+        if (isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== '') {
+            $target .= '?' . $parts['query'];
+        }
+
+        return $target;
+    }
+
     public function header(string $name): ?string
     {
         return $this->headers[strtolower($name)] ?? null;

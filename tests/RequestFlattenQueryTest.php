@@ -23,4 +23,23 @@ final class RequestFlattenQueryTest extends TestCase
         $this->assertSame('hello', $flat['filter[title]']);
         $this->assertSame('draft', $flat['filter[status][eq]']);
     }
+
+    public function testNormalizePathStripsTrailingSlash(): void
+    {
+        $this->assertSame('/admin', Request::normalizePath('/admin/'));
+        $this->assertSame('/admin/api/health', Request::normalizePath('/admin/api/health/'));
+        $this->assertSame('/', Request::normalizePath('/'));
+    }
+
+    public function testTrailingSlashRedirectTarget(): void
+    {
+        $this->assertSame('/admin', Request::trailingSlashRedirectTarget('GET', '/admin/'));
+        $this->assertSame(
+            '/admin/api/health?x=1',
+            Request::trailingSlashRedirectTarget('GET', '/admin/api/health/?x=1'),
+        );
+        $this->assertNull(Request::trailingSlashRedirectTarget('GET', '/admin'));
+        $this->assertNull(Request::trailingSlashRedirectTarget('POST', '/admin/'));
+        $this->assertNull(Request::trailingSlashRedirectTarget('GET', '/'));
+    }
 }

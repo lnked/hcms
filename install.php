@@ -603,6 +603,15 @@ function cms_install_html(): string
         <label for="appUrl">URL</label><input id="appUrl"/>
         <label for="appTz">Timezone</label><input id="appTz" value="UTC"/>
         <label for="appLang">Language</label><input id="appLang" value="en"/>
+        <label for="appPublicDir">Web root folder</label>
+        <input id="appPublicDir" list="publicDirList" value="public" placeholder="public"/>
+        <datalist id="publicDirList">
+          <option value="public"></option>
+          <option value="public_html"></option>
+          <option value="www"></option>
+          <option value="htdocs"></option>
+        </datalist>
+        <p class="hint">Hosting document root must point to this folder. Admin URL = <code>/admin</code>.</p>
         <div class="row-actions">
           <button type="button" id="btnApp">Continue</button>
         </div>
@@ -926,7 +935,8 @@ function cms_install_html(): string
             name: $('appName').value,
             url: $('appUrl').value,
             timezone: $('appTz').value,
-            language: $('appLang').value
+            language: $('appLang').value,
+            publicDir: $('appPublicDir').value || 'public'
           },
           administrator: {
             name: $('admName').value,

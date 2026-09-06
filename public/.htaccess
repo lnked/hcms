@@ -1,8 +1,15 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # Avoid /admin → /admin/ (physical public/admin directory).
+    DirectorySlash Off
+
+    # Existing files (admin assets, uploads, etc.)
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
+
+    # Everything else → front controller
     RewriteRule ^ index.php [L]
 </IfModule>
 

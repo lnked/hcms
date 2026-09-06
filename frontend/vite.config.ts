@@ -3,6 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
+const publicDir = process.env.CMS_PUBLIC_DIR || 'public'
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -12,7 +14,7 @@ export default defineConfig({
   },
   base: '/admin/',
   build: {
-    outDir: path.resolve(import.meta.dirname, '../public/admin'),
+    outDir: path.resolve(import.meta.dirname, `../${publicDir}/admin`),
     emptyOutDir: true,
   },
   server: {

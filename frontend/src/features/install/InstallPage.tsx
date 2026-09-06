@@ -26,6 +26,7 @@ export function InstallPage() {
     url: window.location.origin,
     timezone: 'UTC',
     language: 'en',
+    publicDir: 'public',
   })
   const [admin, setAdmin] = useState({
     name: '',
@@ -180,6 +181,26 @@ export function InstallPage() {
                   value={app.timezone}
                   onChange={(e) => setApp({ ...app, timezone: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Web root folder</Label>
+                <Input
+                  value={app.publicDir}
+                  onChange={(e) => setApp({ ...app, publicDir: e.target.value })}
+                  placeholder="public"
+                  list="public-dir-suggestions"
+                />
+                <datalist id="public-dir-suggestions">
+                  <option value="public" />
+                  <option value="public_html" />
+                  <option value="www" />
+                  <option value="htdocs" />
+                </datalist>
+                <p className="text-xs text-muted-foreground">
+                  Point the hosting document root at this folder. Admin URL will be{' '}
+                  <code className="font-mono">/admin</code>, not{' '}
+                  <code className="font-mono">/{'{folder}'}/admin</code>.
+                </p>
               </div>
               <Button onClick={() => setStep(3)}>Continue</Button>
             </>
