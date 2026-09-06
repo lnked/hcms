@@ -186,6 +186,7 @@ function clean_wipe_files(string $root, array $env = []): array
         $root . '/.env',
         $root . '/storage/installed.lock',
         $root . '/storage/update.lock',
+        $root . '/storage/update.job.json',
         $root . '/storage/update-status.json',
     ];
 

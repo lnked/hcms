@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.15.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Theme switch & live update progress",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Light/dark theme switch in sidebar; defaults to system preference, persists choice"
+        },
+        {
+          "type": "added",
+          "area": "updater",
+          "text": "Async updates with live progress bar and step status (backup → download → unpack → publish → migrate)"
+        }
+      ]
+    },
+    {
       "version": "0.14.1",
       "date": "2026-09-06",
       "channel": "stable",

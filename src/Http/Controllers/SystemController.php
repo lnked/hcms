@@ -117,8 +117,13 @@ final class SystemController
         }
         try {
             $ack = (bool) ($request->json()['acknowledgeBreaking'] ?? false);
+            $status = $this->updates->queue($ack);
+            $updates = $this->updates;
+            register_shutdown_function(static function () use ($updates): void {
+                $updates->continueInBackground();
+            });
 
-            return Response::data($this->updates->run($ack));
+            return Response::data($status, 202);
         } catch (RuntimeException $e) {
             return Response::error('UPDATE_ERROR', $e->getMessage(), 400);
         } catch (Throwable $e) {

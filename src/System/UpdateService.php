@@ -115,17 +115,19 @@ final class UpdateService
     {
         $file = $this->statusFile();
         if (!is_file($file)) {
-            return ['state' => 'idle', 'step' => null, 'error' => null];
+            return ['state' => 'idle', 'step' => null, 'progress' => 0, 'error' => null];
         }
         $data = json_decode((string) file_get_contents($file), true);
 
-        return is_array($data) ? $data : ['state' => 'idle', 'step' => null, 'error' => null];
+        return is_array($data) ? $data : ['state' => 'idle', 'step' => null, 'progress' => 0, 'error' => null];
     }
 
     /**
+     * Validate, lock, return immediately; real work runs via {@see continueInBackground()}.
+     *
      * @return array<string, mixed>
      */
-    public function run(bool $acknowledgeBreaking = false): array
+    public function queue(bool $acknowledgeBreaking = false): array
     {
         $lock = $this->paths->storage() . '/update.lock';
         if (is_file($lock)) {
@@ -147,30 +149,84 @@ final class UpdateService
             throw new RuntimeException('Unable to acquire update lock');
         }
 
+        $job = [
+            'from' => (string) $preview['from'],
+            'to' => (string) $preview['to'],
+        ];
+        $jobFile = $this->jobFile();
+        if (@file_put_contents($jobFile, json_encode($job, JSON_UNESCAPED_SLASHES)) === false) {
+            @unlink($lock);
+            throw new RuntimeException('Unable to write update job');
+        }
+
+        $this->writeStatus('running', 'starting', null, [
+            'from' => $job['from'],
+            'to' => $job['to'],
+        ]);
+
+        return $this->status();
+    }
+
+    /**
+     * Finish HTTP response first, then run the armed update job.
+     */
+    public function continueInBackground(): void
+    {
+        $jobFile = $this->jobFile();
+        if (!is_file($jobFile)) {
+            return;
+        }
+
+        ignore_user_abort(true);
+        @set_time_limit(0);
+
+        $raw = json_decode((string) file_get_contents($jobFile), true);
+        @unlink($jobFile);
+        if (!is_array($raw)) {
+            $this->writeStatus('failed', 'error', 'Invalid update job');
+            @unlink($this->paths->storage() . '/update.lock');
+
+            return;
+        }
+
+        $this->executeJob($raw);
+    }
+
+    /**
+     * @param array<string, mixed> $job
+     */
+    private function executeJob(array $job): void
+    {
+        $lock = $this->paths->storage() . '/update.lock';
         $backupDir = null;
+        $zipPath = null;
         try {
-            $this->writeStatus('running', 'backup');
+            $to = isset($job['to']) && is_string($job['to']) ? $job['to'] : '';
+            $from = isset($job['from']) && is_string($job['from']) ? $job['from'] : Version::current();
+            if ($to === '') {
+                throw new RuntimeException('Update job missing target version');
+            }
+
+            $this->writeStatus('running', 'backup', null, ['from' => $from, 'to' => $to]);
             $backupDir = $this->backup();
 
-            $this->writeStatus('running', 'download');
-            $version = (string) $preview['to'];
-            $zipPath = $this->downloadRelease($version);
+            $this->writeStatus('running', 'download', null, ['from' => $from, 'to' => $to]);
+            $zipPath = $this->downloadRelease($to);
 
-            $this->writeStatus('running', 'unpack');
+            $this->writeStatus('running', 'unpack', null, ['from' => $from, 'to' => $to]);
             $this->unpack($zipPath);
+
+            $this->writeStatus('running', 'publish', null, ['from' => $from, 'to' => $to]);
             (new AdminUiPublisher($this->paths))->publishFromReleaseTree();
 
-            $this->writeStatus('running', 'migrate');
+            $this->writeStatus('running', 'migrate', null, ['from' => $from, 'to' => $to]);
             $this->runPendingMigrations();
 
             $this->writeStatus('done', 'verify', null, [
-                'from' => $preview['from'],
+                'from' => $from,
                 'to' => Version::current(),
                 'backup' => $backupDir,
             ]);
-            @unlink($zipPath);
-
-            return $this->status();
         } catch (\Throwable $e) {
             $this->writeStatus('failed', 'error', $e->getMessage());
             if ($backupDir !== null) {
@@ -181,10 +237,31 @@ final class UpdateService
                     $this->writeStatus('failed', 'rollback_failed', $e->getMessage() . '; rollback: ' . $rollbackError->getMessage());
                 }
             }
-            throw $e;
         } finally {
+            if (is_string($zipPath) && is_file($zipPath)) {
+                @unlink($zipPath);
+            }
             @unlink($lock);
+            @unlink($this->jobFile());
         }
+    }
+
+    /**
+     * Synchronous helper (tests / CLI). Prefers queue + background in HTTP.
+     *
+     * @return array<string, mixed>
+     */
+    public function run(bool $acknowledgeBreaking = false): array
+    {
+        $this->queue($acknowledgeBreaking);
+        $this->continueInBackground();
+
+        return $this->status();
+    }
+
+    private function jobFile(): string
+    {
+        return $this->paths->storage() . '/update.job.json';
     }
 
     private function backup(): string
@@ -353,10 +430,29 @@ final class UpdateService
         $payload = array_merge([
             'state' => $state,
             'step' => $step,
+            'progress' => self::progressForStep($step, $state),
             'error' => $error,
             'updatedAt' => date('c'),
         ], $extra);
         @file_put_contents($this->statusFile(), json_encode($payload, JSON_UNESCAPED_SLASHES));
+    }
+
+    private static function progressForStep(?string $step, string $state): int
+    {
+        if ($state === 'done') {
+            return 100;
+        }
+        return match ($step) {
+            'starting' => 5,
+            'backup' => 15,
+            'download' => 35,
+            'unpack' => 55,
+            'publish' => 70,
+            'migrate' => 85,
+            'verify' => 100,
+            'rolled_back', 'rollback_failed', 'error' => 100,
+            default => 0,
+        };
     }
 
     private function statusFile(): string

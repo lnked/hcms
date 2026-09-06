@@ -5,10 +5,12 @@ import {
   Image,
   KeyRound,
   LayoutDashboard,
+  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   ScrollText,
   Settings,
+  Sun,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
@@ -19,6 +21,7 @@ import type { SystemVersion } from '@/types/system'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
+import { useTheme } from '@/theme'
 
 const SIDEBAR_COLLAPSED_KEY = 'hcms.sidebar.collapsed'
 
@@ -40,6 +43,7 @@ function writeCollapsed(collapsed: boolean) {
 
 export function AppShell() {
   const { t, setLocale } = useI18n()
+  const { resolved, toggleLightDark } = useTheme()
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const version = useQuery({
     queryKey: ['system-version'],
@@ -80,6 +84,9 @@ export function AppShell() {
       collapsed ? 'justify-center px-0' : 'px-3',
       isActive && 'bg-sidebar-accent font-medium',
     )
+
+  const isDark = resolved === 'dark'
+  const themeLabel = isDark ? t('nav.themeDark') : t('nav.themeLight')
 
   return (
     <div className="min-h-svh">
@@ -142,19 +149,65 @@ export function AppShell() {
         </nav>
 
         <div
-          className={cn(
-            'flex items-center gap-2 py-3 text-xs text-muted-foreground',
-            collapsed ? 'flex-col justify-center px-1' : 'justify-between px-4',
-          )}
-          title={collapsed ? `v${version.data?.current ?? '…'}` : undefined}
+          className={cn('space-y-2 border-t border-sidebar-border', collapsed ? 'p-1.5' : 'p-2')}
         >
-          <span className={cn(collapsed && 'sr-only')}>v{version.data?.current ?? '…'}</span>
-          {version.data?.updateAvailable ? (
-            <span
-              className="h-2 w-2 rounded-full bg-emerald-500"
-              title={t('common.updateAvailable')}
-            />
-          ) : null}
+          <button
+            type="button"
+            onClick={toggleLightDark}
+            title={t('nav.themeToggle')}
+            aria-label={t('nav.themeToggle')}
+            aria-pressed={isDark}
+            className={cn(
+              'flex w-full items-center rounded-md text-sm hover:bg-sidebar-accent',
+              collapsed ? 'justify-center px-0 py-2' : 'justify-between gap-2 px-3 py-2',
+            )}
+          >
+            {!collapsed ? (
+              <span className="flex items-center gap-2 truncate">
+                {isDark ? (
+                  <Moon className="h-4 w-4 shrink-0" />
+                ) : (
+                  <Sun className="h-4 w-4 shrink-0" />
+                )}
+                <span className="truncate">{themeLabel}</span>
+              </span>
+            ) : isDark ? (
+              <Moon className="h-4 w-4 shrink-0" />
+            ) : (
+              <Sun className="h-4 w-4 shrink-0" />
+            )}
+            {!collapsed ? (
+              <span
+                className={cn(
+                  'relative h-5 w-9 shrink-0 rounded-full transition-colors',
+                  isDark ? 'bg-primary' : 'bg-muted-foreground/30',
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-background shadow transition-transform',
+                    isDark && 'translate-x-4',
+                  )}
+                />
+              </span>
+            ) : null}
+          </button>
+
+          <div
+            className={cn(
+              'flex items-center gap-2 py-1 text-xs text-muted-foreground',
+              collapsed ? 'flex-col justify-center' : 'justify-between px-2',
+            )}
+            title={collapsed ? `v${version.data?.current ?? '…'}` : undefined}
+          >
+            <span className={cn(collapsed && 'sr-only')}>v{version.data?.current ?? '…'}</span>
+            {version.data?.updateAvailable ? (
+              <span
+                className="h-2 w-2 rounded-full bg-emerald-500"
+                title={t('common.updateAvailable')}
+              />
+            ) : null}
+          </div>
         </div>
       </aside>
 

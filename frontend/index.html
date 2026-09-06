@@ -5,6 +5,20 @@
         <link rel="icon" type="image/svg+xml" href="/admin/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>HCMS Admin</title>
+        <script>
+            ;(function () {
+                try {
+                    var key = 'hcms.theme'
+                    var pref = localStorage.getItem(key)
+                    var dark =
+                        pref === 'dark' ||
+                        (pref !== 'light' &&
+                            window.matchMedia('(prefers-color-scheme: dark)').matches)
+                    document.documentElement.classList.toggle('dark', dark)
+                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+                } catch (e) {}
+            })()
+        </script>
     </head>
     <body>
         <div id="root"></div>
