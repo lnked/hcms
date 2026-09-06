@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.41.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "TOTP QR setup",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "auth",
+          "text": "2FA setup shows a scannable QR for authenticator apps (secret kept as manual fallback)"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "ResourceSettings spam patch typing for release build"
+        }
+      ]
+    },
+    {
       "version": "0.40.0",
       "date": "2026-09-06",
       "channel": "stable",
