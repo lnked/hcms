@@ -7,6 +7,7 @@ import { LanguageSelect } from '@/components/LanguageSelect'
 import { api } from '@/lib/api'
 import { useI18n, type Locale } from '@/i18n'
 import type { SystemVersion } from '@/types/system'
+import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
 
 interface UpdatePreview {
   from: string
@@ -45,6 +46,11 @@ export function SystemPage() {
   const status = useQuery({
     queryKey: ['update-status'],
     queryFn: () => api<UpdateStatus>('/admin/api/system/update/status'),
+  })
+
+  const apiAccess = useQuery({
+    queryKey: ['settings-api-access'],
+    queryFn: () => api<ApiAccessSettings>('/admin/api/settings/api-access'),
   })
 
   const loadPreview = useMutation({
@@ -98,6 +104,9 @@ export function SystemPage() {
   const needsAck = Boolean(preview?.hasBreaking)
   const runDisabled = !canUpdate || (needsAck && !ackBreaking) || runUpdate.isPending
   const na = t('system.na')
+  const accessKey = apiAccess.data
+    ? `${apiAccess.data.unrestricted}:${apiAccess.data.allowedOrigins.join('|')}`
+    : 'loading'
 
   return (
     <div className="space-y-6">
@@ -116,6 +125,20 @@ export function SystemPage() {
             onChange={onLanguageChange}
             className={saveLanguage.isPending ? 'opacity-70' : undefined}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('system.apiAccessTitle')}</CardTitle>
+          <CardDescription>{t('system.apiAccessHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {apiAccess.isLoading || !apiAccess.data ? (
+            <p className="text-sm text-muted-foreground">{t('system.apiAccessLoading')}</p>
+          ) : (
+            <ApiAccessForm key={accessKey} initial={apiAccess.data} onMessage={setMessage} />
+          )}
         </CardContent>
       </Card>
 

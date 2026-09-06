@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.14.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "API origin policy & collapsible sidebar",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Public API origin allowlist / unrestricted mode with CORS headers (admin settings)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Fixed collapsible sidebar (icon rail) with persisted collapse state"
+        }
+      ]
+    },
+    {
       "version": "0.13.2",
       "date": "2026-09-06",
       "channel": "stable",

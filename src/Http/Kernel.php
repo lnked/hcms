@@ -176,10 +176,31 @@ final class Kernel
             return $this->spa();
         }
 
+        $apiAccess = null;
+        $apiOrigin = null;
+        if ($this->isPublicApiPath($request->path)) {
+            $apiAccess = $this->apiAccessPolicy();
+            $apiOrigin = $request->header('origin');
+            if (!$apiAccess->allows($apiOrigin)) {
+                return $this->finalizeApiResponse(
+                    Response::error('FORBIDDEN', 'Origin not allowed', 403),
+                    $apiAccess,
+                    $apiOrigin,
+                );
+            }
+            if ($request->method === 'OPTIONS') {
+                return $this->finalizeApiResponse(new Response(204, ''), $apiAccess, $apiOrigin);
+            }
+        }
+
         $matched = $this->router->match($request);
         if ($matched === null) {
             if (str_starts_with($request->path, '/admin/api') || str_starts_with($request->path, '/api/')) {
-                return Response::error('NOT_FOUND', 'Not found', 404);
+                $missing = Response::error('NOT_FOUND', 'Not found', 404);
+
+                return $apiAccess !== null
+                    ? $this->finalizeApiResponse($missing, $apiAccess, $apiOrigin)
+                    : $this->withSecurityHeaders($missing);
             }
 
             return $this->installed ? $this->spa() : Response::redirect('/install.php');
@@ -193,7 +214,9 @@ final class Kernel
             }
             $auth = $this->authenticate($request, $route->auth);
             if ($auth instanceof Response) {
-                return $auth;
+                return $apiAccess !== null
+                    ? $this->finalizeApiResponse($auth, $apiAccess, $apiOrigin)
+                    : $auth;
             }
         } elseif ($this->tokens !== null && $request->bearerToken() !== null) {
             $resolved = $this->authenticate($request, 'api');
@@ -205,14 +228,18 @@ final class Kernel
         if ($this->shouldRateLimit($request->path)) {
             $limited = $this->rateLimit($request, $auth instanceof AuthContext ? $auth : null);
             if ($limited !== null) {
-                return $limited;
+                return $apiAccess !== null
+                    ? $this->finalizeApiResponse($limited, $apiAccess, $apiOrigin)
+                    : $limited;
             }
         }
 
         $handler = $route->handler;
         $started = hrtime(true);
         $response = $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
-        $response = $this->withSecurityHeaders($response);
+        $response = $apiAccess !== null
+            ? $this->finalizeApiResponse($response, $apiAccess, $apiOrigin)
+            : $this->withSecurityHeaders($response);
 
         if (
             $this->apiLogs !== null
@@ -235,6 +262,25 @@ final class Kernel
         }
 
         return $response;
+    }
+
+    private function apiAccessPolicy(): ApiAccess
+    {
+        if ($this->db === null) {
+            return ApiAccess::defaults();
+        }
+
+        return ApiAccess::fromSettings(new Settings($this->db));
+    }
+
+    private function isPublicApiPath(string $path): bool
+    {
+        return str_starts_with($path, '/api/') || $path === '/api';
+    }
+
+    private function finalizeApiResponse(Response $response, ApiAccess $access, ?string $origin): Response
+    {
+        return $this->withSecurityHeaders($response->withHeaders($access->corsHeaders($origin)));
     }
 
     private function authenticate(Request $request, string $type): AuthContext|Response
@@ -715,6 +761,14 @@ final class Kernel
 
                 return $settingsController->locale();
             }, true);
+            $this->router->add('GET', '/admin/api/settings/api-access', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+                unset($request, $params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $settingsController->apiAccess();
+            });
             $this->router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
                 unset($params);
                 if ($context === null) {

@@ -56,6 +56,8 @@ export const ru: Record<MessageKey, string> = {
   'nav.tokens': 'API-токены',
   'nav.system': 'Система',
   'nav.docs': 'Документация',
+  'nav.collapse': 'Свернуть меню',
+  'nav.expand': 'Развернуть меню',
 
   'login.title': 'Вход',
   'login.description': 'Доступ в админку по Bearer-токену.',
@@ -256,6 +258,16 @@ export const ru: Record<MessageKey, string> = {
   'system.languageTitle': 'Язык админки',
   'system.languageHint': 'Язык интерфейса панели управления.',
   'system.languageSaved': 'Язык сохранён',
+  'system.apiAccessTitle': 'Домены публичного API',
+  'system.apiAccessHint':
+    'Ограничьте, с каких Origin браузер может ходить на /api/*. Запросы без Origin (сервер-сервер) остаются разрешены. Admin API не затрагивается.',
+  'system.apiAccessUnrestricted': 'Без ограничений (любой домен)',
+  'system.apiAccessOrigins': 'Белый список доменов',
+  'system.apiAccessOriginsHint':
+    'По одному на строку. Примеры: https://app.example.com, example.com, *.example.com, http://localhost:3000',
+  'system.apiAccessSaved': 'Настройки доступа к API сохранены',
+  'system.apiAccessSave': 'Сохранить доступ к API',
+  'system.apiAccessLoading': 'Загрузка…',
   'system.update': 'Обновление',
   'system.updateHint':
     'Скачивает zip релиза (sha256), сохраняет .env / uploads / lock, применяет SQL-миграции.',

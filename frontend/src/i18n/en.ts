@@ -52,6 +52,8 @@ export const en = {
   'nav.tokens': 'API Tokens',
   'nav.system': 'System',
   'nav.docs': 'Documentation',
+  'nav.collapse': 'Collapse sidebar',
+  'nav.expand': 'Expand sidebar',
 
   'login.title': 'Sign in',
   'login.description': 'Admin access with a Bearer token.',
@@ -252,6 +254,16 @@ export const en = {
   'system.languageTitle': 'Admin language',
   'system.languageHint': 'Interface language for the admin panel.',
   'system.languageSaved': 'Language saved',
+  'system.apiAccessTitle': 'Public API domains',
+  'system.apiAccessHint':
+    'Restrict which browser origins may call /api/*. Server-to-server requests without Origin stay allowed. Admin API is not affected.',
+  'system.apiAccessUnrestricted': 'No restrictions (allow any domain)',
+  'system.apiAccessOrigins': 'Allowed domains',
+  'system.apiAccessOriginsHint':
+    'One per line. Examples: https://app.example.com, example.com, *.example.com, http://localhost:3000',
+  'system.apiAccessSaved': 'API access settings saved',
+  'system.apiAccessSave': 'Save API access',
+  'system.apiAccessLoading': 'Loading…',
   'system.update': 'Update',
   'system.updateHint':
     'Downloads the latest release zip (sha256), preserves .env / uploads / lock, runs pending SQL migrations.',

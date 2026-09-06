@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Core\Locale;
 use Cms\Core\Settings;
+use Cms\Http\ApiAccess;
 use Cms\Http\Request;
 use Cms\Http\Response;
 
@@ -22,24 +23,55 @@ final class SettingsController
         ]);
     }
 
+    public function apiAccess(): Response
+    {
+        return Response::data(ApiAccess::fromSettings($this->settings)->toArray());
+    }
+
     public function update(Request $request): Response
     {
         $payload = $request->json();
-        if (!isset($payload['language']) || !is_string($payload['language'])) {
+        $hasLanguage = array_key_exists('language', $payload);
+        $hasApiAccess = array_key_exists('apiAccess', $payload);
+
+        if (!$hasLanguage && !$hasApiAccess) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Language is required'],
+                'language' => ['Provide language and/or apiAccess'],
             ]);
         }
 
-        if (!Locale::isSupported($payload['language'])) {
-            return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Unsupported language'],
-            ]);
+        $out = [];
+
+        if ($hasLanguage) {
+            if (!is_string($payload['language'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'language' => ['Language is required'],
+                ]);
+            }
+            if (!Locale::isSupported($payload['language'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'language' => ['Unsupported language'],
+                ]);
+            }
+            $language = Locale::normalize($payload['language']);
+            $this->settings->set('app.language', $language);
+            $out['language'] = $language;
         }
 
-        $language = Locale::normalize($payload['language']);
-        $this->settings->set('app.language', $language);
+        if ($hasApiAccess) {
+            if (!is_array($payload['apiAccess'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'apiAccess' => ['Must be an object'],
+                ]);
+            }
+            $validated = ApiAccess::validatePayload($payload['apiAccess']);
+            if ($validated['ok'] === false) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $validated['error']);
+            }
+            $this->settings->set('api.access', $validated['value']);
+            $out['apiAccess'] = $validated['value'];
+        }
 
-        return Response::data(['language' => $language]);
+        return Response::data($out);
     }
 }

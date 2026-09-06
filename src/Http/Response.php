@@ -80,6 +80,14 @@ final class Response
         return new self($status, '', ['Location' => $location]);
     }
 
+    /**
+     * @param array<string, string> $headers
+     */
+    public function withHeaders(array $headers): self
+    {
+        return new self($this->status, $this->body, $headers + $this->headers);
+    }
+
     public function send(): void
     {
         http_response_code($this->status);

@@ -164,6 +164,10 @@ final class Installer
             'app.version' => Version::current(),
             'app.public_dir' => $publicDir,
             'api.base_url' => $appUrl . '/api',
+            'api.access' => [
+                'unrestricted' => true,
+                'allowedOrigins' => [],
+            ],
             'auth.admin_token_ttl_hours' => 12,
             'security.login_max_attempts' => 5,
             'security.login_window_seconds' => 900,
