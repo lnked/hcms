@@ -8,6 +8,7 @@ import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlaygroun
 import { ResourceCustomApisPanel } from '@/features/resources/ResourceCustomApisPanel'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
 import { ResourceExportPanel } from '@/features/resources/ResourceExportPanel'
+import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
@@ -208,6 +209,15 @@ export function ResourceDetailPage() {
                   value: resource.settings.public.create ? t('common.yes') : t('common.no'),
                 })}
               </p>
+            </CardContent>
+          </Card>
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>{t('resources.fetchExample')}</CardTitle>
+              <CardDescription>{t('resources.fetchExampleHint')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResourceFetchExample resource={resource} showLabel={false} />
             </CardContent>
           </Card>
         </div>

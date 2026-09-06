@@ -1,5 +1,6 @@
 import {
   Activity,
+  BookOpen,
   FileText,
   Image,
   KeyRound,
@@ -105,6 +106,7 @@ export function AppShell() {
     { to: '/settings/users', label: t('nav.users'), icon: Users },
     { to: '/settings/integrations', label: t('nav.integrations'), icon: Plug },
     { to: '/settings/system', label: t('nav.system'), icon: Settings },
+    { to: '/docs', label: t('nav.documentation'), icon: BookOpen },
     { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
   ]
 

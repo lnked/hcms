@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Trash2, Upload } from 'lucide-react'
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
@@ -229,71 +230,78 @@ export function ResourcesPage() {
               </TableHeader>
               <TableBody>
                 {resources.map((resource) => (
-                  <TableRow key={resource.id}>
-                    <TableCell>
-                      <Link
-                        className="font-medium hover:underline"
-                        to={`/resources/${resource.id}/overview`}
-                      >
-                        {resource.label}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{resource.slug}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      <button
-                        type="button"
-                        className="cursor-pointer underline decoration-dashed underline-offset-2 hover:text-primary"
-                        onClick={() => void copyEndpoint(resource.endpoint)}
-                      >
-                        {resource.endpoint}
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          resource.status === 'published'
-                            ? 'default'
-                            : resource.status === 'archived'
-                              ? 'outline'
-                              : 'secondary'
-                        }
-                      >
-                        {resource.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex items-center justify-end gap-1">
-                        {resource.status !== 'published' ? (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={publish.isPending}
-                            aria-label={t('resources.publish')}
-                            title={t('resources.publish')}
-                            onClick={() => publish.mutate(resource.id)}
-                          >
-                            <Upload className="h-4 w-4" />
-                          </Button>
-                        ) : null}
-                        {!resource.isSystem ? (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={remove.isPending}
-                            aria-label={t('common.delete')}
-                            title={t('common.delete')}
-                            onClick={() => {
-                              if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
-                                remove.mutate(resource.id)
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <Fragment key={resource.id}>
+                    <TableRow>
+                      <TableCell>
+                        <Link
+                          className="font-medium hover:underline"
+                          to={`/resources/${resource.id}/overview`}
+                        >
+                          {resource.label}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs">{resource.slug}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <button
+                          type="button"
+                          className="cursor-pointer underline decoration-dashed underline-offset-2 hover:text-primary"
+                          onClick={() => void copyEndpoint(resource.endpoint)}
+                        >
+                          {resource.endpoint}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            resource.status === 'published'
+                              ? 'default'
+                              : resource.status === 'archived'
+                                ? 'outline'
+                                : 'secondary'
+                          }
+                        >
+                          {resource.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex items-center justify-end gap-1">
+                          {resource.status !== 'published' ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={publish.isPending}
+                              aria-label={t('resources.publish')}
+                              title={t('resources.publish')}
+                              onClick={() => publish.mutate(resource.id)}
+                            >
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {!resource.isSystem ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              disabled={remove.isPending}
+                              aria-label={t('common.delete')}
+                              title={t('common.delete')}
+                              onClick={() => {
+                                if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
+                                  remove.mutate(resource.id)
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={5} className="border-t-0 pt-0 pb-4">
+                        <ResourceFetchExample resource={resource} />
+                      </TableCell>
+                    </TableRow>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.37.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "In-app API documentation",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Documentation section with chaptered guides for Content API connection, tokens, CORS, and CRUD examples"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resources: copy-paste fetch usage examples on list, overview, and API playground"
+        }
+      ]
+    },
+    {
       "version": "0.36.0",
       "date": "2026-09-06",
       "channel": "stable",

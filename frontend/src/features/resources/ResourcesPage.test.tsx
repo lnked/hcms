@@ -56,6 +56,8 @@ describe('ResourcesPage', () => {
     const endpoint = screen.getByRole('button', { name: '/api/articles' })
     expect(endpoint).toBeInTheDocument()
     expect(endpoint.className).toContain('decoration-dashed')
+    expect(screen.getByText('Usage example')).toBeInTheDocument()
+    expect(screen.getByText(/fetch\('/)).toBeInTheDocument()
   })
 
   it('copies endpoint and shows toast', async () => {
@@ -76,5 +78,29 @@ describe('ResourcesPage', () => {
 
     expect(copyToClipboard).toHaveBeenCalledWith('/api/articles')
     expect(await screen.findByRole('status')).toHaveTextContent('Value copied')
+  })
+
+  it('copies fetch example', async () => {
+    const { copyToClipboard } = await import('@/lib/clipboard')
+    const user = userEvent.setup()
+    const client = new QueryClient()
+    render(
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <MemoryRouter>
+            <ResourcesPage />
+          </MemoryRouter>
+        </QueryClientProvider>
+      </I18nProvider>,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Copy fetch' }))
+
+    expect(copyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining("fetch('"),
+    )
+    expect(copyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('/api/articles?limit=20'),
+    )
   })
 })

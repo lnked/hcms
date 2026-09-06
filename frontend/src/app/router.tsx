@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { ChangelogPage } from '@/features/changelog/ChangelogPage'
+import { DocsPage } from '@/features/docs/DocsPage'
 import { InstallPage } from '@/features/install/InstallPage'
 import { CreateResourcePage } from '@/features/resources/CreateResourcePage'
 import { ResourceDetailPage } from '@/features/resources/ResourceDetailPage'
@@ -31,6 +32,7 @@ export function AppRouter() {
             <Route path="resources/:id/:tab?" element={<ResourceDetailPage />} />
             <Route path="media" element={<MediaPage />} />
             <Route path="logs" element={<LogsPage />} />
+            <Route path="docs/:chapter?" element={<DocsPage />} />
             <Route path="changelog" element={<ChangelogPage />} />
             <Route path="settings/system" element={<SystemPage />} />
             <Route path="settings/integrations" element={<IntegrationsPage />} />

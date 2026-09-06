@@ -10,6 +10,7 @@ import { copyToClipboard } from '@/lib/clipboard'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceCustomApi } from '@/types/resourceApi'
+import { buildResourceFetchExample } from './buildResourceFetchExample'
 
 interface ResourceApiPlaygroundProps {
   resource: Resource
@@ -41,6 +42,7 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
   const [responseText, setResponseText] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedFetch, setCopiedFetch] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const customApisQuery = useQuery({
@@ -136,6 +138,16 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
       window.setTimeout(() => setCopied(false), 1500)
     } catch {
       setCopied(false)
+    }
+  }
+
+  async function copyFetch() {
+    try {
+      await copyToClipboard(buildResourceFetchExample(resource))
+      setCopiedFetch(true)
+      window.setTimeout(() => setCopiedFetch(false), 1500)
+    } catch {
+      setCopiedFetch(false)
     }
   }
 
@@ -236,6 +248,9 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
           </Button>
           <Button variant="outline" onClick={() => void copyUrl()}>
             {copied ? t('resources.playground.copied') : t('resources.playground.copyUrl')}
+          </Button>
+          <Button variant="outline" onClick={() => void copyFetch()}>
+            {copiedFetch ? t('resources.fetchExampleCopied') : t('resources.fetchExampleCopy')}
           </Button>
           <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
             {t('resources.openDocs')}
