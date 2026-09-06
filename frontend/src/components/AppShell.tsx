@@ -134,7 +134,14 @@ export function AppShell() {
           )}
         >
           {!collapsed ? (
-            <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
+              <img
+                src="/admin/favicon.svg"
+                alt=""
+                width={20}
+                height={20}
+                className="h-5 w-5 shrink-0"
+              />
               HCMS
             </div>
           ) : null}
