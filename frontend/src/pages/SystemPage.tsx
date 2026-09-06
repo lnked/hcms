@@ -41,11 +41,16 @@ export function SystemPage() {
   const query = useQuery({
     queryKey: ['system-version'],
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
   })
 
   const status = useQuery({
     queryKey: ['update-status'],
     queryFn: () => api<UpdateStatus>('/admin/api/system/update/status'),
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   const apiAccess = useQuery({

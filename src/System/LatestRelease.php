@@ -5,29 +5,21 @@ declare(strict_types=1);
 namespace Cms\System;
 
 use Cms\Core\Config;
-use Cms\Core\Paths;
 
 final class LatestRelease
 {
     public function __construct(
-        private readonly Paths $paths,
         private readonly Config $config,
     ) {
     }
 
     /**
+     * Always fetches GitHub latest.json (no disk cache).
+     *
      * @return array<string, mixed>|null
      */
     public function fetch(): ?array
     {
-        $cacheFile = $this->paths->cache() . '/latest.json';
-        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 21600) {
-            $cached = json_decode((string) file_get_contents($cacheFile), true);
-            if (is_array($cached)) {
-                return $cached;
-            }
-        }
-
         $url = sprintf(
             'https://github.com/%s/releases/latest/download/latest.json',
             $this->config->githubRepo,
@@ -42,11 +34,6 @@ final class LatestRelease
         if (!is_array($data) || !isset($data['version']) || !is_string($data['version'])) {
             return null;
         }
-
-        if (!is_dir($this->paths->cache())) {
-            @mkdir($this->paths->cache(), 0775, true);
-        }
-        @file_put_contents($cacheFile, json_encode($data, JSON_UNESCAPED_SLASHES));
 
         return $data;
     }

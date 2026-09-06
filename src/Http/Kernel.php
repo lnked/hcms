@@ -44,6 +44,7 @@ use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
+use Cms\System\AdminUiPublisher;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
 use Cms\System\UpdateService;
@@ -354,12 +355,12 @@ final class Kernel
         if ($this->db !== null) {
             $system = new SystemController(
                 new ChangelogRepository($this->paths),
-                new LatestRelease($this->paths, $this->config),
+                new LatestRelease($this->config),
                 $this->db,
                 new UpdateService(
                     $this->paths,
                     $this->config,
-                    new LatestRelease($this->paths, $this->config),
+                    new LatestRelease($this->config),
                     new ChangelogRepository($this->paths),
                     $this->db,
                     new Settings($this->db),
@@ -840,7 +841,7 @@ final class Kernel
 
     private function spa(): Response
     {
-        $index = $this->paths->adminIndex();
+        $index = (new AdminUiPublisher($this->paths))->resolveIndex();
         if (!is_file($index)) {
             return Response::html('<!doctype html><html><body><p>Admin UI is not built. Run <code>npm run build</code>.</p></body></html>', 503);
         }

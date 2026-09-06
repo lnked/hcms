@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.14.1",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Fix blank admin after public_html update",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "updater",
+          "text": "Publish admin SPA into CMS_PUBLIC_DIR after unpack; self-heal when public/admin is newer than public_html/admin"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Stop caching GitHub latest.json so System page always shows the real latest version"
+        }
+      ]
+    },
+    {
       "version": "0.14.0",
       "date": "2026-09-06",
       "channel": "stable",

@@ -44,6 +44,8 @@ export function AppShell() {
   const version = useQuery({
     queryKey: ['system-version'],
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   useEffect(() => {

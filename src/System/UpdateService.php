@@ -40,12 +40,7 @@ final class UpdateService
      */
     public function check(bool $force = false): array
     {
-        if ($force) {
-            $cache = $this->paths->cache() . '/latest.json';
-            if (is_file($cache)) {
-                @unlink($cache);
-            }
-        }
+        unset($force);
         $manifest = $this->latest->fetch();
         $current = Version::current();
         $latestVersion = is_array($manifest) && isset($manifest['version']) && is_string($manifest['version'])
@@ -163,6 +158,7 @@ final class UpdateService
 
             $this->writeStatus('running', 'unpack');
             $this->unpack($zipPath);
+            (new AdminUiPublisher($this->paths))->publishFromReleaseTree();
 
             $this->writeStatus('running', 'migrate');
             $this->runPendingMigrations();
