@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.42.3",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Code block copy button position",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "docs",
+          "text": "Copy button sits top-right; short code blocks get min-height so the button fits"
+        }
+      ]
+    },
+    {
       "version": "0.42.2",
       "date": "2026-09-07",
       "channel": "stable",

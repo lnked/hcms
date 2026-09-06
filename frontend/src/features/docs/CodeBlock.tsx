@@ -62,7 +62,7 @@ export function CodeBlock({
           type="button"
           size="icon"
           variant="outline"
-          className="absolute top-1/2 right-2 z-10 h-7 w-7 -translate-y-1/2 bg-background/90"
+          className="absolute top-2 right-2 z-10 h-7 w-7 bg-background/90"
           onClick={() => void copy()}
           title={title}
           aria-label={title}
@@ -79,7 +79,7 @@ export function CodeBlock({
             className="docs-code min-h-[200px] w-full resize-y rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         ) : (
-          <pre className="docs-code min-h-10 overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre">
+          <pre className="docs-code min-h-[calc(0.5rem+1.75rem+0.5rem)] overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre">
             <code dangerouslySetInnerHTML={{ __html: html }} />
           </pre>
         )}
