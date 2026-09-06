@@ -41,6 +41,15 @@ final class Request
         if (isset($_SERVER['CONTENT_TYPE']) && is_string($_SERVER['CONTENT_TYPE'])) {
             $headers['content-type'] = $_SERVER['CONTENT_TYPE'];
         }
+        if (isset($_SERVER['CONTENT_LENGTH']) && is_string($_SERVER['CONTENT_LENGTH'])) {
+            $headers['content-length'] = $_SERVER['CONTENT_LENGTH'];
+        }
+
+        // Apache/CGI often strips Authorization unless rewritten into the environment.
+        $authorization = self::authorizationFromGlobals();
+        if ($authorization !== null) {
+            $headers['authorization'] = $authorization;
+        }
 
         $raw = (string) file_get_contents('php://input');
         $body = null;
@@ -110,17 +119,44 @@ final class Request
         }
 
         $parts = parse_url($requestUri);
-        $path = $parts['path'] ?? '/';
-        if (!is_string($path) || $path === '/' || !str_ends_with($path, '/')) {
+        $path = isset($parts['path']) ? (string) $parts['path'] : '/';
+        if ($path === '/' || !str_ends_with($path, '/')) {
             return null;
         }
 
         $target = rtrim($path, '/') ?: '/';
-        if (isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== '') {
-            $target .= '?' . $parts['query'];
+        $query = isset($parts['query']) ? (string) $parts['query'] : '';
+        if ($query !== '') {
+            $target .= '?' . $query;
         }
 
         return $target;
+    }
+
+    public static function authorizationFromGlobals(): ?string
+    {
+        foreach ([
+            'HTTP_AUTHORIZATION',
+            'REDIRECT_HTTP_AUTHORIZATION',
+            'Authorization',
+        ] as $key) {
+            $value = $_SERVER[$key] ?? null;
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        if (function_exists('apache_request_headers')) {
+            /** @var array<string, string> $apacheHeaders */
+            $apacheHeaders = apache_request_headers();
+            foreach ($apacheHeaders as $name => $value) {
+                if (strcasecmp($name, 'Authorization') === 0 && $value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
     }
 
     public function header(string $name): ?string

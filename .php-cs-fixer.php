@@ -5,7 +5,7 @@ declare(strict_types=1);
 $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__)
     ->name('*.php')
-    ->exclude(['vendor', 'frontend', 'node_modules', 'storage', 'public/admin']);
+    ->exclude(['vendor', 'frontend', 'node_modules', 'storage', 'public/admin', 'dist']);
 
 return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)

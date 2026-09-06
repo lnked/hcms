@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-if (!defined('PHP_VERSION_ID') || PHP_VERSION_ID < 80300) {
+$phpVersionId = defined('PHP_VERSION_ID') ? (int) PHP_VERSION_ID : 0;
+if ($phpVersionId < 80300) {
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
     $current = defined('PHP_VERSION') ? PHP_VERSION : 'unknown';
@@ -71,8 +72,9 @@ exit;
 
 /**
  * @param array<string, mixed> $payload
+ *
+ * @return never
  */
-/** @return never */
 function cms_install_send(int $status, array $payload)
 {
     http_response_code($status);
@@ -81,7 +83,11 @@ function cms_install_send(int $status, array $payload)
     exit;
 }
 
-/** @return never */
+/**
+ * @param array<string, mixed>|null $requestBody
+ *
+ * @return never
+ */
 function cms_install_api(string $root, string $autoload, string $lock, string $action, ?array $requestBody = null)
 {
     try {

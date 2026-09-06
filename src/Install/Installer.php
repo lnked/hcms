@@ -161,6 +161,7 @@ final class Installer
 
         $this->writeEnv($db, $appUrl, $secret, $publicDir);
         $this->writeRootHtaccess($publicDir);
+        $this->writeWebHtaccess($publicDir);
         $this->writeLock();
     }
 
@@ -262,6 +263,9 @@ final class Installer
     RewriteEngine On
     DirectorySlash Off
 
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     RewriteRule ^install\\.php\$ - [L]
     RewriteRule ^clean\\.php\$ - [L]
     RewriteRule ^{$publicDir}/ - [L]
@@ -279,6 +283,42 @@ HTACCESS;
 
         if (file_put_contents($path, $contents) === false) {
             throw new RuntimeException('Unable to write root .htaccess');
+        }
+    }
+
+    private function writeWebHtaccess(string $publicDir): void
+    {
+        $path = $this->paths->root . '/' . $publicDir . '/.htaccess';
+        $contents = <<<'HTACCESS'
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Avoid /admin → /admin/ (physical admin directory).
+    DirectorySlash Off
+
+    # Pass Bearer token to PHP (CGI/Apache often drop Authorization).
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Existing files (admin assets, uploads, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Everything else → front controller
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
+Options -Indexes
+
+HTACCESS;
+
+        if (file_put_contents($path, $contents) === false) {
+            throw new RuntimeException('Unable to write web root .htaccess');
         }
     }
 

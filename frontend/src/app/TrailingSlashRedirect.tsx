@@ -9,10 +9,7 @@ export function TrailingSlashRedirect() {
   useEffect(() => {
     const { pathname, search, hash } = location
     if (pathname.length > 1 && pathname.endsWith('/')) {
-      navigate(
-        { pathname: pathname.replace(/\/+$/, '') || '/', search, hash },
-        { replace: true },
-      )
+      navigate({ pathname: pathname.replace(/\/+$/, '') || '/', search, hash }, { replace: true })
     }
   }, [location, navigate])
 

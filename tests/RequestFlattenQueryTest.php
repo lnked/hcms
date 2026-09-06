@@ -42,4 +42,22 @@ final class RequestFlattenQueryTest extends TestCase
         $this->assertNull(Request::trailingSlashRedirectTarget('POST', '/admin/'));
         $this->assertNull(Request::trailingSlashRedirectTarget('GET', '/'));
     }
+
+    public function testAuthorizationFromGlobals(): void
+    {
+        $prev = $_SERVER;
+        try {
+            $_SERVER = [];
+            $this->assertNull(Request::authorizationFromGlobals());
+
+            $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer abc';
+            $this->assertSame('Bearer abc', Request::authorizationFromGlobals());
+
+            unset($_SERVER['HTTP_AUTHORIZATION']);
+            $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = 'Bearer def';
+            $this->assertSame('Bearer def', Request::authorizationFromGlobals());
+        } finally {
+            $_SERVER = $prev;
+        }
+    }
 }

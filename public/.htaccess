@@ -5,12 +5,20 @@
     # Avoid /admin → /admin/ (physical public/admin directory).
     DirectorySlash Off
 
+    # Pass Bearer token to PHP (CGI/Apache often drop Authorization).
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     # Existing files (admin assets, uploads, etc.)
     RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
 
     # Everything else → front controller
     RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 </IfModule>
 
 Options -Indexes

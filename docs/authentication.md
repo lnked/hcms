@@ -6,6 +6,10 @@
 Authorization: Bearer <token>
 ```
 
+On Apache/CGI shared hosting the `Authorization` header is often stripped before PHP.
+HCMS restores it via web-root `.htaccess` (`HTTP_AUTHORIZATION`) and `Request::authorizationFromGlobals()`.
+If Bearer auth still fails after deploy, confirm that `.htaccess` contains the `HTTP_AUTHORIZATION` rewrite.
+
 Login:
 
 ```http

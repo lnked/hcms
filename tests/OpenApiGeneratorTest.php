@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\Core\Config;
+use Cms\Core\Version;
 use Cms\OpenApi\OpenApiGenerator;
 use PHPUnit\Framework\TestCase;
 
@@ -28,7 +29,7 @@ final class OpenApiGeneratorTest extends TestCase
         $spec = (new OpenApiGenerator($config))->generate();
 
         $this->assertSame('3.0.3', $spec['openapi']);
-        $this->assertSame('0.12.0', $spec['info']['version']);
+        $this->assertSame(Version::current(), $spec['info']['version']);
         $this->assertArrayHasKey('bearerAuth', $spec['components']['securitySchemes']);
         $this->assertCount(2, $spec['servers']);
     }

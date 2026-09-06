@@ -2,6 +2,9 @@
     RewriteEngine On
     DirectorySlash Off
 
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     RewriteRule ^install\.php$ - [L]
     RewriteRule ^clean\.php$ - [L]
     RewriteRule ^public/ - [L]
