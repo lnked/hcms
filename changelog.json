@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.24.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Adaptive dialog scroll, live slug sync",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Dialog height follows content; outer overlay scrolls so the whole modal moves (entry editor)"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Slug fields keep syncing from associatedWith in realtime while editing until the slug is manually touched"
+        }
+      ]
+    },
+    {
       "version": "0.23.0",
       "date": "2026-09-06",
       "channel": "stable",

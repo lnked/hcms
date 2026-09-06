@@ -39,7 +39,7 @@ describe('emptyValues', () => {
 })
 
 describe('slug auto-fill', () => {
-  it('fills slug from associated field and keeps manual override', () => {
+  it('fills slug from associated field in realtime even when editing existing values', () => {
     const fields = [
       { ...emptyField('string', 0), name: 'title', label: 'Title' },
       {
@@ -51,7 +51,10 @@ describe('slug auto-fill', () => {
     ]
 
     function SlugHarness() {
-      const [values, setValues] = useState(emptyValues(fields))
+      const [values, setValues] = useState<Record<string, unknown>>({
+        title: 'Old Title',
+        slug: 'old-title',
+      })
       return <FormRenderer fields={fields} values={values} onChange={setValues} />
     }
 

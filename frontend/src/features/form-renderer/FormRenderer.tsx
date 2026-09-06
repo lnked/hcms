@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
@@ -41,36 +42,34 @@ function applySlugUpdates(
   values: EntryValues,
   changedName: string,
   changedValue: unknown,
+  touchedSlugs: Set<string>,
 ): EntryValues {
   const next: EntryValues = { ...values, [changedName]: changedValue }
   for (const field of fields) {
     if (field.type !== 'slug') continue
+    if (touchedSlugs.has(field.name)) continue
     const source = String(field.config.associatedWith ?? '')
     if (!source || source !== changedName) continue
     const maxLength = Number(field.config.maxLength ?? 255) || 255
-    const prevAuto = slugifyUrl(values[source] == null ? '' : String(values[source]), maxLength)
-    const currentSlug = values[field.name]
-    const slugEmpty = currentSlug == null || currentSlug === ''
-    if (slugEmpty || currentSlug === prevAuto) {
-      const generated = slugifyUrl(
-        changedValue == null ? '' : String(changedValue),
-        maxLength,
-      )
-      next[field.name] = generated === '' ? null : generated
-    }
+    const generated = slugifyUrl(changedValue == null ? '' : String(changedValue), maxLength)
+    next[field.name] = generated === '' ? null : generated
   }
   return next
 }
 
 export function FormRenderer({ fields, values, onChange, disabled, entryId }: FormRendererProps) {
   const { t } = useI18n()
+  const touchedSlugsRef = useRef(new Set<string>())
   const visible = fields
     .filter(shouldRenderField)
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   function set(name: string, value: unknown) {
-    onChange(applySlugUpdates(fields, values, name, value))
+    if (fields.some((field) => field.type === 'slug' && field.name === name)) {
+      touchedSlugsRef.current.add(name)
+    }
+    onChange(applySlugUpdates(fields, values, name, value, touchedSlugsRef.current))
   }
 
   const resolvedEntryId =
