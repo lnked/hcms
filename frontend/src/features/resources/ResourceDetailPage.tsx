@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlayground'
+import { ResourceCustomApisPanel } from '@/features/resources/ResourceCustomApisPanel'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
@@ -38,6 +39,7 @@ export function ResourceDetailPage() {
   const tab: Tab = isTab(tabParam) ? tabParam : 'overview'
   const [draftSchema, setDraftSchema] = useState<SchemaField[] | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [playgroundPath, setPlaygroundPath] = useState<string | null>(null)
 
   useEffect(() => {
     if (!Number.isFinite(resourceId) || resourceId <= 0) return
@@ -253,11 +255,19 @@ export function ResourceDetailPage() {
       ) : null}
 
       {tab === 'api' ? (
-        <ResourceApiPlayground
-          key={`api-${resource.id}`}
-          resource={resource}
-          fields={fieldsQuery.data ?? schema}
-        />
+        <div className="space-y-6">
+          <ResourceCustomApisPanel
+            resource={resource}
+            fields={fieldsQuery.data ?? schema}
+            onSelectPath={(path) => setPlaygroundPath(path)}
+          />
+          <ResourceApiPlayground
+            key={`api-${resource.id}`}
+            resource={resource}
+            fields={fieldsQuery.data ?? schema}
+            pathPreset={playgroundPath}
+          />
+        </div>
       ) : null}
     </div>
   )

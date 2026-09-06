@@ -26,6 +26,7 @@ use Cms\Core\Paths;
 use Cms\Core\Settings;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
+use Cms\Database\PendingMigrations;
 use Cms\Database\SchemaDiff;
 use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
@@ -39,6 +40,7 @@ use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
+use Cms\Http\Controllers\ResourceApiController;
 use Cms\Http\Controllers\ResourceController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
@@ -47,6 +49,8 @@ use Cms\Http\Controllers\UsersController;
 use Cms\Install\Installer;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
+use Cms\Resources\ResourceApiRepository;
+use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\System\AdminUiPublisher;
@@ -103,6 +107,7 @@ final class Kernel
             ]);
             $tokens = new TokenService($db);
             $settings = new Settings($db);
+            PendingMigrations::apply($db, $paths, $settings);
             $store = new DatabaseRateLimitStore($db);
             $adminTtlHours = max(1, $settings->int('auth.admin_token_ttl_hours', 12));
             $loginGuard = new LoginGuard(new RateLimiter(
@@ -329,6 +334,7 @@ final class Kernel
                 $this->db !== null ? new ResourceRepository($this->db) : null,
                 $this->db !== null ? new FieldRepository($this->db) : null,
                 $this->db !== null ? $metadata : null,
+                $this->db !== null ? new ResourceApiRepository($this->db) : null,
             ),
         );
 
@@ -498,6 +504,50 @@ final class Kernel
                 }
 
                 return $resources->delete($request, $context, (int) $params['id']);
+            });
+
+            $resourceApiService = new ResourceApiService(
+                new ResourceRepository($this->db),
+                new ResourceApiRepository($this->db),
+                new FieldRepository($this->db),
+                $metadata,
+            );
+            $resourceApis = new ResourceApiController($resourceApiService, $audit);
+
+            $this->router->add('GET', '/admin/api/resources/{id}/apis', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceApis->index($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/apis', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceApis->create($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceApis->show($request, $context, (int) $params['id'], (int) $params['apiId']);
+            });
+            $this->router->add('PATCH', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceApis->update($request, $context, (int) $params['id'], (int) $params['apiId']);
+            });
+            $this->router->add('DELETE', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceApis->delete($request, $context, (int) $params['id'], (int) $params['apiId']);
             });
 
             $fieldService = new FieldService(
@@ -777,24 +827,74 @@ final class Kernel
         }, true, 'api');
 
         if ($this->db !== null) {
+            $resourceApiRepo = new ResourceApiRepository($this->db);
             $publicApi = new PublicApiController(
                 new QueryEngine(
                     $this->db,
                     new ResourceRepository($this->db),
                     new FieldRepository($this->db),
+                    $resourceApiRepo,
                 ),
                 new ResourceRepository($this->db),
                 new TokenGrantRepository($this->db),
+                $resourceApiRepo,
             );
             foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
                 $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
                     return $publicApi->handle($request, (string) $params['slug'], null, $context);
                 }, true, 'api');
-                $this->router->add($method, '/api/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
-                }, true, 'api');
                 $this->router->add($method, '/api/v1/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
                     return $publicApi->handle($request, (string) $params['slug'], null, $context);
+                }, true, 'api');
+            }
+            // Custom APIs before /{id} so non-numeric segments resolve as apiSlug.
+            $this->router->add('GET', '/api/{slug}/{apiSlug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                $apiSlug = (string) $params['apiSlug'];
+                if (ctype_digit($apiSlug)) {
+                    return Response::error('NOT_FOUND', 'Not found', 404);
+                }
+
+                return $publicApi->handleCustom(
+                    $request,
+                    (string) $params['slug'],
+                    $apiSlug,
+                    (string) $params['id'],
+                    $context,
+                );
+            }, true, 'api');
+            $this->router->add('GET', '/api/v1/{slug}/{apiSlug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                $apiSlug = (string) $params['apiSlug'];
+                if (ctype_digit($apiSlug)) {
+                    return Response::error('NOT_FOUND', 'Not found', 404);
+                }
+
+                return $publicApi->handleCustom(
+                    $request,
+                    (string) $params['slug'],
+                    $apiSlug,
+                    (string) $params['id'],
+                    $context,
+                );
+            }, true, 'api');
+            $this->router->add('GET', '/api/{slug}/{apiSlug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                $apiSlug = (string) $params['apiSlug'];
+                if (ctype_digit($apiSlug)) {
+                    return $publicApi->handle($request, (string) $params['slug'], $apiSlug, $context);
+                }
+
+                return $publicApi->handleCustom($request, (string) $params['slug'], $apiSlug, null, $context);
+            }, true, 'api');
+            $this->router->add('GET', '/api/v1/{slug}/{apiSlug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                $apiSlug = (string) $params['apiSlug'];
+                if (ctype_digit($apiSlug)) {
+                    return $publicApi->handle($request, (string) $params['slug'], $apiSlug, $context);
+                }
+
+                return $publicApi->handleCustom($request, (string) $params['slug'], $apiSlug, null, $context);
+            }, true, 'api');
+            foreach (['POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
+                $this->router->add($method, '/api/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
+                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
                 }, true, 'api');
                 $this->router->add($method, '/api/v1/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
                     return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);

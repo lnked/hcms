@@ -45,3 +45,15 @@ API tokens need matching grants; admin tokens bypass grants.
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.
 
 Rate limits: IP + per-token (admin vs API limits from settings). 429 includes `Retry-After` and `X-RateLimit-Limit`.
+
+## Custom resource APIs
+
+Named GET-only endpoints with field projection and nested manyToOne embeds:
+
+```http
+GET /api/{slug}/{apiSlug}
+GET /api/{slug}/{apiSlug}/{id}
+```
+
+Admin CRUD: `/admin/api/resources/{id}/apis`.  
+`apiSlug` must start with a letter (not numeric-only) so it does not collide with entry ids.

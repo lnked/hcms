@@ -7,6 +7,8 @@ namespace Cms\Api;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
+use Cms\Resources\ResourceApiRepository;
+use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use InvalidArgumentException;
@@ -18,6 +20,7 @@ final class QueryEngine
         private readonly Connection $db,
         private readonly ResourceRepository $resources,
         private readonly FieldRepository $fields,
+        private readonly ?ResourceApiRepository $apis = null,
     ) {
     }
 
@@ -180,6 +183,385 @@ final class QueryEngine
         if ($affected === 0) {
             throw new RuntimeException('Resource not found', 404);
         }
+    }
+
+    /**
+     * @param array<string, string> $query
+     * @param array{public?: bool} $options
+     * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
+     */
+    public function listCustom(string $slug, string $apiSlug, array $query, array $options = []): array
+    {
+        [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, $options);
+        $settings = $this->mergedSettings($resource, $api);
+
+        $page = max(1, (int) ($query['page'] ?? 1));
+        $limit = min(100, max(1, (int) ($query['limit'] ?? 20)));
+        $public = (bool) ($options['public'] ?? false);
+        if ($public && !($settings['pagination'] ?? true)) {
+            $page = 1;
+            $limit = 100;
+        }
+        $offset = ($page - 1) * $limit;
+
+        $where = ['`deleted_at` IS NULL'];
+        $params = [];
+        if (!$public || ($settings['filtering'] ?? true)) {
+            $this->applyFilters($query, $fieldMap, $where, $params);
+        } elseif ($this->hasFilterParams($query)) {
+            throw new InvalidArgumentException('Filtering is disabled for this resource');
+        }
+        if (!$public || ($settings['search'] ?? true)) {
+            $this->applySearch($query, $fieldMap, $where, $params);
+        } elseif (($query['search'] ?? '') !== '') {
+            throw new InvalidArgumentException('Search is disabled for this resource');
+        }
+
+        $whereSql = ' WHERE ' . implode(' AND ', $where);
+        if ($public && !($settings['sorting'] ?? true)) {
+            if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
+                throw new InvalidArgumentException('Sorting is disabled for this resource');
+            }
+            $orderSql = ' ORDER BY `id` ASC';
+        } else {
+            $orderSql = $this->orderSql($query, $fieldMap);
+        }
+
+        $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
+        $total = $countRow === null ? 0 : (int) $countRow['c'];
+
+        $selectSql = $this->selectSql($fieldMap, $api);
+        $rows = $this->db->select(
+            'SELECT ' . $selectSql . ' FROM `' . $table . '`' . $whereSql . $orderSql
+            . ' LIMIT ' . $limit . ' OFFSET ' . $offset,
+            $params,
+        );
+
+        $data = array_map(
+            fn (array $row): array => $this->serializeCustom($row, $fieldMap, $api),
+            $rows,
+        );
+        $this->attachJoins($data, $rows, $api);
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => (int) max(1, (int) ceil($total / $limit)),
+            ],
+        ];
+    }
+
+    /**
+     * @param array{public?: bool} $options
+     * @return array<string, mixed>
+     */
+    public function findCustom(string $slug, string $apiSlug, int $id, array $options = []): array
+    {
+        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, $options);
+        $selectSql = $this->selectSql($fieldMap, $api);
+        $row = $this->db->selectOne(
+            'SELECT ' . $selectSql . ' FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            ['id' => $id],
+        );
+        if ($row === null) {
+            throw new RuntimeException('Resource not found', 404);
+        }
+
+        $item = $this->serializeCustom($row, $fieldMap, $api);
+        $items = [$item];
+        $this->attachJoins($items, [$row], $api);
+
+        return $items[0];
+    }
+
+    /**
+     * @param array{public?: bool} $options
+     * @return array{0: array<string, mixed>, 1: string, 2: array<string, array<string, mixed>>, 3: array<string, mixed>}
+     */
+    private function resolveCustom(string $slug, string $apiSlug, array $options = []): array
+    {
+        if ($this->apis === null) {
+            throw new RuntimeException('Custom APIs are not available', 404);
+        }
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $apiRow = $this->apis->findByResourceAndSlug((int) $resource['id'], $apiSlug);
+        if ($apiRow === null || !(bool) (int) ($apiRow['enabled'] ?? 0)) {
+            throw new RuntimeException('Resource API not found', 404);
+        }
+
+        $methods = is_string($apiRow['methods_json'])
+            ? json_decode((string) $apiRow['methods_json'], true)
+            : $apiRow['methods_json'];
+        $methods = is_array($methods) ? array_map('strval', $methods) : [];
+        if (!in_array('GET', $methods, true)) {
+            throw new RuntimeException('Method not allowed', 405);
+        }
+
+        $fields = $apiRow['fields_json'];
+        if (is_string($fields)) {
+            $fields = json_decode($fields, true);
+        }
+        $joins = is_string($apiRow['joins_json'])
+            ? json_decode((string) $apiRow['joins_json'], true)
+            : $apiRow['joins_json'];
+        $apiSettings = is_string($apiRow['settings_json'])
+            ? json_decode((string) $apiRow['settings_json'], true)
+            : $apiRow['settings_json'];
+
+        $api = [
+            'id' => (int) $apiRow['id'],
+            'slug' => (string) $apiRow['slug'],
+            'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
+            'joins' => is_array($joins) ? array_values($joins) : [],
+            'settings' => ResourceApiService::normalizeSettings(is_array($apiSettings) ? $apiSettings : []),
+        ];
+
+        return [$resource, $table, $fieldMap, $api];
+    }
+
+    /**
+     * @param array<string, mixed> $resource
+     * @param array<string, mixed> $api
+     * @return array<string, mixed>
+     */
+    private function mergedSettings(array $resource, array $api): array
+    {
+        $base = $this->settingsOf($resource);
+        $override = is_array($api['settings'] ?? null) ? $api['settings'] : [];
+        foreach (['pagination', 'search', 'sorting', 'filtering'] as $key) {
+            if (array_key_exists($key, $override)) {
+                $base[$key] = (bool) $override[$key];
+            }
+        }
+
+        return $base;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @param array<string, mixed> $api
+     */
+    private function selectSql(array $fieldMap, array $api): string
+    {
+        $cols = ['`id`', '`created_at`', '`updated_at`'];
+        $needed = [];
+        if ($api['fields'] === null) {
+            foreach ($fieldMap as $name => $meta) {
+                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                    continue;
+                }
+                $needed[$name] = true;
+            }
+        } else {
+            foreach ($api['fields'] as $name) {
+                if (is_string($name) && isset($fieldMap[$name])) {
+                    $needed[$name] = true;
+                }
+            }
+        }
+        foreach ($api['joins'] as $join) {
+            if (!is_array($join)) {
+                continue;
+            }
+            $local = (string) ($join['localField'] ?? '');
+            if ($local !== '' && isset($fieldMap[$local])) {
+                $needed[$local] = true;
+            }
+        }
+        foreach (array_keys($needed) as $name) {
+            $cols[] = '`' . $name . '`';
+        }
+
+        return implode(', ', array_values(array_unique($cols)));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @param array<string, mixed> $api
+     * @return array<string, mixed>
+     */
+    private function serializeCustom(array $row, array $fieldMap, array $api): array
+    {
+        $out = ['id' => (int) $row['id']];
+        $whitelist = $api['fields'];
+        if ($whitelist === null) {
+            $out['createdAt'] = $row['created_at'] ?? null;
+            $out['updatedAt'] = $row['updated_at'] ?? null;
+            foreach ($fieldMap as $name => $meta) {
+                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                    continue;
+                }
+                if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
+                    continue;
+                }
+                $value = $row[$name] ?? null;
+                if (($meta['type'] ?? '') === 'relation' && $value !== null) {
+                    $value = (int) $value;
+                }
+                $out[$name] = $value;
+            }
+
+            return $out;
+        }
+
+        $allowed = array_fill_keys($whitelist, true);
+        foreach ($whitelist as $name) {
+            if (!isset($fieldMap[$name])) {
+                continue;
+            }
+            $meta = $fieldMap[$name];
+            $value = $row[$name] ?? null;
+            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
+                $value = (int) $value;
+            }
+            $out[$name] = $value;
+        }
+        unset($allowed);
+
+        return $out;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @param list<array<string, mixed>> $rows
+     * @param array<string, mixed> $api
+     */
+    private function attachJoins(array &$items, array $rows, array $api): void
+    {
+        foreach ($api['joins'] as $join) {
+            if (!is_array($join) || ($join['type'] ?? 'manyToOne') !== 'manyToOne') {
+                continue;
+            }
+            $as = (string) ($join['as'] ?? '');
+            $relatedSlug = (string) ($join['relatedSlug'] ?? '');
+            $localField = (string) ($join['localField'] ?? '');
+            $foreignField = (string) ($join['foreignField'] ?? 'id');
+            if ($as === '' || $relatedSlug === '' || $localField === '') {
+                continue;
+            }
+            if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $foreignField)) {
+                continue;
+            }
+
+            $related = $this->resources->findBySlug($relatedSlug);
+            if ($related === null || ($related['status'] ?? '') !== 'published') {
+                foreach ($items as $i => $_) {
+                    $items[$i][$as] = null;
+                }
+                continue;
+            }
+
+            $relatedTable = MigrationService::tableName((string) $related['content_type_slug']);
+            $relatedFieldMap = $this->fieldMapFromResource($related);
+            $ids = [];
+            foreach ($rows as $row) {
+                $fk = $row[$localField] ?? null;
+                if ($fk !== null && $fk !== '') {
+                    $ids[(string) $fk] = $fk;
+                }
+            }
+
+            $relatedByKey = [];
+            if ($ids !== []) {
+                $placeholders = [];
+                $params = [];
+                $i = 0;
+                foreach ($ids as $key => $value) {
+                    $param = 'j_' . $i++;
+                    $placeholders[] = ':' . $param;
+                    $params[$param] = $value;
+                }
+                $relatedRows = $this->db->select(
+                    'SELECT * FROM `' . $relatedTable . '`
+                     WHERE `' . $foreignField . '` IN (' . implode(', ', $placeholders) . ')
+                       AND `deleted_at` IS NULL',
+                    $params,
+                );
+                foreach ($relatedRows as $relatedRow) {
+                    $key = (string) ($relatedRow[$foreignField] ?? '');
+                    $relatedByKey[$key] = $this->serializeRelated($relatedRow, $relatedFieldMap, $join['fields'] ?? null);
+                }
+            }
+
+            foreach ($rows as $i => $row) {
+                $fk = $row[$localField] ?? null;
+                $items[$i][$as] = ($fk === null || $fk === '')
+                    ? null
+                    : ($relatedByKey[(string) $fk] ?? null);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @param list<string>|null $fields
+     * @return array<string, mixed>
+     */
+    private function serializeRelated(array $row, array $fieldMap, ?array $fields): array
+    {
+        $out = ['id' => (int) $row['id']];
+        if ($fields === null) {
+            $out['createdAt'] = $row['created_at'] ?? null;
+            $out['updatedAt'] = $row['updated_at'] ?? null;
+            foreach ($fieldMap as $name => $meta) {
+                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                    continue;
+                }
+                if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
+                    continue;
+                }
+                $value = $row[$name] ?? null;
+                if (($meta['type'] ?? '') === 'relation' && $value !== null) {
+                    $value = (int) $value;
+                }
+                $out[$name] = $value;
+            }
+
+            return $out;
+        }
+
+        foreach ($fields as $name) {
+            if (!isset($fieldMap[$name])) {
+                continue;
+            }
+            $meta = $fieldMap[$name];
+            $value = $row[$name] ?? null;
+            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
+                $value = (int) $value;
+            }
+            $out[$name] = $value;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $resource
+     * @return array<string, array<string, mixed>>
+     */
+    private function fieldMapFromResource(array $resource): array
+    {
+        $fields = $this->fields->forContentType((int) $resource['content_type_id']);
+        $map = [];
+        foreach ($fields as $field) {
+            $spec = is_string($field['spec_json'])
+                ? json_decode((string) $field['spec_json'], true)
+                : $field['spec_json'];
+            $map[(string) $field['name']] = [
+                'type' => $field['type'],
+                'spec' => is_array($spec) ? $spec : [],
+            ];
+        }
+
+        return $map;
     }
 
     /**

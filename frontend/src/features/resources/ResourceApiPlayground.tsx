@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,10 +8,12 @@ import { useI18n } from '@/i18n'
 import { api, getToken } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
+import type { ResourceCustomApi } from '@/types/resourceApi'
 
 interface ResourceApiPlaygroundProps {
   resource: Resource
   fields: SchemaField[]
+  pathPreset?: string | null
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
@@ -27,7 +29,7 @@ function normalizeEndpoint(value: string): string {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
-export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroundProps) {
+export function ResourceApiPlayground({ resource, fields, pathPreset }: ResourceApiPlaygroundProps) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [method, setMethod] = useState<HttpMethod>('GET')
@@ -40,19 +42,41 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
   const [copied, setCopied] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const normalizedPath = normalizeEndpoint(path)
-  const pathDirty = normalizedPath !== '' && normalizedPath !== resource.endpoint
+  const customApisQuery = useQuery({
+    queryKey: ['resource-apis', resource.id],
+    queryFn: () => api<ResourceCustomApi[]>(`/admin/api/resources/${resource.id}/apis`),
+  })
 
-  const endpoints = useMemo(
-    () => [
+  useEffect(() => {
+    if (pathPreset) {
+      setPath(pathPreset)
+      setMethod('GET')
+      setMessage(null)
+    }
+  }, [pathPreset])
+
+  const normalizedPath = normalizeEndpoint(path)
+  const isCustomPath = (customApisQuery.data ?? []).some(
+    (custom) => path === custom.path || path.startsWith(`${custom.path}/`),
+  )
+  const pathDirty =
+    !isCustomPath && normalizedPath !== '' && normalizedPath !== resource.endpoint
+
+  const endpoints = useMemo(() => {
+    const lines = [
       `GET ${resource.endpoint}`,
       `GET ${resource.endpoint}/:id`,
       `POST ${resource.endpoint}`,
       `PATCH ${resource.endpoint}/:id`,
       `DELETE ${resource.endpoint}/:id`,
-    ],
-    [resource.endpoint],
-  )
+    ]
+    for (const custom of customApisQuery.data ?? []) {
+      if (!custom.enabled) continue
+      lines.push(`GET ${custom.path}`)
+      lines.push(`GET ${custom.path}/:id`)
+    }
+    return lines
+  }, [customApisQuery.data, resource.endpoint])
 
   const fullUrl = useMemo(() => {
     const q = query.trim()
@@ -123,7 +147,20 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
       <CardContent className="space-y-4">
         <div className="space-y-1 font-mono text-sm text-muted-foreground">
           {endpoints.map((line) => (
-            <p key={line}>{line}</p>
+            <button
+              key={line}
+              type="button"
+              className="block w-full text-left hover:text-foreground"
+              onClick={() => {
+                const match = line.match(/^(GET|POST|PATCH|DELETE)\s+(\S+)/)
+                if (!match) return
+                setMethod(match[1] as HttpMethod)
+                setPath(match[2].replace(/\/:id$/, '/1'))
+                setMessage(null)
+              }}
+            >
+              {line}
+            </button>
           ))}
         </div>
 
@@ -191,9 +228,7 @@ export function ResourceApiPlayground({ resource, fields }: ResourceApiPlaygroun
             disabled={!pathDirty || saveEndpoint.isPending}
             onClick={() => saveEndpoint.mutate()}
           >
-            {saveEndpoint.isPending
-              ? t('common.saving')
-              : t('resources.playground.savePath')}
+            {saveEndpoint.isPending ? t('common.saving') : t('resources.playground.savePath')}
           </Button>
           <Button disabled={sending} onClick={() => void send()}>
             {sending ? t('resources.playground.sending') : t('resources.playground.send')}

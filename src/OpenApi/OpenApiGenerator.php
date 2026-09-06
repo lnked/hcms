@@ -8,6 +8,7 @@ use Cms\Core\Config;
 use Cms\Core\MetadataCache;
 use Cms\Core\Version;
 use Cms\Fields\FieldRepository;
+use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceRepository;
 
 final class OpenApiGenerator
@@ -17,6 +18,7 @@ final class OpenApiGenerator
         private readonly ?ResourceRepository $resources = null,
         private readonly ?FieldRepository $fields = null,
         private readonly ?MetadataCache $metadata = null,
+        private readonly ?ResourceApiRepository $apis = null,
     ) {
     }
 
@@ -71,6 +73,56 @@ final class OpenApiGenerator
                 $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
                 $paths['/' . $slug] = $this->collectionPath($slug, $tag, $schemaName, $inputName, $public, $fieldRows);
                 $paths['/' . $slug . '/{id}'] = $this->itemPath($slug, $tag, $schemaName, $inputName, $public);
+
+                if ($this->apis !== null) {
+                    foreach ($this->apis->enabledForResource((int) $resource['id']) as $apiRow) {
+                        $apiSlug = (string) $apiRow['slug'];
+                        $apiLabel = (string) ($apiRow['label'] ?? $apiSlug);
+                        $apiFields = $apiRow['fields_json'];
+                        if (is_string($apiFields)) {
+                            $apiFields = json_decode($apiFields, true);
+                        }
+                        $apiJoins = $apiRow['joins_json'];
+                        if (is_string($apiJoins)) {
+                            $apiJoins = json_decode($apiJoins, true);
+                        }
+                        $apiSettings = $apiRow['settings_json'];
+                        if (is_string($apiSettings)) {
+                            $apiSettings = json_decode($apiSettings, true);
+                        }
+                        $apiPublicRead = is_array($apiSettings['public'] ?? null)
+                            && array_key_exists('read', $apiSettings['public'])
+                            && $apiSettings['public']['read'] !== null
+                            ? (bool) $apiSettings['public']['read']
+                            : (bool) ($public['read'] ?? false);
+
+                        $customSchema = $this->customItemSchema(
+                            $fieldRows,
+                            is_array($apiFields) ? $apiFields : null,
+                            is_array($apiJoins) ? $apiJoins : [],
+                        );
+                        $customSchemaName = $this->schemaName($slug . '_' . $apiSlug);
+                        $schemas[$customSchemaName] = $customSchema;
+
+                        $paths['/' . $slug . '/' . $apiSlug] = $this->customCollectionPath(
+                            $slug,
+                            $apiSlug,
+                            $apiLabel,
+                            $tag,
+                            $customSchemaName,
+                            $apiPublicRead,
+                            $fieldRows,
+                        );
+                        $paths['/' . $slug . '/' . $apiSlug . '/{id}'] = $this->customItemPath(
+                            $slug,
+                            $apiSlug,
+                            $apiLabel,
+                            $tag,
+                            $customSchemaName,
+                            $apiPublicRead,
+                        );
+                    }
+                }
             }
         }
 
@@ -429,12 +481,194 @@ final class OpenApiGenerator
 
     private function schemaName(string $slug): string
     {
-        $parts = explode('_', $slug);
+        $parts = preg_split('/[_-]+/', $slug) ?: [];
         $name = '';
         foreach ($parts as $part) {
             $name .= ucfirst($part);
         }
 
         return $name === '' ? 'Resource' : $name;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $fieldRows
+     * @param list<mixed>|null $fields
+     * @param list<mixed> $joins
+     * @return array<string, mixed>
+     */
+    private function customItemSchema(array $fieldRows, ?array $fields, array $joins): array
+    {
+        $byName = [];
+        foreach ($fieldRows as $field) {
+            $byName[(string) $field['name']] = $field;
+        }
+
+        $properties = [
+            'id' => ['type' => 'integer', 'readOnly' => true],
+        ];
+
+        if ($fields === null) {
+            $properties['createdAt'] = ['type' => 'string', 'format' => 'date-time', 'nullable' => true, 'readOnly' => true];
+            $properties['updatedAt'] = ['type' => 'string', 'format' => 'date-time', 'nullable' => true, 'readOnly' => true];
+            foreach ($fieldRows as $field) {
+                $spec = $this->spec($field);
+                if (!($spec['readable'] ?? true) || ($spec['hidden'] ?? false)) {
+                    continue;
+                }
+                $properties[(string) $field['name']] = $this->propertySchema((string) $field['type'], $spec);
+            }
+        } else {
+            foreach ($fields as $name) {
+                if (!is_string($name) || !isset($byName[$name])) {
+                    continue;
+                }
+                $field = $byName[$name];
+                $spec = $this->spec($field);
+                $properties[$name] = $this->propertySchema((string) $field['type'], $spec);
+            }
+        }
+
+        foreach ($joins as $join) {
+            if (!is_array($join)) {
+                continue;
+            }
+            $as = isset($join['as']) && is_string($join['as']) ? $join['as'] : '';
+            if ($as === '') {
+                continue;
+            }
+            $properties[$as] = [
+                'type' => 'object',
+                'nullable' => true,
+                'additionalProperties' => true,
+                'description' => 'Embedded related resource `' . ($join['relatedSlug'] ?? '') . '`',
+            ];
+        }
+
+        return [
+            'type' => 'object',
+            'properties' => $properties,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $fieldRows
+     * @return array<string, mixed>
+     */
+    private function customCollectionPath(
+        string $slug,
+        string $apiSlug,
+        string $apiLabel,
+        string $tag,
+        string $schemaName,
+        bool $publicRead,
+        array $fieldRows,
+    ): array {
+        $parameters = [
+            ['name' => 'page', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 1]],
+            ['name' => 'limit', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 20, 'maximum' => 100]],
+            ['name' => 'sort', 'in' => 'query', 'schema' => ['type' => 'string'], 'description' => 'Field or -field'],
+            ['name' => 'search', 'in' => 'query', 'schema' => ['type' => 'string']],
+        ];
+        foreach ($fieldRows as $field) {
+            $spec = $this->spec($field);
+            if ($spec['filterable'] ?? false) {
+                $name = (string) $field['name'];
+                $parameters[] = [
+                    'name' => 'filter[' . $name . ']',
+                    'in' => 'query',
+                    'schema' => ['type' => 'string'],
+                ];
+            }
+        }
+
+        $path = [
+            'get' => [
+                'tags' => [$tag],
+                'summary' => $apiLabel . ' (list)',
+                'operationId' => 'list_' . $slug . '_' . str_replace('-', '_', $apiSlug),
+                'parameters' => $parameters,
+                'responses' => [
+                    '200' => [
+                        'description' => 'OK',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'data' => [
+                                            'type' => 'array',
+                                            'items' => ['$ref' => '#/components/schemas/' . $schemaName],
+                                        ],
+                                        'meta' => [
+                                            'type' => 'object',
+                                            'properties' => [
+                                                'page' => ['type' => 'integer'],
+                                                'limit' => ['type' => 'integer'],
+                                                'total' => ['type' => 'integer'],
+                                                'totalPages' => ['type' => 'integer'],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+        if ($publicRead) {
+            $path['get']['security'] = [];
+        }
+
+        return $path;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function customItemPath(
+        string $slug,
+        string $apiSlug,
+        string $apiLabel,
+        string $tag,
+        string $schemaName,
+        bool $publicRead,
+    ): array {
+        $path = [
+            'get' => [
+                'tags' => [$tag],
+                'summary' => $apiLabel . ' (item)',
+                'operationId' => 'get_' . $slug . '_' . str_replace('-', '_', $apiSlug),
+                'parameters' => [
+                    [
+                        'name' => 'id',
+                        'in' => 'path',
+                        'required' => true,
+                        'schema' => ['type' => 'integer'],
+                    ],
+                ],
+                'responses' => [
+                    '200' => [
+                        'description' => 'OK',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'data' => ['$ref' => '#/components/schemas/' . $schemaName],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    '404' => ['description' => 'Not found'],
+                ],
+            ],
+        ];
+        if ($publicRead) {
+            $path['get']['security'] = [];
+        }
+
+        return $path;
     }
 }

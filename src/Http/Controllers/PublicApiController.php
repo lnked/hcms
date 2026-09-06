@@ -9,6 +9,8 @@ use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
 use Cms\Http\Request;
 use Cms\Http\Response;
+use Cms\Resources\ResourceApiRepository;
+use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use InvalidArgumentException;
 use RuntimeException;
@@ -19,6 +21,7 @@ final class PublicApiController
         private readonly QueryEngine $query,
         private readonly ResourceRepository $resources,
         private readonly TokenGrantRepository $grants,
+        private readonly ?ResourceApiRepository $apis = null,
     ) {
     }
 
@@ -43,16 +46,33 @@ final class PublicApiController
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
-            $code = $e->getCode();
-            $status = in_array($code, [401, 403, 404], true) ? $code : 400;
-            $errorCode = match ($status) {
-                401 => 'UNAUTHORIZED',
-                403 => 'FORBIDDEN',
-                404 => 'NOT_FOUND',
-                default => 'BAD_REQUEST',
-            };
+            return $this->runtimeError($e);
+        }
+    }
 
-            return Response::error($errorCode, $e->getMessage(), $status);
+    public function handleCustom(
+        Request $request,
+        string $slug,
+        string $apiSlug,
+        ?string $id,
+        ?AuthContext $auth,
+    ): Response {
+        try {
+            if ($request->method !== 'GET') {
+                return Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
+            }
+            if (!ResourceApiService::isValidApiSlug($apiSlug)) {
+                return Response::error('NOT_FOUND', 'Resource API not found', 404);
+            }
+            $this->authorizeCustom($slug, $apiSlug, $auth);
+
+            return $id === null
+                ? Response::json($this->query->listCustom($slug, $apiSlug, $request->query, ['public' => true]))
+                : Response::data($this->query->findCustom($slug, $apiSlug, (int) $id, ['public' => true]));
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
         }
     }
 
@@ -61,6 +81,21 @@ final class PublicApiController
         $this->query->delete($slug, $id, ['public' => true]);
 
         return new Response(204, '');
+    }
+
+    private function runtimeError(RuntimeException $e): Response
+    {
+        $code = $e->getCode();
+        $status = in_array($code, [401, 403, 404, 405], true) ? $code : 400;
+        $errorCode = match ($status) {
+            401 => 'UNAUTHORIZED',
+            403 => 'FORBIDDEN',
+            404 => 'NOT_FOUND',
+            405 => 'METHOD_NOT_ALLOWED',
+            default => 'BAD_REQUEST',
+        };
+
+        return Response::error($errorCode, $e->getMessage(), $status);
     }
 
     private function authorize(string $method, string $slug, ?AuthContext $auth): void
@@ -82,7 +117,46 @@ final class PublicApiController
             default => 'read',
         };
 
-        if (($public[$action] ?? false) === true) {
+        $this->authorizeAction($resource, $public[$action] ?? false, $action, $auth);
+    }
+
+    private function authorizeCustom(string $slug, string $apiSlug, ?AuthContext $auth): void
+    {
+        $resource = $this->resources->findBySlug($slug);
+        if ($resource === null || ($resource['status'] ?? '') !== 'published') {
+            throw new RuntimeException('Resource not found', 404);
+        }
+        if ($this->apis === null) {
+            throw new RuntimeException('Resource API not found', 404);
+        }
+        $api = $this->apis->findByResourceAndSlug((int) $resource['id'], $apiSlug);
+        if ($api === null || !(bool) (int) ($api['enabled'] ?? 0)) {
+            throw new RuntimeException('Resource API not found', 404);
+        }
+
+        $resourceSettings = is_string($resource['settings_json'])
+            ? json_decode((string) $resource['settings_json'], true)
+            : $resource['settings_json'];
+        $resourcePublic = is_array($resourceSettings['public'] ?? null) ? $resourceSettings['public'] : [];
+
+        $apiSettings = is_string($api['settings_json'])
+            ? json_decode((string) $api['settings_json'], true)
+            : $api['settings_json'];
+        $apiPublic = is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
+
+        $allowPublic = array_key_exists('read', $apiPublic) && $apiPublic['read'] !== null
+            ? (bool) $apiPublic['read']
+            : (bool) ($resourcePublic['read'] ?? false);
+
+        $this->authorizeAction($resource, $allowPublic, 'read', $auth);
+    }
+
+    /**
+     * @param array<string, mixed> $resource
+     */
+    private function authorizeAction(array $resource, bool $allowPublic, string $action, ?AuthContext $auth): void
+    {
+        if ($allowPublic === true) {
             return;
         }
 

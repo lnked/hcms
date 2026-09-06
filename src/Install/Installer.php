@@ -238,7 +238,7 @@ final class Installer
             'security.rate_limit_ip_per_minute' => 120,
             'security.rate_limit_token_per_minute' => 300,
             'security.rate_limit_api_token_per_minute' => 120,
-            'db.migrations' => ['001_cms_foundation.sql'],
+            'db.migrations' => $this->listMigrationFiles(),
         ];
         foreach ($settings as $key => $value) {
             $connection->execute(
@@ -259,20 +259,36 @@ final class Installer
 
     public function runMigrations(Connection $connection): void
     {
-        $file = $this->paths->migrations() . '/001_cms_foundation.sql';
-        if (!is_file($file)) {
-            throw new RuntimeException('Migration file not found');
+        $dir = $this->paths->migrations();
+        $files = glob($dir . '/*.sql') ?: [];
+        sort($files);
+        if ($files === []) {
+            throw new RuntimeException('Migration files not found');
         }
 
-        $sql = (string) file_get_contents($file);
-        $statements = preg_split('/;\s*\n/', $sql) ?: [];
-        foreach ($statements as $statement) {
-            $statement = trim($statement);
-            if ($statement === '' || str_starts_with($statement, '--')) {
-                continue;
+        foreach ($files as $file) {
+            $sql = (string) file_get_contents($file);
+            $statements = preg_split('/;\s*\n/', $sql) ?: [];
+            foreach ($statements as $statement) {
+                $statement = trim($statement);
+                if ($statement === '' || str_starts_with($statement, '--')) {
+                    continue;
+                }
+                $connection->execRaw($statement);
             }
-            $connection->execRaw($statement);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function listMigrationFiles(): array
+    {
+        $dir = $this->paths->migrations();
+        $files = glob($dir . '/*.sql') ?: [];
+        sort($files);
+
+        return array_values(array_map('basename', $files));
     }
 
     /**

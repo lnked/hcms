@@ -55,9 +55,12 @@ function stepLabelKey(step: string): MessageKey {
   return `system.step.${step}` as MessageKey
 }
 
+type SystemSection = 'version' | 'update'
+
 export function SystemPage() {
   const { t, locale, setLocale } = useI18n()
   const queryClient = useQueryClient()
+  const [section, setSection] = useState<SystemSection>('version')
   const [ackBreaking, setAckBreaking] = useState(false)
   const [preview, setPreview] = useState<UpdatePreview | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -220,155 +223,171 @@ export function SystemPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t('system.version')}</CardTitle>
-          <CardDescription>{t('system.versionHint')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>{t('system.current', { value: data?.current ?? '…' })}</p>
-          <p>{t('system.latest', { value: data?.latest ?? na })}</p>
-          <p>{t('system.released', { value: data?.releasedAt ?? na })}</p>
-          <p>{t('system.channel', { value: data?.channel ?? 'stable' })}</p>
-          <p>
-            {t('system.updateAvailable', {
-              value: data?.updateAvailable ? t('common.yes') : t('common.no'),
-            })}
-          </p>
-          <p>{t('system.lastState', { value: status.data?.state ?? t('system.idle') })}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('system.update')}</CardTitle>
-          <CardDescription>{t('system.updateHint')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              disabled={loadPreview.isPending || isUpdating}
-              onClick={() => loadPreview.mutate()}
-            >
-              {loadPreview.isPending ? t('system.checking') : t('system.checkUpdates')}
-            </Button>
-            {preview?.updateAvailable ? (
-              <Button disabled={runDisabled} onClick={() => runUpdate.mutate()}>
-                {isUpdating || runUpdate.isPending
-                  ? t('system.updating')
-                  : t('system.updateTo', { version: preview.to })}
-              </Button>
-            ) : null}
-          </div>
-
-          {showProgress ? (
-            <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <p className="font-medium">{t('system.updateProgress')}</p>
-                <span className="tabular-nums text-muted-foreground">{progress}%</span>
-              </div>
-              <div
-                className="h-2 overflow-hidden rounded-full bg-muted"
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={t('system.updateProgress')}
+        <CardHeader className="space-y-4">
+          <div className="flex gap-2 border-b pb-2">
+            {(['version', 'update'] as SystemSection[]).map((item) => (
+              <Button
+                key={item}
+                size="sm"
+                variant={section === item ? 'default' : 'ghost'}
+                onClick={() => setSection(item)}
+                className="gap-2"
               >
-                <div
-                  className={cn(
-                    'h-full rounded-full transition-[width] duration-300',
-                    live?.state === 'failed' ? 'bg-destructive' : 'bg-primary',
-                  )}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">{stepText}</p>
-              <ol className="space-y-1 text-xs text-muted-foreground">
-                {UPDATE_STEPS.map((step, index) => {
-                  const done =
-                    live?.state === 'done' ||
-                    (isUpdateStep(currentStep) && index < currentStepIndex)
-                  const active = currentStep === step && live?.state === 'running'
-                  return (
-                    <li
-                      key={step}
-                      className={cn(
-                        'flex items-center gap-2',
-                        done && 'text-foreground',
-                        active && 'font-medium text-foreground',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'inline-block h-1.5 w-1.5 rounded-full',
-                          done || active ? 'bg-primary' : 'bg-border',
-                        )}
-                      />
-                      {t(stepLabelKey(step))}
-                    </li>
-                  )
-                })}
-              </ol>
+                {item === 'version' ? t('system.version') : t('system.update')}
+                {item === 'update' && data?.updateAvailable ? (
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                    title={t('common.updateAvailable')}
+                  />
+                ) : null}
+              </Button>
+            ))}
+          </div>
+          <CardDescription>
+            {section === 'version' ? t('system.versionHint') : t('system.updateHint')}
+          </CardDescription>
+        </CardHeader>
+        {section === 'version' ? (
+          <CardContent className="space-y-2 text-sm">
+            <p>{t('system.current', { value: data?.current ?? '…' })}</p>
+            <p>{t('system.latest', { value: data?.latest ?? na })}</p>
+            <p>{t('system.released', { value: data?.releasedAt ?? na })}</p>
+            <p>{t('system.channel', { value: data?.channel ?? 'stable' })}</p>
+            <p>
+              {t('system.updateAvailable', {
+                value: data?.updateAvailable ? t('common.yes') : t('common.no'),
+              })}
+            </p>
+            <p>{t('system.lastState', { value: status.data?.state ?? t('system.idle') })}</p>
+          </CardContent>
+        ) : (
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                disabled={loadPreview.isPending || isUpdating}
+                onClick={() => loadPreview.mutate()}
+              >
+                {loadPreview.isPending ? t('system.checking') : t('system.checkUpdates')}
+              </Button>
+              {preview?.updateAvailable ? (
+                <Button disabled={runDisabled} onClick={() => runUpdate.mutate()}>
+                  {isUpdating || runUpdate.isPending
+                    ? t('system.updating')
+                    : t('system.updateTo', { version: preview.to })}
+                </Button>
+              ) : null}
             </div>
-          ) : null}
 
-          {preview?.hasBreaking ? (
-            <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-              <p className="font-medium text-destructive">{t('system.breakingTitle')}</p>
-              <ul className="list-disc space-y-1 pl-5">
-                {preview.changes
-                  .filter((c) => c.type === 'breaking')
-                  .map((c, i) => (
+            {showProgress ? (
+              <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <p className="font-medium">{t('system.updateProgress')}</p>
+                  <span className="tabular-nums text-muted-foreground">{progress}%</span>
+                </div>
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={t('system.updateProgress')}
+                >
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-[width] duration-300',
+                      live?.state === 'failed' ? 'bg-destructive' : 'bg-primary',
+                    )}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">{stepText}</p>
+                <ol className="space-y-1 text-xs text-muted-foreground">
+                  {UPDATE_STEPS.map((step, index) => {
+                    const done =
+                      live?.state === 'done' ||
+                      (isUpdateStep(currentStep) && index < currentStepIndex)
+                    const active = currentStep === step && live?.state === 'running'
+                    return (
+                      <li
+                        key={step}
+                        className={cn(
+                          'flex items-center gap-2',
+                          done && 'text-foreground',
+                          active && 'font-medium text-foreground',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'inline-block h-1.5 w-1.5 rounded-full',
+                            done || active ? 'bg-primary' : 'bg-border',
+                          )}
+                        />
+                        {t(stepLabelKey(step))}
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
+            ) : null}
+
+            {preview?.hasBreaking ? (
+              <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                <p className="font-medium text-destructive">{t('system.breakingTitle')}</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  {preview.changes
+                    .filter((c) => c.type === 'breaking')
+                    .map((c, i) => (
+                      <li key={i}>
+                        <span className="font-mono text-xs">v{c.version}</span> — {c.text}
+                        {c.migration ? (
+                          <span className="block text-muted-foreground">
+                            {t('system.migration', { text: c.migration })}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                </ul>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={ackBreaking}
+                    onChange={(e) => setAckBreaking(e.target.checked)}
+                  />
+                  {t('system.ackBreaking')}
+                </label>
+              </div>
+            ) : null}
+
+            {preview && !preview.updateAvailable ? (
+              <p className="text-sm text-muted-foreground">{t('system.latestRelease')}</p>
+            ) : null}
+
+            {preview?.changes && preview.changes.length > 0 ? (
+              <div className="space-y-1 text-sm">
+                <p className="font-medium">{t('system.changelogDelta')}</p>
+                <ul className="max-h-48 space-y-1 overflow-auto text-muted-foreground">
+                  {preview.changes.map((c, i) => (
                     <li key={i}>
-                      <span className="font-mono text-xs">v{c.version}</span> — {c.text}
-                      {c.migration ? (
-                        <span className="block text-muted-foreground">
-                          {t('system.migration', { text: c.migration })}
-                        </span>
-                      ) : null}
+                      <span className="font-mono text-xs">[{c.type}]</span> {c.text}
                     </li>
                   ))}
-              </ul>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={ackBreaking}
-                  onChange={(e) => setAckBreaking(e.target.checked)}
-                />
-                {t('system.ackBreaking')}
-              </label>
-            </div>
-          ) : null}
+                </ul>
+              </div>
+            ) : null}
 
-          {preview && !preview.updateAvailable ? (
-            <p className="text-sm text-muted-foreground">{t('system.latestRelease')}</p>
-          ) : null}
-
-          {preview?.changes && preview.changes.length > 0 ? (
-            <div className="space-y-1 text-sm">
-              <p className="font-medium">{t('system.changelogDelta')}</p>
-              <ul className="max-h-48 space-y-1 overflow-auto text-muted-foreground">
-                {preview.changes.map((c, i) => (
-                  <li key={i}>
-                    <span className="font-mono text-xs">[{c.type}]</span> {c.text}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {statusMessage ? (
-            <p
-              className={cn(
-                'text-sm',
-                live?.state === 'failed' ? 'text-destructive' : 'text-muted-foreground',
-              )}
-            >
-              {statusMessage}
-            </p>
-          ) : null}
-        </CardContent>
+            {statusMessage ? (
+              <p
+                className={cn(
+                  'text-sm',
+                  live?.state === 'failed' ? 'text-destructive' : 'text-muted-foreground',
+                )}
+              >
+                {statusMessage}
+              </p>
+            ) : null}
+          </CardContent>
+        )}
       </Card>
     </div>
   )

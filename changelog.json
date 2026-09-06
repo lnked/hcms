@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.22.0",
+      "date": "2026-09-06",
+      "channel": "stable",
+      "title": "Custom resource APIs",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Custom GET APIs per resource: field projection + nested manyToOne embeds (/api/{slug}/{apiSlug})"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Resource API tab: create/edit custom APIs with field whitelist and join builder"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "OpenAPI documents enabled custom resource APIs"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "System settings: Version / Update sections as tabs with update-available indicator"
+        },
+        {
+          "type": "added",
+          "area": "core",
+          "text": "Pending SQL migrations apply automatically on boot (cms_resource_apis)"
+        }
+      ]
+    },
+    {
       "version": "0.21.0",
       "date": "2026-09-06",
       "channel": "stable",

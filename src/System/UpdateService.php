@@ -9,6 +9,7 @@ use Cms\Core\Paths;
 use Cms\Core\Settings;
 use Cms\Core\Version;
 use Cms\Database\Connection;
+use Cms\Database\PendingMigrations;
 use RuntimeException;
 use ZipArchive;
 
@@ -401,27 +402,7 @@ final class UpdateService
 
     private function runPendingMigrations(): void
     {
-        $appliedRaw = $this->settings->get('db.migrations');
-        /** @var list<string> $applied */
-        $applied = is_array($appliedRaw) ? array_values(array_map('strval', $appliedRaw)) : [];
-        $dir = $this->paths->migrations();
-        $files = glob($dir . '/*.sql') ?: [];
-        sort($files);
-        foreach ($files as $file) {
-            $name = basename($file);
-            if (in_array($name, $applied, true)) {
-                continue;
-            }
-            $sql = (string) file_get_contents($file);
-            foreach (array_filter(array_map('trim', explode(';', $sql))) as $statement) {
-                if (str_starts_with($statement, '--')) {
-                    continue;
-                }
-                $this->db->execRaw($statement);
-            }
-            $applied[] = $name;
-        }
-        $this->settings->set('db.migrations', $applied);
+        PendingMigrations::apply($this->db, $this->paths, $this->settings);
     }
 
     /**
