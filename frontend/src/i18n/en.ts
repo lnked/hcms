@@ -481,6 +481,8 @@ export const en = {
   'users.totpEnabled': '2FA is enabled for your account.',
   'users.totpDisabled': '2FA is not enabled.',
   'users.totpSetup': 'Set up 2FA',
+  'users.totpScan': 'Scan this QR code with your authenticator app.',
+  'users.totpManual': 'Or enter the secret manually:',
   'users.totpConfirm': 'Confirm',
   'users.totpDisable': 'Disable 2FA',
   'users.totpEnabledOk': '2FA enabled',

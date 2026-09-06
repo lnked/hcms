@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CircleCheck, Trash2 } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -73,13 +74,23 @@ function TotpSetup({ onDone }: { onDone: () => void }) {
         </Button>
       ) : (
         <>
-          <p className="break-all font-mono text-xs">{secret}</p>
-          {otpauthUrl ? <p className="break-all text-xs text-muted-foreground">{otpauthUrl}</p> : null}
+          <p className="text-sm text-muted-foreground">{t('users.totpScan')}</p>
+          {otpauthUrl ? (
+            <div className="inline-flex rounded-md border bg-white p-3">
+              <QRCodeSVG value={otpauthUrl} size={180} level="M" marginSize={0} />
+            </div>
+          ) : null}
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{t('users.totpManual')}</p>
+            <p className="break-all font-mono text-xs">{secret}</p>
+          </div>
           <div className="flex max-w-xs gap-2">
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder={t('login.totp')}
+              inputMode="numeric"
+              autoComplete="one-time-code"
             />
             <Button disabled={enable.isPending || code.length < 6} onClick={() => enable.mutate()}>
               {t('users.totpConfirm')}

@@ -485,6 +485,8 @@ export const ru: Record<MessageKey, string> = {
   'users.totpEnabled': '2FA включена для вашего аккаунта.',
   'users.totpDisabled': '2FA не включена.',
   'users.totpSetup': 'Настроить 2FA',
+  'users.totpScan': 'Отсканируйте QR-код в приложении-аутентификаторе.',
+  'users.totpManual': 'Или введите секрет вручную:',
   'users.totpConfirm': 'Подтвердить',
   'users.totpDisable': 'Отключить 2FA',
   'users.totpEnabledOk': '2FA включена',

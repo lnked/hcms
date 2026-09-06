@@ -112,7 +112,7 @@
 }
 
 .docs-code {
-  line-height: 0.35;
+  line-height: 0.8;
 }
 
 .docs-code code {
@@ -123,4 +123,3 @@
   display: block;
   min-height: 0;
 }
-
