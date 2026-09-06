@@ -370,7 +370,7 @@ final class OpenApiGenerator
             ['name' => 'page', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 1]],
             ['name' => 'limit', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 20, 'maximum' => 100]],
             ['name' => 'sort', 'in' => 'query', 'schema' => ['type' => 'string'], 'description' => 'Field or -field'],
-            ['name' => 'search', 'in' => 'query', 'schema' => ['type' => 'string']],
+            ['name' => 'search', 'in' => 'query', 'schema' => ['type' => 'string'], 'description' => 'Tokenized word search; ranked by match count'],
         ];
         foreach ($fieldRows as $field) {
             $spec = $this->spec($field);
@@ -654,7 +654,7 @@ final class OpenApiGenerator
             ['name' => 'page', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 1]],
             ['name' => 'limit', 'in' => 'query', 'schema' => ['type' => 'integer', 'default' => 20, 'maximum' => 100]],
             ['name' => 'sort', 'in' => 'query', 'schema' => ['type' => 'string'], 'description' => 'Field or -field'],
-            ['name' => 'search', 'in' => 'query', 'schema' => ['type' => 'string']],
+            ['name' => 'search', 'in' => 'query', 'schema' => ['type' => 'string'], 'description' => 'Tokenized word search; ranked by match count'],
         ];
         foreach ($fieldRows as $field) {
             $spec = $this->spec($field);

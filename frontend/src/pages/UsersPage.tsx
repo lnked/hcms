@@ -86,6 +86,7 @@ function TotpSetup({ onDone }: { onDone: () => void }) {
           </div>
           <div className="flex max-w-xs gap-2">
             <Input
+              autoFocus
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder={t('login.totp')}

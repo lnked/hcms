@@ -112,14 +112,17 @@
 }
 
 .docs-code {
-  line-height: 0.8;
+  line-height: 0.9;
 }
 
 .docs-code code {
+  display: block;
   line-height: inherit;
+  white-space: normal;
 }
 
 .docs-code .sh__line {
   display: block;
-  min-height: 0;
+  line-height: 0.9;
+  min-height: 1em;
 }

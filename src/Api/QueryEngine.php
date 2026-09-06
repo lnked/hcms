@@ -51,8 +51,9 @@ final class QueryEngine
         } elseif ($this->hasFilterParams($query)) {
             throw new InvalidArgumentException('Filtering is disabled for this resource');
         }
+        $searchScoreSql = null;
         if (!$public || ($settings['search'] ?? true)) {
-            $this->applySearch($query, $fieldMap, $where, $params);
+            $searchScoreSql = $this->applySearch($query, $fieldMap, $where, $params);
         } elseif (($query['search'] ?? '') !== '') {
             throw new InvalidArgumentException('Search is disabled for this resource');
         }
@@ -62,9 +63,9 @@ final class QueryEngine
             if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
                 throw new InvalidArgumentException('Sorting is disabled for this resource');
             }
-            $orderSql = ' ORDER BY `id` ASC';
+            $orderSql = $this->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
         } else {
-            $orderSql = $this->orderSql($query, $fieldMap);
+            $orderSql = $this->orderSql($query, $fieldMap, $searchScoreSql);
         }
 
         $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
@@ -226,8 +227,9 @@ final class QueryEngine
         } elseif ($this->hasFilterParams($query)) {
             throw new InvalidArgumentException('Filtering is disabled for this resource');
         }
+        $searchScoreSql = null;
         if (!$public || ($settings['search'] ?? true)) {
-            $this->applySearch($query, $fieldMap, $where, $params);
+            $searchScoreSql = $this->applySearch($query, $fieldMap, $where, $params);
         } elseif (($query['search'] ?? '') !== '') {
             throw new InvalidArgumentException('Search is disabled for this resource');
         }
@@ -237,9 +239,9 @@ final class QueryEngine
             if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
                 throw new InvalidArgumentException('Sorting is disabled for this resource');
             }
-            $orderSql = ' ORDER BY `id` ASC';
+            $orderSql = $this->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
         } else {
-            $orderSql = $this->orderSql($query, $fieldMap);
+            $orderSql = $this->orderSql($query, $fieldMap, $searchScoreSql);
         }
 
         $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
@@ -791,47 +793,92 @@ final class QueryEngine
     }
 
     /**
+     * Tokenized OR search across searchable fields; returns relevance score SQL (or null).
+     *
      * @param array<string, string> $query
      * @param array<string, array<string, mixed>> $fieldMap
      * @param list<string> $where
      * @param array<string, mixed> $params
      */
-    private function applySearch(array $query, array $fieldMap, array &$where, array &$params): void
+    private function applySearch(array $query, array $fieldMap, array &$where, array &$params): ?string
     {
-        $search = $query['search'] ?? '';
+        $search = trim((string) ($query['search'] ?? ''));
         if ($search === '') {
-            return;
+            return null;
         }
-        $parts = [];
+
+        $fields = [];
         foreach ($fieldMap as $name => $meta) {
             if ($meta['spec']['searchable'] ?? false) {
-                $param = 's_' . count($params);
-                $parts[] = '`' . $name . '` LIKE :' . $param;
-                $params[$param] = '%' . $search . '%';
+                $fields[] = $name;
             }
         }
-        if ($parts !== []) {
-            $where[] = '(' . implode(' OR ', $parts) . ')';
+        if ($fields === []) {
+            return null;
         }
+
+        $tokens = SearchTokenizer::tokens($search);
+        if ($tokens === []) {
+            $tokens = [mb_strtolower($search, 'UTF-8')];
+        }
+
+        $tokenMatches = [];
+        foreach ($tokens as $token) {
+            $fieldParts = [];
+            foreach ($fields as $name) {
+                $param = 's_' . count($params);
+                $fieldParts[] = '`' . $name . '` LIKE :' . $param . " ESCAPE '\\\\'";
+                $params[$param] = $this->likeContains($token);
+            }
+            $tokenMatches[] = '(' . implode(' OR ', $fieldParts) . ')';
+        }
+
+        $where[] = '(' . implode(' OR ', $tokenMatches) . ')';
+
+        $scoreParts = [];
+        foreach ($tokenMatches as $matchSql) {
+            $scoreParts[] = '(CASE WHEN ' . $matchSql . ' THEN 1 ELSE 0 END)';
+        }
+
+        return '(' . implode(' + ', $scoreParts) . ')';
+    }
+
+    private function likeContains(string $value): string
+    {
+        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+
+        return '%' . $escaped . '%';
     }
 
     /**
      * @param array<string, string> $query
      * @param array<string, array<string, mixed>> $fieldMap
      */
-    private function orderSql(array $query, array $fieldMap): string
+    private function orderSql(array $query, array $fieldMap, ?string $searchScoreSql = null): string
     {
         $sort = $query['sort'] ?? 'id';
         $desc = str_starts_with($sort, '-');
         $field = ltrim($sort, '-');
         if ($field === 'id') {
-            return ' ORDER BY `id` ' . ($desc ? 'DESC' : 'ASC');
+            return $this->orderSqlWithSearchScore('`id` ' . ($desc ? 'DESC' : 'ASC'), $searchScoreSql);
         }
         if (!isset($fieldMap[$field]) || !($fieldMap[$field]['spec']['sortable'] ?? false)) {
             throw new InvalidArgumentException('Field not sortable: ' . $field);
         }
 
-        return ' ORDER BY `' . $field . '` ' . ($desc ? 'DESC' : 'ASC');
+        return $this->orderSqlWithSearchScore(
+            '`' . $field . '` ' . ($desc ? 'DESC' : 'ASC'),
+            $searchScoreSql,
+        );
+    }
+
+    private function orderSqlWithSearchScore(string $secondaryOrder, ?string $searchScoreSql): string
+    {
+        if ($searchScoreSql === null) {
+            return ' ORDER BY ' . $secondaryOrder;
+        }
+
+        return ' ORDER BY ' . $searchScoreSql . ' DESC, ' . $secondaryOrder;
     }
 
     /**

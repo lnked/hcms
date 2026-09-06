@@ -14,13 +14,17 @@ interface SchemaBuilderProps {
 }
 
 const selectClass = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm'
+const LIST_GAP_PX = 8
 
 export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const { t } = useI18n()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
+  const [dragHeight, setDragHeight] = useState(0)
   const dragIndexRef = useRef<number | null>(null)
+  const dragImageRef = useRef<HTMLElement | null>(null)
+  const rowRefs = useRef<(HTMLLIElement | null)[]>([])
   const editFormRef = useRef<HTMLDivElement>(null)
   const scrollToEditRef = useRef(false)
 
@@ -63,18 +67,66 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     })
   }
 
+  function clearDragState() {
+    dragIndexRef.current = null
+    dragImageRef.current?.remove()
+    dragImageRef.current = null
+    setDragIndex(null)
+    setOverIndex(null)
+    setDragHeight(0)
+  }
+
+  function rowShiftY(index: number): number {
+    if (dragIndex === null || overIndex === null || dragIndex === overIndex || dragHeight <= 0) {
+      return 0
+    }
+    const delta = dragHeight + LIST_GAP_PX
+    if (dragIndex < overIndex) {
+      if (index > dragIndex && index <= overIndex) return -delta
+    } else if (index >= overIndex && index < dragIndex) {
+      return delta
+    }
+    return 0
+  }
+
   function onGripDragStart(index: number, event: DragEvent<HTMLButtonElement>) {
     dragIndexRef.current = index
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', String(index))
+
+    const row = rowRefs.current[index]
+    if (row) {
+      const rect = row.getBoundingClientRect()
+      const clone = row.cloneNode(true) as HTMLElement
+      clone.style.width = `${rect.width}px`
+      clone.style.position = 'fixed'
+      clone.style.top = '-9999px'
+      clone.style.left = '-9999px'
+      clone.style.margin = '0'
+      clone.style.opacity = '0.96'
+      clone.style.boxShadow = '0 16px 40px rgba(15, 23, 42, 0.18)'
+      clone.style.pointerEvents = 'none'
+      clone.style.transform = 'rotate(1.5deg)'
+      clone.style.zIndex = '9999'
+      document.body.appendChild(clone)
+      dragImageRef.current = clone
+      event.dataTransfer.setDragImage(
+        clone,
+        event.clientX - rect.left,
+        event.clientY - rect.top,
+      )
+      setDragHeight(rect.height)
+    }
+
     // Defer paint so React re-render does not cancel the native drag.
-    requestAnimationFrame(() => setDragIndex(index))
+    requestAnimationFrame(() => {
+      setDragIndex(index)
+      setOverIndex(index)
+    })
   }
 
   function onGripDragEnd() {
-    dragIndexRef.current = null
-    setDragIndex(null)
-    setOverIndex(null)
+    clearDragState()
   }
 
   function onRowDragOver(index: number, event: DragEvent<HTMLLIElement>) {
@@ -87,9 +139,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     event.preventDefault()
     const raw = event.dataTransfer.getData('text/plain')
     const from = dragIndexRef.current ?? (raw === '' ? null : Number(raw))
-    dragIndexRef.current = null
-    setDragIndex(null)
-    setOverIndex(null)
+    clearDragState()
     if (from === null || Number.isNaN(from)) return
     reorder(from, index)
   }
@@ -133,274 +183,291 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
       ) : null}
 
       <ul className="space-y-2">
-        {schema.map((field, index) => (
-          <li
-            key={field.id != null ? `field-${field.id}` : `new-${field.name || index}`}
-            onDragOver={(e) => onRowDragOver(index, e)}
-            onDrop={(e) => onRowDrop(index, e)}
-            className={cn(
-              'rounded-lg border bg-card',
-              dragIndex === index && 'opacity-60',
-              overIndex === index && dragIndex !== null && dragIndex !== index && 'border-primary',
-            )}
-          >
-            <div className="flex items-center gap-2 px-3 py-2">
-              <button
-                type="button"
-                draggable
-                aria-label={t('schema.reorder')}
-                title={t('schema.reorder')}
-                className="inline-flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent active:cursor-grabbing"
-                onDragStart={(e) => onGripDragStart(index, e)}
-                onDragEnd={onGripDragEnd}
-              >
-                <GripVertical className="h-4 w-4" />
-              </button>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">
-                    {field.label || field.name || t('schema.untitled')}
-                  </span>
-                  <Badge variant="outline">{field.type}</Badge>
-                  {field.required ? (
-                    <Badge>{t('common.required')}</Badge>
-                  ) : (
-                    <Badge variant="secondary">{t('common.optional')}</Badge>
-                  )}
+        {schema.map((field, index) => {
+          const shiftY = rowShiftY(index)
+          const isDragging = dragIndex === index
+          return (
+            <li
+              key={field.id != null ? `field-${field.id}` : `new-${field.name || index}`}
+              ref={(node) => {
+                rowRefs.current[index] = node
+              }}
+              onDragOver={(e) => onRowDragOver(index, e)}
+              onDrop={(e) => onRowDrop(index, e)}
+              style={{
+                transform: shiftY ? `translateY(${shiftY}px)` : undefined,
+              }}
+              className={cn(
+                'rounded-lg border bg-card will-change-transform',
+                // Animate only while dragging so drop + DOM reorder don't double-shift.
+                dragIndex !== null && 'transition-transform duration-200 ease-out',
+                isDragging && 'border-dashed opacity-40 shadow-none',
+                overIndex === index &&
+                  dragIndex !== null &&
+                  dragIndex !== index &&
+                  'border-primary',
+              )}
+            >
+              <div className="flex items-center gap-2 px-3 py-2">
+                <button
+                  type="button"
+                  draggable
+                  aria-label={t('schema.reorder')}
+                  title={t('schema.reorder')}
+                  className="inline-flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent active:cursor-grabbing"
+                  onDragStart={(e) => onGripDragStart(index, e)}
+                  onDragEnd={onGripDragEnd}
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">
+                      {field.label || field.name || t('schema.untitled')}
+                    </span>
+                    <Badge variant="outline">{field.type}</Badge>
+                    {field.required ? (
+                      <Badge>{t('common.required')}</Badge>
+                    ) : (
+                      <Badge variant="secondary">{t('common.optional')}</Badge>
+                    )}
+                  </div>
+                  <p className="truncate font-mono text-xs text-muted-foreground">
+                    {field.name || '—'}
+                  </p>
                 </div>
-                <p className="truncate font-mono text-xs text-muted-foreground">
-                  {field.name || '—'}
-                </p>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setEditingIndex(editingIndex === index ? null : index)}
+                >
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+                <Button type="button" size="icon" variant="ghost" onClick={() => removeAt(index)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={() => setEditingIndex(editingIndex === index ? null : index)}
-              >
-                <Settings2 className="h-4 w-4" />
-              </Button>
-              <Button type="button" size="icon" variant="ghost" onClick={() => removeAt(index)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
 
-            {editingIndex === index ? (
-              <div
-                ref={editFormRef}
-                className="grid scroll-mt-4 gap-3 border-t p-3 md:grid-cols-2"
-              >
-                <div className="space-y-2">
-                  <Label>{t('common.name')}</Label>
-                  <Input
-                    value={field.name}
-                    onChange={(e) =>
-                      updateAt(index, {
-                        name: e.target.value,
-                        label: field.label || e.target.value,
-                      })
-                    }
-                    placeholder="title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('common.label')}</Label>
-                  <Input
-                    value={field.label}
-                    onChange={(e) => updateAt(index, { label: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('common.type')}</Label>
-                  <select
-                    className={selectClass}
-                    value={field.type}
-                    onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
-                  >
-                    {FIELD_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('common.description')}</Label>
-                  <Input
-                    value={field.description ?? ''}
-                    onChange={(e) => updateAt(index, { description: e.target.value })}
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.required}
-                    onChange={(e) =>
-                      updateAt(index, { required: e.target.checked, nullable: !e.target.checked })
-                    }
-                  />
-                  {t('common.required')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.unique}
-                    onChange={(e) => updateAt(index, { unique: e.target.checked })}
-                  />
-                  {t('schema.unique')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.searchable}
-                    onChange={(e) => updateAt(index, { searchable: e.target.checked })}
-                  />
-                  {t('schema.searchable')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.sortable}
-                    onChange={(e) => updateAt(index, { sortable: e.target.checked })}
-                  />
-                  {t('schema.sortable')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.filterable}
-                    onChange={(e) => updateAt(index, { filterable: e.target.checked })}
-                  />
-                  {t('schema.filterable')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.readable}
-                    onChange={(e) => updateAt(index, { readable: e.target.checked })}
-                  />
-                  {t('schema.readable')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.writable}
-                    disabled={field.type === 'relation' && field.config.cardinality === 'oneToMany'}
-                    onChange={(e) => updateAt(index, { writable: e.target.checked })}
-                  />
-                  {t('schema.writable')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.hidden}
-                    onChange={(e) => updateAt(index, { hidden: e.target.checked })}
-                  />
-                  {t('schema.hidden')}
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={field.readonly}
-                    onChange={(e) => updateAt(index, { readonly: e.target.checked })}
-                  />
-                  {t('schema.readonly')}
-                </label>
-                {field.type === 'enum' ? (
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>{t('schema.options')}</Label>
+              {editingIndex === index ? (
+                <div
+                  ref={editFormRef}
+                  className="grid scroll-mt-4 gap-3 border-t p-3 md:grid-cols-2"
+                >
+                  <div className="space-y-2">
+                    <Label>{t('common.name')}</Label>
                     <Input
-                      value={
-                        Array.isArray(field.config.options) ? field.config.options.join(', ') : ''
-                      }
+                      value={field.name}
                       onChange={(e) =>
                         updateAt(index, {
-                          config: {
-                            ...field.config,
-                            options: e.target.value
-                              .split(',')
-                              .map((part) => part.trim())
-                              .filter(Boolean),
-                          },
+                          name: e.target.value,
+                          label: field.label || e.target.value,
                         })
                       }
+                      placeholder="title"
                     />
                   </div>
-                ) : null}
-                {field.type === 'slug' ? (
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>{t('schema.slug.associatedWith')}</Label>
+                  <div className="space-y-2">
+                    <Label>{t('common.label')}</Label>
+                    <Input
+                      value={field.label}
+                      onChange={(e) => updateAt(index, { label: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t('common.type')}</Label>
                     <select
                       className={selectClass}
-                      value={String(field.config.associatedWith ?? '')}
-                      onChange={(e) => patchConfig(index, { associatedWith: e.target.value })}
+                      value={field.type}
+                      onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
                     >
-                      <option value="">—</option>
-                      {schema
-                        .filter((candidate, candidateIndex) => {
-                          if (candidateIndex === index) return false
-                          return Boolean(candidate.name.trim())
-                        })
-                        .map((candidate) => (
-                          <option key={candidate.name} value={candidate.name}>
-                            {candidate.label || candidate.name}
-                          </option>
-                        ))}
+                      {FIELD_TYPES.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                ) : null}
-                {field.type === 'relation' ? (
-                  <>
-                    <div className="space-y-2">
-                      <Label>{t('schema.relation.relatedSlug')}</Label>
+                  <div className="space-y-2">
+                    <Label>{t('common.description')}</Label>
+                    <Input
+                      value={field.description ?? ''}
+                      onChange={(e) => updateAt(index, { description: e.target.value })}
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) =>
+                        updateAt(index, { required: e.target.checked, nullable: !e.target.checked })
+                      }
+                    />
+                    {t('common.required')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.unique}
+                      onChange={(e) => updateAt(index, { unique: e.target.checked })}
+                    />
+                    {t('schema.unique')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.searchable}
+                      onChange={(e) => updateAt(index, { searchable: e.target.checked })}
+                    />
+                    {t('schema.searchable')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.sortable}
+                      onChange={(e) => updateAt(index, { sortable: e.target.checked })}
+                    />
+                    {t('schema.sortable')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.filterable}
+                      onChange={(e) => updateAt(index, { filterable: e.target.checked })}
+                    />
+                    {t('schema.filterable')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.readable}
+                      onChange={(e) => updateAt(index, { readable: e.target.checked })}
+                    />
+                    {t('schema.readable')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.writable}
+                      disabled={field.type === 'relation' && field.config.cardinality === 'oneToMany'}
+                      onChange={(e) => updateAt(index, { writable: e.target.checked })}
+                    />
+                    {t('schema.writable')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.hidden}
+                      onChange={(e) => updateAt(index, { hidden: e.target.checked })}
+                    />
+                    {t('schema.hidden')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={field.readonly}
+                      onChange={(e) => updateAt(index, { readonly: e.target.checked })}
+                    />
+                    {t('schema.readonly')}
+                  </label>
+                  {field.type === 'enum' ? (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>{t('schema.options')}</Label>
                       <Input
-                        value={String(field.config.relatedSlug ?? '')}
-                        onChange={(e) => patchConfig(index, { relatedSlug: e.target.value })}
-                        placeholder="posts"
+                        value={
+                          Array.isArray(field.config.options) ? field.config.options.join(', ') : ''
+                        }
+                        onChange={(e) =>
+                          updateAt(index, {
+                            config: {
+                              ...field.config,
+                              options: e.target.value
+                                .split(',')
+                                .map((part) => part.trim())
+                                .filter(Boolean),
+                            },
+                          })
+                        }
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>{t('schema.relation.cardinality')}</Label>
+                  ) : null}
+                  {field.type === 'slug' ? (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>{t('schema.slug.associatedWith')}</Label>
                       <select
                         className={selectClass}
-                        value={field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'}
-                        onChange={(e) => {
-                          const cardinality =
-                            e.target.value === 'oneToMany' ? 'oneToMany' : 'manyToOne'
-                          updateAt(index, {
-                            config: { ...field.config, cardinality },
-                            writable: cardinality === 'oneToMany' ? false : true,
-                          })
-                        }}
+                        value={String(field.config.associatedWith ?? '')}
+                        onChange={(e) => patchConfig(index, { associatedWith: e.target.value })}
                       >
-                        <option value="manyToOne">{t('schema.relation.manyToOne')}</option>
-                        <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
+                        <option value="">—</option>
+                        {schema
+                          .filter((candidate, candidateIndex) => {
+                            if (candidateIndex === index) return false
+                            return Boolean(candidate.name.trim())
+                          })
+                          .map((candidate) => (
+                            <option key={candidate.name} value={candidate.name}>
+                              {candidate.label || candidate.name}
+                            </option>
+                          ))}
                       </select>
                     </div>
-                    <div className="space-y-2">
-                      <Label>{t('schema.relation.labelField')}</Label>
-                      <Input
-                        value={String(field.config.labelField ?? 'id')}
-                        onChange={(e) => patchConfig(index, { labelField: e.target.value })}
-                        placeholder="title"
-                      />
-                    </div>
-                    {field.config.cardinality === 'oneToMany' ? (
+                  ) : null}
+                  {field.type === 'relation' ? (
+                    <>
                       <div className="space-y-2">
-                        <Label>{t('schema.relation.foreignKey')}</Label>
+                        <Label>{t('schema.relation.relatedSlug')}</Label>
                         <Input
-                          value={String(field.config.foreignKey ?? '')}
-                          onChange={(e) => patchConfig(index, { foreignKey: e.target.value })}
-                          placeholder="post_id"
+                          value={String(field.config.relatedSlug ?? '')}
+                          onChange={(e) => patchConfig(index, { relatedSlug: e.target.value })}
+                          placeholder="posts"
                         />
                       </div>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-          </li>
-        ))}
+                      <div className="space-y-2">
+                        <Label>{t('schema.relation.cardinality')}</Label>
+                        <select
+                          className={selectClass}
+                          value={
+                            field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+                          }
+                          onChange={(e) => {
+                            const cardinality =
+                              e.target.value === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+                            updateAt(index, {
+                              config: { ...field.config, cardinality },
+                              writable: cardinality === 'oneToMany' ? false : true,
+                            })
+                          }}
+                        >
+                          <option value="manyToOne">{t('schema.relation.manyToOne')}</option>
+                          <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>{t('schema.relation.labelField')}</Label>
+                        <Input
+                          value={String(field.config.labelField ?? 'id')}
+                          onChange={(e) => patchConfig(index, { labelField: e.target.value })}
+                          placeholder="title"
+                        />
+                      </div>
+                      {field.config.cardinality === 'oneToMany' ? (
+                        <div className="space-y-2">
+                          <Label>{t('schema.relation.foreignKey')}</Label>
+                          <Input
+                            value={String(field.config.foreignKey ?? '')}
+                            onChange={(e) => patchConfig(index, { foreignKey: e.target.value })}
+                            placeholder="post_id"
+                          />
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

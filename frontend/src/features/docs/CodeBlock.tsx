@@ -76,10 +76,10 @@ export function CodeBlock({
             value={code}
             spellCheck={false}
             onChange={(e) => onChange?.(e.target.value)}
-            className="docs-code min-h-[200px] w-full resize-y rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs whitespace-pre shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="docs-code min-h-[200px] w-full resize-y rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         ) : (
-          <pre className="docs-code overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs whitespace-pre">
+          <pre className="docs-code overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre">
             <code dangerouslySetInnerHTML={{ __html: html }} />
           </pre>
         )}
