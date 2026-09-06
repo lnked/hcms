@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.42.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Smart API search",
+      "changes": [
+        {
+          "type": "improved",
+          "area": "api",
+          "text": "search splits into words (drops prepositions), matches any token, ranks by how many words hit"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Schema builder field list drag-and-drop uses live row shifting"
+        },
+        {
+          "type": "fixed",
+          "area": "docs",
+          "text": "Code block line height / wrapping so highlighted lines align"
+        },
+        {
+          "type": "changed",
+          "area": "auth",
+          "text": "TOTP setup code input autofocuses"
+        }
+      ]
+    },
+    {
       "version": "0.41.0",
       "date": "2026-09-07",
       "channel": "stable",
