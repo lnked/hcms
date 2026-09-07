@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.45.1",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Schema builder fix on non-HTTPS admin panels",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Adding a schema field no longer crashes when the admin panel is served over plain HTTP: UUID generation falls back to crypto.getRandomValues outside secure contexts"
+        },
+        {
+          "type": "fixed",
+          "area": "ci",
+          "text": "PHPStan errors in media helpers resolved and GitHub Actions bumped to v7"
+        }
+      ]
+    },
+    {
       "version": "0.45.0",
       "date": "2026-09-07",
       "channel": "stable",

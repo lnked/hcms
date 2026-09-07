@@ -1,3 +1,5 @@
+import { randomId } from '@/lib/utils'
+
 export type FieldTypeName =
   | 'string'
   | 'text'
@@ -64,7 +66,7 @@ export const FIELD_TYPES: FieldTypeName[] = [
 export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): SchemaField {
   const isRelation = type === 'relation'
   return {
-    clientKey: crypto.randomUUID(),
+    clientKey: randomId(),
     name: '',
     type,
     sortOrder,
