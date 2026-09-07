@@ -81,7 +81,11 @@ final class MediaFieldConfig
                 ? trim($size['prefix'])
                 : '';
             if ($prefix === '' || !preg_match('/^[a-z][a-z0-9_]{0,31}$/', $prefix)) {
-                throw new InvalidArgumentException('size.prefix must match /^[a-z][a-z0-9_]{0,31}$/');
+                // Dumping the raw bytes makes look-alike characters (e.g. Cyrillic "с") visible.
+                throw new InvalidArgumentException(sprintf(
+                    'size.prefix must match /^[a-z][a-z0-9_]{0,31}$/, got %s',
+                    json_encode($prefix, JSON_UNESCAPED_SLASHES) ?: '""',
+                ));
             }
             if (isset($seen[$prefix])) {
                 throw new InvalidArgumentException('Duplicate size prefix: ' . $prefix);

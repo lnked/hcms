@@ -18,6 +18,7 @@ import {
   type ImageSizeConfig,
   type SchemaField,
 } from '@/types/field'
+import { slugifyIdentifier } from '@/lib/slugify'
 import { cn } from '@/lib/utils'
 
 interface SchemaBuilderProps {
@@ -312,9 +313,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     <Label>{t('common.name')}</Label>
                     <Input
                       value={field.name}
+                      maxLength={64}
                       onChange={(e) =>
                         updateAt(index, {
-                          name: e.target.value,
+                          name: slugifyIdentifier(e.target.value, 64),
                           label: field.label || e.target.value,
                         })
                       }
@@ -542,7 +544,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         : []
                       ).map((size, sizeIndex) => (
                         <div
-                          key={`${size.prefix}-${sizeIndex}`}
+                          key={`size-${sizeIndex}`}
                           className="flex flex-wrap items-end gap-2 rounded-md border border-border p-2"
                         >
                           <div className="space-y-1">
@@ -550,11 +552,13 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                             <Input
                               className="w-28"
                               value={size.prefix}
+                              maxLength={32}
+                              placeholder="crop"
                               onChange={(e) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
                                 sizes[sizeIndex] = {
                                   ...sizes[sizeIndex],
-                                  prefix: e.target.value,
+                                  prefix: slugifyIdentifier(e.target.value, 32),
                                 }
                                 patchConfig(index, { sizes })
                               }}

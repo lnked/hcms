@@ -37,5 +37,21 @@ final class PendingMigrations
         if ($changed) {
             $settings->set('db.migrations', $applied);
         }
+
+        self::repairMediaColumns($db, $settings);
+    }
+
+    /**
+     * Resource tables live outside the .sql files, so their one-off repairs run here
+     * and record their own marker.
+     */
+    private static function repairMediaColumns(Connection $db, Settings $settings): void
+    {
+        $marker = 'db.media_columns_json';
+        if ($settings->get($marker) !== null) {
+            return;
+        }
+
+        $settings->set($marker, (new MediaColumnRepair($db))->run());
     }
 }

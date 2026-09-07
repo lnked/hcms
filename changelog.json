@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.47.1",
+      "date": "2026-09-08",
+      "channel": "stable",
+      "title": "Image fields created before 0.45 keep their picture again",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "media",
+          "text": "Resource tables built before 0.45.0 still stored image and file fields as a BIGINT media id, so the JSON value written since then was coerced into the integer column — silently to 0 outside strict mode — and every saved entry lost its image right after the preview appeared. Those columns are now widened to JSON on the first request after the update, which keeps the stored ids readable; the only way out before was a schema re-publish behind the destructive-migration confirmation"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Field names and image size prefixes are transliterated to snake_case identifiers as you type, so a Cyrillic look-alike character can no longer produce a name the backend rejects; when it still does, the error quotes the raw value instead of only the pattern"
+        }
+      ]
+    },
+    {
       "version": "0.47.0",
       "date": "2026-09-07",
       "channel": "stable",
