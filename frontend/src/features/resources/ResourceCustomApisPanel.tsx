@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { SchemaField } from '@/types/field'
@@ -23,9 +24,6 @@ interface ResourceCustomApisPanelProps {
   fields: SchemaField[]
   onSelectPath?: (path: string) => void
 }
-
-const controlClass =
-  'flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 function projectableFields(fields: SchemaField[]): SchemaField[] {
   return fields.filter((field) => {
@@ -383,8 +381,7 @@ export function ResourceCustomApisPanel({
                         </div>
                         <div className="space-y-2">
                           <Label>{t('resources.customApis.relatedSlug')}</Label>
-                          <select
-                            className={controlClass + ' h-9'}
+                          <Select
                             value={join.relatedSlug}
                             onChange={(e) =>
                               patchJoin(index, { relatedSlug: e.target.value, fields: null })
@@ -396,12 +393,11 @@ export function ResourceCustomApisPanel({
                                 {r.label} ({r.slug})
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label>{t('resources.customApis.localField')}</Label>
-                          <select
-                            className={controlClass + ' h-9'}
+                          <Select
                             value={join.localField}
                             onChange={(e) => patchJoin(index, { localField: e.target.value })}
                           >
@@ -411,7 +407,7 @@ export function ResourceCustomApisPanel({
                                 {field.name}
                               </option>
                             ))}
-                          </select>
+                          </Select>
                         </div>
                         <div className="space-y-2">
                           <Label>{t('resources.customApis.foreignField')}</Label>

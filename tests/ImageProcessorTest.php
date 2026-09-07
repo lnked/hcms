@@ -94,6 +94,22 @@ final class ImageProcessorTest extends TestCase
         self::assertSame(200, $out['height']);
     }
 
+    public function testBakeRotatesClockwiseKeepingPixels(): void
+    {
+        $path = $this->makeJpeg(400, 200);
+        $processor = new ImageProcessor();
+
+        $out = $processor->bake($path, ['rotation' => 90]);
+        self::assertSame(200, $out['width']);
+        self::assertSame(400, $out['height']);
+
+        $image = imagecreatefromstring($out['bytes']);
+        self::assertNotFalse($image);
+        // Source is red on the left, blue on the right — 90° CW puts red on top.
+        self::assertTrue($this->isRed($image, 100, 20));
+        self::assertTrue($this->isBlue($image, 100, 380));
+    }
+
     public function testBakeClampsCropToImageBounds(): void
     {
         $path = $this->makeJpeg(400, 200);
@@ -140,6 +156,18 @@ final class ImageProcessorTest extends TestCase
         $remapped = MediaValue::remapIds($value, [10 => 100, 11 => 110]);
         self::assertSame(100, $remapped['id']);
         self::assertSame(110, $remapped['variants']['thumb']);
+    }
+
+    public function testMediaValueKeepsVariantsSentBackExpanded(): void
+    {
+        // The admin PATCHes the value it read from the API, where variants are objects.
+        $item = MediaValue::normalize([
+            'id' => 30,
+            'variants' => ['thumb' => ['id' => 31, 'url' => '/media/31']],
+        ], false);
+
+        self::assertIsArray($item);
+        self::assertSame(['thumb' => 31], $item['variants']);
     }
 
     public function testMediaValueKeepsEditAndOverrides(): void

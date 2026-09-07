@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -380,8 +381,7 @@ export function TokensPage() {
                 </div>
                 {grants.map((grant, index) => (
                   <div key={index} className="space-y-2 rounded-md border p-3">
-                    <select
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    <Select
                       value={grant.resourceId ?? ''}
                       onChange={(e) => {
                         const value = e.target.value
@@ -400,7 +400,7 @@ export function TokensPage() {
                           {r.label} ({r.slug})
                         </option>
                       ))}
-                    </select>
+                    </Select>
                     <div className="flex flex-wrap gap-3 text-sm">
                       {(
                         [

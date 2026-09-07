@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
@@ -577,17 +579,14 @@ export function ResourceEntriesPanel({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="export-format">{t('entries.format')}</Label>
-              <select
+              <Select
                 id="export-format"
-                className={cn(
-                  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm',
-                )}
                 value={exportFormat}
                 onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
               >
                 <option value="json">{t('entries.formatJson')}</option>
                 <option value="csv">{t('entries.formatCsv')}</option>
-              </select>
+              </Select>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
@@ -656,17 +655,14 @@ export function ResourceEntriesPanel({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="import-format">{t('entries.format')}</Label>
-              <select
+              <Select
                 id="import-format"
-                className={cn(
-                  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm',
-                )}
                 value={importFormat}
                 onChange={(e) => setImportFormat(e.target.value as ExportFormat)}
               >
                 <option value="json">{t('entries.formatJson')}</option>
                 <option value="csv">{t('entries.formatCsv')}</option>
-              </select>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>{t('entries.importFile')}</Label>
@@ -737,11 +733,8 @@ export function ResourceEntriesPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="import-paste">{t('entries.importPaste')}</Label>
-              <textarea
+              <Textarea
                 id="import-paste"
-                className={cn(
-                  'flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
-                )}
                 placeholder={t('entries.importPastePlaceholder')}
                 value={importPaste}
                 onChange={(e) => {

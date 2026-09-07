@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { useI18n } from '@/i18n'
 
@@ -67,12 +68,11 @@ export function ApiAccessForm({
       {!unrestricted ? (
         <div className="space-y-2">
           <Label htmlFor="api-origins">{t('system.apiAccessOrigins')}</Label>
-          <textarea
+          <Textarea
             id="api-origins"
             rows={5}
             value={originsText}
             onChange={(e) => setOriginsText(e.target.value)}
-            className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           <p className="text-xs text-muted-foreground">{t('system.apiAccessOriginsHint')}</p>
         </div>

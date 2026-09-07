@@ -1,6 +1,54 @@
 {
   "releases": [
     {
+      "version": "0.47.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Shared form controls, Lottie-free empty states and correct image rotation",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "media",
+          "text": "Baking a 90° or 270° rotation turned the image the wrong way: GD's imagerotate counts counter-clockwise, so the clockwise angles from the editor were negated twice. Rotation is now covered by a test that checks where the pixels land"
+        },
+        {
+          "type": "fixed",
+          "area": "media",
+          "text": "Transparency survives a transform again: the alpha helper no longer paints over an image that already holds pixels, the transparent fill covers the full canvas instead of stopping one pixel short, and a missing gd extension reports itself instead of failing with an undefined function"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Select, Textarea and Alert components plus a shared control stylesheet (control.ts), so every form control in the admin panel gets the same height, border, focus ring and disabled state"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Native selects and textareas across schema builder, entries, resource settings, custom APIs, API playground, webhooks, integrations, tokens, users and API access were replaced with those components, dropping a dozen copies of hand-written control classes"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Empty states are compact info alerts instead of a Lottie animation, which removes the @lottiefiles/dotlottie-react dependency and its 235 KB animation payload from the admin bundle"
+        },
+        {
+          "type": "fixed",
+          "area": "media",
+          "text": "An upload whose variants cannot be generated no longer fails the whole request: the original keeps its media id, the field gets filled and the picker explains why the sizes are missing, instead of leaving an orphaned file in the library"
+        },
+        {
+          "type": "fixed",
+          "area": "media",
+          "text": "Re-saving an entry keeps its image variants: the variant map now also reads the shape the admin panel sends back, not only the stored prefix-to-id form, and variant generation lifts the time limit so a long list of sizes cannot abort halfway"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Requests that answer with HTML instead of JSON — PHP fatals, nginx 413 or 504, proxy error pages — are reported with their status and a readable excerpt instead of a JSON syntax error, and an error envelope returned with HTTP 200 is no longer treated as success"
+        }
+      ]
+    },
+    {
       "version": "0.46.1",
       "date": "2026-09-07",
       "channel": "stable",

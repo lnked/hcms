@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
 import { api, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
@@ -20,9 +22,6 @@ interface ResourceApiPlaygroundProps {
 }
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
-
-const controlClass =
-  'flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PATCH', 'DELETE']
 
@@ -200,9 +199,8 @@ export function ResourceApiPlayground({
         <div className="grid gap-3 md:grid-cols-[8rem_1fr]">
           <div className="space-y-2">
             <Label htmlFor="api-method">{t('resources.playground.method')}</Label>
-            <select
+            <Select
               id="api-method"
-              className={controlClass + ' h-9'}
               value={method}
               onChange={(e) => setMethod(e.target.value as HttpMethod)}
             >
@@ -211,7 +209,7 @@ export function ResourceApiPlayground({
                   {m}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="api-path">{t('resources.playground.path')}</Label>
@@ -229,9 +227,9 @@ export function ResourceApiPlayground({
 
         <div className="space-y-2">
           <Label htmlFor="api-query">{t('resources.playground.query')}</Label>
-          <textarea
+          <Textarea
             id="api-query"
-            className={controlClass + ' h-20 font-mono'}
+            className="min-h-20 font-mono"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="limit=20&sort=id"
@@ -241,9 +239,9 @@ export function ResourceApiPlayground({
         {method === 'POST' || method === 'PATCH' ? (
           <div className="space-y-2">
             <Label htmlFor="api-body">{t('resources.playground.body')}</Label>
-            <textarea
+            <Textarea
               id="api-body"
-              className={controlClass + ' h-36 font-mono'}
+              className="min-h-36 font-mono"
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />

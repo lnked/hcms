@@ -482,6 +482,7 @@ export const en = {
   'media.addAnother': 'Add another',
   'media.regenerating': 'Updating…',
   'media.variantAnchor': 'Anchor for {prefix}',
+  'media.variantsFailed': 'File uploaded, but sizes were not generated: {reason}',
 
   'media.edit': 'Edit',
   'media.editTitle': 'Edit image',

@@ -114,6 +114,10 @@ final class ImageProcessor
      */
     private function load(string $path): \GdImage
     {
+        // Without GD every call below would die with "undefined function"; say why instead.
+        if (!extension_loaded('gd')) {
+            throw new RuntimeException('PHP extension gd is required for image transforms');
+        }
         if (!is_file($path)) {
             throw new InvalidArgumentException('Image file not found');
         }
@@ -135,8 +139,7 @@ final class ImageProcessor
         if (function_exists('imagepalettetotruecolor')) {
             @imagepalettetotruecolor($img);
         }
-        @imagealphablending($img, true);
-        @imagesavealpha($img, true);
+        $this->keepAlpha($img);
 
         return $img;
     }
@@ -149,9 +152,9 @@ final class ImageProcessor
     {
         // imagerotate uses counter-clockwise; UI degrees are clockwise.
         $gdAngle = match ($rotation) {
-            90 => -90,
+            90 => 270,
             180 => 180,
-            270 => -270,
+            270 => 90,
             default => 0,
         };
         if ($gdAngle === 0) {
@@ -169,7 +172,7 @@ final class ImageProcessor
         if ($rotated === false) {
             throw new RuntimeException('Failed to rotate image');
         }
-        $this->preserveAlpha($rotated);
+        $this->keepAlpha($rotated);
 
         return $rotated;
     }
@@ -311,17 +314,28 @@ final class ImageProcessor
     }
 
     /**
+     * Prepare a freshly allocated canvas: transparent background, alpha copied verbatim.
+     *
      * @param \GdImage $img
      */
     private function preserveAlpha(\GdImage $img): void
     {
-        imagealphablending($img, false);
-        imagesavealpha($img, true);
+        $this->keepAlpha($img);
         $transparent = imagecolorallocatealpha($img, 0, 0, 0, 127);
         if ($transparent !== false) {
-            imagefilledrectangle($img, 0, 0, imagesx($img), imagesy($img), $transparent);
+            imagefilledrectangle($img, 0, 0, imagesx($img) - 1, imagesy($img) - 1, $transparent);
         }
-        imagealphablending($img, true);
+    }
+
+    /**
+     * Keep the alpha channel of an image that already holds pixels — never wipes it.
+     *
+     * @param \GdImage $img
+     */
+    private function keepAlpha(\GdImage $img): void
+    {
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
     }
 
     private function detectMime(string $path): ?string

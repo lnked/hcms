@@ -13,7 +13,7 @@ import type {
 } from '@/types/field'
 import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
 
-type UploadResult = MediaFieldValue & { media?: MediaItemRef }
+type UploadResult = MediaFieldValue & { media?: MediaItemRef; warning?: string | null }
 
 interface MediaFieldPickerProps {
   id: string
@@ -115,6 +115,7 @@ export function MediaFieldPicker({
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const items = parseValue(value, multiple)
   const resolvedAccept = acceptFromFormats(formats, accept)
@@ -130,6 +131,7 @@ export function MediaFieldPicker({
   async function uploadFile(file: File, replaceIndex?: number) {
     setBusy(true)
     setError(null)
+    setWarning(null)
     try {
       const positions =
         replaceIndex != null
@@ -146,6 +148,8 @@ export function MediaFieldPicker({
       const result = await apiUpload<UploadResult>('/admin/api/media', file, 'file', extra)
       const uploadedId = mediaId(result.id)
       if (uploadedId === null) throw new Error(t('common.uploadFailed'))
+      // The file is stored even when variant generation failed; keep it and say so.
+      setWarning(result.warning ?? null)
       const nextItem: MediaFieldValue = {
         id: uploadedId,
         rotation: result.rotation ?? rotation,
@@ -430,6 +434,11 @@ export function MediaFieldPicker({
         ) : null}
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {warning ? (
+        <p className="text-xs text-muted-foreground">
+          {t('media.variantsFailed', { reason: warning })}
+        </p>
+      ) : null}
 
       {editingItem ? (
         <ImageEditorDialog

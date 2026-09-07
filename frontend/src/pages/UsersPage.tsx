@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -279,8 +280,9 @@ export function UsersPage() {
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <select
-                          className="h-8 rounded-md border bg-background px-2 text-sm"
+                        <Select
+                          containerClassName="w-auto"
+                          className="h-8"
                           value={user.role ?? 'admin'}
                           disabled={changeRole.isPending}
                           aria-label={t('users.role')}
@@ -296,7 +298,7 @@ export function UsersPage() {
                               {roleLabel(r)}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
@@ -407,9 +409,8 @@ export function UsersPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="user-role">{t('users.role')}</Label>
-              <select
+              <Select
                 id="user-role"
-                className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
                 value={role}
                 onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
               >
@@ -418,7 +419,7 @@ export function UsersPage() {
                     {roleLabel(r)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button

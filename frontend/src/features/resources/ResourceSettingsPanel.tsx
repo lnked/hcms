@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource, ResourceSettings } from '@/types/resource'
@@ -12,9 +13,6 @@ interface ResourceSettingsPanelProps {
   resource: Resource
   onSaved?: () => void
 }
-
-const selectClass =
-  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 const DEFAULT_SPAM: NonNullable<ResourceSettings['spam']> = {
   honeypotField: '',
@@ -270,15 +268,14 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
 
         <div className="max-w-xs space-y-2">
           <Label htmlFor="delete-strategy">{t('resources.settings.deleteStrategy')}</Label>
-          <select
+          <Select
             id="delete-strategy"
-            className={selectClass}
             value={settings.deleteStrategy}
             onChange={(e) => setDeleteStrategy(e.target.value === 'soft' ? 'soft' : 'hard')}
           >
             <option value="hard">{t('resources.settings.deleteHard')}</option>
             <option value="soft">{t('resources.settings.deleteSoft')}</option>
-          </select>
+          </Select>
         </div>
 
         <div className="flex items-center gap-3">

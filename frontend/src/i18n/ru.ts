@@ -487,6 +487,7 @@ export const ru: Record<MessageKey, string> = {
   'media.addAnother': 'Добавить ещё',
   'media.regenerating': 'Обновление…',
   'media.variantAnchor': 'Якорь для {prefix}',
+  'media.variantsFailed': 'Файл загружен, но размеры не сгенерированы: {reason}',
 
   'media.edit': 'Редактировать',
   'media.editTitle': 'Редактирование изображения',

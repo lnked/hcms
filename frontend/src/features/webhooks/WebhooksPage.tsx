@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -467,9 +468,8 @@ export function WebhooksPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="webhook-resource">{t('webhooks.resource')}</Label>
-              <select
+              <Select
                 id="webhook-resource"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 value={resourceId ?? ''}
                 onChange={(e) => {
                   const value = e.target.value
@@ -482,19 +482,18 @@ export function WebhooksPage() {
                     {r.label} ({r.slug})
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="webhook-status">{t('common.status')}</Label>
-              <select
+              <Select
                 id="webhook-status"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                 value={status}
                 onChange={(e) => setStatus(e.target.value === 'disabled' ? 'disabled' : 'active')}
               >
                 <option value="active">{t('webhooks.active')}</option>
                 <option value="disabled">{t('webhooks.disabled')}</option>
-              </select>
+              </Select>
             </div>
 
             {error ? <p className="text-sm text-destructive">{error}</p> : null}

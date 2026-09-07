@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
 import { useI18n } from '@/i18n'
@@ -9,7 +11,6 @@ import { api, apiPage, getToken } from '@/lib/api'
 import { slugifyUrl } from '@/lib/slugify'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
-import { cn } from '@/lib/utils'
 
 export type EntryValues = Record<string, unknown>
 
@@ -20,9 +21,6 @@ interface FormRendererProps {
   disabled?: boolean
   entryId?: number | null
 }
-
-const controlClass =
-  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 function relationCardinality(field: SchemaField): 'manyToOne' | 'oneToMany' {
   return field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
@@ -234,9 +232,8 @@ function RelationControl({
 
   return (
     <div className="space-y-1">
-      <select
+      <Select
         id={id}
-        className={controlClass}
         disabled={disabled || loading}
         value={value == null ? '' : String(value)}
         onChange={(e) =>
@@ -249,7 +246,7 @@ function RelationControl({
             {entryLabel(row, labelField)}
           </option>
         ))}
-      </select>
+      </Select>
       {loading ? <p className="text-xs text-muted-foreground">{t('common.loading')}</p> : null}
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
@@ -318,9 +315,9 @@ function renderControl(
 
   if (field.type === 'text' || field.type === 'json') {
     return (
-      <textarea
+      <Textarea
         id={id}
-        className={cn(controlClass, 'h-24 py-2')}
+        className="min-h-24"
         disabled={disabled}
         value={typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value)}
         onChange={(e) => set(field.name, e.target.value)}
@@ -331,9 +328,8 @@ function renderControl(
   if (field.type === 'enum') {
     const options = Array.isArray(field.config.options) ? field.config.options.map(String) : []
     return (
-      <select
+      <Select
         id={id}
-        className={controlClass}
         disabled={disabled}
         value={value == null ? '' : String(value)}
         onChange={(e) => set(field.name, e.target.value)}
@@ -344,7 +340,7 @@ function renderControl(
             {opt}
           </option>
         ))}
-      </select>
+      </Select>
     )
   }
 

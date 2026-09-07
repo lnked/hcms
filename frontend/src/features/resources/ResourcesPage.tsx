@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -403,9 +404,9 @@ export function ResourcesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="package-paste">{t('resources.package.importPaste')}</Label>
-              <textarea
+              <Textarea
                 id="package-paste"
-                className="min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-xs shadow-sm"
+                className="min-h-28 font-mono text-xs"
                 placeholder={t('resources.package.importPastePlaceholder')}
                 value={importPaste}
                 onChange={(e) => {

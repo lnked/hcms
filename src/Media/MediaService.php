@@ -8,6 +8,7 @@ use Cms\Core\Paths;
 use Cms\Database\Connection;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 final class MediaService
 {
@@ -241,11 +242,15 @@ HTACCESS;
     /**
      * Upload original + generate image variants. Returns MediaValue shape.
      *
+     * The original is already stored when variants are cut, so a GD failure must not
+     * fail the response: the caller would lose the media id and the field would stay
+     * empty while the file sits in the library. Variants degrade to a warning instead.
+     *
      * @param array<string, mixed> $file
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions user overrides keyed by prefix
      * @param list<string>|null $allowedFormats
-     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
+     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, warning: string|null, media: array<string, mixed>}
      */
     public function uploadWithTransforms(
         array $file,
@@ -262,18 +267,29 @@ HTACCESS;
                 'rotation' => $rotation,
                 'positions' => $positions,
                 'variants' => [],
+                'warning' => null,
                 'media' => $original,
             ];
         }
-        $this->assertRaster($original);
 
-        $variants = $this->generateVariants($id, $sizes, $rotation, $positions);
+        // GD work grows with the number of sizes; a slow disk should not abort mid-run.
+        @set_time_limit(0);
+
+        $warning = null;
+        $variants = [];
+        try {
+            $this->assertRaster($original);
+            $variants = $this->generateVariants($id, $sizes, $rotation, $positions);
+        } catch (Throwable $e) {
+            $warning = $e->getMessage();
+        }
 
         return [
             'id' => $id,
             'rotation' => $rotation,
             'positions' => $positions,
             'variants' => $variants,
+            'warning' => $warning,
             'media' => $this->get($id),
         ];
     }

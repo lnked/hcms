@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { controlFieldClass } from '@/components/ui/control'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import {
@@ -23,7 +25,6 @@ interface SchemaBuilderProps {
   onChange: (schema: SchemaField[]) => void
 }
 
-const selectClass = 'flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm'
 const LIST_GAP_PX = 8
 
 export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
@@ -329,8 +330,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   </div>
                   <div className="space-y-2">
                     <Label>{t('common.type')}</Label>
-                    <select
-                      className={selectClass}
+                    <Select
                       value={field.type}
                       onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
                     >
@@ -339,7 +339,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           {type}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>{t('common.description')}</Label>
@@ -449,8 +449,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   {field.type === 'slug' ? (
                     <div className="space-y-2 md:col-span-2">
                       <Label>{t('schema.slug.associatedWith')}</Label>
-                      <select
-                        className={selectClass}
+                      <Select
                         value={String(field.config.associatedWith ?? '')}
                         onChange={(e) => patchConfig(index, { associatedWith: e.target.value })}
                       >
@@ -465,7 +464,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               {candidate.label || candidate.name}
                             </option>
                           ))}
-                      </select>
+                      </Select>
                     </div>
                   ) : null}
                   {field.type === 'file' || field.type === 'image' ? (
@@ -597,7 +596,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{t('schema.image.mode')}</Label>
-                            <div className="flex h-9 items-center gap-2">
+                            <div className={cn(controlFieldClass, 'w-auto items-center gap-2')}>
                               <span
                                 className={cn(
                                   'flex items-center gap-1 text-xs',
@@ -672,8 +671,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       </div>
                       <div className="space-y-2">
                         <Label>{t('schema.relation.cardinality')}</Label>
-                        <select
-                          className={selectClass}
+                        <Select
                           value={
                             field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
                           }
@@ -688,7 +686,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         >
                           <option value="manyToOne">{t('schema.relation.manyToOne')}</option>
                           <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
-                        </select>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>{t('schema.relation.labelField')}</Label>

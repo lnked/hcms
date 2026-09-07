@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { api, ApiError, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
@@ -440,15 +442,14 @@ export function IntegrationsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="mailgun-region">{t('integrations.email.mailgunRegion')}</Label>
-                    <select
+                    <Select
                       id="mailgun-region"
                       value={mailgunRegion}
                       onChange={(e) => setMailgunRegion(e.target.value === 'eu' ? 'eu' : 'us')}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="us">{t('integrations.email.mailgunRegionUs')}</option>
                       <option value="eu">{t('integrations.email.mailgunRegionEu')}</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
               ) : null}
@@ -659,27 +660,27 @@ export function IntegrationsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email-api-html">{t('integrations.email.apis.defaultHtml')}</Label>
-                <textarea
+                <Textarea
                   id="email-api-html"
                   rows={4}
                   value={draft.defaults.html}
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, defaults: { ...d.defaults, html: e.target.value } }))
                   }
-                  className="flex min-h-[96px] w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="min-h-24 font-mono"
                   placeholder="<p>Hello {{name}}</p>"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email-api-text">{t('integrations.email.apis.defaultText')}</Label>
-                <textarea
+                <Textarea
                   id="email-api-text"
                   rows={3}
                   value={draft.defaults.text}
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, defaults: { ...d.defaults, text: e.target.value } }))
                   }
-                  className="flex min-h-[72px] w-full rounded-md border border-input bg-transparent px-3 py-2 font-mono text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="min-h-18 font-mono"
                   placeholder="Hello {{name}}"
                 />
               </div>
@@ -717,11 +718,10 @@ export function IntegrationsPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="email-pg-path">{t('integrations.email.playground.path')}</Label>
-              <select
+              <Select
                 id="email-pg-path"
                 value={playgroundPath}
                 onChange={(e) => setPlaygroundPath(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {pathOptions.map((path) => (
                   <option key={path} value={path}>
@@ -731,7 +731,7 @@ export function IntegrationsPage() {
                 {!pathOptions.includes(playgroundPath) ? (
                   <option value={playgroundPath}>{playgroundPath}</option>
                 ) : null}
-              </select>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email-pg-token">{t('integrations.email.playground.token')}</Label>

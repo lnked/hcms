@@ -1,37 +1,24 @@
+import { InfoIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { AppLottie } from '@/components/AppLottie'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
 interface EmptyStateProps {
   title: string
   description?: string
   action?: ReactNode
-  animationSrc?: string
   className?: string
 }
 
-const DEFAULT_ANIMATION = `${import.meta.env.BASE_URL}animations/empty.json`
-
-export function EmptyState({
-  title,
-  description,
-  action,
-  animationSrc = DEFAULT_ANIMATION,
-  className,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, action, className }: EmptyStateProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col items-center justify-center gap-3 px-4 py-10 text-center',
-        className,
-      )}
-    >
-      {animationSrc ? <AppLottie src={animationSrc} /> : null}
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+    <Alert variant="info" className={cn('items-center', className)}>
+      <InfoIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      <div className="flex-1 space-y-1">
+        <AlertTitle>{title}</AlertTitle>
+        {description ? <AlertDescription>{description}</AlertDescription> : null}
       </div>
-      {action ? <div className="pt-1">{action}</div> : null}
-    </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </Alert>
   )
 }

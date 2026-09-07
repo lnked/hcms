@@ -239,6 +239,9 @@ final class MediaValue
     }
 
     /**
+     * Reads both the stored shape (`prefix => id`) and the API shape the admin sends
+     * back untouched (`prefix => {id, url, …}`), so re-saving an entry keeps variants.
+     *
      * @param array<mixed, mixed> $variants
      * @return array<string, int>
      */
@@ -246,6 +249,9 @@ final class MediaValue
     {
         $out = [];
         foreach ($variants as $key => $id) {
+            if (is_array($id)) {
+                $id = $id['id'] ?? null;
+            }
             if (!is_string($key) || $key === '' || !is_numeric($id)) {
                 continue;
             }

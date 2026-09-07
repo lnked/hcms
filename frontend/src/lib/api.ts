@@ -54,6 +54,35 @@ function shouldToastApiError(path: string, status: number, code: string): boolea
   return true
 }
 
+interface ApiEnvelope<T> {
+  data?: T
+  error?: { code?: string; message?: string; fields?: Record<string, string[]> }
+}
+
+/**
+ * PHP fatals, nginx 413/504 and proxy pages answer with HTML, not JSON. Parsing them
+ * blindly hides the status behind a syntax error, so fall back to a readable envelope.
+ */
+async function readEnvelope<T>(response: Response): Promise<ApiEnvelope<T> & { current?: string }> {
+  const text = await response.text()
+  if (text === '') {
+    return response.ok ? {} : { error: { code: 'ERROR', message: `HTTP ${response.status}` } }
+  }
+  try {
+    return JSON.parse(text) as ApiEnvelope<T> & { current?: string }
+  } catch {
+    return {
+      error: {
+        code: 'ERROR',
+        message: `HTTP ${response.status}: ${text
+          .replace(/<[^>]*>/g, ' ')
+          .trim()
+          .slice(0, 200)}`,
+      },
+    }
+  }
+}
+
 function throwApiError(
   path: string,
   status: number,
@@ -91,13 +120,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     return undefined as T
   }
 
-  const payload = (await response.json()) as {
-    data?: T
-    error?: { code?: string; message?: string; fields?: Record<string, string[]> }
-    current?: string
-  }
+  const payload = await readEnvelope<T>(response)
 
-  if (!response.ok) {
+  if (!response.ok || payload.error) {
     if (response.status === 401) {
       handleUnauthorized(path)
     }
@@ -147,13 +172,9 @@ export async function apiPage<T>(
     throw err instanceof Error ? err : new Error(message)
   }
 
-  const payload = (await response.json()) as {
-    data?: T[]
-    meta?: PageMeta
-    error?: { code?: string; message?: string }
-  }
+  const payload = (await readEnvelope<T[]>(response)) as ApiEnvelope<T[]> & { meta?: PageMeta }
 
-  if (!response.ok) {
+  if (!response.ok || payload.error) {
     if (response.status === 401) {
       handleUnauthorized(path)
     }
@@ -200,12 +221,9 @@ export async function apiUpload<T>(
     throw err instanceof Error ? err : new Error(message)
   }
 
-  const payload = (await response.json()) as {
-    data?: T
-    error?: { code?: string; message?: string }
-  }
+  const payload = await readEnvelope<T>(response)
 
-  if (!response.ok) {
+  if (!response.ok || payload.error) {
     if (response.status === 401) {
       handleUnauthorized(path)
     }
