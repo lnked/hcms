@@ -36,7 +36,7 @@ final class MediaValue
         }
 
         // Legacy BIGINT / bare id
-        if (is_numeric($value) && !is_array($value)) {
+        if (is_numeric($value)) {
             $item = self::itemFromId((int) $value);
             return $multiple ? [$item] : $item;
         }
@@ -87,6 +87,8 @@ final class MediaValue
     }
 
     /**
+     * @param array<string, string> $positions
+     * @param array<string, int|string> $variants
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}
      */
     public static function itemFromId(int $id, int $rotation = 0, array $positions = [], array $variants = []): array
@@ -115,7 +117,7 @@ final class MediaValue
             if ($value === null || $value === '') {
                 return [];
             }
-            if (is_numeric($value) && !is_array($value)) {
+            if (is_numeric($value)) {
                 return [(int) $value];
             }
             $normalized = self::normalize($value, is_array($value) && array_is_list($value));
@@ -139,13 +141,15 @@ final class MediaValue
 
     /**
      * Remap media ids inside a stored value using old=>new map.
+     *
+     * @param array<int, int> $mediaMap
      */
     public static function remapIds(mixed $value, array $mediaMap): mixed
     {
         if ($value === null || $value === '') {
             return $value;
         }
-        if (is_numeric($value) && !is_array($value)) {
+        if (is_numeric($value)) {
             $old = (int) $value;
 
             return $mediaMap[$old] ?? $old;
@@ -187,7 +191,7 @@ final class MediaValue
      */
     private static function normalizeItem(mixed $entry): array
     {
-        if (is_numeric($entry) && !is_array($entry)) {
+        if (is_numeric($entry)) {
             return self::itemFromId((int) $entry);
         }
         if (!is_array($entry)) {

@@ -74,7 +74,7 @@ final class ImageProcessor
         if (!is_array($info)) {
             throw new InvalidArgumentException('Unsupported or corrupt image');
         }
-        $type = $info[2] ?? 0;
+        $type = $info[2];
         $img = match ($type) {
             IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
             IMAGETYPE_PNG => @imagecreatefrompng($path),
@@ -137,9 +137,6 @@ final class ImageProcessor
     {
         $sw = imagesx($src);
         $sh = imagesy($src);
-        if ($sw < 1 || $sh < 1) {
-            throw new InvalidArgumentException('Invalid source dimensions');
-        }
         $scale = min($tw / $sw, $th / $sh);
         $nw = max(1, (int) round($sw * $scale));
         $nh = max(1, (int) round($sh * $scale));
@@ -157,9 +154,6 @@ final class ImageProcessor
     {
         $sw = imagesx($src);
         $sh = imagesy($src);
-        if ($sw < 1 || $sh < 1) {
-            throw new InvalidArgumentException('Invalid source dimensions');
-        }
         $scale = max($tw / $sw, $th / $sh);
         $rw = (int) ceil($sw * $scale);
         $rh = (int) ceil($sh * $scale);
@@ -234,7 +228,7 @@ final class ImageProcessor
             return null;
         }
 
-        return match ($info[2] ?? 0) {
+        return match ($info[2]) {
             IMAGETYPE_JPEG => 'image/jpeg',
             IMAGETYPE_PNG => 'image/png',
             IMAGETYPE_GIF => 'image/gif',
