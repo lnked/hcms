@@ -16,6 +16,8 @@ import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
 import { resolveColumns } from './columns'
 import { MediaCell } from './MediaCell'
+import { RelationCell } from './RelationCell'
+import { isManyToOneRelation, type RelationTarget } from './useRelationLabels'
 
 export type EntryRow = Record<string, unknown> & { id: number }
 
@@ -23,6 +25,8 @@ interface DataTableProps {
   fields: SchemaField[]
   /** Saved column layout; omit to show the schema defaults. */
   columns?: ResourceListColumn[]
+  /** Resolved relation targets keyed by field name; omit to show bare ids. */
+  relations?: Record<string, RelationTarget>
   rows: EntryRow[]
   /** Router path of the entry editor card, shareable and openable in a new tab. */
   editHref: (row: EntryRow) => string
@@ -38,6 +42,7 @@ interface DataTableProps {
 export function DataTable({
   fields,
   columns: layout,
+  relations,
   rows,
   editHref,
   onDelete,
@@ -171,6 +176,13 @@ export function DataTable({
                 isMediaField(col.field.type) ? (
                   <TableCell key={col.field.name}>
                     <MediaCell value={row[col.field.name]} fieldType={col.field.type} />
+                  </TableCell>
+                ) : isManyToOneRelation(col.field) ? (
+                  <TableCell key={col.field.name} style={{ maxWidth: col.width ?? '14rem' }}>
+                    <RelationCell
+                      value={row[col.field.name]}
+                      target={relations?.[col.field.name]}
+                    />
                   </TableCell>
                 ) : (
                   <TableCell

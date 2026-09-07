@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.49.0",
+      "date": "2026-09-08",
+      "channel": "stable",
+      "title": "Relation columns show the related record and link to it",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "A manyToOne relation column now shows the stored id next to the related record's label, and the label links to that record's editor in a new tab instead of leaving a bare number to look up by hand"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "New admin endpoint GET /admin/api/resources/{id}/entries/relation-labels?field=&ids= resolves relation targets for the ids on screen with a single IN query, so a table of 20 rows never loads the whole related resource. Public API payloads are unchanged: relation fields still serialize to the plain id"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "When a relation's labelField is missing or left at the schema default of id, the label falls back to the related resource's first readable text field (string, slug, email, text, url), so the column reads correctly without editing the schema"
+        }
+      ]
+    },
+    {
       "version": "0.48.0",
       "date": "2026-09-08",
       "channel": "stable",

@@ -102,6 +102,34 @@ describe('DataTable', () => {
     expect(screen.getByText('Ann')).toBeInTheDocument()
   })
 
+  it('links a relation to the related entry in a new tab', () => {
+    const fields = [
+      {
+        ...emptyField('relation', 0),
+        name: 'author',
+        label: 'Author',
+        config: { cardinality: 'manyToOne', relatedSlug: 'authors', labelField: 'name' },
+      },
+    ]
+    renderTable(
+      <DataTable
+        fields={fields}
+        relations={{ author: { resourceId: 3, labels: { 7: 'Ann' } } }}
+        rows={[
+          { id: 1, author: 7 },
+          { id: 2, author: null },
+        ]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+      />,
+    )
+    const link = screen.getByRole('link', { name: /Ann/ })
+    expect(link).toHaveAttribute('href', '/resources/3/data/7')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(screen.getByText('#7')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
   it('renders image thumbnails instead of raw json', () => {
     const fields = [{ ...emptyField('image', 0), name: 'cover', label: 'Cover' }]
     renderTable(

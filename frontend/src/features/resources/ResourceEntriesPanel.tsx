@@ -16,8 +16,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { resolveColumns } from '@/features/data-table/columns'
 import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
+import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useI18n } from '@/i18n'
@@ -153,6 +155,13 @@ export function ResourceEntriesPanel({
       return apiPage<EntryRow>(`/admin/api/resources/${resourceId}/entries?${params}`)
     },
   })
+
+  const rows = list.data?.data ?? []
+  const visibleFields = useMemo(
+    () => resolveColumns(fields, listColumns).map((column) => column.field),
+    [fields, listColumns],
+  )
+  const relations = useRelationLabels(resourceId, visibleFields, rows)
 
   const creating = entryParam === 'new'
   const editingId = entryParam !== null && /^\d+$/.test(entryParam) ? Number(entryParam) : null
@@ -404,7 +413,6 @@ export function ResourceEntriesPanel({
   }
 
   const meta = list.data?.meta
-  const rows = list.data?.data ?? []
 
   return (
     <Card>
@@ -472,6 +480,7 @@ export function ResourceEntriesPanel({
           <DataTable
             fields={fields}
             columns={listColumns}
+            relations={relations}
             rows={rows}
             sort={sort}
             onSort={(next) => {

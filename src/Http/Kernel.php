@@ -754,6 +754,13 @@ final class Kernel
 
                 return $entries->create($request, $context, (int) $params['id']);
             });
+            $this->router->add('GET', '/admin/api/resources/{id}/entries/relation-labels', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->relationLabels($request, $context, (int) $params['id']);
+            });
             $this->router->add('GET', '/admin/api/resources/{id}/entries/export', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
                 if ($context === null) {
                     return Response::error('UNAUTHORIZED', 'Unauthorized', 401);

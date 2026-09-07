@@ -89,6 +89,100 @@ final class QueryEngine
     }
 
     /**
+     * Resolve manyToOne relation targets for a set of stored ids, so the admin table
+     * can label the ids it already has without loading the whole related resource.
+     *
+     * @param list<int> $ids
+     * @return array{resourceId: int, slug: string, labelField: string, labels: array<int, string>}
+     */
+    public function relationLabels(string $slug, string $field, array $ids): array
+    {
+        [, , $fieldMap] = $this->resolve($slug);
+        $meta = $fieldMap[$field] ?? null;
+        if ($meta === null || ($meta['type'] ?? '') !== 'relation') {
+            throw new InvalidArgumentException('Not a relation field: ' . $field);
+        }
+        $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+        if (($config['cardinality'] ?? 'manyToOne') !== 'manyToOne') {
+            throw new InvalidArgumentException('Only manyToOne relations have stored ids: ' . $field);
+        }
+
+        $relatedSlug = (string) ($config['relatedSlug'] ?? '');
+        if ($relatedSlug === '') {
+            throw new InvalidArgumentException('Relation has no related resource: ' . $field);
+        }
+        $related = $this->resources->findByPublicKey($relatedSlug)
+            ?? $this->resources->findBySlug($relatedSlug);
+        if ($related === null || ($related['status'] ?? '') !== 'published') {
+            throw new RuntimeException('Related resource not found: ' . $relatedSlug, 404);
+        }
+
+        $relatedFieldMap = $this->fieldMapFromResource($related);
+        $labelField = (string) ($config['labelField'] ?? 'id');
+        if (!isset($relatedFieldMap[$labelField])) {
+            // The schema default is `id`, which says nothing in a list: fall back to the
+            // first textual field so the column is readable without reconfiguring.
+            $labelField = $this->guessLabelField($relatedFieldMap) ?? 'id';
+        }
+
+        $out = [
+            'resourceId' => (int) $related['id'],
+            'slug' => (string) $related['slug'],
+            'labelField' => $labelField,
+            'labels' => [],
+        ];
+
+        $unique = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ($unique === [] || $labelField === 'id') {
+            return $out;
+        }
+
+        $placeholders = [];
+        $params = [];
+        foreach ($unique as $i => $id) {
+            $param = 'r_' . $i;
+            $placeholders[] = ':' . $param;
+            $params[$param] = $id;
+        }
+        $rows = $this->db->select(
+            'SELECT `id`, `' . $labelField . '` AS `label` FROM `'
+            . MigrationService::tableName((string) $related['content_type_slug']) . '`
+             WHERE `id` IN (' . implode(', ', $placeholders) . ') AND `deleted_at` IS NULL',
+            $params,
+        );
+        foreach ($rows as $row) {
+            $label = $row['label'] ?? null;
+            if ($label === null || is_array($label)) {
+                continue;
+            }
+            $out['labels'][(int) $row['id']] = (string) $label;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fieldMap
+     */
+    private function guessLabelField(array $fieldMap): ?string
+    {
+        foreach (['string', 'slug', 'email', 'text', 'url'] as $type) {
+            foreach ($fieldMap as $name => $meta) {
+                if (($meta['type'] ?? '') !== $type) {
+                    continue;
+                }
+                if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
+                    continue;
+                }
+
+                return (string) $name;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array{public?: bool} $options
      * @return list<array<string, mixed>>
      */

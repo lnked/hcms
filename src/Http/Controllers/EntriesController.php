@@ -55,6 +55,35 @@ final class EntriesController
         }
     }
 
+    public function relationLabels(Request $request, AuthContext $auth, int $resourceId): Response
+    {
+        unset($auth);
+        try {
+            $field = trim((string) ($request->query['field'] ?? ''));
+            if ($field === '') {
+                throw new InvalidArgumentException('field is required');
+            }
+            $ids = [];
+            foreach (explode(',', (string) ($request->query['ids'] ?? '')) as $raw) {
+                $raw = trim($raw);
+                if ($raw !== '' && ctype_digit($raw)) {
+                    $ids[] = (int) $raw;
+                }
+            }
+            if (count($ids) > 100) {
+                $ids = array_slice($ids, 0, 100);
+            }
+
+            return Response::data($this->query->relationLabels($this->slug($resourceId), $field, $ids));
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
     public function create(Request $request, AuthContext $auth, int $resourceId): Response
     {
         try {
