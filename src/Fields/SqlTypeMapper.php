@@ -48,7 +48,8 @@ final class SqlTypeMapper
             'datetime' => 'DATETIME',
             'uuid' => 'CHAR(36)',
             'enum' => 'VARCHAR(64)',
-            'image', 'file', 'relation' => 'BIGINT UNSIGNED',
+            'relation' => 'BIGINT UNSIGNED',
+            'image', 'file' => 'JSON',
             default => throw new InvalidArgumentException('Unsupported SQL mapping for ' . $type),
         };
 

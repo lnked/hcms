@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.45.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "File/image field formats, sizes, crop/resize, anchor, and rotation",
+      "changes": [
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "file/image field config: allowed formats, multiple files, and image size presets (crop/resize + 9-cell anchor)"
+        },
+        {
+          "type": "added",
+          "area": "media",
+          "text": "On upload keep the original and generate variant files; regenerate via POST /admin/api/media/{id}/regenerate when rotation or anchors change"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Entry picker: per-size anchor grid, ±90° rotation, and multi-file image/file values"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "image/file field values are JSON MediaValue objects (id, rotation, positions, variants) instead of bare media ids; public API expands media URLs"
+        },
+        {
+          "type": "added",
+          "area": "db",
+          "text": "cms_media parent_id/variant_key for derived image variants (migration 008)"
+        }
+      ]
+    },
+    {
       "version": "0.44.2",
       "date": "2026-09-07",
       "channel": "stable",

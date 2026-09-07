@@ -10,6 +10,7 @@ use Cms\Content\Slug;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldService;
 use Cms\Media\MediaService;
+use Cms\Media\MediaValue;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -409,8 +410,7 @@ final class ResourcePackageService
                 if (!array_key_exists($name, $entry) || $entry[$name] === null || $entry[$name] === '') {
                     continue;
                 }
-                $id = (int) $entry[$name];
-                if ($id > 0) {
+                foreach (MediaValue::collectIds($entry[$name]) as $id) {
                     $ids[$id] = true;
                 }
             }
@@ -434,10 +434,7 @@ final class ResourcePackageService
                 if (!array_key_exists($name, $row) || $row[$name] === null || $row[$name] === '') {
                     continue;
                 }
-                $oldId = (int) $row[$name];
-                if (isset($mediaMap[$oldId])) {
-                    $row[$name] = $mediaMap[$oldId];
-                }
+                $row[$name] = MediaValue::remapIds($row[$name], $mediaMap);
             }
             $out[] = $row;
         }

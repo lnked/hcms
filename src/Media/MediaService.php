@@ -13,6 +13,26 @@ final class MediaService
 {
     private const MAX_BYTES = 10_485_760; // 10 MB
 
+    /** @var array<string, string> extension → mime */
+    private const EXT_TO_MIME = [
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        'pdf' => 'application/pdf',
+        'txt' => 'text/plain',
+        'csv' => 'text/csv',
+        'mp4' => 'video/mp4',
+        'webm' => 'video/webm',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'zip' => 'application/zip',
+    ];
+
     /** @var list<string> */
     private const DEFAULT_ALLOWED_MIMES = [
         'image/jpeg',
@@ -131,6 +151,7 @@ HTACCESS;
         private readonly Connection $db,
         private readonly Paths $paths,
         ?array $allowedMimes = null,
+        private readonly ImageProcessor $images = new ImageProcessor(),
     ) {
         $this->allowedMimes = $allowedMimes;
     }
@@ -150,11 +171,11 @@ HTACCESS;
     {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
-        $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM cms_media');
+        $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM cms_media WHERE parent_id IS NULL');
         $total = $count === null ? 0 : (int) $count['c'];
         $offset = ($page - 1) * $limit;
         $rows = $this->db->select(
-            'SELECT * FROM cms_media ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
+            'SELECT * FROM cms_media WHERE parent_id IS NULL ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
         );
 
         return [
@@ -183,9 +204,10 @@ HTACCESS;
 
     /**
      * @param array<string, mixed> $file from $_FILES['file']
+     * @param list<string>|null $allowedFormats field-level extensions (empty/null = no extra filter)
      * @return array<string, mixed>
      */
-    public function upload(array $file): array
+    public function upload(array $file, ?array $allowedFormats = null): array
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error !== UPLOAD_ERR_OK) {
@@ -208,7 +230,117 @@ HTACCESS;
             throw new RuntimeException('Failed to read upload');
         }
 
+        $this->assertFormatsAllowed($mime, $name, $allowedFormats);
+
         return $this->storeFromBytes($bytes, $name, $mime);
+    }
+
+    /**
+     * Upload original + generate image variants. Returns MediaValue shape.
+     *
+     * @param array<string, mixed> $file
+     * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
+     * @param array<string, string> $positions user overrides keyed by prefix
+     * @param list<string>|null $allowedFormats
+     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
+     */
+    public function uploadWithTransforms(
+        array $file,
+        array $sizes,
+        int $rotation = 0,
+        array $positions = [],
+        ?array $allowedFormats = null,
+    ): array {
+        $original = $this->upload($file, $allowedFormats);
+        $id = (int) $original['id'];
+        if ($sizes === []) {
+            return [
+                'id' => $id,
+                'rotation' => $rotation,
+                'positions' => $positions,
+                'variants' => [],
+                'media' => $original,
+            ];
+        }
+        if (!str_starts_with((string) $original['mime'], 'image/') || (string) $original['mime'] === 'image/svg+xml') {
+            throw new InvalidArgumentException('Image transforms require a raster image');
+        }
+
+        $variants = $this->generateVariants($id, $sizes, $rotation, $positions);
+
+        return [
+            'id' => $id,
+            'rotation' => $rotation,
+            'positions' => $positions,
+            'variants' => $variants,
+            'media' => $this->get($id),
+        ];
+    }
+
+    /**
+     * Regenerate variants for an existing original.
+     *
+     * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
+     * @param array<string, string> $positions
+     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
+     */
+    public function regenerateVariants(
+        int $mediaId,
+        array $sizes,
+        int $rotation = 0,
+        array $positions = [],
+    ): array {
+        $row = $this->findRow($mediaId);
+        if ($row === null) {
+            throw new RuntimeException('Media not found', 404);
+        }
+        if ($row['parent_id'] !== null) {
+            throw new InvalidArgumentException('Cannot regenerate a variant; pass the original media id');
+        }
+        if (!str_starts_with((string) $row['mime'], 'image/') || (string) $row['mime'] === 'image/svg+xml') {
+            throw new InvalidArgumentException('Image transforms require a raster image');
+        }
+
+        $this->deleteChildren($mediaId);
+        $variants = $sizes === [] ? [] : $this->generateVariants($mediaId, $sizes, $rotation, $positions);
+
+        return [
+            'id' => $mediaId,
+            'rotation' => $rotation,
+            'positions' => $positions,
+            'variants' => $variants,
+            'media' => $this->get($mediaId),
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array<int, array<string, mixed>>
+     */
+    public function getMany(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $key = 'id' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $rows = $this->db->select(
+            'SELECT * FROM cms_media WHERE id IN (' . implode(', ', $placeholders) . ')',
+            $params,
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $serialized = $this->serialize($row);
+            $out[(int) $serialized['id']] = $serialized;
+        }
+
+        return $out;
     }
 
     /**
@@ -216,8 +348,13 @@ HTACCESS;
      *
      * @return array<string, mixed>
      */
-    public function storeFromBytes(string $bytes, string $originalName, string $mime): array
-    {
+    public function storeFromBytes(
+        string $bytes,
+        string $originalName,
+        string $mime,
+        ?int $parentId = null,
+        ?string $variantKey = null,
+    ): array {
         $size = strlen($bytes);
         if ($size <= 0 || $size > self::MAX_BYTES) {
             throw new InvalidArgumentException('File too large (max 10MB)');
@@ -253,9 +390,11 @@ HTACCESS;
 
         $now = date('Y-m-d H:i:s');
         $this->db->execute(
-            'INSERT INTO cms_media (disk_path, original_name, mime, size, width, height, created_at)
-             VALUES (:disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
+            'INSERT INTO cms_media (parent_id, variant_key, disk_path, original_name, mime, size, width, height, created_at)
+             VALUES (:parent_id, :variant_key, :disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
             [
+                'parent_id' => $parentId,
+                'variant_key' => $variantKey,
                 'disk_path' => $relative,
                 'original_name' => substr($originalName, 0, 255),
                 'mime' => substr($mime, 0, 128),
@@ -303,10 +442,114 @@ HTACCESS;
         if ($row === null) {
             throw new RuntimeException('Media not found', 404);
         }
+        $this->deleteChildren($id);
         $absolute = $this->paths->media() . '/' . $row['disk_path'];
         $this->db->execute('DELETE FROM cms_media WHERE id = :id', ['id' => $id]);
         if (is_file($absolute)) {
             @unlink($absolute);
+        }
+    }
+
+    private function deleteChildren(int $parentId): void
+    {
+        $children = $this->db->select(
+            'SELECT id, disk_path FROM cms_media WHERE parent_id = :parent_id',
+            ['parent_id' => $parentId],
+        );
+        foreach ($children as $child) {
+            $absolute = $this->paths->media() . '/' . $child['disk_path'];
+            $this->db->execute('DELETE FROM cms_media WHERE id = :id', ['id' => (int) $child['id']]);
+            if (is_file($absolute)) {
+                @unlink($absolute);
+            }
+        }
+    }
+
+    /**
+     * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
+     * @param array<string, string> $positions
+     * @return array<string, int>
+     */
+    private function generateVariants(int $parentId, array $sizes, int $rotation, array $positions): array
+    {
+        $row = $this->findRow($parentId);
+        if ($row === null) {
+            throw new RuntimeException('Media not found', 404);
+        }
+        $absolute = $this->paths->media() . '/' . $row['disk_path'];
+        if (!is_file($absolute)) {
+            throw new RuntimeException('Original media file missing');
+        }
+
+        $variants = [];
+        foreach ($sizes as $size) {
+            $prefix = $size['prefix'];
+            $position = $positions[$prefix] ?? $size['position'];
+            $transformed = $this->images->transform(
+                $absolute,
+                $rotation,
+                $size['mode'],
+                $size['width'],
+                $size['height'],
+                $position,
+                (string) $row['mime'],
+            );
+            $variantName = $prefix . '_' . (string) $row['original_name'];
+            $stored = $this->storeFromBytes(
+                $transformed['bytes'],
+                $variantName,
+                $transformed['mime'],
+                $parentId,
+                $prefix,
+            );
+            $variants[$prefix] = (int) $stored['id'];
+        }
+
+        return $variants;
+    }
+
+    /**
+     * @param list<string>|null $allowedFormats
+     */
+    private function assertFormatsAllowed(string $mime, string $originalName, ?array $allowedFormats): void
+    {
+        if ($allowedFormats === null || $allowedFormats === []) {
+            return;
+        }
+        $normalized = [];
+        foreach ($allowedFormats as $ext) {
+            $ext = strtolower(ltrim(trim((string) $ext), '.'));
+            if ($ext === 'jpeg') {
+                $ext = 'jpg';
+            }
+            if ($ext !== '') {
+                $normalized[$ext] = true;
+            }
+        }
+        if ($normalized === []) {
+            return;
+        }
+
+        $mime = strtolower(trim(explode(';', $mime)[0]));
+        $extFromMime = null;
+        foreach (self::EXT_TO_MIME as $ext => $mapped) {
+            if ($mapped === $mime) {
+                $extFromMime = $ext === 'jpeg' ? 'jpg' : $ext;
+                break;
+            }
+        }
+        $base = strtolower($this->basenameOnly($originalName));
+        $nameExt = pathinfo($base, PATHINFO_EXTENSION);
+        if ($nameExt === 'jpeg') {
+            $nameExt = 'jpg';
+        }
+
+        $ok = ($extFromMime !== null && isset($normalized[$extFromMime]))
+            || ($nameExt !== '' && isset($normalized[$nameExt]));
+        if (!$ok) {
+            throw new InvalidArgumentException(
+                'File format not allowed for this field (allowed: ' . implode(', ', array_keys($normalized)) . ')',
+            );
         }
     }
 
@@ -503,6 +746,8 @@ HTACCESS;
 
         return [
             'id' => $id,
+            'parentId' => $row['parent_id'] === null ? null : (int) $row['parent_id'],
+            'variantKey' => $row['variant_key'] ?? null,
             'originalName' => $row['original_name'],
             'mime' => $row['mime'],
             'size' => (int) $row['size'],

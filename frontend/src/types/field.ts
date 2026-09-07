@@ -19,6 +19,8 @@ export type FieldTypeName =
 
 export interface SchemaField {
   id?: number
+  /** Stable React list key for unsaved fields; not sent to the API. */
+  clientKey?: string
   name: string
   type: FieldTypeName | string
   sortOrder: number
@@ -62,6 +64,7 @@ export const FIELD_TYPES: FieldTypeName[] = [
 export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): SchemaField {
   const isRelation = type === 'relation'
   return {
+    clientKey: crypto.randomUUID(),
     name: '',
     type,
     sortOrder,
@@ -97,6 +100,35 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
           ? { associatedWith: '', maxLength: 255 }
           : type === 'string'
             ? { maxLength: 255 }
-            : {},
+            : type === 'image'
+              ? { multiple: false, formats: [], sizes: [] }
+              : type === 'file'
+                ? { multiple: false, formats: [] }
+                : {},
   }
+}
+
+export type ImageSizeConfig = {
+  prefix: string
+  width: number
+  height: number
+  mode: 'crop' | 'resize'
+  position: string
+}
+
+export type MediaFieldValue = {
+  id: number
+  rotation: number
+  positions: Record<string, string>
+  variants: Record<string, number | MediaItemRef>
+  media?: MediaItemRef
+}
+
+export type MediaItemRef = {
+  id: number
+  url?: string
+  originalName?: string
+  mime?: string
+  width?: number | null
+  height?: number | null
 }

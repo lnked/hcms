@@ -82,11 +82,13 @@ export function ResourceDetailPage() {
   })
 
   const saveSchema = useMutation({
-    mutationFn: () =>
-      api<SchemaField[]>(`/admin/api/resources/${resourceId}/fields`, {
+    mutationFn: () => {
+      const fields = schema.map(({ clientKey: _clientKey, ...field }) => field)
+      return api<SchemaField[]>(`/admin/api/resources/${resourceId}/fields`, {
         method: 'PUT',
-        body: JSON.stringify({ fields: schema }),
-      }),
+        body: JSON.stringify({ fields }),
+      })
+    },
     onSuccess: (data) => {
       setDraftSchema(null)
       setMessage(t('resources.schemaSaved'))

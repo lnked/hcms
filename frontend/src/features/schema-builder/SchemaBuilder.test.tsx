@@ -30,4 +30,17 @@ describe('SchemaBuilder', () => {
     await user.click(screen.getByRole('button', { name: /Add field/i }))
     expect(screen.getByText('Untitled')).toBeInTheDocument()
   })
+
+  it('keeps focus while typing the field name', async () => {
+    const user = userEvent.setup()
+    render(wrap(<Harness />))
+    await user.click(screen.getByRole('button', { name: /Add field/i }))
+
+    const nameInput = screen.getByPlaceholderText('title')
+    await user.click(nameInput)
+    await user.keyboard('hello')
+
+    expect(nameInput).toHaveFocus()
+    expect(nameInput).toHaveValue('hello')
+  })
 })

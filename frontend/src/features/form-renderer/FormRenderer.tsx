@@ -280,13 +280,27 @@ function renderControl(
   }
 
   if (field.type === 'image' || field.type === 'file') {
+    const formats = Array.isArray(field.config.formats) ? (field.config.formats as string[]) : []
+    const sizes = Array.isArray(field.config.sizes)
+      ? (field.config.sizes as import('@/types/field').ImageSizeConfig[])
+      : []
+    const accept =
+      formats.length > 0
+        ? formats.map((ext) => `.${String(ext).replace(/^\./, '')}`).join(',')
+        : field.type === 'image'
+          ? 'image/*'
+          : undefined
     return (
       <MediaFieldPicker
         id={id}
         value={value}
         disabled={disabled}
-        accept={field.type === 'image' ? 'image/*' : undefined}
-        onChange={(mediaId) => set(field.name, mediaId)}
+        accept={accept}
+        multiple={Boolean(field.config.multiple)}
+        formats={formats}
+        sizes={field.type === 'image' ? sizes : []}
+        isImage={field.type === 'image'}
+        onChange={(next) => set(field.name, next)}
       />
     )
   }

@@ -340,7 +340,7 @@ final class OpenApiGenerator
                 'type' => 'string',
                 'enum' => array_values(array_map('strval', is_array($spec['config']['options'] ?? null) ? $spec['config']['options'] : [])),
             ],
-            'image', 'file' => ['type' => 'integer', 'description' => 'Media id'],
+            'image', 'file' => $this->mediaPropertySchema($spec),
             default => ['type' => 'string'],
         };
 
@@ -352,6 +352,51 @@ final class OpenApiGenerator
         }
 
         return $schema;
+    }
+
+    /**
+     * @param array<string, mixed> $spec
+     * @return array<string, mixed>
+     */
+    private function mediaPropertySchema(array $spec): array
+    {
+        $item = [
+            'type' => 'object',
+            'description' => 'Media value with original and optional variants',
+            'properties' => [
+                'id' => ['type' => 'integer'],
+                'rotation' => ['type' => 'integer', 'enum' => [0, 90, 180, 270]],
+                'positions' => ['type' => 'object', 'additionalProperties' => ['type' => 'string']],
+                'variants' => [
+                    'type' => 'object',
+                    'additionalProperties' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'id' => ['type' => 'integer'],
+                            'url' => ['type' => 'string'],
+                            'width' => ['type' => 'integer', 'nullable' => true],
+                            'height' => ['type' => 'integer', 'nullable' => true],
+                        ],
+                    ],
+                ],
+                'media' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'id' => ['type' => 'integer'],
+                        'url' => ['type' => 'string'],
+                        'mime' => ['type' => 'string'],
+                        'width' => ['type' => 'integer', 'nullable' => true],
+                        'height' => ['type' => 'integer', 'nullable' => true],
+                    ],
+                ],
+            ],
+        ];
+        $multiple = (bool) ($spec['config']['multiple'] ?? false);
+        if ($multiple) {
+            return ['type' => 'array', 'items' => $item];
+        }
+
+        return $item;
     }
 
     /**

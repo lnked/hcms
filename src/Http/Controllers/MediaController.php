@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Fields\Types\MediaFieldConfig;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Media\MediaService;
@@ -48,7 +49,27 @@ final class MediaController
             if (!is_array($file)) {
                 return Response::error('VALIDATION_ERROR', 'file is required (multipart field name: file)', 422);
             }
-            $item = $this->media->upload($file);
+
+            $formats = $this->parseFormats($_POST['formats'] ?? null);
+            $sizes = $this->parseSizes($_POST['sizes'] ?? null);
+            $positions = MediaFieldConfig::normalizePositions($this->parseJsonObject($_POST['positions'] ?? null));
+            $rotation = MediaFieldConfig::normalizeRotation($_POST['rotation'] ?? 0);
+
+            if ($sizes !== []) {
+                $result = $this->media->uploadWithTransforms($file, $sizes, $rotation, $positions, $formats);
+                $this->audit->log(
+                    $request,
+                    'media.uploaded',
+                    $auth->userId(),
+                    'media',
+                    (string) $result['id'],
+                    ['name' => $result['media']['originalName'] ?? null, 'variants' => array_keys($result['variants'])],
+                );
+
+                return Response::data($result, 201);
+            }
+
+            $item = $this->media->upload($file, $formats);
             $this->audit->log(
                 $request,
                 'media.uploaded',
@@ -58,9 +79,44 @@ final class MediaController
                 ['name' => $item['originalName']],
             );
 
-            return Response::data($item, 201);
+            return Response::data([
+                'id' => (int) $item['id'],
+                'rotation' => 0,
+                'positions' => [],
+                'variants' => [],
+                'media' => $item,
+            ], 201);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function regenerate(Request $request, AuthContext $auth, int $id): Response
+    {
+        try {
+            $body = $request->json();
+            $sizes = MediaFieldConfig::normalizeSizes($body['sizes'] ?? []);
+            $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
+            $rotation = MediaFieldConfig::normalizeRotation($body['rotation'] ?? 0);
+
+            $result = $this->media->regenerateVariants($id, $sizes, $rotation, $positions);
+            $this->audit->log(
+                $request,
+                'media.regenerated',
+                $auth->userId(),
+                'media',
+                (string) $id,
+                ['variants' => array_keys($result['variants']), 'rotation' => $rotation],
+            );
+
+            return Response::data($result);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            $code = $e->getCode() === 404 ? 404 : 500;
+            return Response::error($code === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR', $e->getMessage(), $code);
         } catch (Throwable $e) {
             return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }
@@ -152,6 +208,69 @@ final class MediaController
                 'X-Content-Type-Options' => 'nosniff',
             ],
         );
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function parseFormats(mixed $raw): ?array
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return array_values(array_filter($decoded, 'is_string'));
+            }
+            return array_values(array_filter(array_map('trim', explode(',', $raw)), static fn (string $v): bool => $v !== ''));
+        }
+        if (is_array($raw)) {
+            return array_values(array_filter($raw, 'is_string'));
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<array{prefix: string, width: int, height: int, mode: string, position: string}>
+     */
+    private function parseSizes(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new InvalidArgumentException('sizes must be valid JSON');
+            }
+            $raw = $decoded;
+        }
+
+        return MediaFieldConfig::normalizeSizes($raw);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function parseJsonObject(mixed $raw): ?array
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        if (is_array($raw)) {
+            return $raw;
+        }
+        if (!is_string($raw)) {
+            return null;
+        }
+        $decoded = json_decode($raw, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+            throw new InvalidArgumentException('positions must be valid JSON object');
+        }
+
+        return $decoded;
     }
 
     private function isInlineSafeMime(string $mime): bool

@@ -8,6 +8,7 @@ use Cms\Content\UrlSlug;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
+use Cms\Media\MediaValue;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
@@ -406,6 +407,7 @@ final class QueryEngine
     {
         $out = ['id' => (int) $row['id']];
         $whitelist = $api['fields'];
+        $mediaCache = [];
         if ($whitelist === null) {
             $out['createdAt'] = $row['created_at'] ?? null;
             $out['updatedAt'] = $row['updated_at'] ?? null;
@@ -417,31 +419,38 @@ final class QueryEngine
                 if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
                     continue;
                 }
-                $value = $row[$name] ?? null;
-                if (($meta['type'] ?? '') === 'relation' && $value !== null) {
-                    $value = (int) $value;
-                }
-                $out[$name] = $value;
+                $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
             }
 
             return $out;
         }
 
-        $allowed = array_fill_keys($whitelist, true);
         foreach ($whitelist as $name) {
             if (!isset($fieldMap[$name])) {
                 continue;
             }
-            $meta = $fieldMap[$name];
-            $value = $row[$name] ?? null;
-            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
-                $value = (int) $value;
-            }
-            $out[$name] = $value;
+            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $fieldMap[$name], $mediaCache);
         }
-        unset($allowed);
 
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     * @param array<int, array<string, mixed>> $mediaCache
+     */
+    private function serializeFieldValue(mixed $value, array $meta, array &$mediaCache): mixed
+    {
+        $type = (string) ($meta['type'] ?? '');
+        $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+        if ($type === 'relation' && $value !== null) {
+            return (int) $value;
+        }
+        if (($type === 'image' || $type === 'file') && $value !== null && $value !== '') {
+            return $this->serializeMediaField($value, (bool) ($config['multiple'] ?? false), $mediaCache);
+        }
+
+        return $value;
     }
 
     /**
@@ -524,6 +533,7 @@ final class QueryEngine
     private function serializeRelated(array $row, array $fieldMap, ?array $fields): array
     {
         $out = ['id' => (int) $row['id']];
+        $mediaCache = [];
         if ($fields === null) {
             $out['createdAt'] = $row['created_at'] ?? null;
             $out['updatedAt'] = $row['updated_at'] ?? null;
@@ -535,11 +545,7 @@ final class QueryEngine
                 if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
                     continue;
                 }
-                $value = $row[$name] ?? null;
-                if (($meta['type'] ?? '') === 'relation' && $value !== null) {
-                    $value = (int) $value;
-                }
-                $out[$name] = $value;
+                $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
             }
 
             return $out;
@@ -549,12 +555,7 @@ final class QueryEngine
             if (!isset($fieldMap[$name])) {
                 continue;
             }
-            $meta = $fieldMap[$name];
-            $value = $row[$name] ?? null;
-            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
-                $value = (int) $value;
-            }
-            $out[$name] = $value;
+            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $fieldMap[$name], $mediaCache);
         }
 
         return $out;
@@ -678,7 +679,7 @@ final class QueryEngine
                 $out[$name] = null;
                 continue;
             }
-            $out[$name] = $this->castValue($value, $type, $name);
+            $out[$name] = $this->castValue($value, $type, $name, $config);
         }
 
         foreach ($fieldMap as $name => $meta) {
@@ -714,12 +715,16 @@ final class QueryEngine
         return $out;
     }
 
-    private function castValue(mixed $value, string $type, string $name): mixed
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function castValue(mixed $value, string $type, string $name, array $config = []): mixed
     {
         return match ($type) {
-            'integer', 'relation', 'image', 'file' => is_numeric($value)
+            'integer', 'relation' => is_numeric($value)
                 ? (int) $value
                 : throw new InvalidArgumentException('Invalid integer: ' . $name),
+            'image', 'file' => $this->castMediaValue($value, $name, (bool) ($config['multiple'] ?? false)),
             'float' => is_numeric($value) ? (float) $value : throw new InvalidArgumentException('Invalid float: ' . $name),
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
                 ?? throw new InvalidArgumentException('Invalid boolean: ' . $name),
@@ -732,6 +737,23 @@ final class QueryEngine
                 : throw new InvalidArgumentException('Invalid value: ' . $name),
             default => is_scalar($value) ? (string) $value : throw new InvalidArgumentException('Invalid value: ' . $name),
         };
+    }
+
+    private function castMediaValue(mixed $value, string $name, bool $multiple): string
+    {
+        try {
+            $normalized = MediaValue::normalize($value, $multiple);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException('Invalid media value for ' . $name . ': ' . $e->getMessage());
+        }
+        if ($normalized === null) {
+            throw new InvalidArgumentException('Invalid media value: ' . $name);
+        }
+        if ($multiple && $normalized === []) {
+            throw new InvalidArgumentException('Invalid media value: ' . $name);
+        }
+
+        return MediaValue::encode($normalized) ?? 'null';
     }
 
     /**
@@ -893,6 +915,7 @@ final class QueryEngine
             'createdAt' => $row['created_at'] ?? null,
             'updatedAt' => $row['updated_at'] ?? null,
         ];
+        $mediaCache = [];
         foreach ($fieldMap as $name => $meta) {
             $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
             if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
@@ -901,11 +924,96 @@ final class QueryEngine
             if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
                 continue;
             }
-            $value = $row[$name] ?? null;
-            if (($meta['type'] ?? '') === 'relation' && $value !== null) {
-                $value = (int) $value;
+            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $mediaCache
+     */
+    private function serializeMediaField(mixed $raw, bool $multiple, array &$mediaCache): mixed
+    {
+        try {
+            $normalized = MediaValue::normalize($raw, $multiple);
+        } catch (InvalidArgumentException) {
+            return $raw;
+        }
+        if ($normalized === null) {
+            return null;
+        }
+
+        $ids = MediaValue::collectIds($normalized);
+        $missing = [];
+        foreach ($ids as $id) {
+            if (!isset($mediaCache[$id])) {
+                $missing[] = $id;
             }
-            $out[$name] = $value;
+        }
+        if ($missing !== []) {
+            foreach ($this->loadMediaRows($missing) as $id => $item) {
+                $mediaCache[$id] = $item;
+            }
+        }
+
+        $expandItem = function (array $item) use (&$mediaCache): array {
+            $variants = [];
+            foreach ($item['variants'] as $key => $vid) {
+                $variants[$key] = $mediaCache[(int) $vid] ?? ['id' => (int) $vid, 'url' => '/media/' . (int) $vid];
+            }
+
+            return [
+                'id' => (int) $item['id'],
+                'rotation' => (int) $item['rotation'],
+                'positions' => $item['positions'],
+                'variants' => $variants,
+                'media' => $mediaCache[(int) $item['id']] ?? ['id' => (int) $item['id'], 'url' => '/media/' . (int) $item['id']],
+            ];
+        };
+
+        if (array_is_list($normalized)) {
+            return array_map($expandItem, $normalized);
+        }
+
+        return $expandItem($normalized);
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadMediaRows(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $key = 'm' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $rows = $this->db->select(
+            'SELECT id, original_name, mime, size, width, height, created_at FROM cms_media WHERE id IN ('
+            . implode(', ', $placeholders) . ')',
+            $params,
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $out[$id] = [
+                'id' => $id,
+                'originalName' => $row['original_name'],
+                'mime' => $row['mime'],
+                'size' => (int) $row['size'],
+                'width' => $row['width'] === null ? null : (int) $row['width'],
+                'height' => $row['height'] === null ? null : (int) $row['height'],
+                'url' => '/media/' . $id,
+                'createdAt' => $row['created_at'],
+            ];
         }
 
         return $out;

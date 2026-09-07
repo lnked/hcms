@@ -1,13 +1,20 @@
 import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { GripVertical, Plus, Settings2, Trash2 } from 'lucide-react'
+import { AnchorGrid } from '@/components/AnchorGrid'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { emptyField, FIELD_TYPES, type FieldTypeName, type SchemaField } from '@/types/field'
+import {
+  emptyField,
+  FIELD_TYPES,
+  type FieldTypeName,
+  type ImageSizeConfig,
+  type SchemaField,
+} from '@/types/field'
 import { cn } from '@/lib/utils'
 
 interface SchemaBuilderProps {
@@ -158,6 +165,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     updateAt(index, {
       ...base,
       id: field.id,
+      clientKey: field.clientKey ?? base.clientKey,
       name: field.name,
       label: field.label,
       description: field.description,
@@ -196,7 +204,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
           const isDragging = dragIndex === index
           return (
             <li
-              key={field.id != null ? `field-${field.id}` : `new-${field.name || index}`}
+              key={field.id != null ? `field-${field.id}` : (field.clientKey ?? `draft-${index}`)}
               ref={(node) => {
                 rowRefs.current[index] = node
               }}
@@ -421,6 +429,180 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                             </option>
                           ))}
                       </select>
+                    </div>
+                  ) : null}
+                  {field.type === 'file' || field.type === 'image' ? (
+                    <>
+                      <label className="flex items-center gap-2 text-sm md:col-span-2">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(field.config.multiple)}
+                          onChange={(e) => patchConfig(index, { multiple: e.target.checked })}
+                        />
+                        {t(
+                          field.type === 'image' ? 'schema.image.multiple' : 'schema.file.multiple',
+                        )}
+                      </label>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label>
+                          {t(
+                            field.type === 'image' ? 'schema.image.formats' : 'schema.file.formats',
+                          )}
+                        </Label>
+                        <Input
+                          value={
+                            Array.isArray(field.config.formats)
+                              ? (field.config.formats as string[]).join(', ')
+                              : ''
+                          }
+                          onChange={(e) =>
+                            patchConfig(index, {
+                              formats: e.target.value
+                                .split(',')
+                                .map((part) => part.trim().replace(/^\./, '').toLowerCase())
+                                .filter(Boolean),
+                            })
+                          }
+                          placeholder={field.type === 'image' ? 'jpg, png, webp' : 'pdf, docx, zip'}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t(
+                            field.type === 'image'
+                              ? 'schema.image.formatsHint'
+                              : 'schema.file.formatsHint',
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
+                  {field.type === 'image' ? (
+                    <div className="space-y-3 md:col-span-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label>{t('schema.image.sizes')}</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const sizes = Array.isArray(field.config.sizes)
+                              ? ([...field.config.sizes] as ImageSizeConfig[])
+                              : []
+                            sizes.push({
+                              prefix: `size${sizes.length + 1}`,
+                              width: 200,
+                              height: 200,
+                              mode: 'crop',
+                              position: 'c',
+                            })
+                            patchConfig(index, { sizes })
+                          }}
+                        >
+                          <Plus className="mr-1 h-3.5 w-3.5" />
+                          {t('schema.image.addSize')}
+                        </Button>
+                      </div>
+                      {(Array.isArray(field.config.sizes)
+                        ? (field.config.sizes as ImageSizeConfig[])
+                        : []
+                      ).map((size, sizeIndex) => (
+                        <div
+                          key={`${size.prefix}-${sizeIndex}`}
+                          className="flex flex-wrap items-end gap-2 rounded-md border border-border p-2"
+                        >
+                          <div className="space-y-1">
+                            <Label className="text-xs">{t('schema.image.prefix')}</Label>
+                            <Input
+                              className="w-28"
+                              value={size.prefix}
+                              onChange={(e) => {
+                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                sizes[sizeIndex] = {
+                                  ...sizes[sizeIndex],
+                                  prefix: e.target.value,
+                                }
+                                patchConfig(index, { sizes })
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">{t('schema.image.width')}</Label>
+                            <Input
+                              className="w-20"
+                              type="number"
+                              min={1}
+                              value={size.width}
+                              onChange={(e) => {
+                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                sizes[sizeIndex] = {
+                                  ...sizes[sizeIndex],
+                                  width: Number(e.target.value) || 1,
+                                }
+                                patchConfig(index, { sizes })
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">{t('schema.image.height')}</Label>
+                            <Input
+                              className="w-20"
+                              type="number"
+                              min={1}
+                              value={size.height}
+                              onChange={(e) => {
+                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                sizes[sizeIndex] = {
+                                  ...sizes[sizeIndex],
+                                  height: Number(e.target.value) || 1,
+                                }
+                                patchConfig(index, { sizes })
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">{t('schema.image.mode')}</Label>
+                            <select
+                              className={cn(selectClass, 'w-28')}
+                              value={size.mode === 'resize' ? 'resize' : 'crop'}
+                              onChange={(e) => {
+                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                sizes[sizeIndex] = {
+                                  ...sizes[sizeIndex],
+                                  mode: e.target.value === 'resize' ? 'resize' : 'crop',
+                                }
+                                patchConfig(index, { sizes })
+                              }}
+                            >
+                              <option value="crop">{t('schema.image.modeCrop')}</option>
+                              <option value="resize">{t('schema.image.modeResize')}</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">{t('schema.image.position')}</Label>
+                            <AnchorGrid
+                              value={size.position || 'c'}
+                              onChange={(position) => {
+                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                sizes[sizeIndex] = { ...sizes[sizeIndex], position }
+                                patchConfig(index, { sizes })
+                              }}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => {
+                              const sizes = (field.config.sizes as ImageSizeConfig[]).filter(
+                                (_, i) => i !== sizeIndex,
+                              )
+                              patchConfig(index, { sizes })
+                            }}
+                          >
+                            {t('schema.image.removeSize')}
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
                   {field.type === 'relation' ? (

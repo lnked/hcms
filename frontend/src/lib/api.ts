@@ -171,7 +171,12 @@ export async function apiPage<T>(
   }
 }
 
-export async function apiUpload<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+export async function apiUpload<T>(
+  path: string,
+  file: File,
+  fieldName = 'file',
+  extraFields?: Record<string, string>,
+): Promise<T> {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
   const token = getToken()
@@ -180,6 +185,11 @@ export async function apiUpload<T>(path: string, file: File, fieldName = 'file')
   }
   const body = new FormData()
   body.append(fieldName, file)
+  if (extraFields) {
+    for (const [key, value] of Object.entries(extraFields)) {
+      body.append(key, value)
+    }
+  }
 
   let response: Response
   try {
