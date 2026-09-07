@@ -81,6 +81,14 @@ Authorization: Bearer <token>
 ```bash
 composer qa
 npm run qa
+php scripts/verify-tree.php   # установка/релиз способны загрузиться
 ```
+
+## Обновление и восстановление
+
+Обновление ставится из **Settings → System**: релиз распаковывается рядом, проверяется и только
+потом атомарно подменяет каталоги; прерванный swap откатывается сам. Если сайт всё же лёг —
+`php scripts/restore.php` (диагностика, `fix-autoload`, откат на бэкап, переустановка релиза).
+Подробности: [docs/recovery.md](docs/recovery.md).
 
 История релизов: [`changelog.json`](changelog.json).

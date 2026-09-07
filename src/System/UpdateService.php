@@ -18,15 +18,11 @@ final class UpdateService
     private const PRESERVE = [
         '.env',
         '.htaccess',
-        'storage/installed.lock',
-        'storage/uploads',
-        'storage/logs',
-        'storage/cache',
-        'storage/backups',
-        'storage/update.lock',
-        'storage/update-status.json',
-        'storage/update.job.json',
+        'storage',
     ];
+
+    /** Paths inside the release that are swapped entry by entry, not wholesale. */
+    private const SPLIT_DIRS = ['public'];
 
     public function __construct(
         private readonly Paths $paths,
@@ -136,9 +132,7 @@ final class UpdateService
         if (is_file($lock)) {
             throw new RuntimeException('Update already running');
         }
-        if (!is_writable($this->paths->storage())) {
-            throw new RuntimeException('storage/ is not writable — backup required');
-        }
+        $this->preflight();
 
         $preview = $this->preview();
         if (!($preview['updateAvailable'] ?? false)) {
@@ -196,6 +190,10 @@ final class UpdateService
     }
 
     /**
+     * Download → stage → verify → swap. Nothing in the live tree is touched
+     * until a complete, verified copy of the new release sits on disk, and the
+     * swap itself is a series of renames that a journal can undo.
+     *
      * @param array<string, mixed> $job
      */
     private function executeJob(array $job): void
@@ -203,26 +201,37 @@ final class UpdateService
         $lock = $this->paths->storage() . '/update.lock';
         $backupDir = null;
         $zipPath = null;
+        $workDir = null;
         try {
             $to = isset($job['to']) && is_string($job['to']) ? $job['to'] : '';
             $from = isset($job['from']) && is_string($job['from']) ? $job['from'] : Version::current();
             if ($to === '') {
                 throw new RuntimeException('Update job missing target version');
             }
+            $progress = ['from' => $from, 'to' => $to];
 
-            $this->writeStatus('running', 'backup', null, ['from' => $from, 'to' => $to]);
+            $this->writeStatus('running', 'backup', null, $progress);
             $backupDir = $this->backup();
 
-            $this->writeStatus('running', 'download', null, ['from' => $from, 'to' => $to]);
+            $this->writeStatus('running', 'download', null, $progress);
             $zipPath = $this->downloadRelease($to);
 
-            $this->writeStatus('running', 'unpack', null, ['from' => $from, 'to' => $to]);
-            $this->unpack($zipPath);
+            $this->writeStatus('running', 'unpack', null, $progress);
+            $workDir = $this->extractToWorkDir($zipPath, $to);
 
-            $this->writeStatus('running', 'publish', null, ['from' => $from, 'to' => $to]);
+            $this->writeStatus('running', 'verify', null, $progress);
+            $this->assertTreeUsable($workDir, 'staged release');
+
+            $this->writeStatus('running', 'swap', null, $progress);
+            $this->swapIn($workDir, $backupDir, $from, $to);
+            $this->resetOpcache();
+            $this->assertTreeUsable($this->paths->root, 'updated install');
+
+            $this->writeStatus('running', 'publish', null, $progress);
             (new AdminUiPublisher($this->paths))->publishFromReleaseTree();
+            $this->syncStorageGuards($workDir);
 
-            $this->writeStatus('running', 'migrate', null, ['from' => $from, 'to' => $to]);
+            $this->writeStatus('running', 'migrate', null, $progress);
             $this->runPendingMigrations();
 
             $this->writeStatus('done', 'verify', null, [
@@ -232,21 +241,241 @@ final class UpdateService
             ]);
         } catch (\Throwable $e) {
             $this->writeStatus('failed', 'error', $e->getMessage());
-            if ($backupDir !== null) {
-                try {
+            try {
+                $reverted = $this->revertSwap();
+                if ($reverted || $backupDir === null) {
+                    $this->writeStatus('failed', 'rolled_back', $e->getMessage(), ['backup' => $backupDir]);
+                } else {
                     $this->rollback($backupDir);
                     $this->writeStatus('failed', 'rolled_back', $e->getMessage(), ['backup' => $backupDir]);
-                } catch (\Throwable $rollbackError) {
-                    $this->writeStatus('failed', 'rollback_failed', $e->getMessage() . '; rollback: ' . $rollbackError->getMessage());
                 }
+                $this->resetOpcache();
+            } catch (\Throwable $rollbackError) {
+                $this->writeStatus(
+                    'failed',
+                    'rollback_failed',
+                    $e->getMessage() . '; rollback: ' . $rollbackError->getMessage(),
+                    ['backup' => $backupDir],
+                );
             }
         } finally {
             if (is_string($zipPath) && is_file($zipPath)) {
                 @unlink($zipPath);
             }
+            if (is_string($workDir)) {
+                $this->removePath(dirname($workDir));
+            }
             @unlink($lock);
             @unlink($this->jobFile());
         }
+    }
+
+    /**
+     * Everything that must hold before the first byte is written, so a doomed
+     * update fails while the site is still healthy.
+     */
+    private function preflight(): void
+    {
+        if (version_compare(PHP_VERSION, '8.3.0', '<')) {
+            throw new RuntimeException('PHP 8.3+ required, running ' . PHP_VERSION);
+        }
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('PHP zip extension is required to unpack releases');
+        }
+
+        $storage = $this->paths->storage();
+        if (!is_dir($storage) || !is_writable($storage)) {
+            throw new RuntimeException('storage/ is not writable — backup required');
+        }
+        if (!is_writable($this->paths->root)) {
+            throw new RuntimeException('the install root is not writable — cannot swap files in');
+        }
+        foreach (['src', 'vendor', 'database', $this->publicRel()] as $rel) {
+            $path = $this->paths->root . '/' . $rel;
+            if (file_exists($path) && !is_writable($path)) {
+                throw new RuntimeException($rel . ' is not writable — cannot replace it');
+            }
+        }
+
+        $free = @disk_free_space($storage);
+        if (is_float($free) && $free > 0 && $free < 64 * 1024 * 1024) {
+            throw new RuntimeException('less than 64 MB free on disk — free space before updating');
+        }
+    }
+
+    /**
+     * @return string Path to the extracted release tree.
+     */
+    private function extractToWorkDir(string $zipPath, string $version): string
+    {
+        $base = $this->paths->storage() . '/update-work-' . $version;
+        $this->removePath($base);
+        $tree = $base . '/tree';
+        if (!mkdir($tree, 0775, true) && !is_dir($tree)) {
+            throw new RuntimeException('Unable to create ' . $tree);
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            throw new RuntimeException('Unable to open release archive');
+        }
+        $extracted = $zip->extractTo($tree);
+        $zip->close();
+        if (!$extracted) {
+            throw new RuntimeException('Unable to extract the release archive — out of disk space?');
+        }
+
+        return $tree;
+    }
+
+    private function assertTreeUsable(string $root, string $label): void
+    {
+        $problems = TreeVerifier::problems($root);
+        if ($problems !== []) {
+            throw new RuntimeException('Rejected ' . $label . ': ' . implode('; ', $problems));
+        }
+    }
+
+    /**
+     * Renames the staged tree in one entry at a time, journalling each step so
+     * an interrupted swap can be undone by {@see revertSwap()} — including from
+     * a later request, after the worker was killed mid-update.
+     */
+    private function swapIn(string $workDir, string $backupDir, string $from, string $to): void
+    {
+        $plan = [];
+        foreach ($this->releaseEntries($workDir) as $relative) {
+            $plan[] = [
+                'staged' => $workDir . '/' . $relative,
+                'dest' => $this->paths->root . '/' . $this->mapReleasePath($relative),
+            ];
+        }
+        if ($plan === []) {
+            throw new RuntimeException('Staged release is empty');
+        }
+
+        $journalFile = $this->journal();
+        $journal = [
+            'state' => 'swapping',
+            'from' => $from,
+            'to' => $to,
+            'backup' => $backupDir,
+            'applied' => [],
+            'startedAt' => date('c'),
+        ];
+        $journalFile->write($journal);
+
+        foreach ($plan as $step) {
+            $dest = (string) $step['dest'];
+            $old = $dest . '.old';
+            $this->removePath($old);
+
+            if (file_exists($dest) && !@rename($dest, $old)) {
+                throw new RuntimeException('Unable to move ' . $dest . ' aside');
+            }
+            if (!@rename((string) $step['staged'], $dest)) {
+                @rename($old, $dest);
+                throw new RuntimeException('Unable to move the new ' . $dest . ' into place');
+            }
+
+            $journal['applied'][] = $dest;
+            $journalFile->write($journal);
+        }
+
+        foreach ($journal['applied'] as $dest) {
+            $this->removePath($dest . '.old');
+        }
+        $journalFile->clear();
+    }
+
+    /**
+     * Undo a swap recorded in the journal. Safe to call when there is nothing
+     * to undo.
+     */
+    private function revertSwap(): bool
+    {
+        $reverted = $this->journal()->revert();
+        if ($reverted !== []) {
+            $this->resetOpcache();
+        }
+
+        return $reverted !== [];
+    }
+
+    /**
+     * Top-level release paths to swap, expanding the entries of
+     * {@see SPLIT_DIRS} so unrelated files living next to them survive.
+     *
+     * @return list<string>
+     */
+    private function releaseEntries(string $workDir): array
+    {
+        $entries = [];
+        foreach ($this->childNames($workDir) as $name) {
+            if ($this->shouldPreserve($name)) {
+                continue;
+            }
+            if (is_dir($workDir . '/' . $name) && in_array($name, self::SPLIT_DIRS, true)) {
+                foreach ($this->childNames($workDir . '/' . $name) as $child) {
+                    $entries[] = $name . '/' . $child;
+                }
+                continue;
+            }
+            $entries[] = $name;
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function childNames(string $dir): array
+    {
+        $items = @scandir($dir);
+        if ($items === false) {
+            return [];
+        }
+        $names = [];
+        foreach ($items as $item) {
+            if ($item !== '.' && $item !== '..') {
+                $names[] = $item;
+            }
+        }
+        sort($names);
+
+        return $names;
+    }
+
+    /**
+     * storage/ is never swapped, so its hardening files are seeded when absent.
+     */
+    private function syncStorageGuards(string $workDir): void
+    {
+        foreach (['storage/.htaccess', 'storage/uploads/.htaccess'] as $rel) {
+            $source = $workDir . '/' . $rel;
+            $target = $this->paths->root . '/' . $rel;
+            if (is_file($source) && !is_file($target) && is_dir(dirname($target))) {
+                @copy($source, $target);
+            }
+        }
+    }
+
+    private function resetOpcache(): void
+    {
+        if (function_exists('opcache_reset')) {
+            @opcache_reset();
+        }
+    }
+
+    private function journal(): UpdateJournal
+    {
+        return new UpdateJournal($this->paths->storage());
+    }
+
+    private function publicRel(): string
+    {
+        return $this->paths->publicDir;
     }
 
     /**
@@ -267,18 +496,44 @@ final class UpdateService
         return $this->paths->storage() . '/update.job.json';
     }
 
+    /**
+     * @return list<string> Everything an update may replace, relative to root.
+     */
+    private function backedUpPaths(): array
+    {
+        return [
+            'VERSION',
+            'changelog.json',
+            'CHANGELOG.md',
+            'composer.json',
+            'composer.lock',
+            'install.php',
+            'cms',
+            'src',
+            'vendor',
+            'database',
+            'scripts',
+            $this->adminRel(),
+            $this->publicRel() . '/index.php',
+            $this->publicRel() . '/router.php',
+        ];
+    }
+
     private function backup(): string
     {
         $dir = $this->paths->storage() . '/backups/update-' . date('YmdHis');
         if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
             throw new RuntimeException('Unable to create backup directory');
         }
-        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', $this->adminRel(), 'database'] as $rel) {
+        foreach ($this->backedUpPaths() as $rel) {
             $src = $this->paths->root . '/' . $rel;
             if (!file_exists($src)) {
                 continue;
             }
             $this->copyPath($src, $dir . '/' . $rel);
+        }
+        if (!is_file($dir . '/VERSION') || !is_dir($dir . '/src')) {
+            throw new RuntimeException('Backup is incomplete — refusing to update');
         }
 
         return $dir;
@@ -286,7 +541,7 @@ final class UpdateService
 
     private function rollback(string $backupDir): void
     {
-        foreach (['VERSION', 'changelog.json', 'composer.json', 'composer.lock', 'src', $this->adminRel(), 'database'] as $rel) {
+        foreach ($this->backedUpPaths() as $rel) {
             $src = $backupDir . '/' . $rel;
             if (!file_exists($src)) {
                 continue;
@@ -326,48 +581,6 @@ final class UpdateService
         return $tmp;
     }
 
-    private function unpack(string $zipPath): void
-    {
-        $zip = new ZipArchive();
-        if ($zip->open($zipPath) !== true) {
-            throw new RuntimeException('Unable to open release archive');
-        }
-
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $name = $zip->getNameIndex($i);
-            if (!is_string($name) || $name === '' || str_ends_with($name, '/')) {
-                continue;
-            }
-            $normalized = ltrim(str_replace('\\', '/', $name), '/');
-            if (str_contains($normalized, '..')) {
-                continue;
-            }
-            $normalized = $this->mapReleasePath($normalized);
-            if ($this->shouldPreserve($normalized)) {
-                continue;
-            }
-            $target = $this->paths->root . '/' . $normalized;
-            $dir = dirname($target);
-            if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-                $zip->close();
-                throw new RuntimeException('Unable to create ' . $dir);
-            }
-            $stream = $zip->getStream($name);
-            if ($stream === false) {
-                continue;
-            }
-            $out = fopen($target, 'wb');
-            if ($out === false) {
-                fclose($stream);
-                continue;
-            }
-            stream_copy_to_stream($stream, $out);
-            fclose($out);
-            fclose($stream);
-        }
-        $zip->close();
-    }
-
     private function adminRel(): string
     {
         return $this->paths->publicDir . '/admin';
@@ -389,15 +602,9 @@ final class UpdateService
         return $relative;
     }
 
-    private function shouldPreserve(string $relative): bool
+    private function shouldPreserve(string $entry): bool
     {
-        foreach (self::PRESERVE as $prefix) {
-            if ($relative === $prefix || str_starts_with($relative, rtrim($prefix, '/') . '/')) {
-                return true;
-            }
-        }
-
-        return false;
+        return in_array($entry, self::PRESERVE, true);
     }
 
     private function runPendingMigrations(): void
@@ -429,10 +636,11 @@ final class UpdateService
             'starting' => 5,
             'backup' => 15,
             'download' => 35,
-            'unpack' => 55,
-            'publish' => 70,
-            'migrate' => 85,
-            'verify' => 100,
+            'unpack' => 50,
+            'verify' => 60,
+            'swap' => 70,
+            'publish' => 80,
+            'migrate' => 90,
             'rolled_back', 'rollback_failed', 'error' => 100,
             default => 0,
         };
@@ -532,7 +740,6 @@ final class UpdateService
             ]);
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             if (!is_string($body) || $code >= 400) {
                 throw new RuntimeException('Download failed: ' . $url);
             }

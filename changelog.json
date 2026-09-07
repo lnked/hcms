@@ -1,6 +1,49 @@
 {
   "releases": [
     {
+      "version": "0.45.4",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Fix the broken 0.45.3 autoloader and make updates recoverable",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "release",
+          "text": "0.45.3 shipped a Composer autoloader generated two levels below the project root, so every Cms\\* class resolved outside the install and any request died with an empty HTTP 500; the release build now installs Composer inside the staged tree and refuses to zip a tree that cannot boot"
+        },
+        {
+          "type": "fixed",
+          "area": "core",
+          "text": "Cms\\* classes load through a built-in PSR-4 autoloader in src/autoload.php, so a broken or missing vendor/ can no longer take the site down — the project has no runtime Composer dependencies"
+        },
+        {
+          "type": "changed",
+          "area": "update",
+          "text": "Updates are staged and swapped instead of overwritten in place: preflight checks (PHP version, write permissions, disk space) run before anything changes, the release is unpacked to storage/update-work-<version> and verified, then directories are moved in with rename() and a journal that can undo the swap"
+        },
+        {
+          "type": "added",
+          "area": "update",
+          "text": "An update whose worker was killed mid-swap (PHP-FPM request_terminate_timeout ignores set_time_limit(0)) is rolled back automatically on the next request, and the pre-update backup now also covers vendor/, install.php, scripts/ and the public entry points"
+        },
+        {
+          "type": "added",
+          "area": "ops",
+          "text": "scripts/restore.php recovers a broken install without Composer, the database or any CMS class: diagnose, fix-autoload, restore from backup, reinstall a release, unlock a stuck update — from the CLI or from the browser with a token"
+        },
+        {
+          "type": "added",
+          "area": "ops",
+          "text": "scripts/verify-tree.php reports whether an install or a staged release can boot, and fatal errors are now recorded in storage/logs/php-fatal.log instead of vanishing behind an empty 500"
+        },
+        {
+          "type": "changed",
+          "area": "release",
+          "text": "Release zips are built from a clean HEAD checkout and no longer carry frontend sources, tests or CI config, so an update touches far fewer files"
+        }
+      ]
+    },
+    {
       "version": "0.45.3",
       "date": "2026-09-07",
       "channel": "stable",

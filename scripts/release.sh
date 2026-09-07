@@ -13,45 +13,56 @@ fi
 TAG="v${VERSION}"
 DIST="$ROOT/dist"
 STAGE="$DIST/stage"
-# Relative so Composer resolves it against composer.json, not the caller's cwd.
-NODEV_VENDOR_REL="dist/vendor-nodev"
-NODEV_VENDOR="$ROOT/$NODEV_VENDOR_REL"
 ZIP="$DIST/cms-${VERSION}.zip"
 SHA_FILE="$DIST/cms-${VERSION}.zip.sha256"
 LATEST="$DIST/latest.json"
-
-echo "==> Building admin UI"
-npm run build --prefix frontend
 
 echo "==> Staging release tree"
 rm -rf "$DIST"
 mkdir -p "$STAGE"
 
-# Build the no-dev tree in its own vendor dir: the working vendor/ keeps its
-# dev tools, so running tests right after a release needs no reinstall.
-echo "==> Composer autoload (no-dev, isolated vendor)"
-COMPOSER_VENDOR_DIR="$NODEV_VENDOR_REL" \
-  composer install --no-dev --optimize-autoloader --no-interaction
+DIRTY="$(git -C "$ROOT" status --porcelain)"
+if [[ -n "$DIRTY" ]]; then
+  echo "!! Working tree is dirty — the zip is built from HEAD, these stay out:" >&2
+  echo "$DIRTY" >&2
+fi
 
-# Paths that belong in the installable zip (no .git / node_modules / .env)
+# Everything ships from a pristine HEAD checkout: release artifacts must come
+# from committed code, never from whatever happens to be in the working tree.
+echo "==> Checking out HEAD and building admin UI"
+SRC="$DIST/head"
+git -C "$ROOT" worktree prune
+git -C "$ROOT" worktree add --detach --quiet "$SRC" HEAD
+trap 'git -C "$ROOT" worktree remove --force "$SRC" >/dev/null 2>&1 || true' EXIT
+npm ci --prefix "$SRC/frontend"
+npm run build --prefix "$SRC/frontend"
+
+# Paths that belong in the installable zip (no .git / node_modules / .env).
+# Dev-only trees are dropped so an update touches as few files as possible.
 rsync -a \
   --exclude '.git' \
+  --exclude '.github' \
   --exclude 'vendor' \
   --exclude '.env' \
   --exclude '.env.*' \
-  --exclude 'frontend/node_modules' \
-  --exclude 'frontend/dist' \
+  --exclude 'frontend' \
   --exclude 'node_modules' \
   --exclude 'dist' \
   --exclude 'storage/*' \
+  --exclude '.php-cs-fixer.php' \
   --exclude '.php-cs-fixer.cache' \
   --exclude '.phpunit.cache' \
+  --exclude 'phpstan.neon' \
+  --exclude 'phpunit.xml' \
   --exclude 'tests' \
   --exclude '.cursor' \
-  ./ "$STAGE/"
+  "$SRC/" "$STAGE/"
 
-rsync -a "$NODEV_VENDOR/" "$STAGE/vendor/"
-rm -rf "$NODEV_VENDOR"
+# Install into the stage itself: Composer bakes the vendor→root depth into the
+# generated autoload files, so vendor must be built where it will ship. The
+# working vendor/ keeps its dev tools and needs no reinstall after a release.
+echo "==> Composer autoload (no-dev, staged tree)"
+composer install --no-dev --optimize-autoloader --no-interaction --working-dir="$STAGE"
 
 mkdir -p "$STAGE/storage/cache" "$STAGE/storage/logs" "$STAGE/storage/uploads"
 touch "$STAGE/storage/.gitkeep" \
@@ -60,18 +71,23 @@ touch "$STAGE/storage/.gitkeep" \
   "$STAGE/storage/uploads/.gitkeep"
 
 # Harden upload dirs even when storage/* is excluded from rsync
-cp -f "$ROOT/storage/.htaccess" "$STAGE/storage/.htaccess"
-cp -f "$ROOT/storage/uploads/.htaccess" "$STAGE/storage/uploads/.htaccess"
+cp -f "$SRC/storage/.htaccess" "$STAGE/storage/.htaccess"
+cp -f "$SRC/storage/uploads/.htaccess" "$STAGE/storage/uploads/.htaccess"
 
-# Keep built admin assets in the zip even if gitignored locally
-if [[ -d public/admin ]]; then
-  rsync -a public/admin/ "$STAGE/public/admin/"
+if [[ ! -f "$STAGE/public/admin/index.html" ]]; then
+  echo "Admin UI build produced no index.html" >&2
+  exit 1
 fi
 
 if [[ ! -f "$STAGE/vendor/autoload.php" || -d "$STAGE/vendor/phpunit" ]]; then
   echo "Staged vendor is not a no-dev autoload tree" >&2
   exit 1
 fi
+
+# Never ship a tree that cannot boot: this is the check that a mis-generated
+# autoloader (0.45.3) slipped past.
+echo "==> Verifying staged tree boots"
+php "$STAGE/scripts/verify-tree.php" "$STAGE"
 
 echo "==> Zipping"
 (

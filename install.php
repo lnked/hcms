@@ -34,7 +34,11 @@ const CMS_MIN_PHP = '8.3.0';
 
 $root = __DIR__;
 $lock = $root . '/storage/installed.lock';
-$autoload = $root . '/vendor/autoload.php';
+// src/autoload.php resolves Cms\* without vendor/; only a pre-download tree
+// (src/ not fetched yet) has to fall back to the Composer autoloader.
+$autoload = is_file($root . '/src/autoload.php')
+    ? $root . '/src/autoload.php'
+    : $root . '/vendor/autoload.php';
 $action = $_GET['action'] ?? null;
 /** @var array<string, mixed>|null $requestBody */
 $requestBody = null;
@@ -95,6 +99,12 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
 
         if (is_file($autoload)) {
             require $autoload;
+            if (!class_exists(Cms\Core\Paths::class)) {
+                cms_install_send(500, ['error' => [
+                    'code' => 'BROKEN_INSTALL',
+                    'message' => 'src/ is incomplete — run php scripts/restore.php diagnose',
+                ]]);
+            }
             $paths = new Cms\Core\Paths($root);
             $installer = new Cms\Install\Installer($paths);
             $downloader = new Cms\Install\ReleaseDownloader($paths);
