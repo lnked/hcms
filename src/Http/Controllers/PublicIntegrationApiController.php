@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Cms\Http\Controllers;
 
+use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
-use Cms\Audit\AuditLogger;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Integrations\IntegrationApiService;

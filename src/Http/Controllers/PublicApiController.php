@@ -14,6 +14,7 @@ use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\Security\SpamGuard;
+use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -25,6 +26,7 @@ final class PublicApiController
         private readonly TokenGrantRepository $grants,
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?SpamGuard $spamGuard = null,
+        private readonly ?WebhookDispatcher $webhooks = null,
     ) {
     }
 
@@ -40,7 +42,7 @@ final class PublicApiController
                 'POST' => $this->create($request, $slug, $auth),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : Response::data($this->query->patch($slug, (int) $id, $request->json(), ['public' => true])),
+                    : $this->update($slug, (int) $id, $request->json()),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
                     : $this->delete($slug, (int) $id),
@@ -103,14 +105,51 @@ final class PublicApiController
             unset($payload['captchaToken'], $payload['_startedAt']);
         }
 
-        return Response::data($this->query->create($slug, $payload, ['public' => true]), 201);
+        $entry = $this->query->create($slug, $payload, ['public' => true]);
+        $resourceId = $this->resourceId($slug);
+        $this->webhooks?->dispatchAfterResponse('entry.created', [
+            'resourceId' => $resourceId,
+            'slug' => $slug,
+            'entry' => $entry,
+        ], $resourceId);
+
+        return Response::data($entry, 201);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function update(string $slug, int $id, array $payload): Response
+    {
+        $entry = $this->query->patch($slug, $id, $payload, ['public' => true]);
+        $resourceId = $this->resourceId($slug);
+        $this->webhooks?->dispatchAfterResponse('entry.updated', [
+            'resourceId' => $resourceId,
+            'slug' => $slug,
+            'entry' => $entry,
+        ], $resourceId);
+
+        return Response::data($entry);
     }
 
     private function delete(string $slug, int $id): Response
     {
         $this->query->delete($slug, $id, ['public' => true]);
+        $resourceId = $this->resourceId($slug);
+        $this->webhooks?->dispatchAfterResponse('entry.deleted', [
+            'resourceId' => $resourceId,
+            'slug' => $slug,
+            'entryId' => $id,
+        ], $resourceId);
 
         return new Response(204, '');
+    }
+
+    private function resourceId(string $slug): ?int
+    {
+        $resource = $this->resources->findByPublicKey($slug);
+
+        return $resource === null ? null : (int) $resource['id'];
     }
 
     private function runtimeError(RuntimeException $e): Response

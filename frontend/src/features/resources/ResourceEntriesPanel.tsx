@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Upload } from 'lucide-react'
+import { History, Upload } from 'lucide-react'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
+import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useI18n } from '@/i18n'
 import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
 import { showError } from '@/lib/toast'
@@ -50,10 +51,13 @@ export function ResourceEntriesPanel({
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [sort, setSort] = useState('id')
+  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<EntryRow | null>(null)
   const [values, setValues] = useState<EntryValues>({})
   const [error, setError] = useState<string | null>(null)
+  const [revisionsOpen, setRevisionsOpen] = useState(false)
 
   const [exportOpen, setExportOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('json')
@@ -85,9 +89,18 @@ export function ResourceEntriesPanel({
     (allExportFieldNames.length > 0 &&
       allExportFieldNames.every((name) => exportFields.includes(name)))
 
+  const activeFilters = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const [key, value] of Object.entries(filters)) {
+      const trimmed = value.trim()
+      if (trimmed !== '') out[key] = trimmed
+    }
+    return out
+  }, [filters])
+
   const queryKey = useMemo(
-    () => ['resource-entries', resourceId, page, search, sort] as const,
-    [resourceId, page, search, sort],
+    () => ['resource-entries', resourceId, page, search, sort, activeFilters] as const,
+    [resourceId, page, search, sort, activeFilters],
   )
 
   const list = useQuery({
@@ -100,6 +113,19 @@ export function ResourceEntriesPanel({
         sort,
       })
       if (search) params.set('search', search)
+      for (const [field, value] of Object.entries(activeFilters)) {
+        const fieldMeta = fields.find((f) => f.name === field)
+        const type = fieldMeta?.type ?? 'string'
+        const useContains =
+          type === 'string' ||
+          type === 'text' ||
+          type === 'email' ||
+          type === 'slug' ||
+          type === 'url' ||
+          type === 'uuid'
+        if (useContains) params.set(`filter[${field}][contains]`, value)
+        else params.set(`filter[${field}]`, value)
+      }
       return apiPage<EntryRow>(`/admin/api/resources/${resourceId}/entries?${params}`)
     },
   })
@@ -131,6 +157,22 @@ export function ResourceEntriesPanel({
       api<void>(`/admin/api/resources/${resourceId}/entries/${row.id}`, { method: 'DELETE' }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+    },
+  })
+
+  const bulkRemove = useMutation({
+    mutationFn: (ids: number[]) =>
+      api<{ deleted: number }>(`/admin/api/resources/${resourceId}/entries/bulk-delete`, {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      setSelectedIds([])
+      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : t('entries.bulkDeleteFailed')
+      if (!(err instanceof ApiError)) showError(message)
     },
   })
 
@@ -288,6 +330,21 @@ export function ResourceEntriesPanel({
           <CardDescription>{t('entries.hint')}</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
+          {selectedIds.length > 0 ? (
+            <Button
+              variant="destructive"
+              disabled={bulkRemove.isPending}
+              onClick={() => {
+                if (confirm(t('entries.bulkDeleteConfirm', { count: selectedIds.length }))) {
+                  bulkRemove.mutate(selectedIds)
+                }
+              }}
+            >
+              {bulkRemove.isPending
+                ? t('entries.bulkDeleting')
+                : t('entries.bulkDelete', { count: selectedIds.length })}
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={openImport}>
             {t('entries.import')}
           </Button>
@@ -332,6 +389,14 @@ export function ResourceEntriesPanel({
               setSort(next)
               setPage(1)
             }}
+            filters={filters}
+            onFilterChange={(field, value) => {
+              setFilters((prev) => ({ ...prev, [field]: value }))
+              setPage(1)
+              setSelectedIds([])
+            }}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
             onEdit={openEdit}
             onDelete={(row) => {
               if (confirm(t('entries.deleteConfirm', { id: row.id }))) remove.mutate(row)
@@ -353,7 +418,10 @@ export function ResourceEntriesPanel({
                 size="sm"
                 variant="outline"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => {
+                  setPage((p) => Math.max(1, p - 1))
+                  setSelectedIds([])
+                }}
               >
                 {t('common.prev')}
               </Button>
@@ -361,7 +429,10 @@ export function ResourceEntriesPanel({
                 size="sm"
                 variant="outline"
                 disabled={page >= meta.totalPages}
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => {
+                  setPage((p) => p + 1)
+                  setSelectedIds([])
+                }}
               >
                 {t('common.next')}
               </Button>
@@ -378,6 +449,19 @@ export function ResourceEntriesPanel({
             </DialogTitle>
             <DialogDescription>{t('entries.dialogHint')}</DialogDescription>
           </DialogHeader>
+          {editing ? (
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setRevisionsOpen(true)}
+              >
+                <History className="mr-1 h-4 w-4" />
+                {t('entries.history')}
+              </Button>
+            </div>
+          ) : null}
           <FormRenderer
             key={editing?.id ?? 'new'}
             fields={fields}
@@ -611,6 +695,15 @@ export function ResourceEntriesPanel({
           </div>
         </DialogContent>
       </Dialog>
+
+      {editing ? (
+        <EntryRevisionsPanel
+          resourceId={resourceId}
+          entryId={editing.id}
+          open={revisionsOpen}
+          onOpenChange={setRevisionsOpen}
+        />
+      ) : null}
     </Card>
   )
 }

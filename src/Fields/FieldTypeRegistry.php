@@ -16,6 +16,7 @@ final class FieldTypeRegistry
         foreach ([
             new Types\StringType(),
             new Types\TextType(),
+            new Types\RichTextType(),
             new Types\IntegerType(),
             new Types\FloatType(),
             new Types\BooleanType(),

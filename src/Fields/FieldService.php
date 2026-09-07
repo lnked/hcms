@@ -50,10 +50,6 @@ final class FieldService
         if ($resource === null) {
             throw new RuntimeException('Resource not found', 404);
         }
-        if (($resource['status'] ?? '') === 'published' && (int) $resource['schema_version'] > 0) {
-            // Allow schema edits on draft always; published edits are metadata-only until Phase 5 migrations
-        }
-
         $contentTypeId = (int) $resource['content_type_id'];
         $normalized = [];
         $names = [];

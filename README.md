@@ -2,6 +2,8 @@
 
 API-first headless CMS: визуально описываешь схему — получаешь REST, OpenAPI и админский CRUD.
 
+[![CI](https://github.com/lnked/hcms/actions/workflows/ci.yml/badge.svg)](https://github.com/lnked/hcms/actions/workflows/ci.yml)
+
 Администратор управляет схемой и данными, а не пишет backend-код.
 
 ## Requirements
@@ -80,3 +82,5 @@ Authorization: Bearer <token>
 composer qa
 npm run qa
 ```
+
+История релизов: [`changelog.json`](changelog.json).

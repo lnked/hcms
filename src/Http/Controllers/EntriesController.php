@@ -7,10 +7,12 @@ namespace Cms\Http\Controllers;
 use Cms\Api\QueryEngine;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Content\EntryRevisionService;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\EntryImportExportService;
 use Cms\Resources\ResourceRepository;
+use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -22,6 +24,8 @@ final class EntriesController
         private readonly ResourceRepository $resources,
         private readonly AuditLogger $audit,
         private readonly EntryImportExportService $importExport,
+        private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?EntryRevisionService $revisions = null,
     ) {
     }
 
@@ -64,6 +68,11 @@ final class EntriesController
                 (string) ($entry['id'] ?? ''),
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
+            $this->webhooks?->dispatchAfterResponse('entry.created', [
+                'resourceId' => $resourceId,
+                'slug' => $slug,
+                'entry' => $entry,
+            ], $resourceId);
 
             return Response::data($entry, 201);
         } catch (InvalidArgumentException $e) {
@@ -79,7 +88,9 @@ final class EntriesController
     {
         try {
             $slug = $this->slug($resourceId);
+            $before = $this->query->find($slug, $entryId);
             $entry = $this->query->patch($slug, $entryId, $request->json());
+            $this->revisions?->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
                 'entry.updated',
@@ -88,6 +99,11 @@ final class EntriesController
                 (string) $entryId,
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
+            $this->webhooks?->dispatchAfterResponse('entry.updated', [
+                'resourceId' => $resourceId,
+                'slug' => $slug,
+                'entry' => $entry,
+            ], $resourceId);
 
             return Response::data($entry);
         } catch (InvalidArgumentException $e) {
@@ -103,6 +119,8 @@ final class EntriesController
     {
         try {
             $slug = $this->slug($resourceId);
+            $before = $this->query->find($slug, $entryId);
+            $this->revisions?->snapshot($resourceId, $entryId, $before, null, $auth->userId());
             $this->query->delete($slug, $entryId);
             $this->audit->log(
                 $request,
@@ -112,8 +130,120 @@ final class EntriesController
                 (string) $entryId,
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
+            $this->webhooks?->dispatchAfterResponse('entry.deleted', [
+                'resourceId' => $resourceId,
+                'slug' => $slug,
+                'entryId' => $entryId,
+            ], $resourceId);
 
             return new Response(204, '');
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function bulkDelete(Request $request, AuthContext $auth, int $resourceId): Response
+    {
+        try {
+            $slug = $this->slug($resourceId);
+            $body = $request->json();
+            $ids = $body['ids'] ?? null;
+            if (!is_array($ids) || $ids === []) {
+                throw new InvalidArgumentException('ids array is required');
+            }
+
+            $normalized = [];
+            foreach ($ids as $id) {
+                if (!is_numeric($id)) {
+                    throw new InvalidArgumentException('ids must be numbers');
+                }
+                $normalized[] = (int) $id;
+            }
+            $normalized = array_values(array_unique($normalized));
+
+            $deleted = 0;
+            foreach ($normalized as $id) {
+                try {
+                    $this->query->delete($slug, $id);
+                    ++$deleted;
+                    $this->webhooks?->dispatchAfterResponse('entry.deleted', [
+                        'resourceId' => $resourceId,
+                        'slug' => $slug,
+                        'entryId' => $id,
+                    ], $resourceId);
+                } catch (RuntimeException $e) {
+                    if ($e->getCode() !== 404) {
+                        throw $e;
+                    }
+                }
+            }
+
+            $this->audit->log(
+                $request,
+                'entry.bulk_deleted',
+                $auth->userId(),
+                'resource',
+                (string) $resourceId,
+                ['resourceId' => $resourceId, 'slug' => $slug, 'ids' => $normalized, 'deleted' => $deleted],
+            );
+
+            return Response::data(['deleted' => $deleted]);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function revisions(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        unset($auth);
+        if ($this->revisions === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Revisions unavailable', 503);
+        }
+        try {
+            $this->slug($resourceId);
+            $limit = max(1, min(100, (int) ($request->query['limit'] ?? 50)));
+
+            return Response::data($this->revisions->list($resourceId, $entryId, $limit));
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        }
+    }
+
+    public function restoreRevision(Request $request, AuthContext $auth, int $resourceId, int $entryId, int $revisionId): Response
+    {
+        if ($this->revisions === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Revisions unavailable', 503);
+        }
+        try {
+            $slug = $this->slug($resourceId);
+            $data = $this->revisions->dataForRestore($resourceId, $entryId, $revisionId);
+            $before = $this->query->find($slug, $entryId);
+            unset($data['id'], $data['createdAt'], $data['updatedAt'], $data['created_at'], $data['updated_at'], $data['deleted_at']);
+            $entry = $this->query->patch($slug, $entryId, $data);
+            $this->revisions->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
+            $this->audit->log(
+                $request,
+                'entry.revision_restored',
+                $auth->userId(),
+                'entry',
+                (string) $entryId,
+                ['resourceId' => $resourceId, 'revisionId' => $revisionId],
+            );
+            $this->webhooks?->dispatchAfterResponse('entry.updated', [
+                'resourceId' => $resourceId,
+                'slug' => $slug,
+                'entry' => $entry,
+            ], $resourceId);
+
+            return Response::data($entry);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
             return $this->runtimeError($e);
         } catch (Throwable $e) {

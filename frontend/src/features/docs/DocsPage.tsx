@@ -3,13 +3,7 @@ import { ExternalLink } from 'lucide-react'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { CodeBlock } from './CodeBlock'
-import {
-  DEFAULT_CHAPTER,
-  getChapter,
-  getChapters,
-  isChapterId,
-  type DocLink,
-} from './chapters'
+import { DEFAULT_CHAPTER, getChapter, getChapters, isChapterId, type DocLink } from './chapters'
 
 function DocNavLink({ link }: { link: DocLink }) {
   if (link.external) {
@@ -59,10 +53,7 @@ export function DocsPage() {
       </div>
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <nav
-          aria-label={t('docs.toc')}
-          className="shrink-0 lg:sticky lg:top-8 lg:w-56"
-        >
+        <nav aria-label={t('docs.toc')} className="shrink-0 lg:sticky lg:top-8 lg:w-56">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {t('docs.toc')}
           </p>

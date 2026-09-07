@@ -32,7 +32,11 @@ function normalizeEndpoint(value: string): string {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
-export function ResourceApiPlayground({ resource, fields, pathPreset }: ResourceApiPlaygroundProps) {
+export function ResourceApiPlayground({
+  resource,
+  fields,
+  pathPreset,
+}: ResourceApiPlaygroundProps) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [method, setMethod] = useState<HttpMethod>('GET')
@@ -63,8 +67,7 @@ export function ResourceApiPlayground({ resource, fields, pathPreset }: Resource
   const isCustomPath = (customApisQuery.data ?? []).some(
     (custom) => path === custom.path || path.startsWith(`${custom.path}/`),
   )
-  const pathDirty =
-    !isCustomPath && normalizedPath !== '' && normalizedPath !== resource.endpoint
+  const pathDirty = !isCustomPath && normalizedPath !== '' && normalizedPath !== resource.endpoint
 
   const endpoints = useMemo(() => {
     const lines = [

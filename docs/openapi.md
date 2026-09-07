@@ -5,6 +5,6 @@
 
 В админке: **Documentation** → `/api/docs`.
 
-Phase 1: пустые `paths`. После publish ресурсов генератор заполнит spec автоматически.
+Генератор заполняет `paths` из published resources и их полей автоматически после publish.
 
 Также в spec: **Integrations** — `POST /integrations/email/send` и кастомные `POST /integrations/email/{slug}` (см. [integrations-email.md](./integrations-email.md)).

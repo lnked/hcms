@@ -1,6 +1,54 @@
 {
   "releases": [
     {
+      "version": "0.44.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Webhooks, revisions, RBAC, richtext, and ops tooling",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Outbound webhooks with HMAC signatures, retries, delivery log, and admin settings UI"
+        },
+        {
+          "type": "added",
+          "area": "content",
+          "text": "Entry revision history with restore from the entries editor"
+        },
+        {
+          "type": "added",
+          "area": "auth",
+          "text": "Admin RBAC roles: owner, admin, editor, viewer"
+        },
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "New richtext field type (markdown) with toolbar editor and preview"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Dashboard API timeseries charts and recent audit activity"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Column filters, bulk entry delete, and mobile navigation drawer"
+        },
+        {
+          "type": "added",
+          "area": "ops",
+          "text": "GitHub Actions CI, Docker Compose for local development"
+        },
+        {
+          "type": "changed",
+          "area": "ops",
+          "text": "Removed temporary scripts/clean.php; changelog source of truth is changelog.json"
+        }
+      ]
+    },
+    {
       "version": "0.43.2",
       "date": "2026-09-07",
       "channel": "stable",

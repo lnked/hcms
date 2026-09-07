@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useRef } from 'react'
+import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
+import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
 import { useI18n } from '@/i18n'
 import { api, apiPage, getToken } from '@/lib/api'
 import { slugifyUrl } from '@/lib/slugify'
@@ -59,17 +60,20 @@ function applySlugUpdates(
 
 export function FormRenderer({ fields, values, onChange, disabled, entryId }: FormRendererProps) {
   const { t } = useI18n()
-  const touchedSlugsRef = useRef(new Set<string>())
+  const [touchedSlugs, setTouchedSlugs] = useState<Set<string>>(() => new Set())
   const visible = fields
     .filter(shouldRenderField)
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
 
   function set(name: string, value: unknown) {
+    let nextTouched = touchedSlugs
     if (fields.some((field) => field.type === 'slug' && field.name === name)) {
-      touchedSlugsRef.current.add(name)
+      nextTouched = new Set(touchedSlugs)
+      nextTouched.add(name)
+      setTouchedSlugs(nextTouched)
     }
-    onChange(applySlugUpdates(fields, values, name, value, touchedSlugsRef.current))
+    onChange(applySlugUpdates(fields, values, name, value, nextTouched))
   }
 
   const resolvedEntryId =
@@ -283,6 +287,17 @@ function renderControl(
         disabled={disabled}
         accept={field.type === 'image' ? 'image/*' : undefined}
         onChange={(mediaId) => set(field.name, mediaId)}
+      />
+    )
+  }
+
+  if (field.type === 'richtext') {
+    return (
+      <RichTextEditor
+        id={id}
+        disabled={disabled}
+        value={typeof value === 'string' ? value : value == null ? '' : String(value)}
+        onChange={(next) => set(field.name, next)}
       />
     )
   }

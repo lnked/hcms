@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend QA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, curl, zip
+          coverage: none
+          tools: composer
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: QA
+        run: composer qa
+
+  frontend:
+    name: Frontend QA
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: QA
+        run: npm run qa
+
+  release:
+    name: Release dry-run
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, curl, zip
+          coverage: none
+          tools: composer
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend deps
+        run: npm ci --prefix frontend
+      - name: Build release zip (no publish)
+        run: bash scripts/release.sh
+        env:
+          PUBLISH: '0'
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cms-release
+          path: |
+            dist/cms-*.zip
+            dist/cms-*.zip.sha256
+            dist/latest.json

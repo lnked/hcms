@@ -20,6 +20,9 @@ final class SqlTypeMapperTest extends TestCase
         $bool = $mapper->columnFor(['name' => 'active', 'type' => 'boolean', 'nullable' => false]);
         $this->assertSame('TINYINT(1)', $bool->sqlType);
         $this->assertFalse($bool->nullable);
+
+        $rich = $mapper->columnFor(['name' => 'body', 'type' => 'richtext']);
+        $this->assertSame('MEDIUMTEXT', $rich->sqlType);
     }
 
     public function testTableNameFromSlug(): void

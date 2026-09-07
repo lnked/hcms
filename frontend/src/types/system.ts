@@ -28,6 +28,7 @@ export interface AuthUser {
   id: number
   name: string
   email: string
+  role?: 'owner' | 'admin' | 'editor' | 'viewer'
   totpEnabled?: boolean
   changelogSeenVersion: string | null
 }

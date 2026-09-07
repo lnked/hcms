@@ -78,6 +78,82 @@ final class SystemController
         ]);
     }
 
+    public function timeseries(Request $request, AuthContext $auth): Response
+    {
+        unset($auth);
+        $days = max(1, min(90, (int) ($request->query['days'] ?? 14)));
+        $since = date('Y-m-d 00:00:00', (int) strtotime('-' . ($days - 1) . ' days'));
+
+        $rows = $this->db->select(
+            'SELECT DATE(created_at) AS day,
+                    COUNT(*) AS requests,
+                    AVG(duration_ms) AS avg_duration_ms,
+                    SUM(CASE WHEN status >= 400 THEN 1 ELSE 0 END) AS errors
+             FROM cms_api_logs
+             WHERE created_at >= :since
+             GROUP BY DATE(created_at)
+             ORDER BY day ASC',
+            ['since' => $since],
+        );
+
+        $byDay = [];
+        foreach ($rows as $row) {
+            $day = (string) ($row['day'] ?? '');
+            if ($day === '') {
+                continue;
+            }
+            $byDay[$day] = [
+                'date' => $day,
+                'requests' => (int) ($row['requests'] ?? 0),
+                'avgDurationMs' => round((float) ($row['avg_duration_ms'] ?? 0), 2),
+                'errors' => (int) ($row['errors'] ?? 0),
+            ];
+        }
+
+        $series = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = date('Y-m-d', (int) strtotime('-' . $i . ' days'));
+            $series[] = $byDay[$day] ?? [
+                'date' => $day,
+                'requests' => 0,
+                'avgDurationMs' => 0.0,
+                'errors' => 0,
+            ];
+        }
+
+        $topPaths = $this->db->select(
+            'SELECT path, COUNT(*) AS c
+             FROM cms_api_logs
+             WHERE created_at >= :since
+             GROUP BY path
+             ORDER BY c DESC
+             LIMIT 5',
+            ['since' => $since],
+        );
+        $topErrors = $this->db->select(
+            'SELECT path, COUNT(*) AS c
+             FROM cms_api_logs
+             WHERE created_at >= :since AND status >= 400
+             GROUP BY path
+             ORDER BY c DESC
+             LIMIT 5',
+            ['since' => $since],
+        );
+
+        return Response::data([
+            'days' => $days,
+            'series' => $series,
+            'topPaths' => array_map(static fn (array $row): array => [
+                'path' => (string) ($row['path'] ?? ''),
+                'count' => (int) ($row['c'] ?? 0),
+            ], $topPaths),
+            'topErrors' => array_map(static fn (array $row): array => [
+                'path' => (string) ($row['path'] ?? ''),
+                'count' => (int) ($row['c'] ?? 0),
+            ], $topErrors),
+        ]);
+    }
+
     public function changelog(Request $request): Response
     {
         $since = $request->query('since');

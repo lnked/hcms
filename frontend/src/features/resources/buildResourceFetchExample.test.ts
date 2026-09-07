@@ -44,7 +44,11 @@ describe('buildResourceFetchExample', () => {
     const snippet = buildResourceFetchExample(
       {
         endpoint: '/api/articles',
-        settings: { ...baseSettings, pagination: false, public: { ...baseSettings.public, read: true } },
+        settings: {
+          ...baseSettings,
+          pagination: false,
+          public: { ...baseSettings.public, read: true },
+        },
       },
       { origin: 'https://api.2js.ru' },
     )

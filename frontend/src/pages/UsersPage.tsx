@@ -33,10 +33,13 @@ interface AdminUser {
   name: string
   email: string
   status: 'active' | 'disabled'
+  role: 'owner' | 'admin' | 'editor' | 'viewer'
   lastLoginAt: string | null
   createdAt: string | null
   updatedAt: string | null
 }
+
+const ROLES = ['owner', 'admin', 'editor', 'viewer'] as const
 
 function TotpSetup({ onDone }: { onDone: () => void }) {
   const { t } = useI18n()
@@ -153,6 +156,7 @@ export function UsersPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [role, setRole] = useState<(typeof ROLES)[number]>('admin')
   const [error, setError] = useState<string | null>(null)
 
   const me = useQuery({
@@ -171,7 +175,7 @@ export function UsersPage() {
     mutationFn: () =>
       api<AdminUser>('/admin/api/users', {
         method: 'POST',
-        body: JSON.stringify({ name, email, password, status: 'active' }),
+        body: JSON.stringify({ name, email, password, status: 'active', role }),
       }),
     onSuccess: () => {
       setOpen(false)
@@ -179,6 +183,15 @@ export function UsersPage() {
       void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
     onError: (err) => setError(err instanceof Error ? err.message : t('common.createFailed')),
+  })
+
+  const changeRole = useMutation({
+    mutationFn: ({ id, role: next }: { id: number; role: (typeof ROLES)[number] }) =>
+      api<AdminUser>(`/admin/api/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: next }),
+      }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin-users'] }),
   })
 
   const toggleStatus = useMutation({
@@ -201,7 +214,21 @@ export function UsersPage() {
     setName('')
     setEmail('')
     setPassword('')
+    setRole('admin')
     setError(null)
+  }
+
+  function roleLabel(role: (typeof ROLES)[number]): string {
+    switch (role) {
+      case 'owner':
+        return t('users.role.owner')
+      case 'admin':
+        return t('users.role.admin')
+      case 'editor':
+        return t('users.role.editor')
+      case 'viewer':
+        return t('users.role.viewer')
+    }
   }
 
   const currentId = me.data?.id
@@ -239,6 +266,7 @@ export function UsersPage() {
                 <TableRow>
                   <TableHead>{t('common.name')}</TableHead>
                   <TableHead>{t('users.email')}</TableHead>
+                  <TableHead>{t('users.role')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
                   <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
@@ -250,6 +278,26 @@ export function UsersPage() {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <select
+                          className="h-8 rounded-md border bg-background px-2 text-sm"
+                          value={user.role ?? 'admin'}
+                          disabled={changeRole.isPending}
+                          aria-label={t('users.role')}
+                          onChange={(e) =>
+                            changeRole.mutate({
+                              id: user.id,
+                              role: e.target.value as (typeof ROLES)[number],
+                            })
+                          }
+                        >
+                          {ROLES.map((r) => (
+                            <option key={r} value={r}>
+                              {roleLabel(r)}
+                            </option>
+                          ))}
+                        </select>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
                           {user.status === 'active' ? t('users.active') : t('users.disabled')}
@@ -356,6 +404,21 @@ export function UsersPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t('users.placeholderPassword')}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-role">{t('users.role')}</Label>
+              <select
+                id="user-role"
+                className="flex h-9 w-full rounded-md border bg-background px-3 text-sm"
+                value={role}
+                onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
+              >
+                {ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabel(r)}
+                  </option>
+                ))}
+              </select>
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button

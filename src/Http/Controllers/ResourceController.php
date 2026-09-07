@@ -10,6 +10,7 @@ use Cms\Database\MigrationService;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\ResourceService;
+use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -20,6 +21,7 @@ final class ResourceController
         private readonly ResourceService $resources,
         private readonly AuditLogger $audit,
         private readonly ?MigrationService $migrations = null,
+        private readonly ?WebhookDispatcher $webhooks = null,
     ) {
     }
 
@@ -99,6 +101,10 @@ final class ResourceController
                 'resource',
                 (string) $id,
             );
+            $this->webhooks?->dispatchAfterResponse('resource.published', [
+                'resourceId' => $id,
+                'resource' => $resource,
+            ], $id);
 
             return Response::data($resource);
         } catch (InvalidArgumentException $e) {

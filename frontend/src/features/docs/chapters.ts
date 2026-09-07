@@ -195,9 +195,7 @@ const json = await res.json()`,
     title: 'CRUD and queries',
     sections: [
       {
-        paragraphs: [
-          'Standard REST over published, API-enabled resources. Responses are JSON.',
-        ],
+        paragraphs: ['Standard REST over published, API-enabled resources. Responses are JSON.'],
         samples: [
           {
             language: 'http',
@@ -467,9 +465,7 @@ const json = await res.json()`,
     title: 'Включение API у ресурса',
     sections: [
       {
-        paragraphs: [
-          'Ресурс доступен в Content API только после publish и включения API.',
-        ],
+        paragraphs: ['Ресурс доступен в Content API только после publish и включения API.'],
         links: [{ label: 'Ресурсы', href: '/resources' }],
       },
       {
@@ -489,9 +485,7 @@ const json = await res.json()`,
             code: 'GET /api/{slug}\nGET /api/v1/{slug}',
           },
         ],
-        paragraphs: [
-          'Playground на карточке ресурса или Swagger — для проверки и полной схемы.',
-        ],
+        paragraphs: ['Playground на карточке ресурса или Swagger — для проверки и полной схемы.'],
         links: [{ label: 'Открыть Swagger', href: '/api/docs', external: true }],
       },
     ],
@@ -501,9 +495,7 @@ const json = await res.json()`,
     title: 'CRUD и запросы',
     sections: [
       {
-        paragraphs: [
-          'Обычный REST по опубликованным ресурсам с включённым API. Ответы — JSON.',
-        ],
+        paragraphs: ['Обычный REST по опубликованным ресурсам с включённым API. Ответы — JSON.'],
         samples: [
           {
             language: 'http',

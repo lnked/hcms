@@ -205,13 +205,14 @@ final class Installer
 
         $now = date('Y-m-d H:i:s');
         $connection->execute(
-            'INSERT INTO cms_users (name, email, password_hash, status, created_at, updated_at)
-             VALUES (:name, :email, :hash, :status, :created_at, :updated_at)',
+            'INSERT INTO cms_users (name, email, password_hash, status, role, created_at, updated_at)
+             VALUES (:name, :email, :hash, :status, :role, :created_at, :updated_at)',
             [
                 'name' => $name,
                 'email' => $email,
                 'hash' => Password::hash($password),
                 'status' => 'active',
+                'role' => 'owner',
                 'created_at' => $now,
                 'updated_at' => $now,
             ],

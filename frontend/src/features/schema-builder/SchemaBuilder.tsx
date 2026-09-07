@@ -1,10 +1,12 @@
 import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { GripVertical, Plus, Settings2, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
+import { api } from '@/lib/api'
 import { emptyField, FIELD_TYPES, type FieldTypeName, type SchemaField } from '@/types/field'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +29,16 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const rowRefs = useRef<(HTMLLIElement | null)[]>([])
   const editFormRef = useRef<HTMLDivElement>(null)
   const scrollToEditRef = useRef(false)
+
+  const fieldTypesQuery = useQuery({
+    queryKey: ['field-types'],
+    queryFn: () => api<string[]>('/admin/api/field-types'),
+    staleTime: 60_000,
+  })
+  const fieldTypes: FieldTypeName[] =
+    fieldTypesQuery.data && fieldTypesQuery.data.length > 0
+      ? (fieldTypesQuery.data as FieldTypeName[])
+      : FIELD_TYPES
 
   useLayoutEffect(() => {
     if (!scrollToEditRef.current || editingIndex === null || !editFormRef.current) return
@@ -110,11 +122,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
       clone.style.zIndex = '9999'
       document.body.appendChild(clone)
       dragImageRef.current = clone
-      event.dataTransfer.setDragImage(
-        clone,
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-      )
+      event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top)
       setDragHeight(rect.height)
     }
 
@@ -281,7 +289,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       value={field.type}
                       onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
                     >
-                      {FIELD_TYPES.map((type) => (
+                      {fieldTypes.map((type) => (
                         <option key={type} value={type}>
                           {type}
                         </option>
@@ -349,7 +357,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     <input
                       type="checkbox"
                       checked={field.writable}
-                      disabled={field.type === 'relation' && field.config.cardinality === 'oneToMany'}
+                      disabled={
+                        field.type === 'relation' && field.config.cardinality === 'oneToMany'
+                      }
                       onChange={(e) => updateAt(index, { writable: e.target.checked })}
                     />
                     {t('schema.writable')}

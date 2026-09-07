@@ -155,7 +155,7 @@ $authors = seedResource($client, $faker, [
         ]),
     ],
     'count' => $authorsCount,
-    'entry' => static function (DemoFaker $f, int $i) : array {
+    'entry' => static function (DemoFaker $f, int $i): array {
         return [
             'name' => $f->personName(),
             'bio' => $f->paragraph(2, 5),
@@ -186,7 +186,7 @@ $categories = seedResource($client, $faker, [
         field('is_featured', 'boolean', 'Featured', filterable: true, default: false),
     ],
     'count' => $categoriesCount,
-    'entry' => static function (DemoFaker $f, int $i) : array {
+    'entry' => static function (DemoFaker $f, int $i): array {
         return [
             'title' => $f->title('Category'),
             'description' => $f->maybe(0.8) ? $f->paragraph(1, 3) : null,

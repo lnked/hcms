@@ -8,7 +8,7 @@ use Cms\Database\ColumnDefinition;
 use InvalidArgumentException;
 
 /**
- * Maps field types to SQL column definitions for Phase 5 migrations.
+ * Maps field types to SQL column definitions for resource table migrations.
  */
 final class SqlTypeMapper
 {
@@ -40,6 +40,7 @@ final class SqlTypeMapper
             'string', 'email', 'slug' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
             'url' => 'VARCHAR(2048)',
             'text', 'json' => 'TEXT',
+            'richtext' => 'MEDIUMTEXT',
             'integer' => 'INT',
             'float' => 'DOUBLE',
             'boolean' => 'TINYINT(1)',

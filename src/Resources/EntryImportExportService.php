@@ -131,7 +131,7 @@ final class EntryImportExportService
         rewind($handle);
 
         $header = fgetcsv($handle, 0, ',', '"', '');
-        if ($header === false || $header === [null] || $header === []) {
+        if ($header === false || $header === [null]) {
             fclose($handle);
             throw new InvalidArgumentException('CSV must include a header row');
         }

@@ -335,6 +335,7 @@ final class OpenApiGenerator
             'uuid' => ['type' => 'string', 'format' => 'uuid'],
             'json' => ['type' => 'object', 'additionalProperties' => true],
             'text' => ['type' => 'string'],
+            'richtext' => ['type' => 'string', 'format' => 'markdown'],
             'enum' => [
                 'type' => 'string',
                 'enum' => array_values(array_map('strval', is_array($spec['config']['options'] ?? null) ? $spec['config']['options'] : [])),

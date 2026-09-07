@@ -14,11 +14,13 @@ use Cms\Auth\DatabaseRateLimitStore;
 use Cms\Auth\LoginGuard;
 use Cms\Auth\RateLimiter;
 use Cms\Auth\RateLimitStore;
+use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenGrantRepository;
 use Cms\Auth\TokenService;
 use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
 use Cms\Content\ContentTypeRepository;
+use Cms\Content\EntryRevisionService;
 use Cms\Core\Config;
 use Cms\Core\Env;
 use Cms\Core\FileCache;
@@ -50,6 +52,7 @@ use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Http\Controllers\UsersController;
+use Cms\Http\Controllers\WebhooksController;
 use Cms\Install\Installer;
 use Cms\Integrations\IntegrationApiRepository;
 use Cms\Integrations\IntegrationApiService;
@@ -70,6 +73,9 @@ use Cms\System\AdminUiPublisher;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
 use Cms\System\UpdateService;
+use Cms\Webhooks\WebhookDispatcher;
+use Cms\Webhooks\WebhookRepository;
+use Cms\Webhooks\WebhookService;
 use Throwable;
 
 final class Kernel
@@ -277,6 +283,12 @@ final class Kernel
                 return $apiAccess !== null
                     ? $this->finalizeApiResponse($auth, $apiAccess, $apiOrigin)
                     : $auth;
+            }
+            if ($auth->isAdmin()) {
+                $rbac = RolePolicy::enforce($auth, $request->method, $request->path);
+                if ($rbac !== null) {
+                    return $this->withSecurityHeaders($rbac);
+                }
             }
         } elseif ($this->tokens !== null && $request->bearerToken() !== null) {
             $resolved = $this->authenticate($request, 'api');
@@ -495,6 +507,14 @@ final class Kernel
 
                 return $system->stats($request, $context);
             });
+            $this->router->add('GET', '/admin/api/system/stats/timeseries', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $system->timeseries($request, $context);
+            });
             $this->router->add('GET', '/admin/api/system/changelog', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
                 unset($params, $context);
 
@@ -559,7 +579,9 @@ final class Kernel
                 new SchemaDiff(),
                 $metadata,
             );
-            $resources = new ResourceController($resourceService, $audit, $migrationService);
+            $webhookRepo = new WebhookRepository($this->db);
+            $webhookDispatcher = new WebhookDispatcher($webhookRepo);
+            $resources = new ResourceController($resourceService, $audit, $migrationService, $webhookDispatcher);
 
             $this->router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
                 unset($params);
@@ -709,11 +731,14 @@ final class Kernel
                 new FieldRepository($this->db),
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
+            $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
             $entries = new EntriesController(
                 $queryEngine,
                 new ResourceRepository($this->db),
                 $audit,
                 $entryImportExport,
+                $webhookDispatcher,
+                $entryRevisions,
             );
             $this->router->add('GET', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
                 if ($context === null) {
@@ -743,6 +768,13 @@ final class Kernel
 
                 return $entries->import($request, $context, (int) $params['id']);
             });
+            $this->router->add('POST', '/admin/api/resources/{id}/entries/bulk-delete', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->bulkDelete($request, $context, (int) $params['id']);
+            });
             $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
                 if ($context === null) {
                     return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
@@ -763,6 +795,26 @@ final class Kernel
                 }
 
                 return $entries->delete($request, $context, (int) $params['id'], (int) $params['entryId']);
+            });
+            $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}/revisions', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->revisions($request, $context, (int) $params['id'], (int) $params['entryId']);
+            });
+            $this->router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/revisions/{revId}/restore', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $entries->restoreRevision(
+                    $request,
+                    $context,
+                    (int) $params['id'],
+                    (int) $params['entryId'],
+                    (int) $params['revId'],
+                );
             });
 
             $migrations = new MigrationController(
@@ -836,6 +888,66 @@ final class Kernel
                 }
 
                 return $apiTokens->delete($request, $context, (int) $params['id']);
+            });
+
+            $webhooksApi = new WebhooksController(
+                new WebhookService(
+                    $webhookRepo,
+                    new ResourceRepository($this->db),
+                    $webhookDispatcher,
+                ),
+                $audit,
+            );
+            $this->router->add('GET', '/admin/api/webhooks', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->index($request, $context);
+            });
+            $this->router->add('POST', '/admin/api/webhooks', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->create($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->show($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PATCH', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->update($request, $context, (int) $params['id']);
+            });
+            $this->router->add('DELETE', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->delete($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/admin/api/webhooks/{id}/deliveries', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->deliveries($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/webhooks/{id}/test', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $webhooksApi->test($request, $context, (int) $params['id']);
             });
 
             $users = new UsersController(
@@ -1063,6 +1175,7 @@ final class Kernel
                 $tokenGrants,
                 $resourceApiRepo,
                 $spamGuard,
+                $webhookDispatcher,
             );
             foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
                 $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {

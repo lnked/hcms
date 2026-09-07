@@ -8,6 +8,7 @@ use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\LoginGuard;
 use Cms\Auth\Password;
+use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenService;
 use Cms\Auth\UsersRepository;
 use Cms\Core\Settings;
@@ -254,6 +255,7 @@ final class AuthController
             'id' => (int) $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
+            'role' => RolePolicy::normalize(isset($user['role']) ? (string) $user['role'] : null),
             'totpEnabled' => (bool) ($user['totp_enabled'] ?? false),
             'changelogSeenVersion' => $user['changelog_seen_version'] ?? null,
         ];

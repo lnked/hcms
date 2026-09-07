@@ -134,7 +134,7 @@ final class ResourcePackageController
         }
 
         $raw = $request->rawBody;
-        if (is_string($raw) && trim($raw) !== '') {
+        if (trim($raw) !== '') {
             if (strlen($raw) > ResourcePackageService::MAX_BYTES) {
                 throw new InvalidArgumentException('Import payload exceeds 50MB limit');
             }

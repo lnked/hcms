@@ -52,6 +52,7 @@ final class UsersService
             'email' => $validated['email'],
             'password_hash' => Password::hash($validated['password']),
             'status' => $validated['status'],
+            'role' => $validated['role'],
         ]);
 
         return $this->serialize($row);
@@ -86,6 +87,9 @@ final class UsersService
         if (isset($validated['status'])) {
             $data['status'] = $validated['status'];
         }
+        if (isset($validated['role'])) {
+            $data['role'] = $validated['role'];
+        }
         if (isset($validated['password'])) {
             $data['password_hash'] = Password::hash($validated['password']);
         }
@@ -119,7 +123,7 @@ final class UsersService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{name: string, email: string, password: string, status: string}
+     * @return array{name: string, email: string, password: string, status: string, role: string}
      */
     public static function validateCreate(array $payload): array
     {
@@ -127,6 +131,7 @@ final class UsersService
         $email = isset($payload['email']) && is_string($payload['email']) ? trim($payload['email']) : '';
         $password = isset($payload['password']) && is_string($payload['password']) ? $payload['password'] : '';
         $status = isset($payload['status']) && is_string($payload['status']) ? trim($payload['status']) : 'active';
+        $role = isset($payload['role']) && is_string($payload['role']) ? trim($payload['role']) : RolePolicy::ADMIN;
 
         if ($name === '') {
             throw new InvalidArgumentException('Name is required');
@@ -140,18 +145,22 @@ final class UsersService
         if (!in_array($status, ['active', 'disabled'], true)) {
             throw new InvalidArgumentException('Invalid status');
         }
+        if (!in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+            throw new InvalidArgumentException('Invalid role');
+        }
 
         return [
             'name' => $name,
             'email' => strtolower($email),
             'password' => $password,
             'status' => $status,
+            'role' => RolePolicy::normalize($role),
         ];
     }
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{name?: string, email?: string, password?: string, status?: string}
+     * @return array{name?: string, email?: string, password?: string, status?: string, role?: string}
      */
     public static function validateUpdate(array $payload): array
     {
@@ -184,6 +193,13 @@ final class UsersService
             }
             $out['status'] = $status;
         }
+        if (array_key_exists('role', $payload)) {
+            $role = is_string($payload['role']) ? trim($payload['role']) : '';
+            if (!in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+                throw new InvalidArgumentException('Invalid role');
+            }
+            $out['role'] = RolePolicy::normalize($role);
+        }
 
         if ($out === []) {
             throw new InvalidArgumentException('No fields to update');
@@ -203,6 +219,7 @@ final class UsersService
             'name' => $row['name'],
             'email' => $row['email'],
             'status' => $row['status'],
+            'role' => RolePolicy::normalize(isset($row['role']) ? (string) $row['role'] : null),
             'totpEnabled' => (bool) ($row['totp_enabled'] ?? false),
             'lastLoginAt' => $row['last_login_at'] ?? null,
             'createdAt' => $row['created_at'] ?? null,

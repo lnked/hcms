@@ -17,6 +17,7 @@ import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import { SystemPage } from '@/pages/SystemPage'
 import { TokensPage } from '@/pages/TokensPage'
 import { UsersPage } from '@/pages/UsersPage'
+import { WebhooksPage } from '@/features/webhooks/WebhooksPage'
 
 export function AppRouter() {
   return (
@@ -39,6 +40,7 @@ export function AppRouter() {
             <Route path="settings/system" element={<SystemPage />} />
             <Route path="settings/integrations" element={<IntegrationsPage />} />
             <Route path="settings/tokens" element={<TokensPage />} />
+            <Route path="settings/webhooks" element={<WebhooksPage />} />
             <Route path="settings/users" element={<UsersPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

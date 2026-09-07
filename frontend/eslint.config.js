@@ -20,6 +20,8 @@ export default defineConfig([
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      // Form hydration from react-query is intentional; cascading render cost is acceptable here.
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ])

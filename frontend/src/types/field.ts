@@ -1,6 +1,7 @@
 export type FieldTypeName =
   | 'string'
   | 'text'
+  | 'richtext'
   | 'integer'
   | 'float'
   | 'boolean'
@@ -41,6 +42,7 @@ export interface SchemaField {
 export const FIELD_TYPES: FieldTypeName[] = [
   'string',
   'text',
+  'richtext',
   'integer',
   'float',
   'boolean',
@@ -72,7 +74,12 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
     default: null,
     readonly: false,
     hidden: false,
-    searchable: type === 'string' || type === 'text' || type === 'email' || type === 'slug',
+    searchable:
+      type === 'string' ||
+      type === 'text' ||
+      type === 'richtext' ||
+      type === 'email' ||
+      type === 'slug',
     sortable: type === 'string' || type === 'integer' || type === 'datetime' || type === 'slug',
     filterable: true,
     readable: true,

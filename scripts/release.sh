@@ -41,7 +41,6 @@ rsync -a \
   --exclude '.phpunit.cache' \
   --exclude 'tests' \
   --exclude '.cursor' \
-  --exclude 'scripts/clean.php' \
   ./ "$STAGE/"
 
 mkdir -p "$STAGE/storage/cache" "$STAGE/storage/logs" "$STAGE/storage/uploads"
