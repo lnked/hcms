@@ -99,16 +99,11 @@ SHA="$(shasum -a 256 "$ZIP" | awk '{print $1}')"
 echo "$SHA  cms-${VERSION}.zip" > "$SHA_FILE"
 
 REPO="${CMS_GITHUB_REPO:-lnked/hcms}"
-cat > "$LATEST" <<EOF
-{
-  "version": "${VERSION}",
-  "channel": "stable",
-  "releasedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "zip": "https://github.com/${REPO}/releases/download/${TAG}/cms-${VERSION}.zip",
-  "sha256": "${SHA}",
-  "changelog": []
-}
-EOF
+php "$SRC/scripts/latest-json.php" \
+  --version="$VERSION" \
+  --zip="https://github.com/${REPO}/releases/download/${TAG}/cms-${VERSION}.zip" \
+  --sha256="$SHA" \
+  --out="$LATEST"
 
 echo "==> Artifacts"
 ls -lh "$ZIP" "$SHA_FILE" "$LATEST"

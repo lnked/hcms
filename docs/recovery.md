@@ -19,6 +19,11 @@ shutdown-хуке. Порядок шагов (`Cms\System\UpdateService`):
 
 `.env`, `.htaccess` и весь `storage/` не заменяются никогда.
 
+Список изменений на экране обновления берётся из `latest.json` (поле `changelog`, последние 25
+релизов), а не из локального `changelog.json`: установленный сайт знает историю только до своей
+версии, поэтому иначе он не может показать, что именно приезжает, и гейт breaking-изменений не
+срабатывает. Манифест собирает `scripts/latest-json.php` во время релиза.
+
 Если процесс убили посреди swap (PHP-FPM `request_terminate_timeout` не подчиняется
 `set_time_limit(0)`), первый же следующий запрос вызовет `UpdateJournal::revertInterrupted()` из
 `src/bootstrap.php` и вернёт предыдущее дерево. Пока живой процесс держит `storage/update.lock`

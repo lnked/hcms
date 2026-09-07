@@ -40,7 +40,17 @@ final class UpdateService
     public function check(bool $force = false): array
     {
         unset($force);
-        $manifest = $this->latest->fetch();
+
+        return $this->summarize($this->latest->fetch());
+    }
+
+    /**
+     * @param array<string, mixed>|null $manifest
+     *
+     * @return array<string, mixed>
+     */
+    private function summarize(?array $manifest): array
+    {
         $current = Version::current();
         $latestVersion = is_array($manifest) && isset($manifest['version']) && is_string($manifest['version'])
             ? $manifest['version']
@@ -61,48 +71,27 @@ final class UpdateService
      */
     public function preview(): array
     {
-        $check = $this->check(true);
+        $manifest = $this->latest->fetch();
+        $check = $this->summarize($manifest);
         $from = (string) $check['current'];
         $to = is_string($check['latest'] ?? null) ? (string) $check['latest'] : $from;
-        $changes = [];
-        $hasBreaking = false;
-        $migrationNotes = [];
 
-        foreach ($this->changelog->since($from) as $release) {
-            if (!Version::isGreater((string) $release['version'], $from)) {
-                continue;
-            }
-            if ($to !== '' && Version::compare((string) $release['version'], $to) > 0) {
-                continue;
-            }
-            $items = is_array($release['changes'] ?? null) ? $release['changes'] : [];
-            foreach ($items as $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-                $changes[] = [
-                    'version' => $release['version'],
-                    'type' => $item['type'] ?? 'changed',
-                    'area' => $item['area'] ?? null,
-                    'text' => $item['text'] ?? '',
-                    'migration' => $item['migration'] ?? null,
-                ];
-                if (($item['type'] ?? '') === 'breaking') {
-                    $hasBreaking = true;
-                    if (isset($item['migration']) && is_string($item['migration']) && $item['migration'] !== '') {
-                        $migrationNotes[] = $item['migration'];
-                    }
-                }
-            }
+        // The local changelog stops at the installed version, so notes about an
+        // update can only come from the manifest; the local file is the fallback
+        // for older manifests that ship none.
+        $releases = ReleaseNotes::fromManifest($manifest);
+        if ($releases === []) {
+            $releases = $this->changelog->since($from);
         }
+        $delta = ReleaseNotes::delta($releases, $from, $to);
 
         return [
             'from' => $from,
             'to' => $to,
             'updateAvailable' => (bool) $check['updateAvailable'],
-            'changes' => $changes,
-            'hasBreaking' => $hasBreaking,
-            'migrationNotes' => $migrationNotes,
+            'changes' => $delta['changes'],
+            'hasBreaking' => $delta['hasBreaking'],
+            'migrationNotes' => $delta['migrationNotes'],
             'backupReady' => (bool) $check['backupReady'],
         ];
     }
