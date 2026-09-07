@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { RotateCcw, RotateCw } from 'lucide-react'
-import { AnchorGrid, type AnchorPosition } from '@/components/AnchorGrid'
+import { AnchorPicker, type AnchorPosition } from '@/components/AnchorPicker'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { api, apiUpload } from '@/lib/api'
@@ -299,7 +299,7 @@ export function MediaFieldPicker({
                             </>
                           ) : null}
                         </div>
-                        <AnchorGrid
+                        <AnchorPicker
                           value={pos}
                           disabled={disabled || busy}
                           title={t('media.variantAnchor', { prefix: size.prefix })}

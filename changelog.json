@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.45.3",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Image anchor picker as a single 36x36 control",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "schema",
+          "text": "The image size anchor is now a single 36x36 button that cycles through positions on click and draws the anchor as a dot with arrows pointing at it, replacing the 3x3 grid of nine buttons"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Anchor control keyboard and modifier shortcuts: arrow keys move the anchor directly across the grid and Shift+click cycles backwards"
+        }
+      ]
+    },
+    {
       "version": "0.45.2",
       "date": "2026-09-07",
       "channel": "stable",

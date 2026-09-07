@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
-import { AnchorGrid } from '@/components/AnchorGrid'
+import { AnchorPicker } from '@/components/AnchorPicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -632,8 +632,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{t('schema.image.position')}</Label>
-                            <AnchorGrid
+                            <AnchorPicker
                               value={size.position || 'c'}
+                              title={t('schema.image.position')}
                               onChange={(position) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
                                 sizes[sizeIndex] = { ...sizes[sizeIndex], position }
