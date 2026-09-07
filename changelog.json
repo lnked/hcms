@@ -1,6 +1,49 @@
 {
   "releases": [
     {
+      "version": "0.46.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Interactive image crop editor and shareable entry links",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Every image in an image field now has an edit button that opens a crop editor: drag to reposition, scroll or use the slider to zoom, rotate in 90° steps and flip horizontally or vertically"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "The editor has one tab per size from the schema, so a single size can get its own framing while the rest keep following the base crop; tabs show a dot when a size is overridden and an amber dot when the selected crop is smaller than the target and would be upscaled"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Crop editor extras: live previews of every size that update while dragging, a rule-of-thirds grid, keyboard control (arrows to pan, Shift for bigger steps, +/− to zoom, [ ] to rotate, 0 to reset) and buttons to reset size framing or all edits at once"
+        },
+        {
+          "type": "added",
+          "area": "media",
+          "text": "POST /admin/api/media/{id}/edit bakes rotation, flips and a crop rect into a new master image and regenerates every variant from it; the original upload is kept and linked through the new cms_media.source_id column, so reopening the editor always starts from full quality instead of re-cropping an already cropped file"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "Image field values carry sourceId, edit and overrides alongside the existing id, rotation, positions and variants; resource package export/import remaps the source id too"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Entry editing lives at /resources/:id/data/:entryId, so an open entry card can be linked, bookmarked, opened in a new tab or reached with the browser's back button; the card has a copy-link button and the entries table edit action is now a real link"
+        },
+        {
+          "type": "fixed",
+          "area": "ops",
+          "text": "scripts/seed-demo.php fails with a clear message when a media upload returns no id instead of silently seeding entries with media id 0"
+        }
+      ]
+    },
+    {
       "version": "0.45.4",
       "date": "2026-09-07",
       "channel": "stable",

@@ -938,7 +938,8 @@ final class QueryEngine
         try {
             $normalized = MediaValue::normalize($raw, $multiple);
         } catch (InvalidArgumentException) {
-            return $raw;
+            // Legacy/garbage values (e.g. BIGINT 0 from pre-JSON media columns) are not media.
+            return null;
         }
         if ($normalized === null) {
             return null;
@@ -965,8 +966,11 @@ final class QueryEngine
 
             return [
                 'id' => (int) $item['id'],
+                'sourceId' => $item['sourceId'] === null ? null : (int) $item['sourceId'],
                 'rotation' => (int) $item['rotation'],
+                'edit' => $item['edit'],
                 'positions' => $item['positions'],
+                'overrides' => $item['overrides'],
                 'variants' => $variants,
                 'media' => $mediaCache[(int) $item['id']] ?? ['id' => (int) $item['id'], 'url' => '/media/' . (int) $item['id']],
             ];

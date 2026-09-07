@@ -100,8 +100,9 @@ final class MediaController
             $sizes = MediaFieldConfig::normalizeSizes($body['sizes'] ?? []);
             $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
             $rotation = MediaFieldConfig::normalizeRotation($body['rotation'] ?? 0);
+            $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
 
-            $result = $this->media->regenerateVariants($id, $sizes, $rotation, $positions);
+            $result = $this->media->regenerateVariants($id, $sizes, $rotation, $positions, $overrides);
             $this->audit->log(
                 $request,
                 'media.regenerated',
@@ -109,6 +110,40 @@ final class MediaController
                 'media',
                 (string) $id,
                 ['variants' => array_keys($result['variants']), 'rotation' => $rotation],
+            );
+
+            return Response::data($result + ['overrides' => $overrides]);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            $code = $e->getCode() === 404 ? 404 : 500;
+            return Response::error($code === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR', $e->getMessage(), $code);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function edit(Request $request, AuthContext $auth, int $id): Response
+    {
+        try {
+            $body = $request->json();
+            $edit = MediaFieldConfig::normalizeEdit($body['edit'] ?? null);
+            $sizes = MediaFieldConfig::normalizeSizes($body['sizes'] ?? []);
+            $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
+            $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
+
+            $result = $this->media->applyEdit($id, $edit, $sizes, $positions, $overrides);
+            $this->audit->log(
+                $request,
+                'media.edited',
+                $auth->userId(),
+                'media',
+                (string) $result['id'],
+                [
+                    'sourceId' => $result['sourceId'],
+                    'variants' => array_keys($result['variants']),
+                    'overrides' => array_keys($result['overrides']),
+                ],
             );
 
             return Response::data($result);

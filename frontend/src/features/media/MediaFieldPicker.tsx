@@ -1,10 +1,17 @@
 import { useRef, useState } from 'react'
-import { RotateCcw, RotateCw } from 'lucide-react'
+import { Pencil, RotateCcw, RotateCw } from 'lucide-react'
 import { AnchorPicker, type AnchorPosition } from '@/components/AnchorPicker'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { api, apiUpload } from '@/lib/api'
-import type { ImageSizeConfig, MediaFieldValue, MediaItemRef } from '@/types/field'
+import type {
+  CropRect,
+  ImageSizeConfig,
+  MediaEdit,
+  MediaFieldValue,
+  MediaItemRef,
+} from '@/types/field'
+import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
 
 type UploadResult = MediaFieldValue & { media?: MediaItemRef }
 
@@ -20,26 +27,37 @@ interface MediaFieldPickerProps {
   onChange: (value: MediaFieldValue | MediaFieldValue[] | null) => void
 }
 
+function mediaId(raw: unknown): number | null {
+  const id = typeof raw === 'number' ? raw : Number(raw)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
 function normalizeItem(raw: unknown): MediaFieldValue | null {
   if (raw == null || raw === '') return null
   if (typeof raw === 'number' || (typeof raw === 'string' && /^\d+$/.test(raw))) {
-    return { id: Number(raw), rotation: 0, positions: {}, variants: {} }
+    const id = mediaId(raw)
+    return id === null ? null : { id, rotation: 0, positions: {}, variants: {} }
   }
   if (typeof raw !== 'object') return null
   const obj = raw as Record<string, unknown>
-  const id = typeof obj.id === 'number' ? obj.id : Number(obj.id)
-  if (!Number.isFinite(id) || id < 1) return null
-  const positions =
-    obj.positions && typeof obj.positions === 'object' && !Array.isArray(obj.positions)
-      ? (obj.positions as Record<string, string>)
-      : {}
-  const variants =
-    obj.variants && typeof obj.variants === 'object' && !Array.isArray(obj.variants)
-      ? (obj.variants as Record<string, number | MediaItemRef>)
-      : {}
+  const id = mediaId(obj.id)
+  if (id === null) return null
   const rotation = typeof obj.rotation === 'number' ? obj.rotation : Number(obj.rotation) || 0
   const media = obj.media && typeof obj.media === 'object' ? (obj.media as MediaItemRef) : undefined
-  return { id, rotation, positions, variants, media }
+  return {
+    id,
+    sourceId: mediaId(obj.sourceId),
+    rotation,
+    edit: obj.edit && typeof obj.edit === 'object' ? (obj.edit as MediaEdit) : null,
+    positions: plainObject<string>(obj.positions),
+    overrides: plainObject<{ crop: CropRect }>(obj.overrides),
+    variants: plainObject<number | MediaItemRef>(obj.variants),
+    media,
+  }
+}
+
+function plainObject<T>(raw: unknown): Record<string, T> {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, T>) : {}
 }
 
 function parseValue(value: unknown, multiple: boolean): MediaFieldValue[] {
@@ -73,6 +91,11 @@ function mediaUrl(item: MediaFieldValue): string {
   return `/media/${item.id}`
 }
 
+/** Edits are always authored against the untouched upload, never a baked master. */
+function sourceUrl(item: MediaFieldValue): string {
+  return `/media/${item.sourceId ?? item.id}`
+}
+
 function variantId(v: number | MediaItemRef): number {
   return typeof v === 'number' ? v : v.id
 }
@@ -92,6 +115,7 @@ export function MediaFieldPicker({
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const items = parseValue(value, multiple)
   const resolvedAccept = acceptFromFormats(formats, accept)
 
@@ -120,8 +144,10 @@ export function MediaFieldPicker({
         extra.rotation = String(rotation)
       }
       const result = await apiUpload<UploadResult>('/admin/api/media', file, 'file', extra)
+      const uploadedId = mediaId(result.id)
+      if (uploadedId === null) throw new Error(t('common.uploadFailed'))
       const nextItem: MediaFieldValue = {
-        id: result.id,
+        id: uploadedId,
         rotation: result.rotation ?? rotation,
         positions: result.positions ?? positions,
         variants: result.variants ?? {},
@@ -169,6 +195,7 @@ export function MediaFieldPicker({
           sizes,
           rotation: nextItem.rotation,
           positions: nextItem.positions,
+          overrides: nextItem.overrides ?? {},
         }),
       })
       nextItem.variants = result.variants ?? {}
@@ -185,9 +212,52 @@ export function MediaFieldPicker({
     }
   }
 
+  async function applyEdit(index: number, result: ImageEditorResult) {
+    const current = items[index]
+    if (!current) return
+    setBusy(true)
+    setError(null)
+    try {
+      const positions = { ...defaultPositions(sizes), ...current.positions }
+      const edited = await api<UploadResult>(
+        `/admin/api/media/${current.sourceId ?? current.id}/edit`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            edit: result.edit,
+            sizes,
+            positions,
+            overrides: result.overrides,
+          }),
+        },
+      )
+      const editedId = mediaId(edited.id)
+      if (editedId === null) throw new Error(t('common.uploadFailed'))
+      const next = [...items]
+      next[index] = {
+        id: editedId,
+        sourceId: mediaId(edited.sourceId),
+        rotation: edited.rotation ?? 0,
+        edit: edited.edit ?? null,
+        positions: edited.positions ?? positions,
+        overrides: edited.overrides ?? {},
+        variants: edited.variants ?? {},
+        media: edited.media,
+      }
+      emit(next)
+      setEditingIndex(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('common.uploadFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function removeAt(index: number) {
     emit(items.filter((_, i) => i !== index))
   }
+
+  const editingItem = editingIndex == null ? null : (items[editingIndex] ?? null)
 
   return (
     <div className="space-y-3">
@@ -241,29 +311,46 @@ export function MediaFieldPicker({
                       size="sm"
                       variant="outline"
                       disabled={disabled || busy}
-                      title={t('media.rotateLeft')}
-                      onClick={() =>
-                        void regenerate(index, {
-                          rotation: (item.rotation + 270) % 360,
-                        })
-                      }
+                      title={t('media.edit')}
+                      onClick={() => setEditingIndex(index)}
                     >
-                      <RotateCcw className="h-3.5 w-3.5" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      disabled={disabled || busy}
-                      title={t('media.rotateRight')}
-                      onClick={() =>
-                        void regenerate(index, {
-                          rotation: (item.rotation + 90) % 360,
-                        })
-                      }
-                    >
-                      <RotateCw className="h-3.5 w-3.5" />
-                    </Button>
+                    {/* Quick rotate stays for untouched uploads; once edited, the editor owns orientation. */}
+                    {item.sourceId == null ? (
+                      <>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={disabled || busy}
+                          title={t('media.rotateLeft')}
+                          onClick={() =>
+                            void regenerate(index, {
+                              rotation: (item.rotation + 270) % 360,
+                            })
+                          }
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={disabled || busy}
+                          title={t('media.rotateRight')}
+                          onClick={() =>
+                            void regenerate(index, {
+                              rotation: (item.rotation + 90) % 360,
+                            })
+                          }
+                        >
+                          <RotateCw className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{t('media.edited')}</span>
+                    )}
                   </>
                 ) : null}
                 <Button
@@ -343,6 +430,22 @@ export function MediaFieldPicker({
         ) : null}
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
+
+      {editingItem ? (
+        <ImageEditorDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditingIndex(null)
+          }}
+          sourceUrl={sourceUrl(editingItem)}
+          sizes={sizes}
+          positions={{ ...defaultPositions(sizes), ...editingItem.positions }}
+          edit={editingItem.edit ?? null}
+          overrides={editingItem.overrides ?? {}}
+          busy={busy}
+          onApply={(result) => void applyEdit(editingIndex as number, result)}
+        />
+      ) : null}
     </div>
   )
 }

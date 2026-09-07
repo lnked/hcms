@@ -118,10 +118,32 @@ export type ImageSizeConfig = {
   position: string
 }
 
-export type MediaFieldValue = {
-  id: number
+/** Crop window as 0..1 fractions of the rotated (and flipped) source image. */
+export type CropRect = {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+/** Base edit baked into the master image by the crop editor. */
+export type MediaEdit = {
   rotation: number
+  flipH: boolean
+  flipV: boolean
+  crop: CropRect | null
+}
+
+export type MediaFieldValue = {
+  /** Image the variants are cut from: the upload itself, or a master baked from `sourceId`. */
+  id: number
+  /** Untouched original, present once an edit has been applied. */
+  sourceId?: number | null
+  rotation: number
+  edit?: MediaEdit | null
   positions: Record<string, string>
+  /** Per-size crop overrides keyed by size prefix. */
+  overrides?: Record<string, { crop: CropRect }>
   variants: Record<string, number | MediaItemRef>
   media?: MediaItemRef
 }

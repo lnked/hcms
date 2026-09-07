@@ -108,7 +108,7 @@ export function AnchorPicker({ value, disabled, onChange, className, title }: An
       aria-label={title ?? 'Image anchor'}
       data-position={current}
       className={cn(
-        'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input',
+        'flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input p-0.5',
         'bg-transparent text-foreground transition-colors hover:bg-muted',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'disabled:pointer-events-none disabled:opacity-50',

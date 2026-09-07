@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Table,
@@ -18,7 +19,8 @@ export type EntryRow = Record<string, unknown> & { id: number }
 interface DataTableProps {
   fields: SchemaField[]
   rows: EntryRow[]
-  onEdit: (row: EntryRow) => void
+  /** Router path of the entry editor card, shareable and openable in a new tab. */
+  editHref: (row: EntryRow) => string
   onDelete: (row: EntryRow) => void
   sort?: string
   onSort?: (sort: string) => void
@@ -31,7 +33,7 @@ interface DataTableProps {
 export function DataTable({
   fields,
   rows,
-  onEdit,
+  editHref,
   onDelete,
   sort,
   onSort,
@@ -167,15 +169,14 @@ export function DataTable({
               ))}
               <TableCell className="text-right">
                 <div className="inline-flex items-center justify-end gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
+                  <Link
+                    to={editHref(row)}
+                    className={buttonVariants({ size: 'icon', variant: 'ghost' })}
                     aria-label={t('common.edit')}
                     title={t('common.edit')}
-                    onClick={() => onEdit(row)}
                   >
                     <Pencil className="h-4 w-4" />
-                  </Button>
+                  </Link>
                   <Button
                     size="icon"
                     variant="ghost"

@@ -171,11 +171,14 @@ HTACCESS;
     {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
-        $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM cms_media WHERE parent_id IS NULL');
+        $count = $this->db->selectOne(
+            'SELECT COUNT(*) AS c FROM cms_media WHERE parent_id IS NULL AND source_id IS NULL',
+        );
         $total = $count === null ? 0 : (int) $count['c'];
         $offset = ($page - 1) * $limit;
         $rows = $this->db->select(
-            'SELECT * FROM cms_media WHERE parent_id IS NULL ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
+            'SELECT * FROM cms_media WHERE parent_id IS NULL AND source_id IS NULL'
+            . ' ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
         );
 
         return [
@@ -262,9 +265,7 @@ HTACCESS;
                 'media' => $original,
             ];
         }
-        if (!str_starts_with((string) $original['mime'], 'image/') || (string) $original['mime'] === 'image/svg+xml') {
-            throw new InvalidArgumentException('Image transforms require a raster image');
-        }
+        $this->assertRaster($original);
 
         $variants = $this->generateVariants($id, $sizes, $rotation, $positions);
 
@@ -278,10 +279,11 @@ HTACCESS;
     }
 
     /**
-     * Regenerate variants for an existing original.
+     * Regenerate variants for an existing original or baked master.
      *
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
+     * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
      */
     public function regenerateVariants(
@@ -289,6 +291,7 @@ HTACCESS;
         array $sizes,
         int $rotation = 0,
         array $positions = [],
+        array $overrides = [],
     ): array {
         $row = $this->findRow($mediaId);
         if ($row === null) {
@@ -297,12 +300,10 @@ HTACCESS;
         if ($row['parent_id'] !== null) {
             throw new InvalidArgumentException('Cannot regenerate a variant; pass the original media id');
         }
-        if (!str_starts_with((string) $row['mime'], 'image/') || (string) $row['mime'] === 'image/svg+xml') {
-            throw new InvalidArgumentException('Image transforms require a raster image');
-        }
+        $this->assertRaster($row);
 
         $this->deleteChildren($mediaId);
-        $variants = $sizes === [] ? [] : $this->generateVariants($mediaId, $sizes, $rotation, $positions);
+        $variants = $sizes === [] ? [] : $this->generateVariants($mediaId, $sizes, $rotation, $positions, $overrides);
 
         return [
             'id' => $mediaId,
@@ -310,6 +311,90 @@ HTACCESS;
             'positions' => $positions,
             'variants' => $variants,
             'media' => $this->get($mediaId),
+        ];
+    }
+
+    /**
+     * Bake a base edit into a new master image and regenerate every variant from it.
+     *
+     * The source original is never touched, so re-opening the editor always starts
+     * from full quality instead of re-cropping an already cropped file.
+     *
+     * @param array{rotation: int, flipH: bool, flipV: bool, crop: array{x: float, y: float, w: float, h: float}|null}|null $edit
+     * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
+     * @param array<string, string> $positions
+     * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
+     * @return array{id: int, sourceId: int|null, edit: array<string, mixed>|null, rotation: int, positions: array<string, string>, overrides: array<string, mixed>, variants: array<string, int>, media: array<string, mixed>}
+     */
+    public function applyEdit(
+        int $mediaId,
+        ?array $edit,
+        array $sizes,
+        array $positions = [],
+        array $overrides = [],
+    ): array {
+        $row = $this->findRow($mediaId);
+        if ($row === null) {
+            throw new RuntimeException('Media not found', 404);
+        }
+        if ($row['parent_id'] !== null) {
+            throw new InvalidArgumentException('Cannot edit a variant; pass the original media id');
+        }
+        $this->assertRaster($row);
+
+        // Always re-edit from the untouched origin, even when a baked master was passed in.
+        $sourceId = ($row['source_id'] ?? null) === null ? $mediaId : (int) $row['source_id'];
+        if ($sourceId !== $mediaId) {
+            $row = $this->findRow($sourceId);
+            if ($row === null) {
+                throw new RuntimeException('Source media not found', 404);
+            }
+            $this->assertRaster($row);
+        }
+
+        // GD work grows with the number of sizes; a slow disk should not abort mid-run.
+        @set_time_limit(0);
+
+        if ($edit === null) {
+            $overrides = array_intersect_key($overrides, array_flip(array_column($sizes, 'prefix')));
+            $result = $this->regenerateVariants($sourceId, $sizes, 0, $positions, $overrides);
+
+            return [
+                'id' => $sourceId,
+                'sourceId' => null,
+                'edit' => null,
+                'rotation' => 0,
+                'positions' => $positions,
+                'overrides' => $overrides,
+                'variants' => $result['variants'],
+                'media' => $result['media'],
+            ];
+        }
+
+        $absolute = $this->absolutePath($row);
+        $baked = $this->images->bake($absolute, $edit, (string) $row['mime']);
+        $master = $this->storeFromBytes(
+            $baked['bytes'],
+            $this->editedName((string) $row['original_name']),
+            $baked['mime'],
+            null,
+            null,
+            $sourceId,
+        );
+        $masterId = (int) $master['id'];
+
+        $overrides = array_intersect_key($overrides, array_flip(array_column($sizes, 'prefix')));
+        $variants = $sizes === [] ? [] : $this->generateVariants($masterId, $sizes, 0, $positions, $overrides);
+
+        return [
+            'id' => $masterId,
+            'sourceId' => $sourceId,
+            'edit' => $edit,
+            'rotation' => 0,
+            'positions' => $positions,
+            'overrides' => $overrides,
+            'variants' => $variants,
+            'media' => $this->get($masterId),
         ];
     }
 
@@ -354,6 +439,7 @@ HTACCESS;
         string $mime,
         ?int $parentId = null,
         ?string $variantKey = null,
+        ?int $sourceId = null,
     ): array {
         $size = strlen($bytes);
         if ($size <= 0 || $size > self::MAX_BYTES) {
@@ -390,10 +476,11 @@ HTACCESS;
 
         $now = date('Y-m-d H:i:s');
         $this->db->execute(
-            'INSERT INTO cms_media (parent_id, variant_key, disk_path, original_name, mime, size, width, height, created_at)
-             VALUES (:parent_id, :variant_key, :disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
+            'INSERT INTO cms_media (parent_id, source_id, variant_key, disk_path, original_name, mime, size, width, height, created_at)
+             VALUES (:parent_id, :source_id, :variant_key, :disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
             [
                 'parent_id' => $parentId,
+                'source_id' => $sourceId,
                 'variant_key' => $variantKey,
                 'disk_path' => $relative,
                 'original_name' => substr($originalName, 0, 255),
@@ -468,18 +555,21 @@ HTACCESS;
     /**
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
+     * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
      * @return array<string, int>
      */
-    private function generateVariants(int $parentId, array $sizes, int $rotation, array $positions): array
-    {
+    private function generateVariants(
+        int $parentId,
+        array $sizes,
+        int $rotation,
+        array $positions,
+        array $overrides = [],
+    ): array {
         $row = $this->findRow($parentId);
         if ($row === null) {
             throw new RuntimeException('Media not found', 404);
         }
-        $absolute = $this->paths->media() . '/' . $row['disk_path'];
-        if (!is_file($absolute)) {
-            throw new RuntimeException('Original media file missing');
-        }
+        $absolute = $this->absolutePath($row);
 
         $variants = [];
         foreach ($sizes as $size) {
@@ -493,6 +583,7 @@ HTACCESS;
                 $size['height'],
                 $position,
                 (string) $row['mime'],
+                $overrides[$prefix]['crop'] ?? null,
             );
             $variantName = $prefix . '_' . (string) $row['original_name'];
             $stored = $this->storeFromBytes(
@@ -506,6 +597,37 @@ HTACCESS;
         }
 
         return $variants;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function assertRaster(array $row): void
+    {
+        $mime = (string) $row['mime'];
+        if (!str_starts_with($mime, 'image/') || $mime === 'image/svg+xml') {
+            throw new InvalidArgumentException('Image transforms require a raster image');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function absolutePath(array $row): string
+    {
+        $absolute = $this->paths->media() . '/' . $row['disk_path'];
+        if (!is_file($absolute)) {
+            throw new RuntimeException('Original media file missing');
+        }
+
+        return $absolute;
+    }
+
+    private function editedName(string $originalName): string
+    {
+        $base = $this->basenameOnly($originalName);
+
+        return str_starts_with($base, 'edited_') ? $base : 'edited_' . $base;
     }
 
     /**
@@ -747,6 +869,7 @@ HTACCESS;
         return [
             'id' => $id,
             'parentId' => $row['parent_id'] === null ? null : (int) $row['parent_id'],
+            'sourceId' => ($row['source_id'] ?? null) === null ? null : (int) $row['source_id'],
             'variantKey' => $row['variant_key'] ?? null,
             'originalName' => $row['original_name'],
             'mime' => $row['mime'],

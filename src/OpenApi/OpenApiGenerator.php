@@ -360,13 +360,47 @@ final class OpenApiGenerator
      */
     private function mediaPropertySchema(array $spec): array
     {
+        $cropRect = [
+            'type' => 'object',
+            'description' => 'Crop rect as 0..1 fractions of the rotated image',
+            'properties' => [
+                'x' => ['type' => 'number'],
+                'y' => ['type' => 'number'],
+                'w' => ['type' => 'number'],
+                'h' => ['type' => 'number'],
+            ],
+        ];
         $item = [
             'type' => 'object',
             'description' => 'Media value with original and optional variants',
             'properties' => [
                 'id' => ['type' => 'integer'],
+                'sourceId' => [
+                    'type' => 'integer',
+                    'nullable' => true,
+                    'description' => 'Untouched original when id points at an edited master',
+                ],
                 'rotation' => ['type' => 'integer', 'enum' => [0, 90, 180, 270]],
+                'edit' => [
+                    'type' => 'object',
+                    'nullable' => true,
+                    'description' => 'Base edit baked into the master image',
+                    'properties' => [
+                        'rotation' => ['type' => 'integer', 'enum' => [0, 90, 180, 270]],
+                        'flipH' => ['type' => 'boolean'],
+                        'flipV' => ['type' => 'boolean'],
+                        'crop' => $cropRect + ['nullable' => true],
+                    ],
+                ],
                 'positions' => ['type' => 'object', 'additionalProperties' => ['type' => 'string']],
+                'overrides' => [
+                    'type' => 'object',
+                    'description' => 'Per-size crop overrides keyed by size prefix',
+                    'additionalProperties' => [
+                        'type' => 'object',
+                        'properties' => ['crop' => $cropRect],
+                    ],
+                ],
                 'variants' => [
                     'type' => 'object',
                     'additionalProperties' => [

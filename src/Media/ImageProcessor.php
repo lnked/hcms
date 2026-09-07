@@ -8,11 +8,15 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * GD-based image rotate / resize-fit / crop-cover with 9-cell anchor.
+ * GD-based image rotate / flip / crop-rect / resize-fit / crop-cover with 9-cell anchor.
+ *
+ * Edit pipeline is always rotate -> flip -> crop rect; normalized crop rects are
+ * therefore expressed in the coordinate space of the rotated + flipped image.
  */
 final class ImageProcessor
 {
     /**
+     * @param array{x: float, y: float, w: float, h: float}|null $crop normalized 0..1, applied after rotation
      * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
      */
     public function transform(
@@ -23,28 +27,34 @@ final class ImageProcessor
         int $targetHeight,
         string $position,
         ?string $outputMime = null,
+        ?array $crop = null,
     ): array {
-        $src = $this->load($sourcePath);
-        if ($rotation !== 0) {
-            $src = $this->rotate($src, $rotation);
-        }
+        $src = $this->edit($this->load($sourcePath), $rotation, false, false, $crop);
 
         $src = $mode === 'resize'
             ? $this->resizeFit($src, $targetWidth, $targetHeight)
             : $this->cropCover($src, $targetWidth, $targetHeight, $position);
 
-        $mime = $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg';
-        $encoded = $this->encode($src, $mime);
-        $width = imagesx($src);
-        $height = imagesy($src);
+        return $this->finish($src, $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg');
+    }
 
-        return [
-            'bytes' => $encoded['bytes'],
-            'mime' => $encoded['mime'],
-            'width' => $width,
-            'height' => $height,
-            'ext' => $encoded['ext'],
-        ];
+    /**
+     * Bake a base edit (rotation + flips + crop) into a new master image.
+     *
+     * @param array{rotation?: int, flipH?: bool, flipV?: bool, crop?: array{x: float, y: float, w: float, h: float}|null} $edit
+     * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
+     */
+    public function bake(string $sourcePath, array $edit, ?string $outputMime = null): array
+    {
+        $src = $this->edit(
+            $this->load($sourcePath),
+            (int) ($edit['rotation'] ?? 0),
+            (bool) ($edit['flipH'] ?? false),
+            (bool) ($edit['flipV'] ?? false),
+            $edit['crop'] ?? null,
+        );
+
+        return $this->finish($src, $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg');
     }
 
     /**
@@ -60,6 +70,43 @@ final class ImageProcessor
         }
 
         return $this->rotate($src, $rotation);
+    }
+
+    /**
+     * @param \GdImage $src
+     * @param array{x: float, y: float, w: float, h: float}|null $crop
+     * @return \GdImage
+     */
+    private function edit(\GdImage $src, int $rotation, bool $flipH, bool $flipV, ?array $crop): \GdImage
+    {
+        if ($rotation !== 0) {
+            $src = $this->rotate($src, $rotation);
+        }
+        if ($flipH || $flipV) {
+            $src = $this->flip($src, $flipH, $flipV);
+        }
+        if ($crop !== null) {
+            $src = $this->cropRect($src, $crop);
+        }
+
+        return $src;
+    }
+
+    /**
+     * @param \GdImage $img
+     * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
+     */
+    private function finish(\GdImage $img, string $mime): array
+    {
+        $encoded = $this->encode($img, $mime);
+
+        return [
+            'bytes' => $encoded['bytes'],
+            'mime' => $encoded['mime'],
+            'width' => imagesx($img),
+            'height' => imagesy($img),
+            'ext' => $encoded['ext'],
+        ];
     }
 
     /**
@@ -125,6 +172,62 @@ final class ImageProcessor
         $this->preserveAlpha($rotated);
 
         return $rotated;
+    }
+
+    /**
+     * @param \GdImage $src
+     * @return \GdImage
+     */
+    private function flip(\GdImage $src, bool $horizontal, bool $vertical): \GdImage
+    {
+        $mode = match (true) {
+            $horizontal && $vertical => IMG_FLIP_BOTH,
+            $horizontal => IMG_FLIP_HORIZONTAL,
+            default => IMG_FLIP_VERTICAL,
+        };
+        if (!imageflip($src, $mode)) {
+            throw new RuntimeException('Failed to flip image');
+        }
+
+        return $src;
+    }
+
+    /**
+     * Crop a normalized 0..1 rect out of the image.
+     *
+     * @param \GdImage $src
+     * @param array{x: float, y: float, w: float, h: float} $crop
+     * @return \GdImage
+     */
+    private function cropRect(\GdImage $src, array $crop): \GdImage
+    {
+        $sw = imagesx($src);
+        $sh = imagesy($src);
+        $x = (int) round($this->clamp01($crop['x']) * $sw);
+        $y = (int) round($this->clamp01($crop['y']) * $sh);
+        $w = (int) round($this->clamp01($crop['w']) * $sw);
+        $h = (int) round($this->clamp01($crop['h']) * $sh);
+        $w = max(1, min($w, $sw - $x));
+        $h = max(1, min($h, $sh - $y));
+        if ($x === 0 && $y === 0 && $w === $sw && $h === $sh) {
+            return $src;
+        }
+
+        $out = imagecreatetruecolor($w, $h);
+        if ($out === false) {
+            throw new RuntimeException('Failed to allocate crop canvas');
+        }
+        $this->preserveAlpha($out);
+        imagecopy($out, $src, 0, 0, $x, $y, $w, $h);
+
+        return $out;
+    }
+
+    private function clamp01(mixed $value): float
+    {
+        $float = is_numeric($value) ? (float) $value : 0.0;
+
+        return max(0.0, min(1.0, $float));
     }
 
     /**

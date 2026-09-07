@@ -118,14 +118,22 @@ if ($force) {
 }
 
 out('Upload demo media…');
+$mediaId = static function (array $response): int {
+    $id = (int) ($response['data']['id'] ?? 0);
+    if ($id < 1) {
+        throw new RuntimeException('Media upload returned no id: ' . json_encode($response, JSON_UNESCAPED_SLASHES));
+    }
+
+    return $id;
+};
 $imageIds = [];
 $fileIds = [];
 for ($i = 1; $i <= 8; $i++) {
     $png = $faker->tinyPngPath("demo-image-{$i}.png");
     $txt = $faker->tinyTextPath("demo-file-{$i}.txt");
     try {
-        $imageIds[] = (int) $client->upload($png, 'image/png')['data']['id'];
-        $fileIds[] = (int) $client->upload($txt, 'text/plain')['data']['id'];
+        $imageIds[] = $mediaId($client->upload($png, 'image/png'));
+        $fileIds[] = $mediaId($client->upload($txt, 'text/plain'));
     } finally {
         @unlink($png);
         @unlink($txt);

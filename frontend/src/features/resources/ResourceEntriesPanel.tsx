@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { History, Upload } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { History, Link2, Upload } from 'lucide-react'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,7 +19,7 @@ import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-ren
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useI18n } from '@/i18n'
 import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
-import { showError } from '@/lib/toast'
+import { showError, showSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 
@@ -32,11 +33,25 @@ interface ImportResult {
   errors: Array<{ row: number; message: string }>
 }
 
+/** `null` closes the editor, `'new'` opens the create card, a numeric id opens that entry. */
+type EntryParam = string | 'new' | null
+
+/** Unsaved input for one entry card, tied to the URL segment that opened it. */
+interface EntryDraft {
+  key: string
+  values: EntryValues
+  error: string | null
+}
+
 interface ResourceEntriesPanelProps {
   resourceId: number
   resourceSlug: string
   fields: SchemaField[]
   published: boolean
+  /** Entry segment from the URL: `12`, `new` or `null`. */
+  entryParam: EntryParam
+  /** Builds the router path for a given entry segment. */
+  entryPath: (entry: EntryParam) => string
 }
 
 export function ResourceEntriesPanel({
@@ -44,8 +59,12 @@ export function ResourceEntriesPanel({
   resourceSlug,
   fields,
   published,
+  entryParam,
+  entryPath,
 }: ResourceEntriesPanelProps) {
   const { t } = useI18n()
+  const navigate = useNavigate()
+  const { key: locationKey } = useLocation()
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -53,10 +72,7 @@ export function ResourceEntriesPanel({
   const [sort, setSort] = useState('id')
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [selectedIds, setSelectedIds] = useState<number[]>([])
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editing, setEditing] = useState<EntryRow | null>(null)
-  const [values, setValues] = useState<EntryValues>({})
-  const [error, setError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [revisionsOpen, setRevisionsOpen] = useState(false)
 
   const [exportOpen, setExportOpen] = useState(false)
@@ -130,10 +146,70 @@ export function ResourceEntriesPanel({
     },
   })
 
+  const creating = entryParam === 'new'
+  const editingId = entryParam !== null && /^\d+$/.test(entryParam) ? Number(entryParam) : null
+  const editorOpen = creating || editingId !== null
+
+  // Rows carry the full record (list and show share the same serializer), so opening
+  // an entry from the table needs no extra request; a direct link still fetches it.
+  const listedEntry =
+    editingId === null ? undefined : list.data?.data.find((row) => row.id === editingId)
+
+  const entryQuery = useQuery({
+    queryKey: ['resource-entry', resourceId, editingId],
+    queryFn: () => api<EntryRow>(`/admin/api/resources/${resourceId}/entries/${editingId}`),
+    enabled: published && editingId !== null,
+    initialData: listedEntry,
+    initialDataUpdatedAt: listedEntry ? list.dataUpdatedAt : undefined,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  })
+
+  const editing = editingId === null ? null : (entryQuery.data ?? null)
+
+  const loadedValues = useMemo(() => {
+    const next = emptyValues(fields)
+    for (const field of fields) {
+      if (editing && field.name in editing) next[field.name] = editing[field.name]
+    }
+    return next
+  }, [editing, fields])
+
+  // The draft is keyed by the URL segment, so switching entries drops stale input
+  // without an effect, while the loaded record stays the source of truth until typing.
+  const activeDraft = draft?.key === entryParam ? draft : null
+  const values = activeDraft?.values ?? loadedValues
+  const error = activeDraft?.error ?? null
+
+  function openEntry(entry: Exclude<EntryParam, null>) {
+    navigate(entryPath(entry))
+  }
+
+  /**
+   * Step back when the card was pushed inside the app, so closing it doesn't stack
+   * history. On a direct link (`key === 'default'`) there is nothing to go back to.
+   */
+  function closeEntry() {
+    if (locationKey !== 'default') {
+      navigate(-1)
+      return
+    }
+    navigate(entryPath(null), { replace: true })
+  }
+
+  async function copyEntryLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      showSuccess(t('entries.linkCopied'))
+    } catch {
+      showError(t('common.copyFailed'))
+    }
+  }
+
   const save = useMutation({
     mutationFn: async () => {
-      if (editing) {
-        return api<EntryRow>(`/admin/api/resources/${resourceId}/entries/${editing.id}`, {
+      if (editingId !== null) {
+        return api<EntryRow>(`/admin/api/resources/${resourceId}/entries/${editingId}`, {
           method: 'PATCH',
           body: JSON.stringify(values),
         })
@@ -144,12 +220,17 @@ export function ResourceEntriesPanel({
       })
     },
     onSuccess: () => {
-      setEditorOpen(false)
-      setEditing(null)
-      setError(null)
+      setDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({ queryKey: ['resource-entry', resourceId, editingId] })
+      closeEntry()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) =>
+      setDraft({
+        key: entryParam ?? '',
+        values,
+        error: err instanceof Error ? err.message : t('common.saveFailed'),
+      }),
   })
 
   const remove = useMutation({
@@ -247,24 +328,6 @@ export function ResourceEntriesPanel({
     },
   })
 
-  function openCreate() {
-    setEditing(null)
-    setValues(emptyValues(fields))
-    setError(null)
-    setEditorOpen(true)
-  }
-
-  function openEdit(row: EntryRow) {
-    const next = emptyValues(fields)
-    for (const field of fields) {
-      if (field.name in row) next[field.name] = row[field.name]
-    }
-    setEditing(row)
-    setValues(next)
-    setError(null)
-    setEditorOpen(true)
-  }
-
   function openExport() {
     setExportFormat('json')
     setExportAll(true)
@@ -351,7 +414,7 @@ export function ResourceEntriesPanel({
           <Button variant="outline" onClick={openExport}>
             {t('entries.export')}
           </Button>
-          <Button onClick={openCreate}>{t('entries.new')}</Button>
+          <Button onClick={() => openEntry('new')}>{t('entries.new')}</Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -397,7 +460,7 @@ export function ResourceEntriesPanel({
             }}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
-            onEdit={openEdit}
+            editHref={(row) => entryPath(String(row.id))}
             onDelete={(row) => {
               if (confirm(t('entries.deleteConfirm', { id: row.id }))) remove.mutate(row)
             }}
@@ -441,20 +504,35 @@ export function ResourceEntriesPanel({
         ) : null}
       </CardContent>
 
-      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+      <Dialog
+        open={editorOpen}
+        onOpenChange={(open) => {
+          if (!open) closeEntry()
+        }}
+      >
         <DialogContent>
           <DialogHeader className="pr-6">
             <DialogTitle>
-              {editing ? t('entries.edit', { id: editing.id }) : t('entries.new')}
+              {editingId !== null ? t('entries.edit', { id: editingId }) : t('entries.new')}
             </DialogTitle>
             <DialogDescription>{t('entries.dialogHint')}</DialogDescription>
           </DialogHeader>
-          {editing ? (
-            <div className="flex justify-end">
+          {editingId !== null ? (
+            <div className="flex justify-end gap-2">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
+                onClick={() => void copyEntryLink()}
+              >
+                <Link2 className="mr-1 h-4 w-4" />
+                {t('entries.copyLink')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!editing}
                 onClick={() => setRevisionsOpen(true)}
               >
                 <History className="mr-1 h-4 w-4" />
@@ -462,23 +540,31 @@ export function ResourceEntriesPanel({
               </Button>
             </div>
           ) : null}
-          <FormRenderer
-            key={editing?.id ?? 'new'}
-            fields={fields}
-            values={values}
-            onChange={setValues}
-            disabled={save.isPending}
-            entryId={editing?.id ?? null}
-          />
-          {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditorOpen(false)}>
-              {t('common.cancel')}
-            </Button>
-            <Button disabled={save.isPending} onClick={() => save.mutate()}>
-              {save.isPending ? t('common.saving') : t('common.save')}
-            </Button>
-          </div>
+          {entryQuery.isLoading ? (
+            <p className="py-6 text-sm text-muted-foreground">{t('common.loading')}</p>
+          ) : editingId !== null && !editing ? (
+            <p className="py-6 text-sm text-destructive">{t('entries.notFound')}</p>
+          ) : (
+            <>
+              <FormRenderer
+                key={editingId ?? 'new'}
+                fields={fields}
+                values={values}
+                onChange={(next) => setDraft({ key: entryParam ?? '', values: next, error: null })}
+                disabled={save.isPending}
+                entryId={editingId}
+              />
+              {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" onClick={closeEntry}>
+                  {t('common.cancel')}
+                </Button>
+                <Button disabled={save.isPending} onClick={() => save.mutate()}>
+                  {save.isPending ? t('common.saving') : t('common.save')}
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -696,10 +782,10 @@ export function ResourceEntriesPanel({
         </DialogContent>
       </Dialog>
 
-      {editing ? (
+      {editingId !== null ? (
         <EntryRevisionsPanel
           resourceId={resourceId}
-          entryId={editing.id}
+          entryId={editingId}
           open={revisionsOpen}
           onOpenChange={setRevisionsOpen}
         />

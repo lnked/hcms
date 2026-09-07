@@ -21,6 +21,9 @@ import type { Resource } from '@/types/resource'
 const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'] as const
 type Tab = (typeof TABS)[number]
 
+/** Stable identity so child effects don't re-run while fields are loading. */
+const EMPTY_FIELDS: SchemaField[] = []
+
 const tabKeys = {
   overview: 'resources.tab.overview',
   schema: 'resources.tab.schema',
@@ -36,7 +39,7 @@ function isTab(value: string | undefined): value is Tab {
 
 export function ResourceDetailPage() {
   const { t } = useI18n()
-  const { id, tab: tabParam } = useParams()
+  const { id, tab: tabParam, entryId: entryParam } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const resourceId = Number(id)
@@ -64,7 +67,7 @@ export function ResourceDetailPage() {
     enabled: Number.isFinite(resourceId) && resourceId > 0,
   })
 
-  const schema = draftSchema ?? fieldsQuery.data ?? []
+  const schema = draftSchema ?? fieldsQuery.data ?? EMPTY_FIELDS
   const schemaDirty = draftSchema !== null
 
   const publish = useMutation({
@@ -261,6 +264,12 @@ export function ResourceDetailPage() {
           resourceSlug={resource.slug}
           fields={fieldsQuery.data ?? schema}
           published={resource.status === 'published'}
+          entryParam={entryParam ?? null}
+          entryPath={(entry) =>
+            entry === null
+              ? `/resources/${resource.id}/data`
+              : `/resources/${resource.id}/data/${entry}`
+          }
         />
       ) : null}
 

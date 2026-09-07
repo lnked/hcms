@@ -10,13 +10,19 @@ use InvalidArgumentException;
 /**
  * Encodes/decodes image|file field values stored as JSON.
  *
- * Shape (single): { id, rotation, positions, variants }
+ * Shape (single): { id, sourceId, rotation, edit, positions, overrides, variants }
  * Shape (multiple): list of single
+ *
+ * `id` is the image the variants are cut from: either the uploaded original, or a
+ * master baked from `sourceId` by the crop editor. `edit` is the recipe used to bake
+ * it, kept so the editor can reopen from the untouched source.
+ *
+ * @phpstan-type MediaItem array{id: int, sourceId: int|null, rotation: int, edit: array<string, mixed>|null, positions: array<string, string>, overrides: array<string, array<string, mixed>>, variants: array<string, int>}
  */
 final class MediaValue
 {
     /**
-     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}|list<array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}>|null
+     * @return MediaItem|list<MediaItem>|null
      */
     public static function normalize(mixed $value, bool $multiple = false): array|null
     {
@@ -75,7 +81,7 @@ final class MediaValue
     }
 
     /**
-     * @param array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}|list<array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}>|null $value
+     * @param MediaItem|list<MediaItem>|null $value
      */
     public static function encode(array|null $value): ?string
     {
@@ -89,18 +95,28 @@ final class MediaValue
     /**
      * @param array<string, string> $positions
      * @param array<string, int|string> $variants
-     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}
+     * @param array<string, mixed> $extra sourceId / edit / overrides
+     * @return MediaItem
      */
-    public static function itemFromId(int $id, int $rotation = 0, array $positions = [], array $variants = []): array
-    {
+    public static function itemFromId(
+        int $id,
+        int $rotation = 0,
+        array $positions = [],
+        array $variants = [],
+        array $extra = [],
+    ): array {
         if ($id < 1) {
             throw new InvalidArgumentException('media id must be positive');
         }
+        $sourceId = isset($extra['sourceId']) && is_numeric($extra['sourceId']) ? (int) $extra['sourceId'] : null;
 
         return [
             'id' => $id,
+            'sourceId' => $sourceId !== null && $sourceId > 0 && $sourceId !== $id ? $sourceId : null,
             'rotation' => MediaFieldConfig::normalizeRotation($rotation),
+            'edit' => MediaFieldConfig::normalizeEdit($extra['edit'] ?? null),
             'positions' => MediaFieldConfig::normalizePositions($positions),
+            'overrides' => MediaFieldConfig::normalizeOverrides($extra['overrides'] ?? []),
             'variants' => self::normalizeVariants($variants),
         ];
     }
@@ -131,6 +147,9 @@ final class MediaValue
         $ids = [];
         foreach ($items as $item) {
             $ids[(int) $item['id']] = true;
+            if ($item['sourceId'] !== null) {
+                $ids[(int) $item['sourceId']] = true;
+            }
             foreach ($item['variants'] as $vid) {
                 $ids[(int) $vid] = true;
             }
@@ -168,6 +187,10 @@ final class MediaValue
         $remapItem = static function (array $item) use ($mediaMap): array {
             $id = (int) $item['id'];
             $item['id'] = $mediaMap[$id] ?? $id;
+            if ($item['sourceId'] !== null) {
+                $sourceId = (int) $item['sourceId'];
+                $item['sourceId'] = $mediaMap[$sourceId] ?? $sourceId;
+            }
             $variants = [];
             foreach ($item['variants'] as $key => $vid) {
                 $vid = (int) $vid;
@@ -187,7 +210,7 @@ final class MediaValue
 
     /**
      * @param mixed $entry
-     * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>}
+     * @return MediaItem
      */
     private static function normalizeItem(mixed $entry): array
     {
@@ -207,6 +230,11 @@ final class MediaValue
             $entry['rotation'] ?? 0,
             is_array($entry['positions'] ?? null) ? $entry['positions'] : [],
             is_array($entry['variants'] ?? null) ? $entry['variants'] : [],
+            [
+                'sourceId' => $entry['sourceId'] ?? null,
+                'edit' => $entry['edit'] ?? null,
+                'overrides' => is_array($entry['overrides'] ?? null) ? $entry['overrides'] : [],
+            ],
         );
     }
 

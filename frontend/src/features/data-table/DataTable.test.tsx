@@ -1,29 +1,38 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
-import { DataTable } from './DataTable'
+import { DataTable, type EntryRow } from './DataTable'
 import { emptyField } from '@/types/field'
 
+const editHref = (row: EntryRow) => `/resources/1/data/${row.id}`
+
+function renderTable(ui: React.ReactElement) {
+  return render(
+    <I18nProvider initialLocale="en">
+      <MemoryRouter>{ui}</MemoryRouter>
+    </I18nProvider>,
+  )
+}
+
 describe('DataTable', () => {
-  it('renders rows and fires edit', async () => {
-    const user = userEvent.setup()
-    const onEdit = vi.fn()
+  it('renders rows and links to the entry editor', () => {
     const onDelete = vi.fn()
     const fields = [{ ...emptyField('string', 0), name: 'title', label: 'Title' }]
-    render(
-      <I18nProvider initialLocale="en">
-        <DataTable
-          fields={fields}
-          rows={[{ id: 1, title: 'Hello' }]}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      </I18nProvider>,
+    renderTable(
+      <DataTable
+        fields={fields}
+        rows={[{ id: 1, title: 'Hello' }]}
+        editHref={editHref}
+        onDelete={onDelete}
+      />,
     )
     expect(screen.getByText('Hello')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Edit' }))
-    expect(onEdit).toHaveBeenCalledWith({ id: 1, title: 'Hello' })
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
+      'href',
+      '/resources/1/data/1',
+    )
   })
 
   it('shows column filter inputs for filterable fields', async () => {
@@ -33,17 +42,15 @@ describe('DataTable', () => {
       { ...emptyField('string', 0), name: 'title', label: 'Title', filterable: true },
       { ...emptyField('integer', 1), name: 'views', label: 'Views', filterable: false },
     ]
-    render(
-      <I18nProvider initialLocale="en">
-        <DataTable
-          fields={fields}
-          rows={[{ id: 1, title: 'Hello', views: 3 }]}
-          onEdit={vi.fn()}
-          onDelete={vi.fn()}
-          filters={{ title: '' }}
-          onFilterChange={onFilterChange}
-        />
-      </I18nProvider>,
+    renderTable(
+      <DataTable
+        fields={fields}
+        rows={[{ id: 1, title: 'Hello', views: 3 }]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+        filters={{ title: '' }}
+        onFilterChange={onFilterChange}
+      />,
     )
     const filter = screen.getByLabelText('Filter Title')
     await user.type(filter, 'a')
@@ -55,20 +62,18 @@ describe('DataTable', () => {
     const user = userEvent.setup()
     const onSelectionChange = vi.fn()
     const fields = [{ ...emptyField('string', 0), name: 'title', label: 'Title' }]
-    render(
-      <I18nProvider initialLocale="en">
-        <DataTable
-          fields={fields}
-          rows={[
-            { id: 1, title: 'A' },
-            { id: 2, title: 'B' },
-          ]}
-          onEdit={vi.fn()}
-          onDelete={vi.fn()}
-          selectedIds={[1]}
-          onSelectionChange={onSelectionChange}
-        />
-      </I18nProvider>,
+    renderTable(
+      <DataTable
+        fields={fields}
+        rows={[
+          { id: 1, title: 'A' },
+          { id: 2, title: 'B' },
+        ]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+        selectedIds={[1]}
+        onSelectionChange={onSelectionChange}
+      />,
     )
     await user.click(screen.getByLabelText('Select entry #2'))
     expect(onSelectionChange).toHaveBeenCalledWith([1, 2])
