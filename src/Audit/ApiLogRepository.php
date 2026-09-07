@@ -40,15 +40,39 @@ final class ApiLogRepository
     /**
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function page(int $page = 1, int $limit = 50): array
-    {
+    public function page(
+        int $page = 1,
+        int $limit = 50,
+        ?string $path = null,
+        ?int $minStatus = null,
+        ?int $days = null,
+    ): array {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
         $offset = ($page - 1) * $limit;
-        $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM cms_api_logs');
+
+        $where = [];
+        $params = [];
+        if ($path !== null && $path !== '') {
+            $where[] = 'path = :path';
+            $params['path'] = substr($path, 0, 255);
+        }
+        if ($minStatus !== null && $minStatus > 0) {
+            $where[] = 'status >= :min_status';
+            $params['min_status'] = $minStatus;
+        }
+        if ($days !== null && $days > 0) {
+            $days = min(90, $days);
+            $where[] = 'created_at >= :since';
+            $params['since'] = date('Y-m-d 00:00:00', (int) strtotime('-' . ($days - 1) . ' days'));
+        }
+        $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+
+        $count = $this->db->selectOne('SELECT COUNT(*) AS c FROM cms_api_logs' . $whereSql, $params);
         $total = $count === null ? 0 : (int) $count['c'];
         $rows = $this->db->select(
-            'SELECT * FROM cms_api_logs ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
+            'SELECT * FROM cms_api_logs' . $whereSql . ' ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
+            $params,
         );
 
         return [

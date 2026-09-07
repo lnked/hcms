@@ -10,7 +10,7 @@ interface EmptyStateProps {
   className?: string
 }
 
-const DEFAULT_ANIMATION = '/animations/empty.json'
+const DEFAULT_ANIMATION = `${import.meta.env.BASE_URL}animations/empty.json`
 
 export function EmptyState({
   title,
@@ -26,7 +26,7 @@ export function EmptyState({
         className,
       )}
     >
-      <AppLottie src={animationSrc} />
+      {animationSrc ? <AppLottie src={animationSrc} /> : null}
       <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">{title}</p>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}

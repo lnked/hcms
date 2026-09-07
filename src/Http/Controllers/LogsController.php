@@ -37,8 +37,13 @@ final class LogsController
         unset($auth);
         $page = max(1, (int) ($request->query['page'] ?? 1));
         $limit = max(1, (int) ($request->query['limit'] ?? 50));
+        $path = isset($request->query['path']) && is_string($request->query['path'])
+            ? $request->query['path']
+            : null;
+        $minStatus = isset($request->query['minStatus']) ? (int) $request->query['minStatus'] : null;
+        $days = isset($request->query['days']) ? (int) $request->query['days'] : null;
 
-        return Response::json($this->apiLogs->page($page, $limit));
+        return Response::json($this->apiLogs->page($page, $limit, $path, $minStatus, $days));
     }
 
     public function anomalies(Request $request, AuthContext $auth): Response

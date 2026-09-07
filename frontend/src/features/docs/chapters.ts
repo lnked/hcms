@@ -7,6 +7,7 @@ export const CHAPTER_IDS = [
   'resources',
   'crud',
   'custom-apis',
+  'webhooks',
   'limits',
   'quickstart',
 ] as const
@@ -275,6 +276,115 @@ GET /api/{slug}/{apiSlug}/{id}`,
             code: `curl -s "$BASE/api/demo_articles/card?limit=10" \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Accept: application/json"`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'webhooks',
+    title: 'Webhooks',
+    sections: [
+      {
+        paragraphs: [
+          'Outbound HMAC-signed POSTs when content changes. Configure under Settings → Webhooks (admin / settings.write). Delivery runs after the HTTP response (shutdown / FastCGI).',
+          'Events: entry.created, entry.updated, entry.deleted, resource.published. Optional resourceId filter. Test button sends webhook.test (one attempt, no retries).',
+        ],
+        links: [{ label: 'Settings → Webhooks', href: '/settings/webhooks' }],
+      },
+      {
+        heading: 'Delivery',
+        paragraphs: [
+          'POST JSON, timeout 5s, success = 2xx, up to 3 attempts with 0s/1s/2s backoff.',
+          'Headers: X-HCMS-Event, X-HCMS-Signature (sha256=<hmac_hex>), X-HCMS-Delivery-Id, User-Agent: HCMS-Webhooks/1.0.',
+          'Verify HMAC-SHA256 over the raw body with the webhook secret. Respond 2xx quickly; do heavy work async.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Headers',
+            code: `Content-Type: application/json; charset=utf-8
+X-HCMS-Event: entry.created
+X-HCMS-Signature: sha256=<hmac_hex>
+X-HCMS-Delivery-Id: 42
+User-Agent: HCMS-Webhooks/1.0`,
+          },
+        ],
+      },
+      {
+        heading: 'Payload examples',
+        samples: [
+          {
+            language: 'js',
+            label: 'entry.created / entry.updated',
+            code: `{
+  "resourceId": 12,
+  "slug": "demo_articles",
+  "entry": { "id": 42, "title": "Hello", "slug": "hello" }
+}`,
+          },
+          {
+            language: 'js',
+            label: 'entry.deleted',
+            code: `{
+  "resourceId": 12,
+  "slug": "demo_articles",
+  "entryId": 42
+}`,
+          },
+          {
+            language: 'js',
+            label: 'resource.published',
+            code: `{
+  "resourceId": 12,
+  "resource": { "id": 12, "key": "demo_articles", "status": "published" }
+}`,
+          },
+        ],
+      },
+      {
+        heading: 'Admin API',
+        samples: [
+          {
+            language: 'http',
+            code: `GET    /admin/api/webhooks
+POST   /admin/api/webhooks
+PATCH  /admin/api/webhooks/{id}
+DELETE /admin/api/webhooks/{id}
+GET    /admin/api/webhooks/{id}/deliveries
+POST   /admin/api/webhooks/{id}/test`,
+          },
+          {
+            language: 'js',
+            label: 'Create',
+            code: `await fetch('https://cms.example.com/admin/api/webhooks', {
+  method: 'POST',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer <admin_token>',
+  },
+  body: JSON.stringify({
+    name: 'Production sync',
+    url: 'https://example.com/hooks/hcms',
+    secret: 'replace-me-with-long-secret',
+    events: ['entry.created', 'entry.updated', 'entry.deleted'],
+    resourceId: null,
+    status: 'active',
+  }),
+})`,
+          },
+          {
+            language: 'js',
+            label: 'Verify signature (Node)',
+            code: `import crypto from 'node:crypto'
+
+const expected =
+  'sha256=' +
+  crypto.createHmac('sha256', SECRET).update(rawBody, 'utf8').digest('hex')
+const ok =
+  expected.length === got.length &&
+  crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))`,
           },
         ],
       },
@@ -575,6 +685,115 @@ GET /api/{slug}/{apiSlug}/{id}`,
             code: `curl -s "$BASE/api/demo_articles/card?limit=10" \\
   -H "Authorization: Bearer $TOKEN" \\
   -H "Accept: application/json"`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'webhooks',
+    title: 'Webhooks',
+    sections: [
+      {
+        paragraphs: [
+          'Исходящие HMAC-подписанные POST при изменениях контента. Настройка: Настройки → Webhooks (admin / settings.write). Доставка после HTTP-ответа (shutdown / FastCGI).',
+          'События: entry.created, entry.updated, entry.deleted, resource.published. Опциональный фильтр resourceId. Кнопка Test шлёт webhook.test (одна попытка, без ретраев).',
+        ],
+        links: [{ label: 'Настройки → Webhooks', href: '/settings/webhooks' }],
+      },
+      {
+        heading: 'Доставка',
+        paragraphs: [
+          'POST JSON, timeout 5s, success = 2xx, до 3 попыток с backoff 0s/1s/2s.',
+          'Заголовки: X-HCMS-Event, X-HCMS-Signature (sha256=<hmac_hex>), X-HCMS-Delivery-Id, User-Agent: HCMS-Webhooks/1.0.',
+          'Проверяйте HMAC-SHA256 по сырому body и секрету webhook. Отвечайте 2xx быстро; тяжёлую работу — асинхронно.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Заголовки',
+            code: `Content-Type: application/json; charset=utf-8
+X-HCMS-Event: entry.created
+X-HCMS-Signature: sha256=<hmac_hex>
+X-HCMS-Delivery-Id: 42
+User-Agent: HCMS-Webhooks/1.0`,
+          },
+        ],
+      },
+      {
+        heading: 'Примеры payload',
+        samples: [
+          {
+            language: 'js',
+            label: 'entry.created / entry.updated',
+            code: `{
+  "resourceId": 12,
+  "slug": "demo_articles",
+  "entry": { "id": 42, "title": "Hello", "slug": "hello" }
+}`,
+          },
+          {
+            language: 'js',
+            label: 'entry.deleted',
+            code: `{
+  "resourceId": 12,
+  "slug": "demo_articles",
+  "entryId": 42
+}`,
+          },
+          {
+            language: 'js',
+            label: 'resource.published',
+            code: `{
+  "resourceId": 12,
+  "resource": { "id": 12, "key": "demo_articles", "status": "published" }
+}`,
+          },
+        ],
+      },
+      {
+        heading: 'Admin API',
+        samples: [
+          {
+            language: 'http',
+            code: `GET    /admin/api/webhooks
+POST   /admin/api/webhooks
+PATCH  /admin/api/webhooks/{id}
+DELETE /admin/api/webhooks/{id}
+GET    /admin/api/webhooks/{id}/deliveries
+POST   /admin/api/webhooks/{id}/test`,
+          },
+          {
+            language: 'js',
+            label: 'Создать',
+            code: `await fetch('https://cms.example.com/admin/api/webhooks', {
+  method: 'POST',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer <admin_token>',
+  },
+  body: JSON.stringify({
+    name: 'Production sync',
+    url: 'https://example.com/hooks/hcms',
+    secret: 'replace-me-with-long-secret',
+    events: ['entry.created', 'entry.updated', 'entry.deleted'],
+    resourceId: null,
+    status: 'active',
+  }),
+})`,
+          },
+          {
+            language: 'js',
+            label: 'Проверка подписи (Node)',
+            code: `import crypto from 'node:crypto'
+
+const expected =
+  'sha256=' +
+  crypto.createHmac('sha256', SECRET).update(rawBody, 'utf8').digest('hex')
+const ok =
+  expected.length === got.length &&
+  crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))`,
           },
         ],
       },

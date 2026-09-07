@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.44.1",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Dashboard error drill-down and empty-state Lottie fix",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Dashboard top errors open a filtered API log dialog (path, status ≥400, date window)"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Admin API logs accept path, minStatus, and days query filters"
+        },
+        {
+          "type": "added",
+          "area": "docs",
+          "text": "Webhooks chapter in in-app docs plus docs/webhooks.md"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Empty-state Lottie loads under /admin/ base path; hide canvas until animation is ready"
+        }
+      ]
+    },
+    {
       "version": "0.44.0",
       "date": "2026-09-07",
       "channel": "stable",
