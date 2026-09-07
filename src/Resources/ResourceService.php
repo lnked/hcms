@@ -145,7 +145,7 @@ final class ResourceService
                 $existingSettings = [];
             }
             $update['settings'] = self::normalizeSettings(
-                array_replace_recursive($existingSettings, $payload['settings']),
+                self::mergeSettings($existingSettings, $payload['settings']),
             );
         }
 
@@ -258,7 +258,7 @@ final class ResourceService
      */
     public static function defaultSettings(array $override = []): array
     {
-        return self::normalizeSettings(array_replace_recursive([
+        return self::normalizeSettings(self::mergeSettings([
             'apiEnabled' => true,
             'public' => [
                 'read' => false,
@@ -270,6 +270,9 @@ final class ResourceService
             'search' => true,
             'sorting' => true,
             'filtering' => true,
+            'list' => [
+                'columns' => [],
+            ],
             'deleteStrategy' => 'hard',
             'softDelete' => false,
             'spam' => [
@@ -293,6 +296,7 @@ final class ResourceService
         $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
         $strategy = ($settings['deleteStrategy'] ?? 'hard') === 'soft' ? 'soft' : 'hard';
         $softDelete = $strategy === 'soft' || (bool) ($settings['softDelete'] ?? false);
+        $list = is_array($settings['list'] ?? null) ? $settings['list'] : [];
         $spam = is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
         $blocklist = [];
         if (is_array($spam['blocklist'] ?? null)) {
@@ -315,6 +319,9 @@ final class ResourceService
             'search' => (bool) ($settings['search'] ?? true),
             'sorting' => (bool) ($settings['sorting'] ?? true),
             'filtering' => (bool) ($settings['filtering'] ?? true),
+            'list' => [
+                'columns' => self::normalizeListColumns($list['columns'] ?? null),
+            ],
             'deleteStrategy' => $softDelete ? 'soft' : 'hard',
             'softDelete' => $softDelete,
             'spam' => [
@@ -327,6 +334,64 @@ final class ResourceService
                 'rejectDuplicates' => (bool) ($spam['rejectDuplicates'] ?? true),
             ],
         ];
+    }
+
+    /**
+     * Deep-merge for settings where lists (columns, blocklist) replace the stored
+     * value instead of merging index by index, which would keep a stale tail.
+     *
+     * @param array<string, mixed> $base
+     * @param array<string, mixed> $override
+     * @return array<string, mixed>
+     */
+    private static function mergeSettings(array $base, array $override): array
+    {
+        foreach ($override as $key => $value) {
+            $current = $base[$key] ?? null;
+            $base[$key] = is_array($value) && is_array($current) && !array_is_list($value)
+                ? self::mergeSettings($current, $value)
+                : $value;
+        }
+
+        return $base;
+    }
+
+    /**
+     * Admin table layout: field order plus per-column visibility, label and width.
+     * An empty list means "no layout saved yet" and the UI falls back to the schema.
+     *
+     * @return list<array{field: string, visible: bool, label: ?string, width: ?int}>
+     */
+    private static function normalizeListColumns(mixed $columns): array
+    {
+        if (!is_array($columns)) {
+            return [];
+        }
+
+        $out = [];
+        $seen = [];
+        foreach ($columns as $column) {
+            if (!is_array($column)) {
+                continue;
+            }
+            $field = is_string($column['field'] ?? null) ? trim($column['field']) : '';
+            if ($field === '' || isset($seen[$field])) {
+                continue;
+            }
+            $seen[$field] = true;
+            $label = is_string($column['label'] ?? null) ? trim($column['label']) : '';
+            $width = isset($column['width']) && is_numeric($column['width'])
+                ? (int) $column['width']
+                : 0;
+            $out[] = [
+                'field' => $field,
+                'visible' => (bool) ($column['visible'] ?? true),
+                'label' => $label === '' ? null : $label,
+                'width' => $width > 0 ? min(2000, $width) : null,
+            ];
+        }
+
+        return $out;
     }
 
     /**

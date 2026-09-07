@@ -37,6 +37,32 @@ final class ResourceServiceTest extends TestCase
         $this->assertSame('soft', $byFlag['deleteStrategy']);
     }
 
+    public function testListColumnsNormalization(): void
+    {
+        $settings = ResourceService::normalizeSettings([
+            'list' => [
+                'columns' => [
+                    ['field' => ' title ', 'visible' => true, 'label' => ' Headline ', 'width' => '240'],
+                    ['field' => 'title', 'visible' => false],
+                    ['field' => '', 'visible' => true],
+                    ['field' => 'views', 'width' => 9000],
+                    'garbage',
+                ],
+            ],
+        ]);
+
+        $this->assertSame([
+            ['field' => 'title', 'visible' => true, 'label' => 'Headline', 'width' => 240],
+            ['field' => 'views', 'visible' => true, 'label' => null, 'width' => 2000],
+        ], $settings['list']['columns']);
+    }
+
+    public function testListColumnsDefaultToEmpty(): void
+    {
+        $this->assertSame([], ResourceService::defaultSettings()['list']['columns']);
+        $this->assertSame([], ResourceService::normalizeSettings(['list' => 'nope'])['list']['columns']);
+    }
+
     public function testEndpointHelpers(): void
     {
         $this->assertSame('/api/posts', ResourceService::normalizeEndpoint('api/posts/'));

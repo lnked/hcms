@@ -13,11 +13,16 @@ import {
 } from '@/components/ui/table'
 import { useI18n, type MessageKey } from '@/i18n'
 import type { SchemaField } from '@/types/field'
+import type { ResourceListColumn } from '@/types/resource'
+import { resolveColumns } from './columns'
+import { MediaCell } from './MediaCell'
 
 export type EntryRow = Record<string, unknown> & { id: number }
 
 interface DataTableProps {
   fields: SchemaField[]
+  /** Saved column layout; omit to show the schema defaults. */
+  columns?: ResourceListColumn[]
   rows: EntryRow[]
   /** Router path of the entry editor card, shareable and openable in a new tab. */
   editHref: (row: EntryRow) => string
@@ -32,6 +37,7 @@ interface DataTableProps {
 
 export function DataTable({
   fields,
+  columns: layout,
   rows,
   editHref,
   onDelete,
@@ -43,18 +49,14 @@ export function DataTable({
   onSelectionChange,
 }: DataTableProps) {
   const { t } = useI18n()
-  const columns = fields
-    .filter((f) => f.readable && !f.hidden)
-    .slice()
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .slice(0, 6)
+  const columns = resolveColumns(fields, layout)
 
   const selectionEnabled = typeof onSelectionChange === 'function'
   const selected = selectedIds ?? []
   const allSelected = rows.length > 0 && rows.every((row) => selected.includes(row.id))
   const someSelected = rows.some((row) => selected.includes(row.id))
   const showFilters = typeof onFilterChange === 'function'
-  const filterableColumns = columns.filter((col) => col.filterable)
+  const filterableColumns = columns.filter((col) => col.field.filterable)
   const colSpan = columns.length + 2 + (selectionEnabled ? 1 : 0)
 
   function toggleSort(name: string, sortable: boolean) {
@@ -103,18 +105,21 @@ export function DataTable({
           ) : null}
           <TableHead className="w-16">ID</TableHead>
           {columns.map((col) => (
-            <TableHead key={col.name}>
-              {col.sortable && onSort ? (
+            <TableHead
+              key={col.field.name}
+              style={col.width ? { width: col.width, minWidth: col.width } : undefined}
+            >
+              {col.field.sortable && onSort ? (
                 <button
                   type="button"
                   className="hover:underline"
-                  onClick={() => toggleSort(col.name, true)}
+                  onClick={() => toggleSort(col.field.name, true)}
                 >
-                  {col.label || col.name}
-                  {sort === col.name ? ' ↑' : sort === `-${col.name}` ? ' ↓' : ''}
+                  {col.label}
+                  {sort === col.field.name ? ' ↑' : sort === `-${col.field.name}` ? ' ↓' : ''}
                 </button>
               ) : (
-                col.label || col.name
+                col.label
               )}
             </TableHead>
           ))}
@@ -125,13 +130,13 @@ export function DataTable({
             {selectionEnabled ? <TableHead /> : null}
             <TableHead />
             {columns.map((col) => (
-              <TableHead key={`filter-${col.name}`} className="py-2">
-                {col.filterable ? (
+              <TableHead key={`filter-${col.field.name}`} className="py-2">
+                {col.field.filterable ? (
                   <Input
-                    value={filters?.[col.name] ?? ''}
-                    onChange={(e) => onFilterChange?.(col.name, e.target.value)}
+                    value={filters?.[col.field.name] ?? ''}
+                    onChange={(e) => onFilterChange?.(col.field.name, e.target.value)}
                     placeholder={t('entries.filterPlaceholder')}
-                    aria-label={t('entries.filterField', { field: col.label || col.name })}
+                    aria-label={t('entries.filterField', { field: col.label })}
                     className="h-8"
                   />
                 ) : null}
@@ -162,11 +167,21 @@ export function DataTable({
                 </TableCell>
               ) : null}
               <TableCell className="font-mono text-xs">{row.id}</TableCell>
-              {columns.map((col) => (
-                <TableCell key={col.name} className="max-w-[12rem] truncate">
-                  {formatCell(row[col.name], t)}
-                </TableCell>
-              ))}
+              {columns.map((col) =>
+                isMediaField(col.field.type) ? (
+                  <TableCell key={col.field.name}>
+                    <MediaCell value={row[col.field.name]} fieldType={col.field.type} />
+                  </TableCell>
+                ) : (
+                  <TableCell
+                    key={col.field.name}
+                    className="truncate"
+                    style={{ maxWidth: col.width ?? '12rem' }}
+                  >
+                    {formatCell(row[col.field.name], t)}
+                  </TableCell>
+                ),
+              )}
               <TableCell className="text-right">
                 <div className="inline-flex items-center justify-end gap-1">
                   <Link
@@ -194,6 +209,10 @@ export function DataTable({
       </TableBody>
     </Table>
   )
+}
+
+function isMediaField(type: string): boolean {
+  return type === 'image' || type === 'file'
 }
 
 function formatCell(

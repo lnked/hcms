@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { History, Link2, Upload } from 'lucide-react'
+import { Columns3, History, Link2, Upload } from 'lucide-react'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
@@ -24,6 +25,7 @@ import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
+import type { Resource, ResourceListColumn } from '@/types/resource'
 
 const SYSTEM_EXPORT_FIELDS = ['id', 'createdAt', 'updatedAt'] as const
 
@@ -50,6 +52,8 @@ interface ResourceEntriesPanelProps {
   resourceSlug: string
   fields: SchemaField[]
   published: boolean
+  /** Saved table layout from resource settings; empty means schema defaults. */
+  listColumns?: ResourceListColumn[]
   /** Entry segment from the URL: `12`, `new` or `null`. */
   entryParam: EntryParam
   /** Builds the router path for a given entry segment. */
@@ -61,6 +65,7 @@ export function ResourceEntriesPanel({
   resourceSlug,
   fields,
   published,
+  listColumns,
   entryParam,
   entryPath,
 }: ResourceEntriesPanelProps) {
@@ -76,6 +81,7 @@ export function ResourceEntriesPanel({
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [revisionsOpen, setRevisionsOpen] = useState(false)
+  const [columnsOpen, setColumnsOpen] = useState(false)
 
   const [exportOpen, setExportOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('json')
@@ -259,6 +265,19 @@ export function ResourceEntriesPanel({
     },
   })
 
+  const saveColumns = useMutation({
+    mutationFn: (columns: ResourceListColumn[]) =>
+      api<Resource>(`/admin/api/resources/${resourceId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ settings: { list: { columns } } }),
+      }),
+    onSuccess: (data) => {
+      setColumnsOpen(false)
+      queryClient.setQueryData(['resource', resourceId], data)
+      showSuccess(t('entries.columnsSaved'))
+    },
+  })
+
   const doExport = useMutation({
     mutationFn: async () => {
       const params = new URLSearchParams({ format: exportFormat })
@@ -410,6 +429,10 @@ export function ResourceEntriesPanel({
                 : t('entries.bulkDelete', { count: selectedIds.length })}
             </Button>
           ) : null}
+          <Button variant="outline" onClick={() => setColumnsOpen(true)}>
+            <Columns3 className="mr-1 h-4 w-4" />
+            {t('entries.columns')}
+          </Button>
           <Button variant="outline" onClick={openImport}>
             {t('entries.import')}
           </Button>
@@ -448,6 +471,7 @@ export function ResourceEntriesPanel({
         ) : (
           <DataTable
             fields={fields}
+            columns={listColumns}
             rows={rows}
             sort={sort}
             onSort={(next) => {
@@ -774,6 +798,15 @@ export function ResourceEntriesPanel({
           </div>
         </DialogContent>
       </Dialog>
+
+      <ColumnsDialog
+        open={columnsOpen}
+        onOpenChange={setColumnsOpen}
+        fields={fields}
+        columns={listColumns}
+        saving={saveColumns.isPending}
+        onSave={(columns) => saveColumns.mutate(columns)}
+      />
 
       {editingId !== null ? (
         <EntryRevisionsPanel

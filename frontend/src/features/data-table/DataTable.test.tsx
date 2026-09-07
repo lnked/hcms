@@ -78,4 +78,53 @@ describe('DataTable', () => {
     await user.click(screen.getByLabelText('Select entry #2'))
     expect(onSelectionChange).toHaveBeenCalledWith([1, 2])
   })
+
+  it('applies the saved column layout', () => {
+    const fields = [
+      { ...emptyField('string', 0), name: 'title', label: 'Title' },
+      { ...emptyField('string', 1), name: 'author', label: 'Author' },
+    ]
+    renderTable(
+      <DataTable
+        fields={fields}
+        columns={[
+          { field: 'author', visible: true, label: 'Written by' },
+          { field: 'title', visible: false },
+        ]}
+        rows={[{ id: 1, title: 'Hello', author: 'Ann' }]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('Written by')).toBeInTheDocument()
+    expect(screen.queryByText('Title')).not.toBeInTheDocument()
+    expect(screen.queryByText('Hello')).not.toBeInTheDocument()
+    expect(screen.getByText('Ann')).toBeInTheDocument()
+  })
+
+  it('renders image thumbnails instead of raw json', () => {
+    const fields = [{ ...emptyField('image', 0), name: 'cover', label: 'Cover' }]
+    renderTable(
+      <DataTable
+        fields={fields}
+        rows={[
+          {
+            id: 1,
+            cover: {
+              id: 7,
+              rotation: 0,
+              positions: {},
+              variants: { thumb: { id: 8, url: '/media/8', width: 100 } },
+              media: { id: 7, url: '/media/7', mime: 'image/png', originalName: 'cover.png' },
+            },
+          },
+        ]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+      />,
+    )
+    expect(screen.getByRole('link', { name: 'cover.png' })).toHaveAttribute('href', '/media/7')
+    expect(document.querySelector('img[src="/media/8"]')).not.toBeNull()
+    expect(screen.queryByText(/"variants"/)).not.toBeInTheDocument()
+  })
 })

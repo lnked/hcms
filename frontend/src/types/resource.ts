@@ -1,5 +1,13 @@
 export type ResourceStatus = 'draft' | 'published' | 'archived'
 
+/** Saved admin table layout for one field; an empty list falls back to the schema. */
+export interface ResourceListColumn {
+  field: string
+  visible: boolean
+  label?: string | null
+  width?: number | null
+}
+
 export interface ResourceSettings {
   apiEnabled: boolean
   public: {
@@ -14,6 +22,9 @@ export interface ResourceSettings {
   filtering: boolean
   deleteStrategy: 'hard' | 'soft'
   softDelete: boolean
+  list?: {
+    columns: ResourceListColumn[]
+  }
   spam?: {
     honeypotField: string
     minSubmitMs: number

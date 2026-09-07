@@ -264,6 +264,7 @@ export function ResourceDetailPage() {
           resourceSlug={resource.slug}
           fields={fieldsQuery.data ?? schema}
           published={resource.status === 'published'}
+          listColumns={resource.settings.list?.columns}
           entryParam={entryParam ?? null}
           entryPath={(entry) =>
             entry === null
