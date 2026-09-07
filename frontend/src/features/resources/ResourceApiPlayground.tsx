@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,7 +40,7 @@ export function ResourceApiPlayground({
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [method, setMethod] = useState<HttpMethod>('GET')
-  const [path, setPath] = useState(resource.endpoint)
+  const [path, setPath] = useState(pathPreset ?? resource.endpoint)
   const [query, setQuery] = useState('limit=20')
   const [body, setBody] = useState('{\n  \n}')
   const [status, setStatus] = useState<number | null>(null)
@@ -49,19 +49,19 @@ export function ResourceApiPlayground({
   const [copied, setCopied] = useState(false)
   const [copiedFetch, setCopiedFetch] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [appliedPreset, setAppliedPreset] = useState(pathPreset)
+
+  if (pathPreset && pathPreset !== appliedPreset) {
+    setAppliedPreset(pathPreset)
+    setPath(pathPreset)
+    setMethod('GET')
+    setMessage(null)
+  }
 
   const customApisQuery = useQuery({
     queryKey: ['resource-apis', resource.id],
     queryFn: () => api<ResourceCustomApi[]>(`/admin/api/resources/${resource.id}/apis`),
   })
-
-  useEffect(() => {
-    if (pathPreset) {
-      setPath(pathPreset)
-      setMethod('GET')
-      setMessage(null)
-    }
-  }, [pathPreset])
 
   const normalizedPath = normalizeEndpoint(path)
   const isCustomPath = (customApisQuery.data ?? []).some(

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
@@ -114,6 +114,7 @@ export function IntegrationsPage() {
   const [playgroundToken, setPlaygroundToken] = useState(() => getToken() ?? '')
   const [playgroundBody, setPlaygroundBody] = useState(DEFAULT_PLAYGROUND_BODY)
   const [playgroundResult, setPlaygroundResult] = useState<string | null>(null)
+  const [hydratedAt, setHydratedAt] = useState(0)
 
   const query = useQuery({
     queryKey: ['integrations-email'],
@@ -125,8 +126,8 @@ export function IntegrationsPage() {
     queryFn: () => api<EmailIntegrationApi[]>('/admin/api/integrations/email/apis'),
   })
 
-  useEffect(() => {
-    if (!query.data) return
+  if (query.data && query.dataUpdatedAt !== hydratedAt) {
+    setHydratedAt(query.dataUpdatedAt)
     setProvider(isProvider(query.data.provider) ? query.data.provider : 'resend')
     setEnabled(query.data.enabled)
     setFromEmail(query.data.fromEmail)
@@ -136,7 +137,7 @@ export function IntegrationsPage() {
     setMailgunDomain(query.data.mailgunDomain)
     setMailgunRegion(query.data.mailgunRegion === 'eu' ? 'eu' : 'us')
     setApiKey('')
-  }, [query.data])
+  }
 
   const activeMeta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0]
 

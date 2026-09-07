@@ -46,6 +46,7 @@ export function MediaPage() {
   const [dragging, setDragging] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [view, setView] = useState<MediaView>(readView)
+  const [selectedIds, setSelectedIds] = useState<number[]>([])
 
   const list = useQuery({
     queryKey: ['media', page],
@@ -96,7 +97,26 @@ export function MediaPage() {
 
   const remove = useMutation({
     mutationFn: (id: number) => api<void>(`/admin/api/media/${id}`, { method: 'DELETE' }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['media'] }),
+    onSuccess: (_data, id) => {
+      setSelectedIds((prev) => prev.filter((x) => x !== id))
+      void queryClient.invalidateQueries({ queryKey: ['media'] })
+    },
+  })
+
+  const bulkRemove = useMutation({
+    mutationFn: (ids: number[]) =>
+      api<{ deleted: number }>('/admin/api/media/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify({ ids }),
+      }),
+    onSuccess: () => {
+      setSelectedIds([])
+      setError(null)
+      void queryClient.invalidateQueries({ queryKey: ['media'] })
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : t('media.bulkDeleteFailed'))
+    },
   })
 
   const enqueue = useCallback(
@@ -127,6 +147,27 @@ export function MediaPage() {
   const items = list.data?.data ?? []
   const meta = list.data?.meta
   const busy = uploadMany.isPending
+  const allSelected = items.length > 0 && items.every((item) => selectedIds.includes(item.id))
+  const someSelected = items.some((item) => selectedIds.includes(item.id))
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !items.some((item) => item.id === id)))
+    } else {
+      const next = new Set(selectedIds)
+      for (const item of items) next.add(item.id)
+      setSelectedIds([...next])
+    }
+  }
+
+  const toggleOne = (id: number) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  const goToPage = (next: number) => {
+    setSelectedIds([])
+    setPage(next)
+  }
 
   return (
     <div className="space-y-6">
@@ -234,37 +275,55 @@ export function MediaPage() {
             <CardTitle>{t('media.library')}</CardTitle>
             <CardDescription>{t('media.publicUrl')}</CardDescription>
           </div>
-          <div className="flex items-center gap-1 rounded-md border p-0.5">
-            <Button
-              type="button"
-              size="icon"
-              variant={view === 'list' ? 'secondary' : 'ghost'}
-              className="h-8 w-8"
-              aria-pressed={view === 'list'}
-              title={t('media.viewList')}
-              aria-label={t('media.viewList')}
-              onClick={() => changeView('list')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant={view === 'table' ? 'secondary' : 'ghost'}
-              className="h-8 w-8"
-              aria-pressed={view === 'table'}
-              title={t('media.viewTable')}
-              aria-label={t('media.viewTable')}
-              onClick={() => changeView('table')}
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedIds.length > 0 ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={bulkRemove.isPending}
+                onClick={() => {
+                  if (confirm(t('media.bulkDeleteConfirm', { count: selectedIds.length }))) {
+                    bulkRemove.mutate(selectedIds)
+                  }
+                }}
+              >
+                {bulkRemove.isPending
+                  ? t('media.bulkDeleting')
+                  : t('media.bulkDelete', { count: selectedIds.length })}
+              </Button>
+            ) : null}
+            <div className="flex items-center gap-1 rounded-md border p-0.5">
+              <Button
+                type="button"
+                size="icon"
+                variant={view === 'list' ? 'secondary' : 'ghost'}
+                className="h-8 w-8"
+                aria-pressed={view === 'list'}
+                title={t('media.viewList')}
+                aria-label={t('media.viewList')}
+                onClick={() => changeView('list')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant={view === 'table' ? 'secondary' : 'ghost'}
+                className="h-8 w-8"
+                aria-pressed={view === 'table'}
+                title={t('media.viewTable')}
+                aria-label={t('media.viewTable')}
+                onClick={() => changeView('table')}
+              >
+                <Table2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           {list.isLoading ? (
             view === 'table' ? (
-              <TableSkeleton columns={5} rows={6} />
+              <TableSkeleton columns={6} rows={6} />
             ) : (
               <MediaGridSkeleton />
             )
@@ -320,6 +379,17 @@ export function MediaPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someSelected && !allSelected
+                      }}
+                      onChange={toggleAll}
+                      aria-label={t('media.selectAll')}
+                    />
+                  </TableHead>
                   <TableHead className="w-14">{t('media.preview')}</TableHead>
                   <TableHead>{t('common.name')}</TableHead>
                   <TableHead className="hidden md:table-cell">{t('common.type')}</TableHead>
@@ -331,6 +401,14 @@ export function MediaPage() {
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleOne(item.id)}
+                        aria-label={t('media.selectItem', { name: item.originalName })}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-muted">
                         {item.mime.startsWith('image/') ? (
@@ -386,7 +464,7 @@ export function MediaPage() {
                   size="sm"
                   variant="outline"
                   disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => goToPage(Math.max(1, page - 1))}
                 >
                   {t('common.prev')}
                 </Button>
@@ -394,7 +472,7 @@ export function MediaPage() {
                   size="sm"
                   variant="outline"
                   disabled={page >= meta.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => goToPage(page + 1)}
                 >
                   {t('common.next')}
                 </Button>

@@ -78,6 +78,54 @@ final class MediaController
         }
     }
 
+    public function bulkDelete(Request $request, AuthContext $auth): Response
+    {
+        try {
+            $body = $request->json();
+            $ids = $body['ids'] ?? null;
+            if (!is_array($ids) || $ids === []) {
+                throw new InvalidArgumentException('ids array is required');
+            }
+
+            $normalized = [];
+            foreach ($ids as $id) {
+                if (!is_numeric($id)) {
+                    throw new InvalidArgumentException('ids must be numbers');
+                }
+                $normalized[] = (int) $id;
+            }
+            $normalized = array_values(array_unique($normalized));
+
+            $deleted = 0;
+            foreach ($normalized as $id) {
+                try {
+                    $this->media->delete($id);
+                    ++$deleted;
+                    $this->audit->log($request, 'media.deleted', $auth->userId(), 'media', (string) $id);
+                } catch (RuntimeException $e) {
+                    if ($e->getCode() !== 404) {
+                        throw $e;
+                    }
+                }
+            }
+
+            $this->audit->log(
+                $request,
+                'media.bulk_deleted',
+                $auth->userId(),
+                'media',
+                null,
+                ['ids' => $normalized, 'deleted' => $deleted],
+            );
+
+            return Response::data(['deleted' => $deleted]);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
     public function file(Request $request, int $id): Response
     {
         unset($request);

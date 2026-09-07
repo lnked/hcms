@@ -279,7 +279,9 @@ export function DashboardPage() {
                       <span className="min-w-0 flex-1 truncate font-mono text-xs" title={row.path}>
                         {row.path}
                       </span>
-                      <span className="shrink-0 text-xs font-medium text-destructive">{row.count}</span>
+                      <span className="shrink-0 text-xs font-medium text-destructive">
+                        {row.count}
+                      </span>
                     </button>
                   </li>
                 ))}

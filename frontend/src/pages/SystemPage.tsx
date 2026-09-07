@@ -71,6 +71,7 @@ export function SystemPage() {
   const [ackBreaking, setAckBreaking] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [trackUpdate, setTrackUpdate] = useState(false)
+  const [previewAckAt, setPreviewAckAt] = useState(0)
 
   function setSection(next: SystemSection) {
     setSearchParams(
@@ -136,18 +137,15 @@ export function SystemPage() {
 
   const preview = previewQuery.data ?? null
 
-  useEffect(() => {
-    if (section !== 'update' || !previewQuery.isError) return
-    setMessage(
-      previewQuery.error instanceof Error ? previewQuery.error.message : t('system.previewFailed'),
-    )
-  }, [section, previewQuery.isError, previewQuery.error, t])
-
-  useEffect(() => {
-    if (section !== 'update' || !previewQuery.isSuccess) return
+  if (
+    section === 'update' &&
+    previewQuery.isSuccess &&
+    previewQuery.dataUpdatedAt !== previewAckAt
+  ) {
+    setPreviewAckAt(previewQuery.dataUpdatedAt)
     setAckBreaking(false)
     setMessage(null)
-  }, [section, previewQuery.dataUpdatedAt, previewQuery.isSuccess])
+  }
 
   useEffect(() => {
     if (!trackUpdate) return
@@ -222,12 +220,19 @@ export function SystemPage() {
       ? t(stepLabelKey(currentStep))
       : t('system.updating')
 
+  const previewError =
+    section === 'update' && previewQuery.isError
+      ? previewQuery.error instanceof Error
+        ? previewQuery.error.message
+        : t('system.previewFailed')
+      : null
+
   const statusMessage =
     trackUpdate && live?.state === 'done'
       ? t('system.updateDone')
       : trackUpdate && live?.state === 'failed'
         ? (live.error ?? t('system.updateFailed'))
-        : message
+        : (previewError ?? message)
 
   return (
     <div className="space-y-6">

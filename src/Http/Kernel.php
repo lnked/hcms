@@ -1035,6 +1035,14 @@ final class Kernel
 
                 return $media->upload($request, $context);
             });
+            $this->router->add('POST', '/admin/api/media/bulk-delete', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $media->bulkDelete($request, $context);
+            });
             $this->router->add('GET', '/admin/api/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
                 if ($context === null) {
                     return Response::error('UNAUTHORIZED', 'Unauthorized', 401);

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.44.2",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Media bulk delete and React effect lint fixes",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Media library bulk select and delete via POST /admin/api/media/bulk-delete"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Clear react-hooks/set-state-in-effect warnings and Prettier failures blocking frontend QA"
+        }
+      ]
+    },
+    {
       "version": "0.44.1",
       "date": "2026-09-07",
       "channel": "stable",
