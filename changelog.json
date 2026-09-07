@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.43.2",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Token edit/restore and sidebar version jump",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "API tokens can be edited (name, expiry, grants) and revoked tokens can be restored without rotating the secret"
+        },
+        {
+          "type": "improved",
+          "area": "admin",
+          "text": "Sidebar version opens System → Version (or Update tab when an update is available) and scrolls to the release card"
+        }
+      ]
+    },
+    {
       "version": "0.43.1",
       "date": "2026-09-07",
       "channel": "stable",

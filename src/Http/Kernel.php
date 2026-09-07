@@ -816,6 +816,20 @@ final class Kernel
 
                 return $apiTokens->updateGrants($request, $context, (int) $params['id']);
             });
+            $this->router->add('PATCH', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->update($request, $context, (int) $params['id']);
+            });
+            $this->router->add('POST', '/admin/api/tokens/{id}/restore', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $apiTokens->restore($request, $context, (int) $params['id']);
+            });
             $this->router->add('DELETE', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
                 if ($context === null) {
                     return Response::error('UNAUTHORIZED', 'Unauthorized', 401);

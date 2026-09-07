@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { FormBlockSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,13 +59,39 @@ function stepLabelKey(step: string): MessageKey {
 
 type SystemSection = 'version' | 'update'
 
+function parseSection(value: string | null): SystemSection {
+  return value === 'update' ? 'update' : 'version'
+}
+
 export function SystemPage() {
   const { t, locale, setLocale } = useI18n()
   const queryClient = useQueryClient()
-  const [section, setSection] = useState<SystemSection>('version')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const section = parseSection(searchParams.get('section'))
   const [ackBreaking, setAckBreaking] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [trackUpdate, setTrackUpdate] = useState(false)
+
+  function setSection(next: SystemSection) {
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        params.set('section', next)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  useEffect(() => {
+    if (window.location.hash !== '#system-release') return
+    const el = document.getElementById('system-release')
+    if (!el) return
+    const id = window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [section, searchParams])
 
   const query = useQuery({
     queryKey: ['system-version'],
@@ -236,7 +263,7 @@ export function SystemPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="system-release">
         <CardHeader className="space-y-4">
           <div className="flex gap-2 border-b pb-2">
             {(['version', 'update'] as SystemSection[]).map((item) => (

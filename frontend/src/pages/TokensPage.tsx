@@ -61,10 +61,26 @@ const emptyGrant = (): TokenGrant => ({
   canDelete: false,
 })
 
+function toDatetimeLocal(value: string | null): string {
+  if (!value) return ''
+  return value.replace(' ', 'T').slice(0, 16)
+}
+
+function stripGrantIds(grants: TokenGrant[]): TokenGrant[] {
+  return grants.map(({ resourceId, canRead, canCreate, canUpdate, canDelete }) => ({
+    resourceId,
+    canRead,
+    canCreate,
+    canUpdate,
+    canDelete,
+  }))
+}
+
 export function TokensPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
   const [grants, setGrants] = useState<TokenGrant[]>([emptyGrant()])
@@ -73,6 +89,8 @@ export function TokensPage() {
   const [tokenCopied, setTokenCopied] = useState(false)
   const tokenCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const isEdit = editingId !== null
 
   async function copyCreatedToken() {
     if (!createdToken) return
@@ -121,12 +139,39 @@ export function TokensPage() {
     onError: (err) => setError(err instanceof Error ? err.message : t('common.createFailed')),
   })
 
+  const update = useMutation({
+    mutationFn: (id: number) =>
+      api<ApiToken>(`/admin/api/tokens/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name,
+          expiresAt: expiresAt || null,
+          grants,
+          integrationGrants: [{ integrationKey: 'email', canUse: emailCanUse }],
+        }),
+      }),
+    onSuccess: () => {
+      setError(null)
+      setOpen(false)
+      resetForm()
+      void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+  })
+
   const revoke = useMutation({
     mutationFn: (id: number) => api<void>(`/admin/api/tokens/${id}`, { method: 'DELETE' }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['api-tokens'] }),
   })
 
+  const restore = useMutation({
+    mutationFn: (id: number) =>
+      api<ApiToken>(`/admin/api/tokens/${id}/restore`, { method: 'POST', body: '{}' }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['api-tokens'] }),
+  })
+
   function resetForm() {
+    setEditingId(null)
     setName('')
     setExpiresAt('')
     setGrants([emptyGrant()])
@@ -137,6 +182,27 @@ export function TokensPage() {
     setError(null)
   }
 
+  function openCreate() {
+    resetForm()
+    setOpen(true)
+  }
+
+  function openEdit(token: ApiToken) {
+    setEditingId(token.id)
+    setName(token.name)
+    setExpiresAt(toDatetimeLocal(token.expiresAt))
+    setGrants(token.grants.length > 0 ? stripGrantIds(token.grants) : [emptyGrant()])
+    setEmailCanUse(
+      (token.integrationGrants ?? []).some((g) => g.integrationKey === 'email' && g.canUse),
+    )
+    setCreatedToken(null)
+    setTokenCopied(false)
+    setError(null)
+    setOpen(true)
+  }
+
+  const busy = create.isPending || update.isPending
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -144,14 +210,7 @@ export function TokensPage() {
           <h1 className="text-2xl font-semibold">{t('tokens.title')}</h1>
           <p className="text-sm text-muted-foreground">{t('tokens.subtitle')}</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm()
-            setOpen(true)
-          }}
-        >
-          {t('tokens.create')}
-        </Button>
+        <Button onClick={openCreate}>{t('tokens.create')}</Button>
       </div>
 
       <Card>
@@ -206,20 +265,37 @@ export function TokensPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {!token.revokedAt ? (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={revoke.isPending}
-                          onClick={() => {
-                            if (confirm(t('tokens.revokeConfirm', { name: token.name }))) {
-                              revoke.mutate(token.id)
-                            }
-                          }}
-                        >
-                          {t('tokens.revoke')}
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(token)}>
+                          {t('common.edit')}
                         </Button>
-                      ) : null}
+                        {token.revokedAt ? (
+                          <Button
+                            size="sm"
+                            disabled={restore.isPending}
+                            onClick={() => {
+                              if (confirm(t('tokens.restoreConfirm', { name: token.name }))) {
+                                restore.mutate(token.id)
+                              }
+                            }}
+                          >
+                            {t('tokens.restore')}
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={revoke.isPending}
+                            onClick={() => {
+                              if (confirm(t('tokens.revokeConfirm', { name: token.name }))) {
+                                revoke.mutate(token.id)
+                              }
+                            }}
+                          >
+                            {t('tokens.revoke')}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -238,8 +314,10 @@ export function TokensPage() {
       >
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>{t('tokens.createTitle')}</DialogTitle>
-            <DialogDescription>{t('tokens.createHint')}</DialogDescription>
+            <DialogTitle>{isEdit ? t('tokens.editTitle') : t('tokens.createTitle')}</DialogTitle>
+            <DialogDescription>
+              {isEdit ? t('tokens.editHint') : t('tokens.createHint')}
+            </DialogDescription>
           </DialogHeader>
 
           {createdToken ? (
@@ -365,9 +443,20 @@ export function TokensPage() {
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   {t('common.cancel')}
                 </Button>
-                <Button disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
-                  {create.isPending ? t('common.creating') : t('common.create')}
-                </Button>
+                {isEdit ? (
+                  <Button
+                    disabled={!name.trim() || busy}
+                    onClick={() => {
+                      if (editingId !== null) update.mutate(editingId)
+                    }}
+                  >
+                    {update.isPending ? t('common.saving') : t('common.save')}
+                  </Button>
+                ) : (
+                  <Button disabled={!name.trim() || busy} onClick={() => create.mutate()}>
+                    {create.isPending ? t('common.creating') : t('common.create')}
+                  </Button>
+                )}
               </div>
             </div>
           )}

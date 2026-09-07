@@ -62,19 +62,44 @@ final class TokensController
         }
     }
 
-    public function updateGrants(Request $request, AuthContext $auth, int $id): Response
+    public function update(Request $request, AuthContext $auth, int $id): Response
     {
         try {
-            $meta = $this->tokens->updateGrants($id, $request->json());
+            $meta = $this->tokens->update($id, $request->json());
             $this->audit->log(
                 $request,
-                'token.grants_updated',
+                'token.updated',
                 $auth->userId(),
                 'token',
                 (string) $id,
             );
 
             return Response::data($meta);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        }
+    }
+
+    public function updateGrants(Request $request, AuthContext $auth, int $id): Response
+    {
+        return $this->update($request, $auth, $id);
+    }
+
+    public function restore(Request $request, AuthContext $auth, int $id): Response
+    {
+        try {
+            $this->tokens->restore($id);
+            $this->audit->log(
+                $request,
+                'token.restored',
+                $auth->userId(),
+                'token',
+                (string) $id,
+            );
+
+            return Response::data($this->tokens->get($id));
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {

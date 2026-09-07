@@ -96,6 +96,14 @@ final class TokenService
         );
     }
 
+    public function restore(int $id): void
+    {
+        $this->db->execute(
+            'UPDATE cms_tokens SET revoked_at = NULL WHERE id = :id AND revoked_at IS NOT NULL',
+            ['id' => $id],
+        );
+    }
+
     public function revokeAllForUser(int $userId, ?string $type = null): int
     {
         $sql = 'UPDATE cms_tokens SET revoked_at = :now WHERE user_id = :user_id AND revoked_at IS NULL';

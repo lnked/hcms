@@ -15,7 +15,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode, type SVGProps } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { isLocale, useI18n } from '@/i18n'
@@ -225,23 +225,42 @@ export function AppShell() {
             </span>
           </button>
 
-          <div
+          <Link
+            to={
+              version.data?.updateAvailable
+                ? '/settings/system?section=update#system-release'
+                : '/settings/system?section=version#system-release'
+            }
             className={cn(
-              'flex items-center py-1 text-xs text-muted-foreground',
+              'flex items-center py-1 text-xs text-muted-foreground hover:text-foreground',
               collapsed ? 'justify-center' : 'justify-between gap-2 px-2',
             )}
-            title={collapsed ? `v${version.data?.current ?? '…'}` : undefined}
+            title={
+              version.data?.updateAvailable
+                ? t('common.updateAvailable')
+                : `v${version.data?.current ?? '…'}`
+            }
+            aria-label={
+              version.data?.updateAvailable ? t('common.updateAvailable') : t('system.version')
+            }
           >
-            {!collapsed ? (
-              <span className="whitespace-nowrap">v{version.data?.current ?? '…'}</span>
-            ) : null}
-            {version.data?.updateAvailable ? (
-              <span
-                className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
-                title={t('common.updateAvailable')}
-              />
-            ) : null}
-          </div>
+            {collapsed ? (
+              version.data?.updateAvailable ? (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+              ) : (
+                <span className="tabular-nums text-[10px] leading-none">
+                  {version.data?.current ?? '…'}
+                </span>
+              )
+            ) : (
+              <>
+                <span className="whitespace-nowrap">v{version.data?.current ?? '…'}</span>
+                {version.data?.updateAvailable ? (
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                ) : null}
+              </>
+            )}
+          </Link>
         </div>
       </aside>
 

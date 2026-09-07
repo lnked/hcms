@@ -96,18 +96,61 @@ final class ApiTokenService
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
-    public function updateGrants(int $id, array $payload): array
+    public function update(int $id, array $payload): array
     {
         if ($this->findApi($id) === null) {
             throw new RuntimeException('Token not found', 404);
         }
-        $grantInput = $payload['grants'] ?? null;
-        if (!is_array($grantInput)) {
-            throw new InvalidArgumentException('grants must be an array');
+
+        $sets = [];
+        $params = ['id' => $id];
+
+        if (array_key_exists('name', $payload)) {
+            $name = is_string($payload['name']) ? trim($payload['name']) : '';
+            if ($name === '') {
+                throw new InvalidArgumentException('Name is required');
+            }
+            $sets[] = 'name = :name';
+            $params['name'] = $name;
         }
-        $this->grants->replace($id, $this->normalizeGrants($grantInput));
+
+        if (array_key_exists('expiresAt', $payload)) {
+            $expiresAt = null;
+            if (is_string($payload['expiresAt']) && $payload['expiresAt'] !== '') {
+                $expiresAt = (new DateTimeImmutable($payload['expiresAt']))->format('Y-m-d H:i:s');
+            }
+            $sets[] = 'expires_at = :expires_at';
+            $params['expires_at'] = $expiresAt;
+        }
+
+        if ($sets !== []) {
+            $this->db->execute(
+                'UPDATE cms_tokens SET ' . implode(', ', $sets) . ' WHERE id = :id AND type = \'api\'',
+                $params,
+            );
+        }
+
+        if (array_key_exists('grants', $payload)) {
+            $grantInput = $payload['grants'];
+            if (!is_array($grantInput)) {
+                throw new InvalidArgumentException('grants must be an array');
+            }
+            $this->grants->replace($id, $this->normalizeGrants($grantInput));
+        }
+
         if (array_key_exists('integrationGrants', $payload)) {
-            $this->grants->replaceIntegrationGrants($id, $this->normalizeIntegrationGrants($payload['integrationGrants']));
+            $this->grants->replaceIntegrationGrants(
+                $id,
+                $this->normalizeIntegrationGrants($payload['integrationGrants']),
+            );
+        }
+
+        if (
+            $sets === []
+            && !array_key_exists('grants', $payload)
+            && !array_key_exists('integrationGrants', $payload)
+        ) {
+            throw new InvalidArgumentException('Nothing to update');
         }
 
         return $this->get($id);
@@ -119,6 +162,18 @@ final class ApiTokenService
             throw new RuntimeException('Token not found', 404);
         }
         $this->tokens->revoke($id);
+    }
+
+    public function restore(int $id): void
+    {
+        $row = $this->findApi($id);
+        if ($row === null) {
+            throw new RuntimeException('Token not found', 404);
+        }
+        if ($row['revoked_at'] === null) {
+            throw new InvalidArgumentException('Token is not revoked');
+        }
+        $this->tokens->restore($id);
     }
 
     /**
