@@ -27,5 +27,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // Avoid undici/jsdom clone errors in forks workers on CI Node.
+    pool: 'threads',
   },
 })
