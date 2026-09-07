@@ -13,6 +13,9 @@ fi
 TAG="v${VERSION}"
 DIST="$ROOT/dist"
 STAGE="$DIST/stage"
+# Relative so Composer resolves it against composer.json, not the caller's cwd.
+NODEV_VENDOR_REL="dist/vendor-nodev"
+NODEV_VENDOR="$ROOT/$NODEV_VENDOR_REL"
 ZIP="$DIST/cms-${VERSION}.zip"
 SHA_FILE="$DIST/cms-${VERSION}.zip.sha256"
 LATEST="$DIST/latest.json"
@@ -20,16 +23,20 @@ LATEST="$DIST/latest.json"
 echo "==> Building admin UI"
 npm run build --prefix frontend
 
-echo "==> Composer autoload (no-dev)"
-composer install --no-dev --optimize-autoloader --no-interaction
-
 echo "==> Staging release tree"
 rm -rf "$DIST"
 mkdir -p "$STAGE"
 
+# Build the no-dev tree in its own vendor dir: the working vendor/ keeps its
+# dev tools, so running tests right after a release needs no reinstall.
+echo "==> Composer autoload (no-dev, isolated vendor)"
+COMPOSER_VENDOR_DIR="$NODEV_VENDOR_REL" \
+  composer install --no-dev --optimize-autoloader --no-interaction
+
 # Paths that belong in the installable zip (no .git / node_modules / .env)
 rsync -a \
   --exclude '.git' \
+  --exclude 'vendor' \
   --exclude '.env' \
   --exclude '.env.*' \
   --exclude 'frontend/node_modules' \
@@ -42,6 +49,9 @@ rsync -a \
   --exclude 'tests' \
   --exclude '.cursor' \
   ./ "$STAGE/"
+
+rsync -a "$NODEV_VENDOR/" "$STAGE/vendor/"
+rm -rf "$NODEV_VENDOR"
 
 mkdir -p "$STAGE/storage/cache" "$STAGE/storage/logs" "$STAGE/storage/uploads"
 touch "$STAGE/storage/.gitkeep" \
@@ -56,6 +66,11 @@ cp -f "$ROOT/storage/uploads/.htaccess" "$STAGE/storage/uploads/.htaccess"
 # Keep built admin assets in the zip even if gitignored locally
 if [[ -d public/admin ]]; then
   rsync -a public/admin/ "$STAGE/public/admin/"
+fi
+
+if [[ ! -f "$STAGE/vendor/autoload.php" || -d "$STAGE/vendor/phpunit" ]]; then
+  echo "Staged vendor is not a no-dev autoload tree" >&2
+  exit 1
 fi
 
 echo "==> Zipping"
