@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
+import { TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -82,8 +84,7 @@ export function ResourceCustomApisPanel({
       draft.joins.map((j) => j.relatedSlug).join(','),
       publishedResources.map((r) => r.id).join(','),
     ],
-    enabled:
-      publishedResources.length > 0 && draft.joins.some((j) => j.relatedSlug !== ''),
+    enabled: publishedResources.length > 0 && draft.joins.some((j) => j.relatedSlug !== ''),
     queryFn: async () => {
       const map: Record<string, SchemaField[]> = {}
       await Promise.all(
@@ -205,9 +206,9 @@ export function ResourceCustomApisPanel({
       </CardHeader>
       <CardContent className="space-y-4">
         {apisQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          <TableSkeleton columns={3} rows={4} />
         ) : apis.length === 0 && editingId === null ? (
-          <p className="text-sm text-muted-foreground">{t('resources.customApis.empty')}</p>
+          <EmptyState title={t('resources.customApis.empty')} />
         ) : (
           <div className="space-y-2">
             {apis.map((apiItem) => (
@@ -234,7 +235,9 @@ export function ResourceCustomApisPanel({
                     variant="ghost"
                     aria-label={t('common.delete')}
                     onClick={() => {
-                      if (confirm(t('resources.customApis.deleteConfirm', { label: apiItem.label }))) {
+                      if (
+                        confirm(t('resources.customApis.deleteConfirm', { label: apiItem.label }))
+                      ) {
                         remove.mutate(apiItem.id)
                       }
                     }}
@@ -335,7 +338,9 @@ export function ResourceCustomApisPanel({
                 </Button>
               </div>
               {draft.joins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('resources.customApis.joinsEmpty')}</p>
+                <p className="text-sm text-muted-foreground">
+                  {t('resources.customApis.joinsEmpty')}
+                </p>
               ) : (
                 draft.joins.map((join, index) => {
                   const relatedFields = relatedFieldsQuery.data?.[join.relatedSlug] ?? []

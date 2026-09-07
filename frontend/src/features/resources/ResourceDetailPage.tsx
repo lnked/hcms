@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { DetailPageSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -97,7 +98,7 @@ export function ResourceDetailPage() {
   const resource = query.data
 
   if (query.isLoading) {
-    return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+    return <DetailPageSkeleton />
   }
 
   if (!resource) {

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -141,7 +143,9 @@ export function TokensPage() {
         </CardHeader>
         <CardContent>
           {tokens.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            <TableSkeleton columns={5} rows={5} />
+          ) : (tokens.data ?? []).length === 0 ? (
+            <EmptyState title={t('tokens.empty')} />
           ) : (
             <Table>
               <TableHeader>
@@ -154,61 +158,53 @@ export function TokensPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(tokens.data ?? []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground">
-                      {t('tokens.empty')}
+                {(tokens.data ?? []).map((token) => (
+                  <TableRow key={token.id}>
+                    <TableCell>{token.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{token.prefix}…</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {[
+                        ...(token.grants.length === 0
+                          ? []
+                          : token.grants.map((g) =>
+                              g.resourceId == null
+                                ? t('tokens.global')
+                                : (resourceLabel.get(g.resourceId) ?? `#${g.resourceId}`),
+                            )),
+                        ...(token.integrationGrants ?? [])
+                          .filter((g) => g.canUse)
+                          .map((g) =>
+                            g.integrationKey === 'email'
+                              ? t('tokens.integrationEmail')
+                              : g.integrationKey,
+                          ),
+                      ].join(', ') || t('common.none')}
+                    </TableCell>
+                    <TableCell>
+                      {token.revokedAt ? (
+                        <Badge variant="destructive">{t('tokens.revoked')}</Badge>
+                      ) : (
+                        <Badge>{t('tokens.active')}</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {!token.revokedAt ? (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={revoke.isPending}
+                          onClick={() => {
+                            if (confirm(t('tokens.revokeConfirm', { name: token.name }))) {
+                              revoke.mutate(token.id)
+                            }
+                          }}
+                        >
+                          {t('tokens.revoke')}
+                        </Button>
+                      ) : null}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  (tokens.data ?? []).map((token) => (
-                    <TableRow key={token.id}>
-                      <TableCell>{token.name}</TableCell>
-                      <TableCell className="font-mono text-xs">{token.prefix}…</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {[
-                          ...(token.grants.length === 0
-                            ? []
-                            : token.grants.map((g) =>
-                                g.resourceId == null
-                                  ? t('tokens.global')
-                                  : (resourceLabel.get(g.resourceId) ?? `#${g.resourceId}`),
-                              )),
-                          ...(token.integrationGrants ?? [])
-                            .filter((g) => g.canUse)
-                            .map((g) =>
-                              g.integrationKey === 'email'
-                                ? t('tokens.integrationEmail')
-                                : g.integrationKey,
-                            ),
-                        ].join(', ') || t('common.none')}
-                      </TableCell>
-                      <TableCell>
-                        {token.revokedAt ? (
-                          <Badge variant="destructive">{t('tokens.revoked')}</Badge>
-                        ) : (
-                          <Badge>{t('tokens.active')}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {!token.revokedAt ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            disabled={revoke.isPending}
-                            onClick={() => {
-                              if (confirm(t('tokens.revokeConfirm', { name: token.name }))) {
-                                revoke.mutate(token.id)
-                              }
-                            }}
-                          >
-                            {t('tokens.revoke')}
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
           )}

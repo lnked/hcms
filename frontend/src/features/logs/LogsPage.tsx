@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -119,9 +120,13 @@ export function LogsPage() {
     },
   })
 
-  const meta = tab === 'audit' ? audit.data?.meta : tab === 'api' ? apiLogs.data?.meta : ipBlocks.data?.meta
+  const meta =
+    tab === 'audit' ? audit.data?.meta : tab === 'api' ? apiLogs.data?.meta : ipBlocks.data?.meta
 
-  function renderIpTable(rows: IpCount[] | undefined, empty: string) {
+  function renderIpTable(rows: IpCount[] | undefined, empty: string, loading?: boolean) {
+    if (loading) {
+      return <TableSkeleton columns={2} rows={4} />
+    }
     if (!rows || rows.length === 0) {
       return <p className="text-sm text-muted-foreground">{empty}</p>
     }
@@ -163,7 +168,11 @@ export function LogsPage() {
               setPage(1)
             }}
           >
-            {item === 'audit' ? t('logs.audit') : item === 'api' ? t('logs.api') : t('logs.security')}
+            {item === 'audit'
+              ? t('logs.audit')
+              : item === 'api'
+                ? t('logs.api')
+                : t('logs.security')}
           </Button>
         ))}
       </div>
@@ -175,25 +184,49 @@ export function LogsPage() {
               <CardHeader>
                 <CardTitle>{t('logs.failedLogins')}</CardTitle>
               </CardHeader>
-              <CardContent>{renderIpTable(anomalies.data?.failedLogins, t('logs.noAnomalies'))}</CardContent>
+              <CardContent>
+                {renderIpTable(
+                  anomalies.data?.failedLogins,
+                  t('logs.noAnomalies'),
+                  anomalies.isLoading,
+                )}
+              </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>{t('logs.status429')}</CardTitle>
               </CardHeader>
-              <CardContent>{renderIpTable(anomalies.data?.status429, t('logs.noAnomalies'))}</CardContent>
+              <CardContent>
+                {renderIpTable(
+                  anomalies.data?.status429,
+                  t('logs.noAnomalies'),
+                  anomalies.isLoading,
+                )}
+              </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>{t('logs.topApiIps')}</CardTitle>
               </CardHeader>
-              <CardContent>{renderIpTable(anomalies.data?.publicCreates, t('logs.noAnomalies'))}</CardContent>
+              <CardContent>
+                {renderIpTable(
+                  anomalies.data?.publicCreates,
+                  t('logs.noAnomalies'),
+                  anomalies.isLoading,
+                )}
+              </CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>{t('logs.autoBlocks')}</CardTitle>
               </CardHeader>
-              <CardContent>{renderIpTable(anomalies.data?.rateLimited, t('logs.noAnomalies'))}</CardContent>
+              <CardContent>
+                {renderIpTable(
+                  anomalies.data?.rateLimited,
+                  t('logs.noAnomalies'),
+                  anomalies.isLoading,
+                )}
+              </CardContent>
             </Card>
           </div>
 
@@ -227,7 +260,9 @@ export function LogsPage() {
                   {t('logs.blockIp')}
                 </Button>
               </form>
-              {blockMessage ? <p className="text-sm text-muted-foreground">{blockMessage}</p> : null}
+              {blockMessage ? (
+                <p className="text-sm text-muted-foreground">{blockMessage}</p>
+              ) : null}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -298,39 +333,47 @@ export function LogsPage() {
             ) : null}
 
             {tab === 'audit' ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('logs.when')}</TableHead>
-                    <TableHead>{t('logs.action')}</TableHead>
-                    <TableHead>{t('logs.entity')}</TableHead>
-                    <TableHead>{t('logs.user')}</TableHead>
-                    <TableHead>{t('logs.ip')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(audit.data?.data ?? []).length === 0 ? (
+              audit.isLoading ? (
+                <TableSkeleton columns={5} rows={8} />
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-muted-foreground">
-                        {t('logs.noAudit')}
-                      </TableCell>
+                      <TableHead>{t('logs.when')}</TableHead>
+                      <TableHead>{t('logs.action')}</TableHead>
+                      <TableHead>{t('logs.entity')}</TableHead>
+                      <TableHead>{t('logs.user')}</TableHead>
+                      <TableHead>{t('logs.ip')}</TableHead>
                     </TableRow>
-                  ) : (
-                    (audit.data?.data ?? []).map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="whitespace-nowrap text-xs">{row.createdAt}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.action}</TableCell>
-                        <TableCell className="text-xs">
-                          {row.entityType ?? '—'}
-                          {row.entityId ? ` #${row.entityId}` : ''}
+                  </TableHeader>
+                  <TableBody>
+                    {(audit.data?.data ?? []).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground">
+                          {t('logs.noAudit')}
                         </TableCell>
-                        <TableCell className="text-xs">{row.userId ?? '—'}</TableCell>
-                        <TableCell className="text-xs">{row.ip ?? '—'}</TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      (audit.data?.data ?? []).map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {row.createdAt}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{row.action}</TableCell>
+                          <TableCell className="text-xs">
+                            {row.entityType ?? '—'}
+                            {row.entityId ? ` #${row.entityId}` : ''}
+                          </TableCell>
+                          <TableCell className="text-xs">{row.userId ?? '—'}</TableCell>
+                          <TableCell className="text-xs">{row.ip ?? '—'}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )
+            ) : apiLogs.isLoading ? (
+              <TableSkeleton columns={6} rows={8} />
             ) : (
               <Table>
                 <TableHeader>

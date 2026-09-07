@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { LayoutGrid, Table2, Upload } from 'lucide-react'
+import { MediaGridSkeleton, TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -261,9 +263,13 @@ export function MediaPage() {
         </CardHeader>
         <CardContent>
           {list.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            view === 'table' ? (
+              <TableSkeleton columns={5} rows={6} />
+            ) : (
+              <MediaGridSkeleton />
+            )
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('media.empty')}</p>
+            <EmptyState title={t('media.empty')} />
           ) : view === 'list' ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
               {items.map((item) => (
@@ -328,11 +334,7 @@ export function MediaPage() {
                     <TableCell>
                       <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-muted">
                         {item.mime.startsWith('image/') ? (
-                          <img
-                            src={item.url}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
+                          <img src={item.url} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <span className="text-[9px] text-muted-foreground">file</span>
                         )}
@@ -365,11 +367,7 @@ export function MediaPage() {
                         >
                           {t('common.open')}
                         </a>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => confirmDelete(item)}
-                        >
+                        <Button size="sm" variant="destructive" onClick={() => confirmDelete(item)}>
                           {t('common.delete')}
                         </Button>
                       </div>

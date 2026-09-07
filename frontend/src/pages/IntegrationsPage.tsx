@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
+import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -139,9 +141,7 @@ export function IntegrationsPage() {
   const activeMeta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0]
 
   const pathOptions = useMemo(() => {
-    const custom = (apisQuery.data ?? [])
-      .filter((item) => item.enabled)
-      .map((item) => item.path)
+    const custom = (apisQuery.data ?? []).filter((item) => item.enabled).map((item) => item.path)
     return [SEND_PATH, ...custom]
   }, [apisQuery.data])
 
@@ -187,7 +187,8 @@ export function IntegrationsPage() {
         body: JSON.stringify({ to: testTo.trim() }),
       }),
     onSuccess: (data) => setMessage(t('integrations.email.testSent', { to: data.to })),
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('integrations.email.testFailed')),
+    onError: (err) =>
+      setMessage(err instanceof Error ? err.message : t('integrations.email.testFailed')),
   })
 
   const saveApi = useMutation({
@@ -316,7 +317,7 @@ export function IntegrationsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {query.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            <FormBlockSkeleton fields={5} />
           ) : query.isError ? (
             <p className="text-sm text-destructive">
               {query.error instanceof Error ? query.error.message : t('common.requestFailed')}
@@ -342,7 +343,9 @@ export function IntegrationsPage() {
                       }
                     >
                       <div className="font-medium">{item.title}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">{t(item.descriptionKey)}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {t(item.descriptionKey)}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -417,7 +420,9 @@ export function IntegrationsPage() {
                   }
                   autoComplete="new-password"
                 />
-                <p className="text-xs text-muted-foreground">{t('integrations.email.apiKeyHint')}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('integrations.email.apiKeyHint')}
+                </p>
               </div>
 
               {provider === 'mailgun' ? (
@@ -470,7 +475,9 @@ export function IntegrationsPage() {
                   disabled={test.isPending || testTo.trim() === ''}
                   onClick={() => test.mutate()}
                 >
-                  {test.isPending ? t('integrations.email.testing') : t('integrations.email.sendTest')}
+                  {test.isPending
+                    ? t('integrations.email.testing')
+                    : t('integrations.email.sendTest')}
                 </Button>
               </div>
             </>
@@ -485,7 +492,9 @@ export function IntegrationsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded-md border bg-muted px-2 py-1 font-mono text-xs">{SEND_PATH}</code>
+            <code className="rounded-md border bg-muted px-2 py-1 font-mono text-xs">
+              {SEND_PATH}
+            </code>
             <Badge variant="secondary">POST</Badge>
             <Button size="sm" variant="outline" onClick={() => void copyPath(SEND_PATH)}>
               {t('integrations.email.endpoints.copy')}
@@ -494,7 +503,9 @@ export function IntegrationsPage() {
               {t('integrations.email.endpoints.useInPlayground')}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">{t('integrations.email.endpoints.authHint')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('integrations.email.endpoints.authHint')}
+          </p>
           <CodeBlock
             code={buildEmailSendFetchExample(SEND_PATH)}
             language="js"
@@ -525,16 +536,13 @@ export function IntegrationsPage() {
           {apiMessage ? <p className="text-sm text-muted-foreground">{apiMessage}</p> : null}
 
           {apisQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            <TableSkeleton columns={3} rows={4} />
           ) : (apisQuery.data ?? []).length === 0 && editingId === null ? (
-            <p className="text-sm text-muted-foreground">{t('integrations.email.apis.empty')}</p>
+            <EmptyState title={t('integrations.email.apis.empty')} />
           ) : (
             <div className="space-y-2">
               {(apisQuery.data ?? []).map((item) => (
-                <div
-                  key={item.id}
-                  className="space-y-3 rounded-md border px-3 py-2"
-                >
+                <div key={item.id} className="space-y-3 rounded-md border px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -553,7 +561,11 @@ export function IntegrationsPage() {
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setPlaygroundPath(item.path)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setPlaygroundPath(item.path)}
+                      >
                         {t('integrations.email.endpoints.useInPlayground')}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
@@ -564,7 +576,9 @@ export function IntegrationsPage() {
                         variant="destructive"
                         disabled={deleteApi.isPending}
                         onClick={() => {
-                          if (confirm(t('integrations.email.apis.deleteConfirm', { slug: item.slug }))) {
+                          if (
+                            confirm(t('integrations.email.apis.deleteConfirm', { slug: item.slug }))
+                          ) {
                             deleteApi.mutate(item.id)
                           }
                         }}
@@ -627,12 +641,17 @@ export function IntegrationsPage() {
                 {t('integrations.email.apis.allowFromOverride')}
               </label>
               <div className="space-y-2">
-                <Label htmlFor="email-api-subject">{t('integrations.email.apis.defaultSubject')}</Label>
+                <Label htmlFor="email-api-subject">
+                  {t('integrations.email.apis.defaultSubject')}
+                </Label>
                 <Input
                   id="email-api-subject"
                   value={draft.defaults.subject}
                   onChange={(e) =>
-                    setDraft((d) => ({ ...d, defaults: { ...d.defaults, subject: e.target.value } }))
+                    setDraft((d) => ({
+                      ...d,
+                      defaults: { ...d.defaults, subject: e.target.value },
+                    }))
                   }
                   placeholder="Welcome, {{name}}"
                 />
@@ -663,7 +682,9 @@ export function IntegrationsPage() {
                   placeholder="Hello {{name}}"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">{t('integrations.email.apis.varsHint')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('integrations.email.apis.varsHint')}
+              </p>
               <div className="flex flex-wrap gap-2">
                 <Button
                   disabled={saveApi.isPending || !draft.slug.trim() || !draft.label.trim()}

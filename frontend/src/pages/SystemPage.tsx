@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FormBlockSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
@@ -111,9 +112,7 @@ export function SystemPage() {
   useEffect(() => {
     if (section !== 'update' || !previewQuery.isError) return
     setMessage(
-      previewQuery.error instanceof Error
-        ? previewQuery.error.message
-        : t('system.previewFailed'),
+      previewQuery.error instanceof Error ? previewQuery.error.message : t('system.previewFailed'),
     )
   }, [section, previewQuery.isError, previewQuery.error, t])
 
@@ -230,7 +229,7 @@ export function SystemPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {apiAccess.isLoading || !apiAccess.data ? (
-            <p className="text-sm text-muted-foreground">{t('system.apiAccessLoading')}</p>
+            <FormBlockSkeleton fields={3} />
           ) : (
             <ApiAccessForm key={accessKey} initial={apiAccess.data} onMessage={setMessage} />
           )}

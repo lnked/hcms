@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.43.0",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Admin loading skeletons and empty Lottie",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Shimmer skeletons replace plain loading text on lists, media, dashboard, detail, logs, and auth gate"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Empty states use DotLottie via EmptyState (resources, entries, media, users, tokens, custom APIs)"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Resources list no longer flashes the empty message while the query is still loading"
+        }
+      ]
+    },
+    {
       "version": "0.42.3",
       "date": "2026-09-07",
       "channel": "stable",

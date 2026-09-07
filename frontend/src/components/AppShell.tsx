@@ -204,11 +204,7 @@ export function AppShell() {
               collapsed ? 'justify-center px-0' : 'gap-2 px-3',
             )}
           >
-            {isDark ? (
-              <Moon className="h-4 w-4 shrink-0" />
-            ) : (
-              <Sun className="h-4 w-4 shrink-0" />
-            )}
+            {isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0" />}
             <SidebarLabel collapsed={collapsed}>{themeLabel}</SidebarLabel>
             <span
               className={cn(

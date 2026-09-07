@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react'
+import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -37,6 +38,10 @@ export function DataTable({ fields, rows, onEdit, onDelete, sort, onSort }: Data
     else onSort(name)
   }
 
+  if (rows.length === 0) {
+    return <EmptyState title={t('entries.empty')} />
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -62,46 +67,38 @@ export function DataTable({ fields, rows, onEdit, onDelete, sort, onSort }: Data
         </TableRow>
       </TableHeader>
       <TableBody>
-        {rows.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={columns.length + 2} className="text-muted-foreground">
-              {t('entries.empty')}
+        {rows.map((row) => (
+          <TableRow key={row.id}>
+            <TableCell className="font-mono text-xs">{row.id}</TableCell>
+            {columns.map((col) => (
+              <TableCell key={col.name} className="max-w-[12rem] truncate">
+                {formatCell(row[col.name], t)}
+              </TableCell>
+            ))}
+            <TableCell className="text-right">
+              <div className="inline-flex items-center justify-end gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('common.edit')}
+                  title={t('common.edit')}
+                  onClick={() => onEdit(row)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label={t('common.delete')}
+                  title={t('common.delete')}
+                  onClick={() => onDelete(row)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
-        ) : (
-          rows.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell className="font-mono text-xs">{row.id}</TableCell>
-              {columns.map((col) => (
-                <TableCell key={col.name} className="max-w-[12rem] truncate">
-                  {formatCell(row[col.name], t)}
-                </TableCell>
-              ))}
-              <TableCell className="text-right">
-                <div className="inline-flex items-center justify-end gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label={t('common.edit')}
-                    title={t('common.edit')}
-                    onClick={() => onEdit(row)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label={t('common.delete')}
-                    title={t('common.delete')}
-                    onClick={() => onDelete(row)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))
-        )}
+        ))}
       </TableBody>
     </Table>
   )

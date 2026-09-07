@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload } from 'lucide-react'
+import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -317,7 +318,7 @@ export function ResourceEntriesPanel({
         </form>
 
         {list.isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          <TableSkeleton columns={Math.max(3, fields.length + 2)} rows={8} />
         ) : list.isError ? (
           <p className="text-sm text-destructive">
             {list.error instanceof Error ? list.error.message : t('entries.loadFailed')}

@@ -2,6 +2,8 @@ import { Fragment, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Code2, Pencil, Trash2, Upload } from 'lucide-react'
+import { TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -209,8 +211,10 @@ export function ResourcesPage() {
           <CardDescription>{t('resources.total', { count: resources.length })}</CardDescription>
         </CardHeader>
         <CardContent>
-          {resources.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('resources.empty')}</p>
+          {query.isLoading ? (
+            <TableSkeleton columns={5} rows={6} />
+          ) : resources.length === 0 ? (
+            <EmptyState title={t('resources.empty')} />
           ) : (
             <Table>
               <TableHeader>
@@ -302,7 +306,9 @@ export function ResourcesPage() {
                               aria-label={t('common.delete')}
                               title={t('common.delete')}
                               onClick={() => {
-                                if (confirm(t('resources.deleteConfirm', { label: resource.label }))) {
+                                if (
+                                  confirm(t('resources.deleteConfirm', { label: resource.label }))
+                                ) {
                                   remove.mutate(resource.id)
                                 }
                               }}
@@ -463,7 +469,9 @@ export function ResourcesPage() {
                 {t('common.cancel')}
               </Button>
               <Button
-                disabled={doImport.isPending || (!importPackage && !importPaste.trim() && !importFile)}
+                disabled={
+                  doImport.isPending || (!importPackage && !importPaste.trim() && !importFile)
+                }
                 onClick={() => doImport.mutate()}
               >
                 {doImport.isPending

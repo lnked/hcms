@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CircleCheck, Trash2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -228,7 +230,9 @@ export function UsersPage() {
         </CardHeader>
         <CardContent>
           {users.isLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            <TableSkeleton columns={4} rows={5} />
+          ) : (users.data ?? []).length === 0 ? (
+            <EmptyState title={t('users.empty')} />
           ) : (
             <Table>
               <TableHeader>
@@ -240,64 +244,56 @@ export function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(users.data ?? []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-muted-foreground">
-                      {t('users.empty')}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  (users.data ?? []).map((user) => {
-                    const isSelf = currentId === user.id
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
-                            {user.status === 'active' ? t('users.active') : t('users.disabled')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="inline-flex items-center justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              disabled={toggleStatus.isPending}
-                              aria-label={
-                                user.status === 'active' ? t('users.disable') : t('users.enable')
+                {(users.data ?? []).map((user) => {
+                  const isSelf = currentId === user.id
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === 'active' ? 'default' : 'secondary'}>
+                          {user.status === 'active' ? t('users.active') : t('users.disabled')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="inline-flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={toggleStatus.isPending}
+                            aria-label={
+                              user.status === 'active' ? t('users.disable') : t('users.enable')
+                            }
+                            title={
+                              user.status === 'active' ? t('users.disable') : t('users.enable')
+                            }
+                            onClick={() => toggleStatus.mutate(user)}
+                          >
+                            {user.status === 'active' ? (
+                              <Ban className="h-4 w-4" />
+                            ) : (
+                              <CircleCheck className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={isSelf || remove.isPending}
+                            aria-label={t('common.delete')}
+                            title={t('common.delete')}
+                            onClick={() => {
+                              if (window.confirm(t('users.deleteConfirm', { name: user.name }))) {
+                                remove.mutate(user.id)
                               }
-                              title={
-                                user.status === 'active' ? t('users.disable') : t('users.enable')
-                              }
-                              onClick={() => toggleStatus.mutate(user)}
-                            >
-                              {user.status === 'active' ? (
-                                <Ban className="h-4 w-4" />
-                              ) : (
-                                <CircleCheck className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              disabled={isSelf || remove.isPending}
-                              aria-label={t('common.delete')}
-                              title={t('common.delete')}
-                              onClick={() => {
-                                if (window.confirm(t('users.deleteConfirm', { name: user.name }))) {
-                                  remove.mutate(user.id)
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}

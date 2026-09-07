@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
@@ -39,7 +40,7 @@ export function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="text-3xl font-semibold">
-              {statsQuery.isLoading ? t('common.loading') : (item.value ?? '—')}
+              {statsQuery.isLoading ? <Skeleton className="h-8 w-16" /> : (item.value ?? '—')}
             </CardContent>
           </Card>
         ))}
