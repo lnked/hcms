@@ -1,11 +1,12 @@
 import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { GripVertical, Plus, Settings2, Trash2 } from 'lucide-react'
+import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
 import { AnchorGrid } from '@/components/AnchorGrid'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import {
@@ -32,8 +33,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [dragHeight, setDragHeight] = useState(0)
   const dragIndexRef = useRef<number | null>(null)
+  const overIndexRef = useRef<number | null>(null)
   const dragImageRef = useRef<HTMLElement | null>(null)
   const rowRefs = useRef<(HTMLLIElement | null)[]>([])
+  const listRef = useRef<HTMLUListElement>(null)
+  // Geometry captured at drag start: rows shift via transform while dragging,
+  // so live hit-testing would flip-flop and resolve back to the source index.
+  const startRowsRef = useRef<{ top: number; height: number }[]>([])
+  const startListTopRef = useRef(0)
   const editFormRef = useRef<HTMLDivElement>(null)
   const scrollToEditRef = useRef(false)
 
@@ -88,11 +95,30 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
   function clearDragState() {
     dragIndexRef.current = null
+    overIndexRef.current = null
+    startRowsRef.current = []
     dragImageRef.current?.remove()
     dragImageRef.current = null
     setDragIndex(null)
     setOverIndex(null)
     setDragHeight(0)
+  }
+
+  function targetIndexAt(clientY: number, from: number): number {
+    const rows = startRowsRef.current
+    if (rows.length === 0) return from
+    const listTop = listRef.current?.getBoundingClientRect().top ?? startListTopRef.current
+    const y = clientY - (listTop - startListTopRef.current)
+
+    let insertBefore = rows.length
+    for (let i = 0; i < rows.length; i += 1) {
+      if (y < rows[i].top + rows[i].height / 2) {
+        insertBefore = i
+        break
+      }
+    }
+    const to = insertBefore > from ? insertBefore - 1 : insertBefore
+    return Math.min(Math.max(to, 0), rows.length - 1)
   }
 
   function rowShiftY(index: number): number {
@@ -110,8 +136,15 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
   function onGripDragStart(index: number, event: DragEvent<HTMLButtonElement>) {
     dragIndexRef.current = index
+    overIndexRef.current = index
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', String(index))
+
+    startListTopRef.current = listRef.current?.getBoundingClientRect().top ?? 0
+    startRowsRef.current = schema.map((_, i) => {
+      const rect = rowRefs.current[i]?.getBoundingClientRect()
+      return { top: rect?.top ?? 0, height: rect?.height ?? 0 }
+    })
 
     const row = rowRefs.current[index]
     if (row) {
@@ -144,19 +177,25 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     clearDragState()
   }
 
-  function onRowDragOver(index: number, event: DragEvent<HTMLLIElement>) {
+  function onListDragOver(event: DragEvent<HTMLUListElement>) {
+    const from = dragIndexRef.current
+    if (from === null) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
-    if (overIndex !== index) setOverIndex(index)
+    const to = targetIndexAt(event.clientY, from)
+    if (overIndexRef.current !== to) {
+      overIndexRef.current = to
+      setOverIndex(to)
+    }
   }
 
-  function onRowDrop(index: number, event: DragEvent<HTMLLIElement>) {
+  function onListDrop(event: DragEvent<HTMLUListElement>) {
+    const from = dragIndexRef.current
+    if (from === null) return
     event.preventDefault()
-    const raw = event.dataTransfer.getData('text/plain')
-    const from = dragIndexRef.current ?? (raw === '' ? null : Number(raw))
+    const to = targetIndexAt(event.clientY, from)
     clearDragState()
-    if (from === null || Number.isNaN(from)) return
-    reorder(from, index)
+    reorder(from, to)
   }
 
   function changeType(index: number, type: FieldTypeName) {
@@ -198,7 +237,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
         </p>
       ) : null}
 
-      <ul className="space-y-2">
+      <ul ref={listRef} className="space-y-2" onDragOver={onListDragOver} onDrop={onListDrop}>
         {schema.map((field, index) => {
           const shiftY = rowShiftY(index)
           const isDragging = dragIndex === index
@@ -208,8 +247,6 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
               ref={(node) => {
                 rowRefs.current[index] = node
               }}
-              onDragOver={(e) => onRowDragOver(index, e)}
-              onDrop={(e) => onRowDrop(index, e)}
               style={{
                 transform: shiftY ? `translateY(${shiftY}px)` : undefined,
               }}
@@ -560,21 +597,38 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{t('schema.image.mode')}</Label>
-                            <select
-                              className={cn(selectClass, 'w-28')}
-                              value={size.mode === 'resize' ? 'resize' : 'crop'}
-                              onChange={(e) => {
-                                const sizes = [...(field.config.sizes as ImageSizeConfig[])]
-                                sizes[sizeIndex] = {
-                                  ...sizes[sizeIndex],
-                                  mode: e.target.value === 'resize' ? 'resize' : 'crop',
-                                }
-                                patchConfig(index, { sizes })
-                              }}
-                            >
-                              <option value="crop">{t('schema.image.modeCrop')}</option>
-                              <option value="resize">{t('schema.image.modeResize')}</option>
-                            </select>
+                            <div className="flex h-9 items-center gap-2">
+                              <span
+                                className={cn(
+                                  'flex items-center gap-1 text-xs',
+                                  size.mode === 'resize' ? 'text-muted-foreground' : 'text-primary',
+                                )}
+                              >
+                                <Crop className="h-3.5 w-3.5" />
+                                {t('schema.image.modeCrop')}
+                              </span>
+                              <Switch
+                                aria-label={t('schema.image.mode')}
+                                checked={size.mode === 'resize'}
+                                onCheckedChange={(checked) => {
+                                  const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                  sizes[sizeIndex] = {
+                                    ...sizes[sizeIndex],
+                                    mode: checked ? 'resize' : 'crop',
+                                  }
+                                  patchConfig(index, { sizes })
+                                }}
+                              />
+                              <span
+                                className={cn(
+                                  'flex items-center gap-1 text-xs',
+                                  size.mode === 'resize' ? 'text-primary' : 'text-muted-foreground',
+                                )}
+                              >
+                                <Images className="h-3.5 w-3.5" />
+                                {t('schema.image.modeResize')}
+                              </span>
+                            </div>
                           </div>
                           <div className="space-y-1">
                             <Label className="text-xs">{t('schema.image.position')}</Label>

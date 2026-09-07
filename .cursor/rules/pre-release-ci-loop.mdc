@@ -1,0 +1,38 @@
+---
+description: Before every release, /loop-watch CI until green, then publish
+alwaysApply: true
+---
+
+# Pre-release CI loop
+
+When the user asks to **release**, **bump+release**, `npm run release`, publish a tag, or ship a VERSION bump:
+
+## Order (strict)
+
+1. Finish code + VERSION/changelog commit.
+2. **Push** to `origin` (`main` unless told otherwise).
+3. Start **`/loop`** (local monitored shell) on CI for that push — do **not** run `PUBLISH=1` / `npm run release` / `gh release create` yet.
+4. Loop prompt each tick:
+   - `gh run list --repo lnked/hcms --branch <branch> --limit 1` (or the run for the release SHA)
+   - if `in_progress` / `queued` → wait (re-arm ~1–2m, or `gh run watch`)
+   - if `failure` → read failed logs, **fix**, commit+push, keep looping
+   - if `success` → stop the loop, then publish (`npm run release` / release script with `PUBLISH=1`)
+5. Never publish while CI is red or still running.
+
+## Loop setup (local)
+
+- Sentinel: `AGENT_LOOP_TICK_pre_release_ci`
+- Interval while waiting: **60s–120s** (or event: `gh run watch` then one-shot wake)
+- Stop the loop once CI is green and release is published, or when the user cancels.
+
+## Do / Don't
+
+```text
+# ❌ BAD — release commit pushed, zip published, CI still red
+git push && npm run release
+
+# ✅ GOOD — push → loop until green → only then publish
+git push → /loop watch CI → fix if needed → npm run release
+```
+
+If release assets were already published on a red SHA, fix CI first, then cut a patch release only if the user asks.

@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.45.2",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "Schema field drag-and-drop drop position fix",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Dragging a schema field now drops it at the target position instead of snapping back: the drop index is computed from pointer coordinates against geometry captured at drag start, so the reorder animation no longer moves rows out from under the cursor"
+        },
+        {
+          "type": "changed",
+          "area": "schema",
+          "text": "Image size crop/resize mode is now a labelled switch with icons instead of a select"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Ship the ui/switch component that image size settings import; it was missing from the repository"
+        }
+      ]
+    },
+    {
       "version": "0.45.1",
       "date": "2026-09-07",
       "channel": "stable",
