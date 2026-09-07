@@ -5,6 +5,8 @@
 /node_modules/
 /frontend/node_modules/
 /frontend/dist/
+/examples/react/node_modules/
+/examples/react/dist/
 /storage/*
 !/storage/.gitkeep
 !/storage/.htaccess

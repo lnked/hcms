@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Check, Copy } from 'lucide-react'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { copyToClipboard } from '@/lib/clipboard'
 import type { Resource } from '@/types/resource'
 
 interface TokenGrant {
@@ -68,7 +70,21 @@ export function TokensPage() {
   const [grants, setGrants] = useState<TokenGrant[]>([emptyGrant()])
   const [emailCanUse, setEmailCanUse] = useState(false)
   const [createdToken, setCreatedToken] = useState<string | null>(null)
+  const [tokenCopied, setTokenCopied] = useState(false)
+  const tokenCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  async function copyCreatedToken() {
+    if (!createdToken) return
+    try {
+      await copyToClipboard(createdToken)
+      setTokenCopied(true)
+      if (tokenCopyTimer.current) clearTimeout(tokenCopyTimer.current)
+      tokenCopyTimer.current = setTimeout(() => setTokenCopied(false), 1500)
+    } catch {
+      setTokenCopied(false)
+    }
+  }
 
   const tokens = useQuery({
     queryKey: ['api-tokens'],
@@ -116,6 +132,8 @@ export function TokensPage() {
     setGrants([emptyGrant()])
     setEmailCanUse(false)
     setCreatedToken(null)
+    setTokenCopied(false)
+    if (tokenCopyTimer.current) clearTimeout(tokenCopyTimer.current)
     setError(null)
   }
 
@@ -227,9 +245,26 @@ export function TokensPage() {
           {createdToken ? (
             <div className="space-y-3">
               <p className="text-sm">{t('tokens.copyOnce')}</p>
-              <code className="block break-all rounded-md border bg-muted p-3 text-xs">
-                {createdToken}
-              </code>
+              <div className="relative">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  className="absolute top-2 right-2 z-10 h-7 w-7 bg-background/90"
+                  onClick={() => void copyCreatedToken()}
+                  title={tokenCopied ? t('docs.copied') : t('docs.copy')}
+                  aria-label={tokenCopied ? t('docs.copied') : t('docs.copy')}
+                >
+                  {tokenCopied ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <code className="block break-all rounded-md border bg-muted p-3 pr-11 text-xs">
+                  {createdToken}
+                </code>
+              </div>
               <Button onClick={() => setOpen(false)}>{t('common.done')}</Button>
             </div>
           ) : (

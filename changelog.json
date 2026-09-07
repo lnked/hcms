@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.43.1",
+      "date": "2026-09-07",
+      "channel": "stable",
+      "title": "API token copy and React consumer example",
+      "changes": [
+        {
+          "type": "improved",
+          "area": "admin",
+          "text": "Create API token dialog has a one-click copy button for the plaintext secret"
+        },
+        {
+          "type": "added",
+          "area": "docs",
+          "text": "examples/react demo app against the public Content API (after seed)"
+        }
+      ]
+    },
+    {
       "version": "0.43.0",
       "date": "2026-09-07",
       "channel": "stable",

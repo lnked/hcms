@@ -70,6 +70,7 @@ Authorization: Bearer <token>
 - Public API: `/api/*` и `/api/v1/*` (published resources с `settings.apiEnabled`)
 - OpenAPI: `/api/openapi.json`
 - Swagger UI: `/api/docs`
+- React consumer demo: [`examples/react`](examples/react) (`npm run dev` после seed)
 
 В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter).
 
