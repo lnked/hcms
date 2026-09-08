@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,21 +36,22 @@ export function OauthIntegrationsCard() {
   const [botUsername, setBotUsername] = useState('')
   const [botToken, setBotToken] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const [hydratedAt, setHydratedAt] = useState(0)
 
   const query = useQuery({
     queryKey: ['integrations-oauth'],
     queryFn: () => api<OauthConfig>('/admin/api/integrations/oauth'),
   })
 
-  useEffect(() => {
-    if (!query.data) return
+  if (query.data && query.dataUpdatedAt !== hydratedAt) {
+    setHydratedAt(query.dataUpdatedAt)
     setGoogleEnabled(query.data.google.enabled)
     setGoogleClientId(query.data.google.clientId)
     setGoogleSecret('')
     setTelegramEnabled(query.data.telegram.enabled)
     setBotUsername(query.data.telegram.botUsername)
     setBotToken('')
-  }, [query.data])
+  }
 
   const save = useMutation({
     mutationFn: () =>
@@ -100,7 +101,9 @@ export function OauthIntegrationsCard() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-medium">Google</h3>
-                  <p className="text-xs text-muted-foreground">{t('integrations.oauth.googleHint')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.googleHint')}
+                  </p>
                 </div>
                 <Badge variant={googleEnabled ? 'default' : 'secondary'}>
                   {googleEnabled ? t('common.enabled') : t('common.disabled')}
@@ -126,7 +129,9 @@ export function OauthIntegrationsCard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="google-client-secret">{t('integrations.oauth.clientSecret')}</Label>
+                  <Label htmlFor="google-client-secret">
+                    {t('integrations.oauth.clientSecret')}
+                  </Label>
                   <Input
                     id="google-client-secret"
                     type="password"
@@ -164,7 +169,9 @@ export function OauthIntegrationsCard() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-medium">Telegram</h3>
-                  <p className="text-xs text-muted-foreground">{t('integrations.oauth.telegramHint')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.telegramHint')}
+                  </p>
                 </div>
                 <Badge variant={telegramEnabled ? 'default' : 'secondary'}>
                   {telegramEnabled ? t('common.enabled') : t('common.disabled')}

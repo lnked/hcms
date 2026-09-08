@@ -140,7 +140,8 @@ export const ru: Record<MessageKey, string> = {
   'integrations.oauth.clientId': 'Client ID',
   'integrations.oauth.clientSecret': 'Client secret',
   'integrations.oauth.redirectUri': 'Redirect URI',
-  'integrations.oauth.telegramHint': 'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
+  'integrations.oauth.telegramHint':
+    'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
   'integrations.oauth.telegramEnabled': 'Включить вход через Telegram',
   'integrations.oauth.botUsername': 'Username бота',
   'integrations.oauth.botToken': 'Токен бота',

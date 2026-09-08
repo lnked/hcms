@@ -131,7 +131,8 @@ export const en = {
 
   'integrations.oauth.cardTitle': 'Social login',
   'integrations.oauth.description': 'Google OAuth and Telegram Login Widget for the admin panel.',
-  'integrations.oauth.googleHint': 'Create an OAuth client in Google Cloud. Authorized redirect URI must match exactly.',
+  'integrations.oauth.googleHint':
+    'Create an OAuth client in Google Cloud. Authorized redirect URI must match exactly.',
   'integrations.oauth.googleEnabled': 'Enable Google sign-in',
   'integrations.oauth.clientId': 'Client ID',
   'integrations.oauth.clientSecret': 'Client secret',

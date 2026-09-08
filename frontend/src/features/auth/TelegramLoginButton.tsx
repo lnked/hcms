@@ -25,7 +25,10 @@ export function TelegramLoginButton({
 }) {
   const host = useRef<HTMLDivElement>(null)
   const onAuthRef = useRef(onAuth)
-  onAuthRef.current = onAuth
+
+  useEffect(() => {
+    onAuthRef.current = onAuth
+  }, [onAuth])
 
   useEffect(() => {
     const node = host.current

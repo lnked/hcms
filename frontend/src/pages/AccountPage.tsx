@@ -6,10 +6,7 @@ import { FormBlockSkeleton } from '@/components/skeletons'
 import { api, ApiError } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
-import {
-  TelegramLoginButton,
-  type TelegramAuthPayload,
-} from '@/features/auth/TelegramLoginButton'
+import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 
 interface AuthProviders {
   google: { enabled: boolean; clientId: string }
@@ -65,7 +62,8 @@ export function AccountPage() {
   })
 
   const linkGoogle = useMutation({
-    mutationFn: () => api<{ url: string }>('/admin/api/auth/identities/google/start', { method: 'POST' }),
+    mutationFn: () =>
+      api<{ url: string }>('/admin/api/auth/identities/google/start', { method: 'POST' }),
     onSuccess: (data) => {
       window.location.assign(data.url)
     },

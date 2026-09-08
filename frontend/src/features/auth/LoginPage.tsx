@@ -10,10 +10,7 @@ import { useI18n } from '@/i18n'
 import { api, ApiError, getToken, setToken } from '@/lib/api'
 import { showError } from '@/lib/toast'
 import type { AuthUser } from '@/types/system'
-import {
-  TelegramLoginButton,
-  type TelegramAuthPayload,
-} from '@/features/auth/TelegramLoginButton'
+import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 
 interface CaptchaConfig {
   enabled: boolean
@@ -52,7 +49,6 @@ export function LoginPage() {
   useEffect(() => {
     const token = getToken()
     if (!token) {
-      setCheckingSession(false)
       return
     }
     void api<AuthUser>('/admin/api/auth/me')
@@ -134,7 +130,9 @@ export function LoginPage() {
   }
 
   const googleEnabled = providers.data?.google.enabled === true
-  const telegramEnabled = Boolean(providers.data?.telegram.enabled && providers.data.telegram.botUsername)
+  const telegramEnabled = Boolean(
+    providers.data?.telegram.enabled && providers.data.telegram.botUsername,
+  )
 
   return (
     <div className="flex min-h-svh items-center justify-center p-6">

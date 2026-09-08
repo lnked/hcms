@@ -13,7 +13,10 @@ const api = vi.fn(async (path: string) => {
     return { enabled: false, provider: null, siteKey: '' }
   }
   if (path.includes('/auth/providers')) {
-    return { google: { enabled: false, clientId: '' }, telegram: { enabled: false, botUsername: '' } }
+    return {
+      google: { enabled: false, clientId: '' },
+      telegram: { enabled: false, botUsername: '' },
+    }
   }
   return { token: 'abc123', user: { id: 1, name: 'A', email: 'a@b.c' } }
 })
