@@ -36,13 +36,20 @@
         <nav class="nav-links" aria-label="Primary">
           <a href="#features" data-i18n="nav.features">Features</a>
           <a href="#install" data-i18n="nav.install">Install</a>
-          <a href="https://github.com/lnked/hcms/tree/main/docs">Docs</a>
-          <a href="https://github.com/lnked/hcms">GitHub</a>
+          <a href="https://github.com/lnked/hcms/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+          <a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">GitHub</a>
           <div class="lang" role="group" aria-label="Language">
             <button type="button" data-lang="en" aria-pressed="true">EN</button>
             <button type="button" data-lang="ru" aria-pressed="false">RU</button>
           </div>
-          <a class="btn btn-primary" href="#install" data-i18n="nav.cta">Get install.php</a>
+          <a
+            class="btn btn-primary js-download"
+            href="https://github.com/lnked/hcms/releases/latest/download/install.php"
+            download="install.php"
+            data-source="nav"
+            data-i18n="nav.cta"
+            >Get install.php</a
+          >
         </nav>
       </div>
     </header>
@@ -58,10 +65,18 @@
             class="btn btn-primary js-download"
             href="https://github.com/lnked/hcms/releases/latest/download/install.php"
             download="install.php"
+            data-source="hero"
             data-i18n="hero.download"
             >Download install.php</a
           >
-          <a class="btn btn-ghost" href="https://github.com/lnked/hcms" data-i18n="hero.github">View on GitHub</a>
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/lnked/hcms"
+            target="_blank"
+            rel="noopener"
+            data-i18n="hero.github"
+            >View on GitHub</a
+          >
         </div>
         <div class="code" id="install">
           <code id="curl"
@@ -286,6 +301,7 @@
             class="btn btn-primary js-download"
             href="https://github.com/lnked/hcms/releases/latest/download/install.php"
             download="install.php"
+            data-source="cta"
             data-i18n="hero.download"
             >Download install.php</a
           >
@@ -319,27 +335,51 @@
             <ul>
               <li><a href="#features" data-i18n="nav.features">Features</a></li>
               <li><a href="#install" data-i18n="nav.install">Install</a></li>
-              <li><a href="https://github.com/lnked/hcms/releases">Releases</a></li>
+              <li>
+                <a href="https://github.com/lnked/hcms/releases" target="_blank" rel="noopener">Releases</a>
+              </li>
             </ul>
           </div>
           <div>
             <h4>Docs</h4>
             <ul>
-              <li><a href="https://github.com/lnked/hcms/blob/main/docs/installation.md">Installation</a></li>
-              <li><a href="https://github.com/lnked/hcms/blob/main/docs/architecture.md">Architecture</a></li>
-              <li><a href="https://github.com/lnked/hcms/blob/main/docs/openapi.md">OpenAPI</a></li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/installation.md" target="_blank" rel="noopener"
+                  >Installation</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/architecture.md" target="_blank" rel="noopener"
+                  >Architecture</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/openapi.md" target="_blank" rel="noopener"
+                  >OpenAPI</a
+                >
+              </li>
             </ul>
           </div>
           <div>
             <h4 data-i18n="footer.source">Source</h4>
             <ul>
-              <li><a href="https://github.com/lnked/hcms">GitHub</a></li>
-              <li><a href="https://github.com/lnked/hcms/blob/main/composer.json">MIT license</a></li>
-              <li><a href="https://github.com/lnked/hcms/blob/main/changelog.json">Changelog</a></li>
+              <li><a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">GitHub</a></li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/composer.json" target="_blank" rel="noopener"
+                  >MIT license</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/changelog.json" target="_blank" rel="noopener"
+                  >Changelog</a
+                >
+              </li>
             </ul>
           </div>
         </div>
-        <p class="legal">© HCMS · <a href="https://github.com/lnked/hcms">lnked/hcms</a></p>
+        <p class="legal">
+          © HCMS · <a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">lnked/hcms</a>
+        </p>
       </div>
     </footer>
     <script src="./app.js"></script>

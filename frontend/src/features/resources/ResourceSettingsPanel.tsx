@@ -103,7 +103,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
       </CardHeader>
       <CardContent className="space-y-6">
         {isPublicWriteUnprotected(settings) ? (
-          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          <p className="rounded-md border border-amber-500 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
             {t('resources.settings.unprotectedWarning')}
           </p>
         ) : null}

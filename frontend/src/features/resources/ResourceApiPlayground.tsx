@@ -78,8 +78,16 @@ export function ResourceApiPlayground({
     ]
     for (const custom of customApisQuery.data ?? []) {
       if (!custom.enabled) continue
-      lines.push(`GET ${custom.path}`)
-      lines.push(`GET ${custom.path}/:id`)
+      for (const method of custom.methods) {
+        if (method === 'GET') {
+          lines.push(`GET ${custom.path}`)
+          lines.push(`GET ${custom.path}/:id`)
+        } else if (method === 'POST') {
+          lines.push(`POST ${custom.path}`)
+        } else {
+          lines.push(`${method} ${custom.path}/:id`)
+        }
+      }
     }
     return lines
   }, [customApisQuery.data, resource.endpoint])

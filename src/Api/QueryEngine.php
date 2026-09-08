@@ -222,19 +222,9 @@ final class QueryEngine
     public function create(string $slug, array $payload, array $options = []): array
     {
         [, $table, $fieldMap] = $this->resolve($slug, $options);
-        $data = $this->validatePayload($payload, $fieldMap, false);
-        $now = date('Y-m-d H:i:s');
-        $data['created_at'] = $now;
-        $data['updated_at'] = $now;
+        $id = $this->insertRow($table, $this->validatePayload($payload, $fieldMap, false));
 
-        $cols = array_keys($data);
-        $placeholders = array_map(static fn (string $c): string => ':' . $c, $cols);
-        $this->db->execute(
-            'INSERT INTO `' . $table . '` (`' . implode('`, `', $cols) . '`) VALUES (' . implode(', ', $placeholders) . ')',
-            $data,
-        );
-
-        return $this->find($slug, (int) $this->db->lastInsertId(), $options);
+        return $this->find($slug, $id, $options);
     }
 
     /**
@@ -245,28 +235,8 @@ final class QueryEngine
     public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
         [, $table, $fieldMap] = $this->resolve($slug, $options);
-        $existing = $this->db->selectOne(
-            'SELECT id FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
-            ['id' => $id],
-        );
-        if ($existing === null) {
-            throw new RuntimeException('Resource not found', 404);
-        }
-
-        $data = $this->validatePayload($payload, $fieldMap, true);
-        if ($data === []) {
-            return $this->find($slug, $id, $options);
-        }
-        $data['updated_at'] = date('Y-m-d H:i:s');
-        $sets = [];
-        foreach (array_keys($data) as $col) {
-            $sets[] = '`' . $col . '` = :' . $col;
-        }
-        $data['id'] = $id;
-        $this->db->execute(
-            'UPDATE `' . $table . '` SET ' . implode(', ', $sets) . ' WHERE id = :id',
-            $data,
-        );
+        $this->requireRow($table, $id);
+        $this->updateRow($table, $id, $this->validatePayload($payload, $fieldMap, true));
 
         return $this->find($slug, $id, $options);
     }
@@ -277,23 +247,7 @@ final class QueryEngine
     public function delete(string $slug, int $id, array $options = []): void
     {
         [$resource, $table] = $this->resolve($slug, $options);
-        $settings = $this->settingsOf($resource);
-        if (($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft') {
-            $now = date('Y-m-d H:i:s');
-            $affected = $this->db->execute(
-                'UPDATE `' . $table . '` SET `deleted_at` = :now, `updated_at` = :now
-                 WHERE id = :id AND `deleted_at` IS NULL',
-                ['now' => $now, 'id' => $id],
-            );
-        } else {
-            $affected = $this->db->execute(
-                'DELETE FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
-                ['id' => $id],
-            );
-        }
-        if ($affected === 0) {
-            throw new RuntimeException('Resource not found', 404);
-        }
+        $this->deleteRow($table, $id, $this->settingsOf($resource));
     }
 
     /**
@@ -303,7 +257,7 @@ final class QueryEngine
      */
     public function listCustom(string $slug, string $apiSlug, array $query, array $options = []): array
     {
-        [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, $options);
+        [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'GET', $options);
         $settings = $this->mergedSettings($resource, $api);
 
         $page = max(1, (int) ($query['page'] ?? 1));
@@ -372,18 +326,92 @@ final class QueryEngine
      */
     public function findCustom(string $slug, string $apiSlug, int $id, array $options = []): array
     {
-        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, $options);
-        $selectSql = $this->selectSql($fieldMap, $api);
+        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'GET', $options);
+
+        return $this->fetchCustom($table, $id, $fieldMap, $api);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array{public?: bool} $options
+     * @return array<string, mixed>
+     */
+    public function createCustom(string $slug, string $apiSlug, array $payload, array $options = []): array
+    {
+        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'POST', $options);
+        $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, false);
+        $id = $this->insertRow($table, $data);
+
+        return $this->fetchCustom($table, $id, $fieldMap, $api);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array{public?: bool} $options
+     * @return array<string, mixed>
+     */
+    public function patchCustom(string $slug, string $apiSlug, int $id, array $payload, array $options = []): array
+    {
+        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'PATCH', $options);
+        $this->requireRow($table, $id);
+        $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, true);
+        $this->updateRow($table, $id, $data);
+
+        return $this->fetchCustom($table, $id, $fieldMap, $api);
+    }
+
+    /**
+     * @param array{public?: bool} $options
+     */
+    public function deleteCustom(string $slug, string $apiSlug, int $id, array $options = []): void
+    {
+        [$resource, $table] = $this->resolveCustom($slug, $apiSlug, 'DELETE', $options);
+        $this->deleteRow($table, $id, $this->settingsOf($resource));
+    }
+
+    /**
+     * Restricts an incoming body to the fields the custom API projects.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $api
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @return array<string, mixed>
+     */
+    private function maskPayload(array $payload, array $api, array $fieldMap): array
+    {
+        $whitelist = $api['fields'];
+        if (!is_array($whitelist)) {
+            return $payload;
+        }
+
+        $allowed = array_intersect($whitelist, ResourceApiService::writableFieldNames($fieldMap));
+        $rejected = array_values(array_diff(array_keys($payload), $allowed));
+        if ($rejected !== []) {
+            throw new InvalidArgumentException(
+                'Fields not writable through this API: ' . implode(', ', $rejected),
+            );
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @param array<string, mixed> $api
+     * @return array<string, mixed>
+     */
+    private function fetchCustom(string $table, int $id, array $fieldMap, array $api): array
+    {
         $row = $this->db->selectOne(
-            'SELECT ' . $selectSql . ' FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            'SELECT ' . $this->selectSql($fieldMap, $api) . ' FROM `' . $table . '`
+             WHERE id = :id AND `deleted_at` IS NULL',
             ['id' => $id],
         );
         if ($row === null) {
             throw new RuntimeException('Resource not found', 404);
         }
 
-        $item = $this->serializeCustom($row, $fieldMap, $api);
-        $items = [$item];
+        $items = [$this->serializeCustom($row, $fieldMap, $api)];
         $this->attachJoins($items, [$row], $api);
 
         return $items[0];
@@ -393,7 +421,7 @@ final class QueryEngine
      * @param array{public?: bool} $options
      * @return array{0: array<string, mixed>, 1: string, 2: array<string, array<string, mixed>>, 3: array<string, mixed>}
      */
-    private function resolveCustom(string $slug, string $apiSlug, array $options = []): array
+    private function resolveCustom(string $slug, string $apiSlug, string $method, array $options = []): array
     {
         if ($this->apis === null) {
             throw new RuntimeException('Custom APIs are not available', 404);
@@ -404,11 +432,12 @@ final class QueryEngine
             throw new RuntimeException('Resource API not found', 404);
         }
 
-        $methods = is_string($apiRow['methods_json'])
-            ? json_decode((string) $apiRow['methods_json'], true)
-            : $apiRow['methods_json'];
-        $methods = is_array($methods) ? array_map('strval', $methods) : [];
-        if (!in_array('GET', $methods, true)) {
+        $methods = ResourceApiService::normalizeMethods(
+            is_string($apiRow['methods_json'])
+                ? json_decode((string) $apiRow['methods_json'], true)
+                : $apiRow['methods_json'],
+        );
+        if (!in_array($method, $methods, true)) {
             throw new RuntimeException('Method not allowed', 405);
         }
 
@@ -426,6 +455,7 @@ final class QueryEngine
         $api = [
             'id' => (int) $apiRow['id'],
             'slug' => (string) $apiRow['slug'],
+            'methods' => $methods,
             'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
             'joins' => is_array($joins) ? array_values($joins) : [],
             'settings' => ResourceApiService::normalizeSettings(is_array($apiSettings) ? $apiSettings : []),
@@ -736,6 +766,80 @@ final class QueryEngine
         }
 
         return false;
+    }
+
+    private function requireRow(string $table, int $id): void
+    {
+        $row = $this->db->selectOne(
+            'SELECT id FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            ['id' => $id],
+        );
+        if ($row === null) {
+            throw new RuntimeException('Resource not found', 404);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function insertRow(string $table, array $data): int
+    {
+        $now = date('Y-m-d H:i:s');
+        $data['created_at'] = $now;
+        $data['updated_at'] = $now;
+
+        $cols = array_keys($data);
+        $placeholders = array_map(static fn (string $c): string => ':' . $c, $cols);
+        $this->db->execute(
+            'INSERT INTO `' . $table . '` (`' . implode('`, `', $cols) . '`)
+             VALUES (' . implode(', ', $placeholders) . ')',
+            $data,
+        );
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function updateRow(string $table, int $id, array $data): void
+    {
+        if ($data === []) {
+            return;
+        }
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        $sets = [];
+        foreach (array_keys($data) as $col) {
+            $sets[] = '`' . $col . '` = :' . $col;
+        }
+        $data['id'] = $id;
+        $this->db->execute(
+            'UPDATE `' . $table . '` SET ' . implode(', ', $sets) . ' WHERE id = :id',
+            $data,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     */
+    private function deleteRow(string $table, int $id, array $settings): void
+    {
+        if (($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft') {
+            $now = date('Y-m-d H:i:s');
+            $affected = $this->db->execute(
+                'UPDATE `' . $table . '` SET `deleted_at` = :now, `updated_at` = :now
+                 WHERE id = :id AND `deleted_at` IS NULL',
+                ['now' => $now, 'id' => $id],
+            );
+        } else {
+            $affected = $this->db->execute(
+                'DELETE FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+                ['id' => $id],
+            );
+        }
+        if ($affected === 0) {
+            throw new RuntimeException('Resource not found', 404);
+        }
     }
 
     /**

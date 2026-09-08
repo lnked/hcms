@@ -3,9 +3,9 @@ const DOWNLOAD_LATEST = `https://github.com/${REPO}/releases/latest/download/ins
 const DOWNLOAD_RAW = `https://github.com/${REPO}/raw/main/install.php`;
 
 // Download counter lives in our own HCMS instance: public create writes a row,
-// public read exposes only meta.total via ?limit=1.
-const API_BASE = 'https://api.2js.ru';
-const DOWNLOADS_SLUG = 'downloads';
+// public read exposes only meta.total via ?limit=1. Same-origin path — no CORS
+// preflight and no certificate for a separate API host.
+const DOWNLOADS_ENDPOINT = '/api/downloads';
 
 const state = { version: '', downloads: null };
 
@@ -82,7 +82,8 @@ const I18N = {
     'footer.blurb': 'API-first headless CMS. Schema in, REST and admin out. MIT.',
     'footer.product': 'Product',
     'footer.source': 'Source',
-    'announce': 'HCMS {version} is out — MIT, PHP 8.3, zero runtime deps. <a href="{url}">Release notes</a>',
+    'announce':
+      'HCMS {version} is out — MIT, PHP 8.3, zero runtime deps. <a href="{url}" target="_blank" rel="noopener">Release notes</a>',
     'counter.plural': 'download|downloads|downloads',
     'title': 'HCMS — a ready-made admin for your SPA',
   },
@@ -158,7 +159,8 @@ const I18N = {
     'footer.blurb': 'API-first headless CMS. Схема на входе, REST и админка на выходе. MIT.',
     'footer.product': 'Продукт',
     'footer.source': 'Исходники',
-    'announce': 'HCMS {version} — MIT, PHP 8.3, без runtime-зависимостей. <a href="{url}">Релиз</a>',
+    'announce':
+      'HCMS {version} — MIT, PHP 8.3, без runtime-зависимостей. <a href="{url}" target="_blank" rel="noopener">Релиз</a>',
     'counter.plural': 'скачивание|скачивания|скачиваний',
     'title': 'HCMS — готовая админка для вашего SPA',
   },
@@ -295,7 +297,7 @@ function renderCounter() {
 
 async function loadDownloads() {
   try {
-    const res = await fetch(`${API_BASE}/api/${DOWNLOADS_SLUG}?limit=1`, {
+    const res = await fetch(`${DOWNLOADS_ENDPOINT}?limit=1`, {
       headers: { Accept: 'application/json' },
     });
     if (!res.ok) {
@@ -327,7 +329,7 @@ function trackDownload(source) {
     renderCounter();
   }
   // keepalive: the click navigates to GitHub, the request must survive it.
-  fetch(`${API_BASE}/api/${DOWNLOADS_SLUG}`, {
+  fetch(DOWNLOADS_ENDPOINT, {
     method: 'POST',
     keepalive: true,
     headers: { 'Content-Type': 'application/json' },
@@ -359,7 +361,7 @@ document.querySelectorAll('[data-lang]').forEach((btn) => {
 });
 
 document.querySelectorAll('.js-download').forEach((link) => {
-  link.addEventListener('click', () => trackDownload('button'));
+  link.addEventListener('click', () => trackDownload(link.dataset.source || 'button'));
 });
 
 document.querySelectorAll('.js-copy').forEach((btn) => {

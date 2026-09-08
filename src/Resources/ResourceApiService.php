@@ -12,6 +12,12 @@ use RuntimeException;
 
 final class ResourceApiService
 {
+    /** @var list<string> */
+    private const ALLOWED_METHODS = ['GET', 'POST', 'PATCH', 'DELETE'];
+
+    /** @var list<string> */
+    private const WRITE_METHODS = ['POST', 'PATCH', 'DELETE'];
+
     public function __construct(
         private readonly ResourceRepository $resources,
         private readonly ResourceApiRepository $apis,
@@ -149,28 +155,17 @@ final class ResourceApiService
             ? (bool) $payload['enabled']
             : ($existing !== null ? (bool) (int) $existing['enabled'] : true);
 
-        $methods = ['GET'];
         if (isset($payload['methods']) && is_array($payload['methods'])) {
-            $methods = [];
-            foreach ($payload['methods'] as $method) {
-                if (!is_string($method)) {
-                    continue;
-                }
-                $method = strtoupper(trim($method));
-                if ($method === 'GET') {
-                    $methods[] = 'GET';
-                }
-            }
-            $methods = array_values(array_unique($methods));
+            $methodsRaw = $payload['methods'];
         } elseif ($existing !== null) {
             $decoded = is_string($existing['methods_json'])
                 ? json_decode((string) $existing['methods_json'], true)
                 : $existing['methods_json'];
-            $methods = is_array($decoded) ? array_values(array_map('strval', $decoded)) : ['GET'];
+            $methodsRaw = is_array($decoded) ? $decoded : ['GET'];
+        } else {
+            $methodsRaw = ['GET'];
         }
-        if ($methods === []) {
-            $methods = ['GET'];
-        }
+        $methods = self::normalizeMethods($methodsRaw);
 
         $fieldMap = $this->fieldMapForResource($resource);
         $fields = $this->normalizeFields(
@@ -189,6 +184,7 @@ final class ResourceApiService
             $joinsRaw = [];
         }
         $joins = $this->normalizeJoins($joinsRaw, $fieldMap);
+        self::assertWriteConfig($methods, $fields, $joins, $fieldMap);
 
         $settingsRaw = array_key_exists('settings', $payload)
             ? $payload['settings']
@@ -395,6 +391,12 @@ final class ResourceApiService
     public static function normalizeSettings(array $settings): array
     {
         $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $access = [];
+        foreach (['read', 'create', 'update', 'delete'] as $action) {
+            $access[$action] = array_key_exists($action, $public) && $public[$action] !== null
+                ? (bool) $public[$action]
+                : null;
+        }
 
         return [
             'pagination' => array_key_exists('pagination', $settings)
@@ -403,10 +405,123 @@ final class ResourceApiService
             'search' => array_key_exists('search', $settings) ? (bool) $settings['search'] : true,
             'sorting' => array_key_exists('sorting', $settings) ? (bool) $settings['sorting'] : true,
             'filtering' => array_key_exists('filtering', $settings) ? (bool) $settings['filtering'] : true,
-            'public' => [
-                'read' => array_key_exists('read', $public) ? (bool) $public['read'] : null,
-            ],
+            'public' => $access,
         ];
+    }
+
+    /**
+     * @param mixed $methods
+     * @return list<string>
+     */
+    public static function normalizeMethods(mixed $methods): array
+    {
+        if (!is_array($methods)) {
+            return ['GET'];
+        }
+
+        $out = [];
+        foreach ($methods as $method) {
+            if (!is_string($method)) {
+                continue;
+            }
+            $method = strtoupper(trim($method));
+            if ($method === 'PUT') {
+                $method = 'PATCH';
+            }
+            if (in_array($method, self::ALLOWED_METHODS, true)) {
+                $out[] = $method;
+            }
+        }
+        $out = array_values(array_unique($out));
+
+        return $out === [] ? ['GET'] : $out;
+    }
+
+    /**
+     * @param list<string> $methods
+     */
+    public static function hasWriteMethod(array $methods): bool
+    {
+        return array_intersect($methods, self::WRITE_METHODS) !== [];
+    }
+
+    /**
+     * Fields a write request may set: writable and not an oneToMany relation.
+     *
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @return list<string>
+     */
+    public static function writableFieldNames(array $fieldMap): array
+    {
+        $out = [];
+        foreach ($fieldMap as $name => $meta) {
+            $spec = is_array($meta['spec'] ?? null) ? $meta['spec'] : [];
+            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                continue;
+            }
+            if (!($spec['writable'] ?? true)) {
+                continue;
+            }
+            $out[] = (string) $name;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Writable fields a POST body must be able to carry: required and not derived from another field.
+     *
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @return list<string>
+     */
+    public static function requiredWritableFieldNames(array $fieldMap): array
+    {
+        $out = [];
+        foreach (self::writableFieldNames($fieldMap) as $name) {
+            $spec = is_array($fieldMap[$name]['spec'] ?? null) ? $fieldMap[$name]['spec'] : [];
+            if (!($spec['required'] ?? false)) {
+                continue;
+            }
+            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $derived = ($fieldMap[$name]['type'] ?? '') === 'slug'
+                && is_string($config['associatedWith'] ?? null)
+                && $config['associatedWith'] !== '';
+            if ($derived) {
+                continue;
+            }
+            $out[] = $name;
+        }
+
+        return $out;
+    }
+
+    /**
+     * A write-enabled API must address exactly one table and be able to carry every required field.
+     *
+     * @param list<string> $methods
+     * @param list<string>|null $fields
+     * @param list<array<string, mixed>> $joins
+     * @param array<string, array<string, mixed>> $fieldMap
+     */
+    public static function assertWriteConfig(array $methods, ?array $fields, array $joins, array $fieldMap): void
+    {
+        if (!self::hasWriteMethod($methods)) {
+            return;
+        }
+        if ($joins !== []) {
+            throw new InvalidArgumentException('Writes are not supported for APIs with joins');
+        }
+        if (!in_array('POST', $methods, true) || $fields === null) {
+            return;
+        }
+
+        $missing = array_values(array_diff(self::requiredWritableFieldNames($fieldMap), $fields));
+        if ($missing !== []) {
+            throw new InvalidArgumentException(
+                'POST requires these fields in the projection: ' . implode(', ', $missing),
+            );
+        }
     }
 
     public static function isValidApiSlug(string $slug): bool
@@ -449,7 +564,7 @@ final class ResourceApiService
             'slug' => $apiSlug,
             'label' => (string) $row['label'],
             'enabled' => (bool) (int) $row['enabled'],
-            'methods' => is_array($methods) ? array_values(array_map('strval', $methods)) : ['GET'],
+            'methods' => self::normalizeMethods($methods),
             'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
             'joins' => is_array($joins) ? array_values($joins) : [],
             'settings' => self::normalizeSettings(is_array($settings) ? $settings : []),

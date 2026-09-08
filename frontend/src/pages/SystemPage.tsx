@@ -378,7 +378,7 @@ export function SystemPage() {
             ) : null}
 
             {preview?.hasBreaking ? (
-              <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <div className="space-y-2 rounded-md border border-destructive bg-destructive/10 p-3 text-sm">
                 <p className="font-medium text-destructive">{t('system.breakingTitle')}</p>
                 <ul className="list-disc space-y-1 pl-5">
                   {preview.changes

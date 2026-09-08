@@ -14,7 +14,12 @@ import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import {
   emptyJoin,
+  isWriteMethod,
+  methodAction,
+  RESOURCE_API_METHODS,
   type ResourceApiJoin,
+  type ResourceApiMethod,
+  type ResourceApiSettings,
   type ResourceCustomApi,
   type ResourceCustomApiInput,
 } from '@/types/resourceApi'
@@ -37,6 +42,7 @@ function emptyDraft(): ResourceCustomApiInput {
     slug: '',
     label: '',
     enabled: true,
+    methods: ['GET'],
     fields: null,
     joins: [],
     settings: {
@@ -44,9 +50,22 @@ function emptyDraft(): ResourceCustomApiInput {
       search: true,
       sorting: true,
       filtering: true,
-      public: { read: null },
+      public: { read: null, create: null, update: null, delete: null },
     },
   }
+}
+
+/** POST requires every required field to be writable through the projection. */
+function missingRequiredFields(draft: ResourceCustomApiInput, fields: SchemaField[]): string[] {
+  if (!draft.methods.includes('POST') || draft.fields === null) return []
+  const selected = draft.fields
+  return fields
+    .filter((field) => {
+      if (!field.required || !field.writable) return false
+      if (field.type === 'slug' && field.config.associatedWith) return false
+      return !selected.includes(field.name)
+    })
+    .map((field) => field.name)
 }
 
 export function ResourceCustomApisPanel({
@@ -104,6 +123,7 @@ export function ResourceCustomApisPanel({
       const payload: ResourceCustomApiInput = {
         ...draft,
         fields: allFields ? null : (draft.fields ?? []),
+        methods: RESOURCE_API_METHODS.filter((method) => draft.methods.includes(method)),
         joins: draft.joins.map((join) => ({
           ...join,
           fields: join.fields && join.fields.length > 0 ? join.fields : null,
@@ -141,6 +161,17 @@ export function ResourceCustomApisPanel({
 
   const selectable = useMemo(() => projectableFields(fields), [fields])
   const apis = apisQuery.data ?? []
+  const writesBlockedByJoins = draft.joins.length > 0
+  const missingRequired = useMemo(
+    () => (allFields ? [] : missingRequiredFields(draft, fields)),
+    [allFields, draft, fields],
+  )
+  const publicWriteEnabled = RESOURCE_API_METHODS.filter(isWriteMethod).some(
+    (method) =>
+      draft.methods.includes(method) && draft.settings.public[methodAction(method)] === true,
+  )
+  const saveBlocked =
+    (writesBlockedByJoins && draft.methods.some(isWriteMethod)) || missingRequired.length > 0
 
   function startCreate() {
     setEditingId('new')
@@ -155,6 +186,7 @@ export function ResourceCustomApisPanel({
       slug: apiItem.slug,
       label: apiItem.label,
       enabled: apiItem.enabled,
+      methods: apiItem.methods,
       fields: apiItem.fields,
       joins: apiItem.joins.length > 0 ? apiItem.joins : [],
       settings: apiItem.settings,
@@ -168,6 +200,24 @@ export function ResourceCustomApisPanel({
       ...prev,
       joins: prev.joins.map((join, i) => (i === index ? { ...join, ...partial } : join)),
     }))
+  }
+
+  function toggleMethod(method: ResourceApiMethod) {
+    setDraft((prev) => ({
+      ...prev,
+      methods: prev.methods.includes(method)
+        ? prev.methods.filter((m) => m !== method)
+        : [...prev.methods, method],
+    }))
+    setMessage(null)
+  }
+
+  function patchPublic(action: keyof ResourceApiSettings['public'], value: boolean | null) {
+    setDraft((prev) => ({
+      ...prev,
+      settings: { ...prev.settings, public: { ...prev.settings.public, [action]: value } },
+    }))
+    setMessage(null)
   }
 
   function toggleField(name: string) {
@@ -216,7 +266,9 @@ export function ResourceCustomApisPanel({
               >
                 <div className="min-w-0">
                   <p className="font-medium">{apiItem.label}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{apiItem.path}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {apiItem.methods.join(' ')} {apiItem.path}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-muted-foreground">
@@ -289,6 +341,75 @@ export function ResourceCustomApisPanel({
             </label>
 
             <div className="space-y-2">
+              <p className="text-sm font-medium">{t('resources.customApis.methods')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('resources.customApis.methodsHint')}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {RESOURCE_API_METHODS.map((method) => (
+                  <label key={method} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={draft.methods.includes(method)}
+                      disabled={writesBlockedByJoins && isWriteMethod(method)}
+                      onChange={() => toggleMethod(method)}
+                    />
+                    <span className="font-mono text-xs">{method}</span>
+                  </label>
+                ))}
+              </div>
+              {writesBlockedByJoins ? (
+                <p className="text-xs text-muted-foreground">
+                  {t('resources.customApis.methodsJoinsBlocked')}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t('resources.customApis.publicAccess')}</p>
+              <p className="text-xs text-muted-foreground">
+                {t('resources.customApis.publicAccessHint')}
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {RESOURCE_API_METHODS.filter((method) => draft.methods.includes(method)).map(
+                  (method) => {
+                    const action = methodAction(method)
+                    const value = draft.settings.public[action]
+                    return (
+                      <div key={action} className="space-y-1">
+                        <Label htmlFor={`custom-api-public-${action}`}>
+                          {t(`resources.customApis.public.${action}`)}
+                        </Label>
+                        <Select
+                          id={`custom-api-public-${action}`}
+                          value={value === null ? 'inherit' : value ? 'yes' : 'no'}
+                          onChange={(e) =>
+                            patchPublic(
+                              action,
+                              e.target.value === 'inherit' ? null : e.target.value === 'yes',
+                            )
+                          }
+                        >
+                          <option value="inherit">{t('resources.customApis.inherit')}</option>
+                          <option value="yes">{t('common.yes')}</option>
+                          <option value="no">{t('common.no')}</option>
+                        </Select>
+                      </div>
+                    )
+                  },
+                )}
+              </div>
+              {publicWriteEnabled ? (
+                <p className="rounded-md border border-amber-500 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                  {t('resources.customApis.publicWriteWarning')}
+                </p>
+              ) : null}
+              <p className="text-xs text-muted-foreground">
+                {t('resources.customApis.grantsHint')}
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <p className="text-sm font-medium">{t('resources.customApis.fields')}</p>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -318,6 +439,13 @@ export function ResourceCustomApisPanel({
                     </label>
                   ))}
                 </div>
+              ) : null}
+              {missingRequired.length > 0 ? (
+                <p className="text-xs text-destructive">
+                  {t('resources.customApis.missingRequired', {
+                    fields: missingRequired.join(', '),
+                  })}
+                </p>
               ) : null}
             </div>
 
@@ -449,7 +577,7 @@ export function ResourceCustomApisPanel({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button disabled={save.isPending} onClick={() => save.mutate()}>
+              <Button disabled={save.isPending || saveBlocked} onClick={() => save.mutate()}>
                 {save.isPending ? t('common.saving') : t('common.save')}
               </Button>
               <Button variant="outline" onClick={() => setEditingId(null)}>

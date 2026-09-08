@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { resolveColumns } from '@/features/data-table/columns'
 import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
+import { filterParam } from '@/features/data-table/filters'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
@@ -141,16 +142,8 @@ export function ResourceEntriesPanel({
       if (search) params.set('search', search)
       for (const [field, value] of Object.entries(activeFilters)) {
         const fieldMeta = fields.find((f) => f.name === field)
-        const type = fieldMeta?.type ?? 'string'
-        const useContains =
-          type === 'string' ||
-          type === 'text' ||
-          type === 'email' ||
-          type === 'slug' ||
-          type === 'url' ||
-          type === 'uuid'
-        if (useContains) params.set(`filter[${field}][contains]`, value)
-        else params.set(`filter[${field}]`, value)
+        if (!fieldMeta) continue
+        params.set(...filterParam(fieldMeta, value))
       }
       return apiPage<EntryRow>(`/admin/api/resources/${resourceId}/entries?${params}`)
     },

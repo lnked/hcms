@@ -53,15 +53,28 @@ Rate limits: IP + per-token (admin vs API limits from settings); separate bucket
 
 ## Custom resource APIs
 
-Named GET-only endpoints with field projection and nested manyToOne embeds:
+Named endpoints with field projection and nested manyToOne embeds:
 
 ```http
-GET /api/{slug}/{apiSlug}
-GET /api/{slug}/{apiSlug}/{id}
+GET    /api/{slug}/{apiSlug}
+GET    /api/{slug}/{apiSlug}/{id}
+POST   /api/{slug}/{apiSlug}
+PATCH  /api/{slug}/{apiSlug}/{id}
+DELETE /api/{slug}/{apiSlug}/{id}
 ```
 
 Admin CRUD: `/admin/api/resources/{id}/apis`.  
 `apiSlug` must start with a letter (not numeric-only) so it does not collide with entry ids.
+
+`methods` per API (`GET`, `POST`, `PATCH`, `DELETE`; `PUT` normalizes to `PATCH`) decides which verbs answer — anything else returns 405. Writes are rejected for APIs with joins, and a `POST` projection must carry every required writable field. A write body may only touch fields inside the projection; anything else is a 422. Per-action public flags live in `settings.public.{read,create,update,delete}` and fall back to the resource flags when `null`. Full rules: [resources.md](./resources.md#custom-apis).
+
+Writes through a custom API dispatch the usual `entry.*` webhooks with an extra `apiSlug` in the payload.
+
+## Routing
+
+Entry ids and custom API slugs share the same path shape, so the segment after the slug is dispatched by its content: digits address an entry (`/api/posts/12`), anything else an apiSlug (`/api/posts/leads`). Every verb is registered on both shapes, and `/api/v1` registers before `/api` so the version prefix is never swallowed by `{apiSlug}`.
+
+Collection verbs reject a trailing id: `POST /api/{slug}/{id}` → 400 `Unexpected id`. Item verbs reject a missing one: `PATCH` / `DELETE` on the collection → 400 `Missing id`.
 
 ## Email integrations
 

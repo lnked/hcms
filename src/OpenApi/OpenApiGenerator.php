@@ -11,6 +11,7 @@ use Cms\Fields\FieldRepository;
 use Cms\Integrations\IntegrationApiRepository;
 use Cms\Integrations\IntegrationApiService;
 use Cms\Resources\ResourceApiRepository;
+use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 
@@ -96,11 +97,15 @@ final class OpenApiGenerator
                         if (is_string($apiSettings)) {
                             $apiSettings = json_decode($apiSettings, true);
                         }
-                        $apiPublicRead = is_array($apiSettings['public'] ?? null)
-                            && array_key_exists('read', $apiSettings['public'])
-                            && $apiSettings['public']['read'] !== null
-                            ? (bool) $apiSettings['public']['read']
-                            : (bool) ($public['read'] ?? false);
+                        $apiPublic = $this->customPublicAccess(
+                            is_array($apiSettings) ? $apiSettings : [],
+                            $public,
+                        );
+                        $apiMethods = ResourceApiService::normalizeMethods(
+                            is_string($apiRow['methods_json'])
+                                ? json_decode((string) $apiRow['methods_json'], true)
+                                : $apiRow['methods_json'],
+                        );
 
                         $customSchema = $this->customItemSchema(
                             $fieldRows,
@@ -110,23 +115,42 @@ final class OpenApiGenerator
                         $customSchemaName = $this->schemaName($slug . '_' . $apiSlug);
                         $schemas[$customSchemaName] = $customSchema;
 
-                        $paths['/' . $pathKey . '/' . $apiSlug] = $this->customCollectionPath(
+                        $customInputName = null;
+                        if (ResourceApiService::hasWriteMethod($apiMethods)) {
+                            $customInputName = $customSchemaName . 'Input';
+                            $schemas[$customInputName] = $this->inputSchema(
+                                $fieldRows,
+                                is_array($apiFields) ? array_values(array_map('strval', $apiFields)) : null,
+                            );
+                        }
+
+                        $customCollection = $this->customCollectionPath(
                             $slug,
                             $apiSlug,
                             $apiLabel,
                             $tag,
                             $customSchemaName,
-                            $apiPublicRead,
+                            $customInputName,
+                            $apiMethods,
+                            $apiPublic,
                             $fieldRows,
                         );
-                        $paths['/' . $pathKey . '/' . $apiSlug . '/{id}'] = $this->customItemPath(
+                        if ($customCollection !== []) {
+                            $paths['/' . $pathKey . '/' . $apiSlug] = $customCollection;
+                        }
+                        $customItem = $this->customItemPath(
                             $slug,
                             $apiSlug,
                             $apiLabel,
                             $tag,
                             $customSchemaName,
-                            $apiPublicRead,
+                            $customInputName,
+                            $apiMethods,
+                            $apiPublic,
                         );
+                        if ($customItem !== []) {
+                            $paths['/' . $pathKey . '/' . $apiSlug . '/{id}'] = $customItem;
+                        }
                     }
                 }
             }
@@ -289,9 +313,10 @@ final class OpenApiGenerator
 
     /**
      * @param list<array<string, mixed>> $fieldRows
+     * @param list<string>|null $only Restricts the body to a custom API projection
      * @return array<string, mixed>
      */
-    private function inputSchema(array $fieldRows): array
+    private function inputSchema(array $fieldRows, ?array $only = null): array
     {
         $properties = [];
         $required = [];
@@ -301,6 +326,9 @@ final class OpenApiGenerator
                 continue;
             }
             $name = (string) $field['name'];
+            if ($only !== null && !in_array($name, $only, true)) {
+                continue;
+            }
             $properties[$name] = $this->propertySchema((string) $field['type'], $spec);
             if ($spec['required'] ?? false) {
                 $required[] = $name;
@@ -718,6 +746,28 @@ final class OpenApiGenerator
     }
 
     /**
+     * Resolves the tri-state public flags of a custom API against its resource.
+     *
+     * @param array<string, mixed> $apiSettings
+     * @param array<string, mixed> $resourcePublic
+     * @return array<string, bool>
+     */
+    private function customPublicAccess(array $apiSettings, array $resourcePublic): array
+    {
+        $apiPublic = is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
+        $out = [];
+        foreach (['read', 'create', 'update', 'delete'] as $action) {
+            $out[$action] = array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
+                ? (bool) $apiPublic[$action]
+                : (bool) ($resourcePublic[$action] ?? false);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<string> $methods
+     * @param array<string, bool> $public
      * @param list<array<string, mixed>> $fieldRows
      * @return array<string, mixed>
      */
@@ -727,7 +777,9 @@ final class OpenApiGenerator
         string $apiLabel,
         string $tag,
         string $schemaName,
-        bool $publicRead,
+        ?string $inputName,
+        array $methods,
+        array $public,
         array $fieldRows,
     ): array {
         $parameters = [
@@ -748,11 +800,13 @@ final class OpenApiGenerator
             }
         }
 
-        $path = [
-            'get' => [
+        $operationSuffix = $slug . '_' . str_replace('-', '_', $apiSlug);
+        $path = [];
+        if (in_array('GET', $methods, true)) {
+            $path['get'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (list)',
-                'operationId' => 'list_' . $slug . '_' . str_replace('-', '_', $apiSlug),
+                'operationId' => 'list_' . $operationSuffix,
                 'parameters' => $parameters,
                 'responses' => [
                     '200' => [
@@ -781,16 +835,34 @@ final class OpenApiGenerator
                         ],
                     ],
                 ],
-            ],
-        ];
-        if ($publicRead) {
-            $path['get']['security'] = [];
+            ];
+            if ($public['read'] ?? false) {
+                $path['get']['security'] = [];
+            }
+        }
+
+        if (in_array('POST', $methods, true) && $inputName !== null) {
+            $path['post'] = [
+                'tags' => [$tag],
+                'summary' => $apiLabel . ' (create)',
+                'operationId' => 'create_' . $operationSuffix,
+                'requestBody' => $this->jsonRequestBody($inputName),
+                'responses' => [
+                    '201' => $this->jsonDataResponse('Created', $schemaName),
+                    '422' => ['description' => 'Validation error'],
+                ],
+            ];
+            if ($public['create'] ?? false) {
+                $path['post']['security'] = [];
+            }
         }
 
         return $path;
     }
 
     /**
+     * @param list<string> $methods
+     * @param array<string, bool> $public
      * @return array<string, mixed>
      */
     private function customItemPath(
@@ -799,43 +871,104 @@ final class OpenApiGenerator
         string $apiLabel,
         string $tag,
         string $schemaName,
-        bool $publicRead,
+        ?string $inputName,
+        array $methods,
+        array $public,
     ): array {
-        $path = [
-            'get' => [
+        $idParam = [
+            'name' => 'id',
+            'in' => 'path',
+            'required' => true,
+            'schema' => ['type' => 'integer'],
+        ];
+        $operationSuffix = $slug . '_' . str_replace('-', '_', $apiSlug);
+        $path = [];
+
+        if (in_array('GET', $methods, true)) {
+            $path['get'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (item)',
-                'operationId' => 'get_' . $slug . '_' . str_replace('-', '_', $apiSlug),
-                'parameters' => [
-                    [
-                        'name' => 'id',
-                        'in' => 'path',
-                        'required' => true,
-                        'schema' => ['type' => 'integer'],
-                    ],
-                ],
+                'operationId' => 'get_' . $operationSuffix,
+                'parameters' => [$idParam],
                 'responses' => [
-                    '200' => [
-                        'description' => 'OK',
-                        'content' => [
-                            'application/json' => [
-                                'schema' => [
-                                    'type' => 'object',
-                                    'properties' => [
-                                        'data' => ['$ref' => '#/components/schemas/' . $schemaName],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
+                    '200' => $this->jsonDataResponse('OK', $schemaName),
                     '404' => ['description' => 'Not found'],
                 ],
-            ],
-        ];
-        if ($publicRead) {
-            $path['get']['security'] = [];
+            ];
+            if ($public['read'] ?? false) {
+                $path['get']['security'] = [];
+            }
+        }
+
+        if (in_array('PATCH', $methods, true) && $inputName !== null) {
+            $path['patch'] = [
+                'tags' => [$tag],
+                'summary' => $apiLabel . ' (update)',
+                'operationId' => 'patch_' . $operationSuffix,
+                'parameters' => [$idParam],
+                'requestBody' => $this->jsonRequestBody($inputName),
+                'responses' => [
+                    '200' => $this->jsonDataResponse('OK', $schemaName),
+                    '404' => ['description' => 'Not found'],
+                    '422' => ['description' => 'Validation error'],
+                ],
+            ];
+            if ($public['update'] ?? false) {
+                $path['patch']['security'] = [];
+            }
+        }
+
+        if (in_array('DELETE', $methods, true)) {
+            $path['delete'] = [
+                'tags' => [$tag],
+                'summary' => $apiLabel . ' (delete)',
+                'operationId' => 'delete_' . $operationSuffix,
+                'parameters' => [$idParam],
+                'responses' => [
+                    '204' => ['description' => 'Deleted'],
+                    '404' => ['description' => 'Not found'],
+                ],
+            ];
+            if ($public['delete'] ?? false) {
+                $path['delete']['security'] = [];
+            }
         }
 
         return $path;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonRequestBody(string $inputName): array
+    {
+        return [
+            'required' => true,
+            'content' => [
+                'application/json' => [
+                    'schema' => ['$ref' => '#/components/schemas/' . $inputName],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonDataResponse(string $description, string $schemaName): array
+    {
+        return [
+            'description' => $description,
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'data' => ['$ref' => '#/components/schemas/' . $schemaName],
+                        ],
+                    ],
+                ],
+            ],
+        ];
     }
 }

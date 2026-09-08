@@ -257,14 +257,19 @@ const { data, meta } = await res.json()`,
     sections: [
       {
         paragraphs: [
-          'Each resource can define named GET-only APIs with field projection and nested manyToOne embeds.',
+          'Each resource can define named APIs with field projection, nested manyToOne embeds and their own set of HTTP methods.',
           'Manage them under the resource → APIs tab. The apiSlug must start with a letter so it does not collide with numeric entry ids.',
+          'A projection doubles as the write mask: POST and PATCH accept only the projected fields, and POST requires every required field to be projected. Writes are unavailable while the API has joins.',
+          'Public access is tri-state per method: inherit follows the resource, otherwise the API overrides it. Token access still uses the resource grants.',
         ],
         samples: [
           {
             language: 'http',
             code: `GET /api/{slug}/{apiSlug}
-GET /api/{slug}/{apiSlug}/{id}`,
+GET /api/{slug}/{apiSlug}/{id}
+POST /api/{slug}/{apiSlug}
+PATCH /api/{slug}/{apiSlug}/{id}
+DELETE /api/{slug}/{apiSlug}/{id}`,
           },
         ],
       },
@@ -289,6 +294,7 @@ GET /api/{slug}/{apiSlug}/{id}`,
         paragraphs: [
           'Outbound HMAC-signed POSTs when content changes. Configure under Settings → Webhooks (admin / settings.write). Delivery runs after the HTTP response (shutdown / FastCGI).',
           'Events: entry.created, entry.updated, entry.deleted, resource.published. Optional resourceId filter. Test button sends webhook.test (one attempt, no retries).',
+          'A write through a custom API adds apiSlug to the payload, and entry then holds only the projected fields.',
         ],
         links: [{ label: 'Settings → Webhooks', href: '/settings/webhooks' }],
       },
@@ -666,14 +672,19 @@ const { data, meta } = await res.json()`,
     sections: [
       {
         paragraphs: [
-          'У ресурса можно завести именованные GET-only API с проекцией полей и вложенными manyToOne embeds.',
+          'У ресурса можно завести именованные API с проекцией полей, вложенными manyToOne embeds и своим набором HTTP-методов.',
           'Управление: ресурс → вкладка APIs. apiSlug должен начинаться с буквы, чтобы не конфликтовать с id записей.',
+          'Проекция работает и как маска записи: POST и PATCH принимают только выбранные поля, а POST требует, чтобы все обязательные поля были в проекции. При наличии joins запись недоступна.',
+          'Публичный доступ задаётся по методу в трёх состояниях: «наследовать» берёт настройку ресурса, иначе API её переопределяет. Токены по-прежнему проверяются по грантам ресурса.',
         ],
         samples: [
           {
             language: 'http',
             code: `GET /api/{slug}/{apiSlug}
-GET /api/{slug}/{apiSlug}/{id}`,
+GET /api/{slug}/{apiSlug}/{id}
+POST /api/{slug}/{apiSlug}
+PATCH /api/{slug}/{apiSlug}/{id}
+DELETE /api/{slug}/{apiSlug}/{id}`,
           },
         ],
       },
@@ -698,6 +709,7 @@ GET /api/{slug}/{apiSlug}/{id}`,
         paragraphs: [
           'Исходящие HMAC-подписанные POST при изменениях контента. Настройка: Настройки → Webhooks (admin / settings.write). Доставка после HTTP-ответа (shutdown / FastCGI).',
           'События: entry.created, entry.updated, entry.deleted, resource.published. Опциональный фильтр resourceId. Кнопка Test шлёт webhook.test (одна попытка, без ретраев).',
+          'Запись через кастомный API добавляет в payload apiSlug, а entry содержит только поля проекции.',
         ],
         links: [{ label: 'Настройки → Webhooks', href: '/settings/webhooks' }],
       },

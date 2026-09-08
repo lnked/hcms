@@ -58,6 +58,45 @@ describe('DataTable', () => {
     expect(screen.queryByLabelText('Filter Views')).not.toBeInTheDocument()
   })
 
+  it('filters a boolean column with a tri-state checkbox', async () => {
+    const user = userEvent.setup()
+    const onFilterChange = vi.fn()
+    const fields = [
+      { ...emptyField('boolean', 0), name: 'isPublished', label: 'Published', filterable: true },
+    ]
+    const { rerender } = renderTable(
+      <DataTable
+        fields={fields}
+        rows={[{ id: 1, isPublished: true }]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+        filters={{}}
+        onFilterChange={onFilterChange}
+      />,
+    )
+    const checkbox = screen.getByLabelText('Filter Published') as HTMLInputElement
+    expect(checkbox.indeterminate).toBe(true)
+    await user.click(checkbox)
+    expect(onFilterChange).toHaveBeenLastCalledWith('isPublished', '1')
+
+    rerender(
+      <I18nProvider initialLocale="en">
+        <MemoryRouter>
+          <DataTable
+            fields={fields}
+            rows={[{ id: 1, isPublished: true }]}
+            editHref={editHref}
+            onDelete={vi.fn()}
+            filters={{ isPublished: '1' }}
+            onFilterChange={onFilterChange}
+          />
+        </MemoryRouter>
+      </I18nProvider>,
+    )
+    await user.click(screen.getByLabelText('Filter Published'))
+    expect(onFilterChange).toHaveBeenLastCalledWith('isPublished', '0')
+  })
+
   it('supports row selection', async () => {
     const user = userEvent.setup()
     const onSelectionChange = vi.fn()

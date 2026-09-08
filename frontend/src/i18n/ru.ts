@@ -387,10 +387,29 @@ export const ru: Record<MessageKey, string> = {
 
   'resources.customApis.title': 'Кастомные API',
   'resources.customApis.hint':
-    'Дополнительные GET-эндпоинты с выбором полей и вложенными связями (manyToOne).',
+    'Дополнительные эндпоинты с выбором полей, вложенными связями (manyToOne) и своим набором методов.',
   'resources.customApis.create': 'Создать API',
   'resources.customApis.empty': 'Кастомных API пока нет.',
   'resources.customApis.enabled': 'Включён',
+  'resources.customApis.methods': 'HTTP-методы',
+  'resources.customApis.methodsHint':
+    'Выбранные поля работают как маска записи: POST и PATCH принимают только их.',
+  'resources.customApis.methodsJoinsBlocked':
+    'Запись недоступна, пока у API есть связи — удалите их, чтобы включить POST, PATCH или DELETE.',
+  'resources.customApis.publicAccess': 'Публичный доступ',
+  'resources.customApis.publicAccessHint':
+    '«Наследовать» берёт настройку ресурса, иначе API переопределяет её для этого метода.',
+  'resources.customApis.public.read': 'Публичное чтение (GET)',
+  'resources.customApis.public.create': 'Публичное создание (POST)',
+  'resources.customApis.public.update': 'Публичное обновление (PATCH)',
+  'resources.customApis.public.delete': 'Публичное удаление (DELETE)',
+  'resources.customApis.inherit': 'Наследовать от ресурса',
+  'resources.customApis.publicWriteWarning':
+    'Публичная запись открыта всем. Настройте защиту от спама у ресурса перед включением.',
+  'resources.customApis.grantsHint':
+    'Токены проверяются по грантам ресурса: токен с правом создания получает POST во все кастомные API этого ресурса.',
+  'resources.customApis.missingRequired':
+    'Для POST нужно добавить в проекцию обязательные поля: {fields}',
   'resources.customApis.fields': 'Поля ответа',
   'resources.customApis.allFields': 'Все readable-поля',
   'resources.customApis.joins': 'Связи (embed)',
@@ -428,6 +447,7 @@ export const ru: Record<MessageKey, string> = {
   'entries.selectRow': 'Выбрать запись #{id}',
   'entries.filterPlaceholder': 'Фильтр…',
   'entries.filterField': 'Фильтр {field}',
+  'entries.filterAny': 'Любое',
   'entries.dialogHint': 'Значения проверяются по схеме ресурса.',
   'entries.empty': 'Записей пока нет.',
   'entries.noWritable': 'В схеме нет полей для записи.',

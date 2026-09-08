@@ -382,10 +382,29 @@ export const en = {
 
   'resources.customApis.title': 'Custom APIs',
   'resources.customApis.hint':
-    'Extra GET endpoints with field projection and nested manyToOne embeds.',
+    'Extra endpoints with field projection, nested manyToOne embeds and their own method set.',
   'resources.customApis.create': 'Create API',
   'resources.customApis.empty': 'No custom APIs yet.',
   'resources.customApis.enabled': 'Enabled',
+  'resources.customApis.methods': 'HTTP methods',
+  'resources.customApis.methodsHint':
+    'Selected fields act as the write mask: POST and PATCH accept only those fields.',
+  'resources.customApis.methodsJoinsBlocked':
+    'Writes are unavailable while the API has joins — remove them to enable POST, PATCH or DELETE.',
+  'resources.customApis.publicAccess': 'Public access',
+  'resources.customApis.publicAccessHint':
+    'Inherit follows the resource setting. Otherwise the API overrides it for that method.',
+  'resources.customApis.public.read': 'Public read (GET)',
+  'resources.customApis.public.create': 'Public create (POST)',
+  'resources.customApis.public.update': 'Public update (PATCH)',
+  'resources.customApis.public.delete': 'Public delete (DELETE)',
+  'resources.customApis.inherit': 'Inherit from resource',
+  'resources.customApis.publicWriteWarning':
+    'Public writes are open to anyone. Configure the resource spam protection before enabling them.',
+  'resources.customApis.grantsHint':
+    'Token access uses the resource grants: a token allowed to create on the resource can POST to all of its custom APIs.',
+  'resources.customApis.missingRequired':
+    'POST needs these required fields in the projection: {fields}',
   'resources.customApis.fields': 'Response fields',
   'resources.customApis.allFields': 'All readable fields',
   'resources.customApis.joins': 'Joins (embed)',
@@ -423,6 +442,7 @@ export const en = {
   'entries.selectRow': 'Select entry #{id}',
   'entries.filterPlaceholder': 'Filter…',
   'entries.filterField': 'Filter {field}',
+  'entries.filterAny': 'Any',
   'entries.dialogHint': 'Values are validated against the resource schema.',
   'entries.empty': 'No entries yet.',
   'entries.noWritable': 'No writable fields in schema.',

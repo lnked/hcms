@@ -1300,67 +1300,7 @@ final class Kernel
                 $spamGuard,
                 $webhookDispatcher,
             );
-            foreach (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
-                $this->router->add($method, '/api/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                    return $publicApi->handle($request, (string) $params['slug'], null, $context);
-                }, true, 'api');
-                $this->router->add($method, '/api/v1/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                    return $publicApi->handle($request, (string) $params['slug'], null, $context);
-                }, true, 'api');
-            }
-            // Custom APIs before /{id} so non-numeric segments resolve as apiSlug.
-            $this->router->add('GET', '/api/{slug}/{apiSlug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                $apiSlug = (string) $params['apiSlug'];
-                if (ctype_digit($apiSlug)) {
-                    return Response::error('NOT_FOUND', 'Not found', 404);
-                }
-
-                return $publicApi->handleCustom(
-                    $request,
-                    (string) $params['slug'],
-                    $apiSlug,
-                    (string) $params['id'],
-                    $context,
-                );
-            }, true, 'api');
-            $this->router->add('GET', '/api/v1/{slug}/{apiSlug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                $apiSlug = (string) $params['apiSlug'];
-                if (ctype_digit($apiSlug)) {
-                    return Response::error('NOT_FOUND', 'Not found', 404);
-                }
-
-                return $publicApi->handleCustom(
-                    $request,
-                    (string) $params['slug'],
-                    $apiSlug,
-                    (string) $params['id'],
-                    $context,
-                );
-            }, true, 'api');
-            $this->router->add('GET', '/api/{slug}/{apiSlug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                $apiSlug = (string) $params['apiSlug'];
-                if (ctype_digit($apiSlug)) {
-                    return $publicApi->handle($request, (string) $params['slug'], $apiSlug, $context);
-                }
-
-                return $publicApi->handleCustom($request, (string) $params['slug'], $apiSlug, null, $context);
-            }, true, 'api');
-            $this->router->add('GET', '/api/v1/{slug}/{apiSlug}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                $apiSlug = (string) $params['apiSlug'];
-                if (ctype_digit($apiSlug)) {
-                    return $publicApi->handle($request, (string) $params['slug'], $apiSlug, $context);
-                }
-
-                return $publicApi->handleCustom($request, (string) $params['slug'], $apiSlug, null, $context);
-            }, true, 'api');
-            foreach (['POST', 'PUT', 'PATCH', 'DELETE'] as $method) {
-                $this->router->add($method, '/api/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
-                }, true, 'api');
-                $this->router->add($method, '/api/v1/{slug}/{id}', function (Request $request, array $params, ?AuthContext $context) use ($publicApi): Response {
-                    return $publicApi->handle($request, (string) $params['slug'], (string) $params['id'], $context);
-                }, true, 'api');
-            }
+            PublicApiRoutes::register($this->router, $publicApi);
         }
 
         $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context): Response {

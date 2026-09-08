@@ -39,13 +39,15 @@ final class PublicApiController
                 'GET' => $id === null
                     ? Response::json($this->query->list($slug, $request->query, ['public' => true]))
                     : Response::data($this->query->find($slug, (int) $id, ['public' => true])),
-                'POST' => $this->create($request, $slug, $auth),
+                'POST' => $id === null
+                    ? $this->create($request, $slug, null, $auth)
+                    : Response::error('BAD_REQUEST', 'Unexpected id', 400),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->update($slug, (int) $id, $request->json()),
+                    : $this->update($slug, null, (int) $id, $request->json()),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->delete($slug, (int) $id),
+                    : $this->delete($slug, null, (int) $id),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
         } catch (InvalidArgumentException $e) {
@@ -63,17 +65,26 @@ final class PublicApiController
         ?AuthContext $auth,
     ): Response {
         try {
-            if ($request->method !== 'GET') {
-                return Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405);
-            }
             if (!ResourceApiService::isValidApiSlug($apiSlug)) {
                 return Response::error('NOT_FOUND', 'Resource API not found', 404);
             }
-            $this->authorizeCustom($slug, $apiSlug, $auth);
+            $this->authorizeCustom($slug, $apiSlug, self::actionFor($request->method), $auth);
 
-            return $id === null
-                ? Response::json($this->query->listCustom($slug, $apiSlug, $request->query, ['public' => true]))
-                : Response::data($this->query->findCustom($slug, $apiSlug, (int) $id, ['public' => true]));
+            return match ($request->method) {
+                'GET' => $id === null
+                    ? Response::json($this->query->listCustom($slug, $apiSlug, $request->query, ['public' => true]))
+                    : Response::data($this->query->findCustom($slug, $apiSlug, (int) $id, ['public' => true])),
+                'POST' => $id === null
+                    ? $this->create($request, $slug, $apiSlug, $auth)
+                    : Response::error('BAD_REQUEST', 'Unexpected id', 400),
+                'PUT', 'PATCH' => $id === null
+                    ? Response::error('BAD_REQUEST', 'Missing id', 400)
+                    : $this->update($slug, $apiSlug, (int) $id, $request->json()),
+                'DELETE' => $id === null
+                    ? Response::error('BAD_REQUEST', 'Missing id', 400)
+                    : $this->delete($slug, $apiSlug, (int) $id),
+                default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
+            };
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -81,37 +92,17 @@ final class PublicApiController
         }
     }
 
-    private function create(Request $request, string $slug, ?AuthContext $auth): Response
+    private function create(Request $request, string $slug, ?string $apiSlug, ?AuthContext $auth): Response
     {
         $payload = $request->json();
-        if ($auth === null && $this->spamGuard !== null) {
-            $resource = $this->resources->findByPublicKey($slug);
-            $settings = [];
-            if ($resource !== null) {
-                $raw = $resource['settings_json'] ?? [];
-                if (is_string($raw)) {
-                    $decoded = json_decode($raw, true);
-                    $settings = is_array($decoded) ? $decoded : [];
-                } elseif (is_array($raw)) {
-                    $settings = $raw;
-                }
-                $settings = ResourceService::normalizeSettings($settings);
-            }
-            $this->spamGuard->assertCreateAllowed($request, $settings, $payload);
-            $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
-            if ($honeypot !== '') {
-                unset($payload[$honeypot]);
-            }
-            unset($payload['captchaToken'], $payload['_startedAt']);
+        if ($auth === null) {
+            $this->guardAnonymousCreate($request, $slug, $payload);
         }
 
-        $entry = $this->query->create($slug, $payload, ['public' => true]);
-        $resourceId = $this->resourceId($slug);
-        $this->webhooks?->dispatchAfterResponse('entry.created', [
-            'resourceId' => $resourceId,
-            'slug' => $slug,
-            'entry' => $entry,
-        ], $resourceId);
+        $entry = $apiSlug === null
+            ? $this->query->create($slug, $payload, ['public' => true])
+            : $this->query->createCustom($slug, $apiSlug, $payload, ['public' => true]);
+        $this->dispatchWebhook('entry.created', $slug, $apiSlug, ['entry' => $entry]);
 
         return Response::data($entry, 201);
     }
@@ -119,30 +110,82 @@ final class PublicApiController
     /**
      * @param array<string, mixed> $payload
      */
-    private function update(string $slug, int $id, array $payload): Response
+    private function update(string $slug, ?string $apiSlug, int $id, array $payload): Response
     {
-        $entry = $this->query->patch($slug, $id, $payload, ['public' => true]);
-        $resourceId = $this->resourceId($slug);
-        $this->webhooks?->dispatchAfterResponse('entry.updated', [
-            'resourceId' => $resourceId,
-            'slug' => $slug,
-            'entry' => $entry,
-        ], $resourceId);
+        $entry = $apiSlug === null
+            ? $this->query->patch($slug, $id, $payload, ['public' => true])
+            : $this->query->patchCustom($slug, $apiSlug, $id, $payload, ['public' => true]);
+        $this->dispatchWebhook('entry.updated', $slug, $apiSlug, ['entry' => $entry]);
 
         return Response::data($entry);
     }
 
-    private function delete(string $slug, int $id): Response
+    private function delete(string $slug, ?string $apiSlug, int $id): Response
     {
-        $this->query->delete($slug, $id, ['public' => true]);
-        $resourceId = $this->resourceId($slug);
-        $this->webhooks?->dispatchAfterResponse('entry.deleted', [
-            'resourceId' => $resourceId,
-            'slug' => $slug,
-            'entryId' => $id,
-        ], $resourceId);
+        if ($apiSlug === null) {
+            $this->query->delete($slug, $id, ['public' => true]);
+        } else {
+            $this->query->deleteCustom($slug, $apiSlug, $id, ['public' => true]);
+        }
+        $this->dispatchWebhook('entry.deleted', $slug, $apiSlug, ['entryId' => $id]);
 
         return new Response(204, '');
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function guardAnonymousCreate(Request $request, string $slug, array &$payload): void
+    {
+        if ($this->spamGuard === null) {
+            return;
+        }
+
+        $resource = $this->resources->findByPublicKey($slug);
+        $settings = [];
+        if ($resource !== null) {
+            $raw = $resource['settings_json'] ?? [];
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $settings = is_array($decoded) ? $decoded : [];
+            } elseif (is_array($raw)) {
+                $settings = $raw;
+            }
+            $settings = ResourceService::normalizeSettings($settings);
+        }
+        $this->spamGuard->assertCreateAllowed($request, $settings, $payload);
+        $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
+        if ($honeypot !== '') {
+            unset($payload[$honeypot]);
+        }
+        unset($payload['captchaToken'], $payload['_startedAt']);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function dispatchWebhook(string $event, string $slug, ?string $apiSlug, array $data): void
+    {
+        if ($this->webhooks === null) {
+            return;
+        }
+
+        $resourceId = $this->resourceId($slug);
+        $payload = ['resourceId' => $resourceId, 'slug' => $slug, ...$data];
+        if ($apiSlug !== null) {
+            $payload['apiSlug'] = $apiSlug;
+        }
+        $this->webhooks->dispatchAfterResponse($event, $payload, $resourceId);
+    }
+
+    private static function actionFor(string $method): string
+    {
+        return match ($method) {
+            'POST' => 'create',
+            'PUT', 'PATCH' => 'update',
+            'DELETE' => 'delete',
+            default => 'read',
+        };
     }
 
     private function resourceId(string $slug): ?int
@@ -177,19 +220,12 @@ final class PublicApiController
             ? json_decode((string) $resource['settings_json'], true)
             : $resource['settings_json'];
         $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $action = self::actionFor($method);
 
-        $action = match ($method) {
-            'GET' => 'read',
-            'POST' => 'create',
-            'PUT', 'PATCH' => 'update',
-            'DELETE' => 'delete',
-            default => 'read',
-        };
-
-        $this->authorizeAction($resource, $public[$action] ?? false, $action, $auth);
+        $this->authorizeAction($resource, (bool) ($public[$action] ?? false), $action, $auth);
     }
 
-    private function authorizeCustom(string $slug, string $apiSlug, ?AuthContext $auth): void
+    private function authorizeCustom(string $slug, string $apiSlug, string $action, ?AuthContext $auth): void
     {
         $resource = $this->resources->findByPublicKey($slug);
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
@@ -213,11 +249,11 @@ final class PublicApiController
             : $api['settings_json'];
         $apiPublic = is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
 
-        $allowPublic = array_key_exists('read', $apiPublic) && $apiPublic['read'] !== null
-            ? (bool) $apiPublic['read']
-            : (bool) ($resourcePublic['read'] ?? false);
+        $allowPublic = array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
+            ? (bool) $apiPublic[$action]
+            : (bool) ($resourcePublic[$action] ?? false);
 
-        $this->authorizeAction($resource, $allowPublic, 'read', $auth);
+        $this->authorizeAction($resource, $allowPublic, $action, $auth);
     }
 
     /**

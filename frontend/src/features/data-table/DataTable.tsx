@@ -2,7 +2,6 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -15,6 +14,8 @@ import { useI18n, type MessageKey } from '@/i18n'
 import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
 import { resolveColumns } from './columns'
+import { FilterControl } from './FilterControl'
+import { isFilterable } from './filters'
 import { MediaCell } from './MediaCell'
 import { RelationCell } from './RelationCell'
 import { isManyToOneRelation, type RelationTarget } from './useRelationLabels'
@@ -61,7 +62,7 @@ export function DataTable({
   const allSelected = rows.length > 0 && rows.every((row) => selected.includes(row.id))
   const someSelected = rows.some((row) => selected.includes(row.id))
   const showFilters = typeof onFilterChange === 'function'
-  const filterableColumns = columns.filter((col) => col.field.filterable)
+  const filterableColumns = columns.filter((col) => isFilterable(col.field))
   const colSpan = columns.length + 2 + (selectionEnabled ? 1 : 0)
 
   function toggleSort(name: string, sortable: boolean) {
@@ -136,15 +137,12 @@ export function DataTable({
             <TableHead />
             {columns.map((col) => (
               <TableHead key={`filter-${col.field.name}`} className="py-2">
-                {col.field.filterable ? (
-                  <Input
-                    value={filters?.[col.field.name] ?? ''}
-                    onChange={(e) => onFilterChange?.(col.field.name, e.target.value)}
-                    placeholder={t('entries.filterPlaceholder')}
-                    aria-label={t('entries.filterField', { field: col.label })}
-                    className="h-8"
-                  />
-                ) : null}
+                <FilterControl
+                  field={col.field}
+                  label={col.label}
+                  value={filters?.[col.field.name] ?? ''}
+                  onChange={(value) => onFilterChange?.(col.field.name, value)}
+                />
               </TableHead>
             ))}
             <TableHead />
