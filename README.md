@@ -1,8 +1,8 @@
 # HCMS
 
-API-first headless CMS: визуально описываешь схему — получаешь REST, OpenAPI и админский CRUD.
+Готовая админка для вашего SPA: визуально описываешь схему — получаешь REST, OpenAPI и админский CRUD.
 
-[![CI](https://github.com/lnked/hcms/actions/workflows/ci.yml/badge.svg)](https://github.com/lnked/hcms/actions/workflows/ci.yml)
+[2js.ru](https://2js.ru) · [![CI](https://github.com/lnked/hcms/actions/workflows/ci.yml/badge.svg)](https://github.com/lnked/hcms/actions/workflows/ci.yml)
 
 Администратор управляет схемой и данными, а не пишет backend-код.
 
@@ -14,6 +14,10 @@ API-first headless CMS: визуально описываешь схему — �
 - Для разработки: Node.js 20+, Composer
 
 ## Installation (production)
+
+```bash
+curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php
+```
 
 1. Положи [`install.php`](install.php) в корень сайта.
 2. Открой `https://your-domain/install.php`.

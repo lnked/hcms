@@ -237,7 +237,7 @@ function SidebarFooter({
       >
         {collapsed ? (
           version?.updateAvailable ? (
-            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
           ) : (
             <span className="tabular-nums text-[10px] leading-none">{version?.current ?? '…'}</span>
           )
@@ -245,7 +245,7 @@ function SidebarFooter({
           <>
             <span className="whitespace-nowrap">v{version?.current ?? '…'}</span>
             {version?.updateAvailable ? (
-              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
             ) : null}
           </>
         )}
@@ -317,13 +317,13 @@ export function AppShell() {
     cn(
       'flex items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
       collapsed ? 'justify-center px-0' : 'gap-2 px-3',
-      isActive && 'bg-sidebar-accent font-medium',
+      isActive && 'bg-sidebar-accent font-medium text-primary',
     )
 
   const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
       'flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
-      isActive && 'bg-sidebar-accent font-medium',
+      isActive && 'bg-sidebar-accent font-medium text-primary',
     )
 
   const closeMobile = () => setMobileOpen(false)

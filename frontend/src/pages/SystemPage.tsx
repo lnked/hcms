@@ -282,7 +282,7 @@ export function SystemPage() {
                 {item === 'version' ? t('system.version') : t('system.update')}
                 {item === 'update' && data?.updateAvailable ? (
                   <span
-                    className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+                    className="h-2 w-2 shrink-0 rounded-full bg-success"
                     title={t('common.updateAvailable')}
                   />
                 ) : null}

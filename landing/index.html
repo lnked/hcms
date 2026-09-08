@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HCMS — a ready-made admin for your SPA</title>
+    <meta
+      name="description"
+      content="Drop-in admin panel and REST API for your SPA. Describe a schema, get CRUD, OpenAPI, and /admin."
+    />
+    <link rel="canonical" href="https://2js.ru/" />
+    <meta property="og:title" content="HCMS — a ready-made admin for your SPA" />
+    <meta
+      property="og:description"
+      content="Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend."
+    />
+    <meta property="og:url" content="https://2js.ru/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+    <div class="announce" id="announce" hidden></div>
+    <header class="nav">
+      <div class="wrap nav-inner">
+        <a class="logo" href="#">HCMS</a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#features" data-i18n="nav.features">Features</a>
+          <a href="#install" data-i18n="nav.install">Install</a>
+          <a href="https://github.com/lnked/hcms/tree/main/docs">Docs</a>
+          <a href="https://github.com/lnked/hcms">GitHub</a>
+          <div class="lang" role="group" aria-label="Language">
+            <button type="button" data-lang="en" aria-pressed="true">EN</button>
+            <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+          </div>
+          <a class="btn btn-primary" href="#install" data-i18n="nav.cta">Get install.php</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero wrap">
+        <h1 data-i18n="hero.title">A ready-made admin for your SPA</h1>
+        <p class="sub" data-i18n="hero.sub">
+          Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.
+        </p>
+        <div class="hero-cta">
+          <a
+            class="btn btn-primary js-download"
+            href="https://github.com/lnked/hcms/releases/latest/download/install.php"
+            download="install.php"
+            data-i18n="hero.download"
+            >Download install.php</a
+          >
+          <a class="btn btn-ghost" href="https://github.com/lnked/hcms" data-i18n="hero.github">View on GitHub</a>
+        </div>
+        <div class="code" id="install">
+          <code id="curl"
+            >curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php</code
+          >
+          <button type="button" id="copy" data-i18n="hero.copy">Copy</button>
+        </div>
+        <p class="counter" id="counter" hidden></p>
+        <div class="pills">
+          <span class="pill" data-i18n="pill.admin">Admin panel</span>
+          <span class="pill">REST + OpenAPI</span>
+          <span class="pill" data-i18n="pill.schema">Schema builder</span>
+          <span class="pill" data-i18n="pill.host">Self-host</span>
+        </div>
+        <div class="trust">
+          <span>MIT</span>
+          <span>PHP 8.3+</span>
+          <span data-i18n="trust.deps">Zero runtime deps</span>
+          <span>MySQL / MariaDB</span>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <div class="steps">
+          <article class="step">
+            <span class="n">1</span>
+            <h3 data-i18n="step1.title">Drop the file</h3>
+            <p data-i18n="step1.body">Put install.php in the site root — shared hosting is fine.</p>
+          </article>
+          <article class="step">
+            <span class="n">2</span>
+            <h3 data-i18n="step2.title">Open the wizard</h3>
+            <p data-i18n-html="step2.body">Hit <code>/install.php</code>. It pulls the latest zip from GitHub Releases.</p>
+          </article>
+          <article class="step">
+            <span class="n">3</span>
+            <h3 data-i18n="step3.title">Point your SPA</h3>
+            <p data-i18n="step3.body">Fill DB + admin, then call /api from React, Vue, or Next.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s1.eyebrow">For your SPA</p>
+          <h2 data-i18n="s1.title">Plug in an admin. Keep the frontend.</h2>
+          <p class="lead" data-i18n="s1.lead">
+            HCMS is the backend your SPA is missing: visual schema, REST, and a real /admin — no custom CRUD.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s1.c1.title">Drop-in /admin</h3>
+              <p data-i18n="s1.c1.body">
+                Ship a full admin UI with your PHP host. Editors never touch the SPA repo.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s1.c2.title">REST for React / Vue / Next</h3>
+              <p data-i18n="s1.c2.body">
+                Public /api/{slug} with pagination, search, sort, and filter. Bearer tokens, CORS included.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s1.c3.title">OpenAPI / Swagger</h3>
+              <p data-i18n="s1.c3.body">
+                Spec at /api/openapi.json, UI at /api/docs — generated from the schema you publish.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s2.eyebrow">Build APIs fast</p>
+          <h2 data-i18n="s2.title">From content type to live /api/{slug}</h2>
+          <p class="lead" data-i18n="s2.lead">
+            Schema is the source of truth for SQL, validation, REST, Admin UI, and OpenAPI.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s2.c1.title">Field types that cover real apps</h3>
+              <p data-i18n="s2.c1.body">
+                String, richtext, relation, media, slug, enum, json, dates — publish and get a migration.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s2.c2.title">Query the way you expect</h3>
+              <p data-i18n="s2.c2.body">
+                Per-resource pagination, search, sort, and filter. Custom GET projections when you need them.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s2.c3.title">Swagger the moment you publish</h3>
+              <p data-i18n="s2.c3.body">
+                No hand-written spec. Open /api/docs after you hit publish on a content type.
+              </p>
+            </article>
+          </div>
+          <div class="mock" aria-hidden="true">
+            <div class="mock-panel">
+              <div class="mock-bar">
+                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                /admin · schema
+              </div>
+              <div class="mock-body">
+                <div class="mock-side">
+                  <span class="on">articles</span>
+                  <span>pages</span>
+                  <span>media</span>
+                </div>
+                <div class="mock-fields">
+                  <div class="field"><b>title</b><code>string</code></div>
+                  <div class="field"><b>slug</b><code>slug</code></div>
+                  <div class="field"><b>body</b><code>richtext</code></div>
+                </div>
+              </div>
+            </div>
+            <div class="mock-panel">
+              <div class="mock-bar">
+                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                GET /api/articles
+              </div>
+              <pre class="mock-api">{
+  "data": [
+    {
+      "title": "Ship the SPA",
+      "slug": "ship-the-spa"
+    }
+  ]
+}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s3.eyebrow">Content tools</p>
+          <h2 data-i18n="s3.title">Editors get a real admin, not a JSON dump</h2>
+          <p class="lead" data-i18n="s3.lead">Media, rich text, relations, revisions — the usual CMS jobs, wired to your API.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s3.c1.title">Media + variants</h3>
+              <p data-i18n="s3.c1.body">Library, crop editor, image variants. Public /media/{id} for the SPA.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s3.c2.title">Rich text</h3>
+              <p data-i18n="s3.c2.body">Markdown for editors. Structured fields for everything else.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s3.c3.title">Relations &amp; revisions</h3>
+              <p data-i18n="s3.c3.body">Link entries, keep history, export/import resource packages.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s4.eyebrow">Deploy anywhere</p>
+          <h2 data-i18n="s4.title">One file. Any PHP host.</h2>
+          <p class="lead" data-i18n="s4.lead">No Cloud upsell. Self-host, update in-app, roll back if a swap dies mid-flight.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s4.c1.title">install.php → GitHub zip</h3>
+              <p data-i18n="s4.c1.body">
+                Wizard downloads the latest release, verifies sha256, unzip. If src/ is already there, skip.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s4.c2.title">Shared hosting layout</h3>
+              <p data-i18n="s4.c2.body">
+                Installs into public_html correctly: public files in the web root, src/ one level up.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s4.c3.title">Atomic updates</h3>
+              <p data-i18n="s4.c3.body">
+                Settings → System. Interrupted swap rolls back. restore.php if the box still needs a shove.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s5.eyebrow">Secure by default</p>
+          <h2 data-i18n="s5.title">Tokens, roles, hooks — without a plugin zoo</h2>
+          <p class="lead" data-i18n="s5.lead">Auth is Bearer-only. The rest ships in core.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s5.c1.title">RBAC</h3>
+              <p data-i18n="s5.c1.body">Owner, admin, editor, viewer. Per-resource public CRUD flags.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s5.c2.title">TOTP 2FA</h3>
+              <p data-i18n="s5.c2.body">Plus captcha and IP blocks. No “install a security plugin” step.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s5.c3.title">HMAC webhooks</h3>
+              <p data-i18n="s5.c3.body">Ping your SPA or workers on content changes. Retries included.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-band wrap">
+        <h2 data-i18n="cta.title">Put the admin next to your SPA</h2>
+        <p data-i18n="cta.body">One PHP file. Latest zip from GitHub. Admin at /admin, API at /api.</p>
+        <div class="hero-cta">
+          <a
+            class="btn btn-primary js-download"
+            href="https://github.com/lnked/hcms/releases/latest/download/install.php"
+            download="install.php"
+            data-i18n="hero.download"
+            >Download install.php</a
+          >
+        </div>
+        <div class="code">
+          <code class="js-curl-clone"
+            >curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php</code
+          >
+          <button type="button" class="js-copy" data-i18n="hero.copy">Copy</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <div class="logo">HCMS</div>
+            <p data-i18n="footer.blurb">API-first headless CMS. Schema in, REST and admin out. MIT.</p>
+          </div>
+          <div>
+            <h4 data-i18n="footer.product">Product</h4>
+            <ul>
+              <li><a href="#features" data-i18n="nav.features">Features</a></li>
+              <li><a href="#install" data-i18n="nav.install">Install</a></li>
+              <li><a href="https://github.com/lnked/hcms/releases">Releases</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Docs</h4>
+            <ul>
+              <li><a href="https://github.com/lnked/hcms/blob/main/docs/installation.md">Installation</a></li>
+              <li><a href="https://github.com/lnked/hcms/blob/main/docs/architecture.md">Architecture</a></li>
+              <li><a href="https://github.com/lnked/hcms/blob/main/docs/openapi.md">OpenAPI</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 data-i18n="footer.source">Source</h4>
+            <ul>
+              <li><a href="https://github.com/lnked/hcms">GitHub</a></li>
+              <li><a href="https://github.com/lnked/hcms/blob/main/composer.json">MIT license</a></li>
+              <li><a href="https://github.com/lnked/hcms/blob/main/changelog.json">Changelog</a></li>
+            </ul>
+          </div>
+        </div>
+        <p class="legal">© HCMS · <a href="https://github.com/lnked/hcms">lnked/hcms</a></p>
+      </div>
+    </footer>
+    <script src="./app.js"></script>
+  </body>
+</html>

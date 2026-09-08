@@ -46,6 +46,7 @@ rsync -a \
   --exclude '.env' \
   --exclude '.env.*' \
   --exclude 'frontend' \
+  --exclude 'landing' \
   --exclude 'node_modules' \
   --exclude 'dist' \
   --exclude 'storage/*' \
@@ -105,8 +106,11 @@ php "$SRC/scripts/latest-json.php" \
   --sha256="$SHA" \
   --out="$LATEST"
 
+INSTALL_PHP="$DIST/install.php"
+cp -f "$SRC/install.php" "$INSTALL_PHP"
+
 echo "==> Artifacts"
-ls -lh "$ZIP" "$SHA_FILE" "$LATEST"
+ls -lh "$ZIP" "$SHA_FILE" "$LATEST" "$INSTALL_PHP"
 echo "sha256: $SHA"
 
 if [[ "${PUBLISH:-0}" == "1" ]]; then
@@ -115,10 +119,10 @@ if [[ "${PUBLISH:-0}" == "1" ]]; then
     --repo "$REPO" \
     --title "HCMS ${VERSION}" \
     --notes "Release ${VERSION}. Install via install.php → download latest." \
-    "$ZIP" "$SHA_FILE" "$LATEST"
-  # latest.json must also be reachable as .../latest/download/latest.json
+    "$ZIP" "$SHA_FILE" "$LATEST" "$INSTALL_PHP"
+  # latest.json / install.php must be reachable as .../latest/download/<name>
   # GitHub maps /releases/latest/download/X to the newest release asset named X.
-  echo "Published. Verify: https://github.com/${REPO}/releases/latest/download/latest.json"
+  echo "Published. Verify: https://github.com/${REPO}/releases/latest/download/install.php"
 else
   echo "Dry-run only. Re-run with PUBLISH=1 to create GitHub release."
 fi

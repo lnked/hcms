@@ -258,7 +258,7 @@ export function InstallPage() {
               {status ? (
                 <ul className="space-y-1 text-sm">
                   {Object.entries(status.requirements.checks).map(([key, ok]) => (
-                    <li key={key} className={ok ? 'text-emerald-600' : 'text-destructive'}>
+                    <li key={key} className={ok ? 'text-success' : 'text-destructive'}>
                       {key}: {ok ? t('install.ok') : t('install.fail')}
                     </li>
                   ))}

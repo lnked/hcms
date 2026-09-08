@@ -115,9 +115,7 @@ export function EntryRevisionsPanel({
                             <span className="text-muted-foreground">{key}:</span>{' '}
                             <span className="text-destructive">{formatVal(change.from)}</span>
                             {' → '}
-                            <span className="text-emerald-600 dark:text-emerald-400">
-                              {formatVal(change.to)}
-                            </span>
+                            <span className="text-success">{formatVal(change.to)}</span>
                           </div>
                         ))}
                       </div>
