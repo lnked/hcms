@@ -24,6 +24,9 @@
 /public/admin/assets/
 /public/admin/animations/
 /public/admin/index.html
+# AdminUiPublisher mirrors the built shell into every candidate docroot at runtime.
+/admin/
+/public_html/
 .php-cs-fixer.cache
 .phpunit.cache
 .phpunit.result.cache

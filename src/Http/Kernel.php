@@ -1566,11 +1566,17 @@ final class Kernel
     private function spa(): Response
     {
         $index = (new AdminUiPublisher($this->paths))->resolveIndex();
+        // The shell names the hashed bundles, so a cached copy pins the browser to the
+        // previous build. Static hits on /admin/index.html get this from the web server,
+        // but every deep link is served from here instead.
+        $noCache = ['Cache-Control' => 'no-cache'];
+
         if (!is_file($index)) {
-            return Response::html('<!doctype html><html><body><p>Admin UI is not built. Run <code>npm run build</code>.</p></body></html>', 503);
+            return Response::html('<!doctype html><html><body><p>Admin UI is not built. Run <code>npm run build</code>.</p></body></html>', 503)
+                ->withHeaders($noCache);
         }
 
-        return Response::html((string) file_get_contents($index));
+        return Response::html((string) file_get_contents($index))->withHeaders($noCache);
     }
 
     public function installer(): Installer
