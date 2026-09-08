@@ -17,13 +17,20 @@
 
 ```bash
 curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php
+php install.php
 ```
 
-1. Положи [`install.php`](install.php) в корень сайта.
-2. Открой `https://your-domain/install.php`.
-3. Инсталлятор скачает latest zip из [GitHub Releases `lnked/hcms`](https://github.com/lnked/hcms/releases).
-4. Заполни БД, URL приложения и администратора.
-5. Открой Admin Panel и войди.
+`php install.php` поднимает мастер на встроенном сервере PHP (`0.0.0.0:8080`, первый свободный порт) и печатает ссылку
+с одноразовым ключом — без ключа мастер отвечает 403, поэтому открытый порт не значит открытую установку. Хост и порт
+переопределяются: `php install.php --host=127.0.0.1 --port=9000`.
+
+Без SSH — положи [`install.php`](install.php) в корень сайта и открой `https://your-domain/install.php`.
+
+Дальше в обоих случаях:
+
+1. Инсталлятор скачает latest zip из [GitHub Releases `lnked/hcms`](https://github.com/lnked/hcms/releases) и сверит sha256.
+2. Заполни БД, URL приложения и администратора.
+3. Открой Admin Panel и войди.
 
 После установки `install.php` отвечает отказом.
 

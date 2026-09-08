@@ -19,16 +19,21 @@ const I18N = {
     'hero.github': 'View on GitHub',
     'hero.copy': 'Copy',
     'hero.copied': 'Copied',
+    'hero.note':
+      'The second line boots the wizard on port 8080 and prints a one-time link: PHP check, latest release, DB and admin — all in the browser.',
     'pill.admin': 'Admin panel',
     'pill.schema': 'Schema builder',
     'pill.host': 'Self-host',
     'trust.deps': 'Zero runtime deps',
-    'step1.title': 'Drop the file',
-    'step1.body': 'Put install.php in the site root — shared hosting is fine.',
-    'step2.title': 'Open the wizard',
-    'step2.body': 'Hit <code>/install.php</code>. It pulls the latest zip from GitHub Releases.',
-    'step3.title': 'Point your SPA',
-    'step3.body': 'Fill DB + admin, then call /api from React, Vue, or Next.',
+    'step1.title': 'Run the two lines',
+    'step1.body':
+      'Over SSH, in the folder you want the CMS in. No shell? Upload <code>install.php</code> to the web root and open it in the browser instead.',
+    'step2.title': 'Open the printed link',
+    'step2.body':
+      '<code>php install.php</code> serves the wizard on port 8080 behind a one-time key. It checks PHP 8.3+, downloads the latest release and verifies sha256.',
+    'step3.title': 'Fill DB and admin',
+    'step3.body':
+      'The wizard writes the config, runs migrations and creates the owner. Then /admin and /api are live for your SPA.',
     's1.eyebrow': 'For your SPA',
     's1.title': 'Plug in an admin. Keep the frontend.',
     's1.lead':
@@ -96,16 +101,21 @@ const I18N = {
     'hero.github': 'Код на GitHub',
     'hero.copy': 'Копировать',
     'hero.copied': 'Скопировано',
+    'hero.note':
+      'Вторая строка поднимает мастер на порту 8080 и печатает одноразовую ссылку: проверка PHP, свежий релиз, БД и админ — в браузере.',
     'pill.admin': 'Админка',
     'pill.schema': 'Конструктор схемы',
     'pill.host': 'Self-host',
     'trust.deps': 'Без runtime-зависимостей',
-    'step1.title': 'Положи файл',
-    'step1.body': 'install.php в корень сайта — shared-хостинг тоже ок.',
-    'step2.title': 'Открой мастер',
-    'step2.body': 'Зайди на <code>/install.php</code>. Он скачает latest zip из GitHub Releases.',
-    'step3.title': 'Подключи SPA',
-    'step3.body': 'БД и админ — и дергай /api из React, Vue или Next.',
+    'step1.title': 'Выполни две строки',
+    'step1.body':
+      'По SSH, в папке будущей CMS. Нет шелла? Залей <code>install.php</code> в корень сайта и открой в браузере.',
+    'step2.title': 'Открой ссылку из терминала',
+    'step2.body':
+      '<code>php install.php</code> поднимает мастер на порту 8080 под одноразовым ключом. Проверяет PHP 8.3+, качает свежий релиз, сверяет sha256.',
+    'step3.title': 'Заполни БД и админа',
+    'step3.body':
+      'Мастер пишет конфиг, гоняет миграции, создаёт владельца. После этого /admin и /api готовы для SPA.',
     's1.eyebrow': 'Для вашего SPA',
     's1.title': 'Админка подключается. Фронт остаётся твоим.',
     's1.lead':
@@ -198,8 +208,8 @@ function applyLang(lang) {
 }
 
 async function copyText(button) {
-  const code = button.closest('.code')?.querySelector('code');
-  const text = code ? code.textContent : '';
+  const lines = [...(button.closest('.code')?.querySelectorAll('code') ?? [])];
+  const text = lines.map((line) => line.textContent.trim()).join('\n');
   try {
     await navigator.clipboard.writeText(text);
   } catch {

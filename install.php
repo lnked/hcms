@@ -48,7 +48,8 @@ $autoload = is_file($root . '/src/autoload.php')
 // built-in server instead of dumping HTML into the terminal. The child process
 // re-enters this file as the router, hence the cli-server branch below.
 if (PHP_SAPI === 'cli') {
-    cms_install_cli_serve(array_slice($argv, 1));
+    $cliArgs = isset($_SERVER['argv']) && is_array($_SERVER['argv']) ? $_SERVER['argv'] : [];
+    cms_install_cli_serve(array_map('strval', array_slice(array_values($cliArgs), 1)));
 }
 
 if (PHP_SAPI === 'cli-server') {

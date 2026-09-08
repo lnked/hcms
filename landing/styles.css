@@ -212,7 +212,7 @@ img {
 .code {
   position: relative;
   width: min(100%, 640px);
-  margin: 0 auto 28px;
+  margin: 0 auto 12px;
   background: #212134;
   color: #ffffff;
   border-radius: var(--radius);
@@ -227,6 +227,15 @@ img {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: 1.65;
+}
+
+.code-note {
+  width: min(100%, 640px);
+  margin: 0 auto 24px;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
 }
 
 .code-copy {

@@ -80,6 +80,7 @@
           <code id="curl"
             >curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code
           >
+          <code>php install.php</code>
           <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Copy">
             <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="9" y="9" width="11" height="11" rx="2.5" />
@@ -90,6 +91,10 @@
             </svg>
           </button>
         </div>
+        <p class="code-note" data-i18n="hero.note">
+          The second line boots the wizard on port 8080 and prints a one-time link: PHP check, latest release, DB and
+          admin — all in the browser.
+        </p>
         <p class="counter" id="counter" hidden></p>
         <div class="pills">
           <span class="pill" data-i18n="pill.admin">Admin panel</span>
@@ -109,18 +114,27 @@
         <div class="steps">
           <article class="step">
             <span class="n">1</span>
-            <h3 data-i18n="step1.title">Drop the file</h3>
-            <p data-i18n="step1.body">Put install.php in the site root — shared hosting is fine.</p>
+            <h3 data-i18n="step1.title">Run the two lines</h3>
+            <p data-i18n-html="step1.body">
+              Over SSH, in the folder you want the CMS in. No shell? Upload <code>install.php</code> to the web root and
+              open it in the browser instead.
+            </p>
           </article>
           <article class="step">
             <span class="n">2</span>
-            <h3 data-i18n="step2.title">Open the wizard</h3>
-            <p data-i18n-html="step2.body">Hit <code>/install.php</code>. It pulls the latest zip from GitHub Releases.</p>
+            <h3 data-i18n="step2.title">Open the printed link</h3>
+            <p data-i18n-html="step2.body">
+              <code>php install.php</code> serves the wizard on port 8080 behind a one-time key. It checks PHP 8.3+,
+              downloads the latest release and verifies sha256.
+            </p>
           </article>
           <article class="step">
             <span class="n">3</span>
-            <h3 data-i18n="step3.title">Point your SPA</h3>
-            <p data-i18n="step3.body">Fill DB + admin, then call /api from React, Vue, or Next.</p>
+            <h3 data-i18n="step3.title">Fill DB and admin</h3>
+            <p data-i18n="step3.body">
+              The wizard writes the config, runs migrations and creates the owner. Then /admin and /api are live for
+              your SPA.
+            </p>
           </article>
         </div>
       </section>
@@ -307,6 +321,7 @@
           <code
             >curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code
           >
+          <code>php install.php</code>
           <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Copy">
             <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
               <rect x="9" y="9" width="11" height="11" rx="2.5" />
