@@ -127,6 +127,17 @@ export function OauthIntegrationsCard() {
                     onChange={(e) => setGoogleClientId(e.target.value)}
                     autoComplete="off"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.clientIdHelp')}{' '}
+                    <a
+                      className="underline underline-offset-2"
+                      href="https://console.cloud.google.com/apis/credentials"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      console.cloud.google.com/apis/credentials
+                    </a>
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="google-client-secret">
@@ -146,6 +157,9 @@ export function OauthIntegrationsCard() {
                     }
                     autoComplete="off"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.clientSecretHelp')}
+                  </p>
                 </div>
               </div>
               {query.data?.google.redirectUri ? (
@@ -196,6 +210,17 @@ export function OauthIntegrationsCard() {
                     placeholder="MyCmsBot"
                     autoComplete="off"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.botUsernameHelp')}{' '}
+                    <a
+                      className="underline underline-offset-2"
+                      href="https://t.me/BotFather"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      t.me/BotFather
+                    </a>
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tg-token">{t('integrations.oauth.botToken')}</Label>
@@ -213,6 +238,9 @@ export function OauthIntegrationsCard() {
                     }
                     autoComplete="off"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    {t('integrations.oauth.botTokenHelp')}
+                  </p>
                 </div>
               </div>
             </div>

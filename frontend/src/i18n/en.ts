@@ -136,12 +136,20 @@ export const en = {
     'Create an OAuth client in Google Cloud. Authorized redirect URI must match exactly.',
   'integrations.oauth.googleEnabled': 'Enable Google sign-in',
   'integrations.oauth.clientId': 'Client ID',
+  'integrations.oauth.clientIdHelp':
+    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → “Web application”. Paste the Redirect URI from the field below into “Authorized redirect URIs”, then copy the Client ID here.',
   'integrations.oauth.clientSecret': 'Client secret',
+  'integrations.oauth.clientSecretHelp':
+    'The secret is shown right after the client is created (later use “Add secret” on the client page). Copy the full value; this field only stores a masked preview.',
   'integrations.oauth.redirectUri': 'Redirect URI',
   'integrations.oauth.telegramHint': 'Create a bot with BotFather, then /setdomain to this site.',
   'integrations.oauth.telegramEnabled': 'Enable Telegram sign-in',
   'integrations.oauth.botUsername': 'Bot username',
+  'integrations.oauth.botUsernameHelp':
+    'Open BotFather → /newbot → set a name and a username (must end with “bot”). Enter that username here without the “@”.',
   'integrations.oauth.botToken': 'Bot token',
+  'integrations.oauth.botTokenHelp':
+    'BotFather returns a token like 123456:ABC… right after /newbot (later use /token). Then run /setdomain and set this admin panel domain, otherwise the login button will not render.',
   'integrations.oauth.secretKeep': 'Configured ({masked}) — leave blank to keep',
   'integrations.oauth.secretPlaceholder': 'Leave blank to keep the current secret',
   'integrations.oauth.saved': 'Social login settings saved',

@@ -139,13 +139,21 @@ export const ru: Record<MessageKey, string> = {
     'Создайте OAuth-клиент в Google Cloud. Redirect URI должен совпадать один в один.',
   'integrations.oauth.googleEnabled': 'Включить вход через Google',
   'integrations.oauth.clientId': 'Client ID',
+  'integrations.oauth.clientIdHelp':
+    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → тип «Web application». Вставьте Redirect URI из поля ниже в «Authorized redirect URIs» и скопируйте сюда Client ID.',
   'integrations.oauth.clientSecret': 'Client secret',
+  'integrations.oauth.clientSecretHelp':
+    'Секрет показывается в том же окне сразу после создания клиента (позже — кнопка «Add secret» в карточке клиента). Скопируйте значение целиком; в поле хранится только маска.',
   'integrations.oauth.redirectUri': 'Redirect URI',
   'integrations.oauth.telegramHint':
     'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
   'integrations.oauth.telegramEnabled': 'Включить вход через Telegram',
   'integrations.oauth.botUsername': 'Username бота',
+  'integrations.oauth.botUsernameHelp':
+    'Откройте BotFather → /newbot → задайте имя и username (обязан заканчиваться на «bot»). Впишите сюда username без «@».',
   'integrations.oauth.botToken': 'Токен бота',
+  'integrations.oauth.botTokenHelp':
+    'BotFather пришлёт токен вида 123456:ABC… сразу после /newbot (позже — /token). Затем выполните /setdomain и укажите домен этой админки, иначе кнопка входа не появится.',
   'integrations.oauth.secretKeep': 'Задан ({masked}) — оставьте пустым, чтобы сохранить',
   'integrations.oauth.secretPlaceholder': 'Оставьте пустым, чтобы не менять секрет',
   'integrations.oauth.saved': 'Настройки соцвхода сохранены',
