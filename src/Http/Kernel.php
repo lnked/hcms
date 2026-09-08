@@ -18,6 +18,7 @@ use Cms\Auth\RateLimiter;
 use Cms\Auth\RateLimitStore;
 use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenGrantRepository;
+use Cms\Auth\TokenPolicyRepository;
 use Cms\Auth\TokenService;
 use Cms\Auth\UserIdentityRepository;
 use Cms\Auth\UsersRepository;
@@ -103,6 +104,7 @@ final class Kernel
         private readonly ?RateLimitStore $rateLimitStore = null,
         private readonly ?IpBlockRepository $ipBlocks = null,
         private readonly ?Settings $runtimeSettings = null,
+        private readonly ?TokenPolicyRepository $tokenPolicies = null,
     ) {
     }
 
@@ -200,6 +202,7 @@ final class Kernel
             $rateLimitStore,
             $ipBlocks,
             $runtimeSettings,
+            $db !== null ? new TokenPolicyRepository($db) : null,
         );
         $kernel->registerRoutes();
 
@@ -309,6 +312,15 @@ final class Kernel
             }
         }
 
+        if ($auth instanceof AuthContext) {
+            $denied = $this->enforceTokenPolicy($request, $auth);
+            if ($denied !== null) {
+                return $apiAccess !== null
+                    ? $this->finalizeApiResponse($denied, $apiAccess, $apiOrigin)
+                    : $this->withSecurityHeaders($denied);
+            }
+        }
+
         $handler = $route->handler;
         $started = hrtime(true);
         $response = $handler($request, $matched['params'], $auth instanceof AuthContext ? $auth : null);
@@ -356,6 +368,51 @@ final class Kernel
     private function finalizeApiResponse(Response $response, ApiAccess $access, ?string $origin): Response
     {
         return $this->withSecurityHeaders($response->withHeaders($access->corsHeaders($origin)));
+    }
+
+    /**
+     * Per-token origin / IP allowlist. Runs after authentication, so browser
+     * preflight (which carries no Authorization header) stays governed by the
+     * global ApiAccess policy and CORS headers keep working on the 403.
+     */
+    private function enforceTokenPolicy(Request $request, AuthContext $auth): ?Response
+    {
+        if ($this->tokenPolicies === null || ($auth->token['type'] ?? '') !== 'api') {
+            return null;
+        }
+
+        $policy = $this->tokenPolicies->forToken($auth->tokenId());
+        if (!$policy->isRestricted()) {
+            return null;
+        }
+
+        $origin = $request->header('origin');
+        if (!$policy->allowsOrigin($origin)) {
+            $this->audit?->log(
+                $request,
+                'token.origin_rejected',
+                null,
+                'token',
+                (string) $auth->tokenId(),
+                ['origin' => $origin ?? ''],
+            );
+
+            return Response::error('FORBIDDEN', 'Origin not allowed for this token', 403);
+        }
+
+        if (!$policy->allowsIp($request->ip)) {
+            $this->audit?->log(
+                $request,
+                'token.ip_rejected',
+                null,
+                'token',
+                (string) $auth->tokenId(),
+            );
+
+            return Response::error('FORBIDDEN', 'IP not allowed for this token', 403);
+        }
+
+        return null;
     }
 
     private function authenticate(Request $request, string $type): AuthContext|Response
@@ -936,6 +993,7 @@ final class Kernel
                     new TokenService($this->db),
                     new TokenGrantRepository($this->db),
                     new ResourceRepository($this->db),
+                    new TokenPolicyRepository($this->db),
                 ),
                 $audit,
             );
@@ -1464,8 +1522,9 @@ final class Kernel
     private function rateLimit(Request $request, ?AuthContext $auth): ?Response
     {
         if (preg_match('#^/media/\\d+$#', $request->path) === 1 && $this->mediaLimiter !== null) {
-            if (!$this->mediaLimiter->hit('media:ip:' . $request->ip)) {
-                return Response::tooManyRequests($this->mediaLimiter->retryAfter(), $this->mediaLimiter->limit());
+            $bucket = 'media:ip:' . $request->ip;
+            if (!$this->mediaLimiter->hit($bucket)) {
+                return Response::tooManyRequests($this->mediaLimiter->retryAfter($bucket), $this->mediaLimiter->limit());
             }
         }
 
@@ -1475,21 +1534,24 @@ final class Kernel
             && in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
             && str_starts_with($request->path, '/api/')
         ) {
-            if (!$this->anonWriteLimiter->hit('anon-write:ip:' . $request->ip)) {
-                return Response::tooManyRequests($this->anonWriteLimiter->retryAfter(), $this->anonWriteLimiter->limit());
+            $bucket = 'anon-write:ip:' . $request->ip;
+            if (!$this->anonWriteLimiter->hit($bucket)) {
+                return Response::tooManyRequests($this->anonWriteLimiter->retryAfter($bucket), $this->anonWriteLimiter->limit());
             }
         }
 
         if ($this->ipLimiter !== null) {
-            if (!$this->ipLimiter->hit('ip:' . $request->ip)) {
-                return Response::tooManyRequests($this->ipLimiter->retryAfter(), $this->ipLimiter->limit());
+            $bucket = 'ip:' . $request->ip;
+            if (!$this->ipLimiter->hit($bucket)) {
+                return Response::tooManyRequests($this->ipLimiter->retryAfter($bucket), $this->ipLimiter->limit());
             }
         }
 
         if ($auth !== null) {
             $limiter = $auth->isAdmin() ? $this->tokenLimiter : $this->apiTokenLimiter;
-            if ($limiter !== null && !$limiter->hit('token:' . $auth->tokenId())) {
-                return Response::tooManyRequests($limiter->retryAfter(), $limiter->limit());
+            $bucket = 'token:' . $auth->tokenId();
+            if ($limiter !== null && !$limiter->hit($bucket)) {
+                return Response::tooManyRequests($limiter->retryAfter($bucket), $limiter->limit());
             }
         }
 

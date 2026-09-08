@@ -28,9 +28,14 @@ final class LoginGuard
         }
     }
 
-    public function retryAfter(): int
+    public function retryAfter(string $ip, string $email): int
     {
-        return $this->limiter->retryAfter();
+        $wait = 1;
+        foreach ($this->buckets($ip, $email) as $bucket) {
+            $wait = max($wait, $this->limiter->retryAfter($bucket));
+        }
+
+        return $wait;
     }
 
     public function failureCount(string $ip, string $email): int

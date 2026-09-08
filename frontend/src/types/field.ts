@@ -63,8 +63,38 @@ export const FIELD_TYPES: FieldTypeName[] = [
   'relation',
 ]
 
+export const DEFAULT_DATE_FORMAT = 'DD.MM.YYYY'
+export const DEFAULT_DATETIME_FORMAT = 'DD.MM.YYYY HH:mm'
+
+function defaultConfig(type: FieldTypeName): Record<string, unknown> {
+  switch (type) {
+    case 'relation':
+      return {
+        cardinality: 'manyToOne',
+        relatedSlug: '',
+        labelField: 'id',
+        foreignKey: '',
+      }
+    case 'enum':
+      return { options: ['draft', 'published'] }
+    case 'slug':
+      return { associatedWith: '', maxLength: 255 }
+    case 'string':
+      return { maxLength: 255 }
+    case 'image':
+      return { multiple: false, formats: [], sizes: [] }
+    case 'file':
+      return { multiple: false, formats: [] }
+    case 'date':
+      return { format: DEFAULT_DATE_FORMAT }
+    case 'datetime':
+      return { format: DEFAULT_DATETIME_FORMAT }
+    default:
+      return {}
+  }
+}
+
 export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): SchemaField {
-  const isRelation = type === 'relation'
   return {
     clientKey: randomId(),
     name: '',
@@ -89,24 +119,7 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
     filterable: true,
     readable: true,
     writable: true,
-    config: isRelation
-      ? {
-          cardinality: 'manyToOne',
-          relatedSlug: '',
-          labelField: 'id',
-          foreignKey: '',
-        }
-      : type === 'enum'
-        ? { options: ['draft', 'published'] }
-        : type === 'slug'
-          ? { associatedWith: '', maxLength: 255 }
-          : type === 'string'
-            ? { maxLength: 255 }
-            : type === 'image'
-              ? { multiple: false, formats: [], sizes: [] }
-              : type === 'file'
-                ? { multiple: false, formats: [] }
-                : {},
+    config: defaultConfig(type),
   }
 }
 

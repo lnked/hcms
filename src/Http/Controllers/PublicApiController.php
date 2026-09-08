@@ -13,6 +13,7 @@ use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
+use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
 use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
@@ -50,6 +51,8 @@ final class PublicApiController
                     : $this->delete($slug, null, (int) $id),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (RateLimitExceeded $e) {
+            return Response::tooManyRequests($e->retryAfter, $e->limit);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -85,6 +88,8 @@ final class PublicApiController
                     : $this->delete($slug, $apiSlug, (int) $id),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (RateLimitExceeded $e) {
+            return Response::tooManyRequests($e->retryAfter, $e->limit);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -153,7 +158,7 @@ final class PublicApiController
             }
             $settings = ResourceService::normalizeSettings($settings);
         }
-        $this->spamGuard->assertCreateAllowed($request, $settings, $payload);
+        $this->spamGuard->assertCreateAllowed($request, $slug, $settings, $payload);
         $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
         if ($honeypot !== '') {
             unset($payload[$honeypot]);

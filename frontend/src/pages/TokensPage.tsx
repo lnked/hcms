@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { DatePickerField } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -28,6 +29,11 @@ import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import type { Resource } from '@/types/resource'
+import {
+  parseLines,
+  TokenRestrictionsFields,
+  type TokenRestrictions,
+} from './TokenRestrictionsFields'
 
 interface TokenGrant {
   resourceId: number | null
@@ -42,7 +48,7 @@ interface IntegrationGrant {
   canUse: boolean
 }
 
-interface ApiToken {
+interface ApiToken extends TokenRestrictions {
   id: number
   name: string
   prefix: string
@@ -62,9 +68,12 @@ const emptyGrant = (): TokenGrant => ({
   canDelete: false,
 })
 
-function toDatetimeLocal(value: string | null): string {
-  if (!value) return ''
-  return value.replace(' ', 'T').slice(0, 16)
+function isRestricted(token: ApiToken): boolean {
+  return (
+    (token.allowedOrigins ?? []).length > 0 ||
+    (token.allowedIps ?? []).length > 0 ||
+    (token.requireOrigin ?? false)
+  )
 }
 
 function stripGrantIds(grants: TokenGrant[]): TokenGrant[] {
@@ -86,6 +95,9 @@ export function TokensPage() {
   const [expiresAt, setExpiresAt] = useState('')
   const [grants, setGrants] = useState<TokenGrant[]>([emptyGrant()])
   const [emailCanUse, setEmailCanUse] = useState(false)
+  const [originsText, setOriginsText] = useState('')
+  const [ipsText, setIpsText] = useState('')
+  const [requireOrigin, setRequireOrigin] = useState(false)
   const [createdToken, setCreatedToken] = useState<string | null>(null)
   const [tokenCopied, setTokenCopied] = useState(false)
   const tokenCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -121,16 +133,23 @@ export function TokensPage() {
     return map
   }, [resources.data])
 
+  function tokenPayload() {
+    return JSON.stringify({
+      name,
+      expiresAt: expiresAt || null,
+      grants,
+      integrationGrants: [{ integrationKey: 'email', canUse: emailCanUse }],
+      allowedOrigins: parseLines(originsText),
+      requireOrigin,
+      allowedIps: parseLines(ipsText),
+    })
+  }
+
   const create = useMutation({
     mutationFn: () =>
       api<{ token: string; meta: ApiToken }>('/admin/api/tokens', {
         method: 'POST',
-        body: JSON.stringify({
-          name,
-          expiresAt: expiresAt || null,
-          grants,
-          integrationGrants: [{ integrationKey: 'email', canUse: emailCanUse }],
-        }),
+        body: tokenPayload(),
       }),
     onSuccess: (data) => {
       setCreatedToken(data.token)
@@ -144,12 +163,7 @@ export function TokensPage() {
     mutationFn: (id: number) =>
       api<ApiToken>(`/admin/api/tokens/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          name,
-          expiresAt: expiresAt || null,
-          grants,
-          integrationGrants: [{ integrationKey: 'email', canUse: emailCanUse }],
-        }),
+        body: tokenPayload(),
       }),
     onSuccess: () => {
       setError(null)
@@ -177,6 +191,9 @@ export function TokensPage() {
     setExpiresAt('')
     setGrants([emptyGrant()])
     setEmailCanUse(false)
+    setOriginsText('')
+    setIpsText('')
+    setRequireOrigin(false)
     setCreatedToken(null)
     setTokenCopied(false)
     if (tokenCopyTimer.current) clearTimeout(tokenCopyTimer.current)
@@ -191,11 +208,14 @@ export function TokensPage() {
   function openEdit(token: ApiToken) {
     setEditingId(token.id)
     setName(token.name)
-    setExpiresAt(toDatetimeLocal(token.expiresAt))
+    setExpiresAt(token.expiresAt ?? '')
     setGrants(token.grants.length > 0 ? stripGrantIds(token.grants) : [emptyGrant()])
     setEmailCanUse(
       (token.integrationGrants ?? []).some((g) => g.integrationKey === 'email' && g.canUse),
     )
+    setOriginsText((token.allowedOrigins ?? []).join('\n'))
+    setIpsText((token.allowedIps ?? []).join('\n'))
+    setRequireOrigin(token.requireOrigin ?? false)
     setCreatedToken(null)
     setTokenCopied(false)
     setError(null)
@@ -221,7 +241,7 @@ export function TokensPage() {
         </CardHeader>
         <CardContent>
           {tokens.isLoading ? (
-            <TableSkeleton columns={5} rows={5} />
+            <TableSkeleton columns={6} rows={5} />
           ) : (tokens.data ?? []).length === 0 ? (
             <EmptyState title={t('tokens.empty')} />
           ) : (
@@ -231,6 +251,7 @@ export function TokensPage() {
                   <TableHead>{t('common.name')}</TableHead>
                   <TableHead>{t('tokens.prefix')}</TableHead>
                   <TableHead>{t('tokens.grants')}</TableHead>
+                  <TableHead>{t('tokens.restrictionsColumn')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
                   <TableHead className="text-right">{t('common.actions')}</TableHead>
                 </TableRow>
@@ -257,6 +278,37 @@ export function TokensPage() {
                               : g.integrationKey,
                           ),
                       ].join(', ') || t('common.none')}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {isRestricted(token) ? (
+                          <>
+                            {(token.allowedOrigins ?? []).length > 0 ? (
+                              <Badge variant="secondary">
+                                {t('tokens.originsLocked', {
+                                  count: token.allowedOrigins.length,
+                                })}
+                              </Badge>
+                            ) : null}
+                            {token.requireOrigin ? (
+                              <Badge variant="secondary">{t('tokens.browserOnly')}</Badge>
+                            ) : null}
+                            {(token.allowedIps ?? []).length > 0 ? (
+                              <Badge variant="secondary">
+                                {t('tokens.ipsLocked', { count: token.allowedIps.length })}
+                              </Badge>
+                            ) : null}
+                          </>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500/60 text-amber-700 dark:text-amber-400"
+                            title={t('tokens.unlockedWarning')}
+                          >
+                            {t('tokens.originsAny')}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {token.revokedAt ? (
@@ -359,11 +411,12 @@ export function TokensPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="token-expires">{t('tokens.expires')}</Label>
-                <Input
+                <DatePickerField
                   id="token-expires"
-                  type="datetime-local"
                   value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
+                  granularity="minute"
+                  format="DD.MM.YYYY HH:mm"
+                  onChange={(next) => setExpiresAt(next ?? '')}
                 />
               </div>
 
@@ -437,6 +490,15 @@ export function TokensPage() {
                   <span>{t('tokens.integrationEmailGrant')}</span>
                 </label>
               </div>
+
+              <TokenRestrictionsFields
+                originsText={originsText}
+                ipsText={ipsText}
+                requireOrigin={requireOrigin}
+                onOriginsTextChange={setOriginsText}
+                onIpsTextChange={setIpsText}
+                onRequireOriginChange={setRequireOrigin}
+              />
 
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
               <div className="flex justify-end gap-2">

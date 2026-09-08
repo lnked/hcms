@@ -7,3 +7,9 @@ export const controlFieldClass = `${controlShellClass} h-9 px-3 py-1`
 
 /** Multi-line control metrics. */
 export const controlAreaClass = `${controlShellClass} min-h-[120px] px-3 py-2`
+
+/** Opt-out of full width: control hugs its intrinsic content (dates, enums, relations). */
+export const controlHugClass = 'w-auto min-w-0 max-w-full'
+
+/** Wrapper counterpart for `controlHugClass` (Select positioning container). */
+export const controlHugContainerClass = 'w-fit max-w-full'

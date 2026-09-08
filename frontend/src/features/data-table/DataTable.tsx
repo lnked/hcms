@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n, type MessageKey } from '@/i18n'
+import { formatDateValue } from '@/lib/dateFormat'
 import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
 import { resolveColumns } from './columns'
@@ -188,7 +189,7 @@ export function DataTable({
                     className="truncate"
                     style={{ maxWidth: col.width ?? '12rem' }}
                   >
-                    {formatCell(row[col.field.name], t)}
+                    {formatCell(row[col.field.name], col.field, t)}
                   </TableCell>
                 ),
               )}
@@ -227,10 +228,17 @@ function isMediaField(type: string): boolean {
 
 function formatCell(
   value: unknown,
+  field: SchemaField,
   t: (key: MessageKey, params?: Record<string, string | number>) => string,
 ): string {
   if (value == null) return '—'
   if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no')
   if (typeof value === 'object') return JSON.stringify(value)
+  if (field.type === 'date' || field.type === 'datetime') {
+    const format = typeof field.config.format === 'string' ? field.config.format.trim() : ''
+    if (format !== '') {
+      return formatDateValue(value, format) ?? String(value)
+    }
+  }
   return String(value)
 }

@@ -10,9 +10,11 @@ Email / Integrations: see [integrations-email.md](./integrations-email.md).
 
 ```http
 GET    /admin/api/tokens
-POST   /admin/api/tokens          # body: { name, expiresAt?, grants[], integrationGrants[] }
+POST   /admin/api/tokens          # body: { name, expiresAt?, grants[], integrationGrants[],
+                                  #         allowedOrigins[], requireOrigin, allowedIps[] }
 GET    /admin/api/tokens/{id}
 PUT    /admin/api/tokens/{id}/grants
+PATCH  /admin/api/tokens/{id}     # partial; policy keys fall back to stored values
 DELETE /admin/api/tokens/{id}     # revoke
 ```
 
@@ -20,6 +22,21 @@ Grant: `{ resourceId: null|number, canRead, canCreate, canUpdate, canDelete }`.
 `resourceId: null` = global. Empty grants → deny on private methods.
 
 Integration grant: `{ integrationKey: "email", canUse: true }` — required for `POST /api/integrations/email/*`.
+
+### Per-token restrictions
+
+| Field | Empty / false | Set |
+| --- | --- | --- |
+| `allowedOrigins` | any origin | `Origin` must match (`https://app.example.com`, `example.com`, `*.example.com`) |
+| `requireOrigin` | requests without `Origin` pass | requests without `Origin` are rejected (blocks curl / server-side use) |
+| `allowedIps` | any IP | client IP must match an entry (`203.0.113.7`, `10.0.0.0/8`, `2001:db8::/32`) |
+
+Checked after authentication, so browser preflight (`OPTIONS`, no `Authorization`) is still governed by the
+global `api.access` policy and CORS headers are present on the `403`. Rejections land in the audit log as
+`token.origin_rejected` / `token.ip_rejected` — a leaked token shows up there with the offending origin.
+
+`Origin` is browser-supplied and forgeable by non-browser clients: the domain list contains misuse of a
+leaked frontend token, it is not a security boundary. `allowedIps` is the only unforgeable constraint.
 
 ## Admin entries
 
@@ -49,7 +66,7 @@ API tokens need matching grants; admin tokens bypass grants.
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.  
 `search` — splits into words (drops prepositions), matches any word via `LIKE`, ranks by how many words hit; `sort` is secondary.
 
-Rate limits: IP + per-token (admin vs API limits from settings); separate buckets for `/media/{id}` and anonymous writes. 429 includes `Retry-After` and `X-RateLimit-Limit`. Public create can use per-resource `settings.spam` (honeypot, captcha, duplicates, …).
+Rate limits: sliding window over IP + per-token buckets (admin vs API limits from settings); separate buckets for `/media/{id}` and anonymous writes. 429 includes `Retry-After` and `X-RateLimit-Limit`. Public create can use per-resource `settings.spam` (honeypot, captcha, duplicates, …) — see [anti-spam.md](anti-spam.md); its rate limit answers `429` too, the other checks `422`.
 
 ## Custom resource APIs
 

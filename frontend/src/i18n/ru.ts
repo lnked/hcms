@@ -12,6 +12,7 @@ export const ru: Record<MessageKey, string> = {
   'common.creating': 'Создание…',
   'common.delete': 'Удалить',
   'common.edit': 'Изменить',
+  'common.clear': 'Очистить',
   'common.open': 'Открыть',
   'common.close': 'Закрыть',
   'common.done': 'Готово',
@@ -516,6 +517,8 @@ export const ru: Record<MessageKey, string> = {
   'schema.readonly': 'Только чтение',
   'schema.options': 'Опции (через запятую)',
   'schema.slug.associatedWith': 'Связан с полем',
+  'schema.date.format': 'Формат даты',
+  'schema.date.formatHint': 'Токены DD, MM, YYYY, HH, mm, ss — напр. DD.MM.YYYY',
   'schema.relation.relatedSlug': 'Related slug',
   'schema.relation.cardinality': 'Кардинальность',
   'schema.relation.manyToOne': 'Many → one',
@@ -709,6 +712,24 @@ export const ru: Record<MessageKey, string> = {
   'tokens.placeholderName': 'CI deploy',
   'tokens.integrationEmail': 'Email',
   'tokens.integrationEmailGrant': 'Email-интеграция (send / custom API)',
+  'tokens.restrictions': 'Ограничения',
+  'tokens.restrictionsHint':
+    'Origin присылает браузер, скрипт может его подделать — список доменов ограничивает злоупотребление утёкшим фронтовым токеном. Не подделывается только список IP.',
+  'tokens.allowedOrigins': 'Разрешённые домены (необязательно)',
+  'tokens.allowedOriginsHint':
+    'По одному в строке. Примеры: https://app.example.com, example.com, *.example.com, http://localhost:3000. Пусто = любой origin.',
+  'tokens.requireOrigin': 'Только из браузера — отклонять запросы без заголовка Origin',
+  'tokens.requireOriginHint':
+    'Блокирует использование токена из curl и с сервера. Не включайте для server-to-server интеграций.',
+  'tokens.allowedIps': 'Разрешённые IP / CIDR (необязательно)',
+  'tokens.allowedIpsHint':
+    'По одному в строке. Примеры: 203.0.113.7, 10.0.0.0/8, 2001:db8::/32. Пусто = любой IP.',
+  'tokens.originsAny': 'любой origin',
+  'tokens.originsLocked': 'домены: {count}',
+  'tokens.ipsLocked': 'IP-правил: {count}',
+  'tokens.browserOnly': 'только браузер',
+  'tokens.restrictionsColumn': 'Ограничения',
+  'tokens.unlockedWarning': 'Токен работает с любого домена и любого IP.',
 
   'webhooks.title': 'Webhooks',
   'webhooks.subtitle': 'Исходящие HMAC-подписанные хуки на изменения контента.',

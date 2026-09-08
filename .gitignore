@@ -1,6 +1,7 @@
 /.env
 /.env.*
 !/.env.example
+/landing/counter-config.php
 /vendor/
 /node_modules/
 /frontend/node_modules/

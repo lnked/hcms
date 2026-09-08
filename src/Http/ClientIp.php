@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Http;
 
+use Cms\Security\IpMatcher;
+
 /**
  * Resolve client IP behind optional trusted reverse proxies.
  */
@@ -43,56 +45,7 @@ final class ClientIp
      */
     public static function matchesAny(string $ip, array $trustedProxies): bool
     {
-        foreach ($trustedProxies as $entry) {
-            $entry = trim($entry);
-            if ($entry === '') {
-                continue;
-            }
-            if (str_contains($entry, '/')) {
-                if (self::inCidr($ip, $entry)) {
-                    return true;
-                }
-                continue;
-            }
-            if (hash_equals($entry, $ip)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static function inCidr(string $ip, string $cidr): bool
-    {
-        $parts = explode('/', $cidr, 2);
-        if (count($parts) !== 2) {
-            return false;
-        }
-        [$subnet, $maskRaw] = $parts;
-        if (!filter_var($ip, FILTER_VALIDATE_IP) || !filter_var($subnet, FILTER_VALIDATE_IP)) {
-            return false;
-        }
-        $mask = (int) $maskRaw;
-        $ipBin = inet_pton($ip);
-        $subnetBin = inet_pton($subnet);
-        if ($ipBin === false || $subnetBin === false || strlen($ipBin) !== strlen($subnetBin)) {
-            return false;
-        }
-        $len = strlen($ipBin) * 8;
-        if ($mask < 0 || $mask > $len) {
-            return false;
-        }
-        $bytes = intdiv($mask, 8);
-        $bits = $mask % 8;
-        if ($bytes > 0 && substr($ipBin, 0, $bytes) !== substr($subnetBin, 0, $bytes)) {
-            return false;
-        }
-        if ($bits === 0) {
-            return true;
-        }
-        $maskByte = chr((0xFF << (8 - $bits)) & 0xFF);
-
-        return ($ipBin[$bytes] & $maskByte) === ($subnetBin[$bytes] & $maskByte);
+        return IpMatcher::matchesAny($trustedProxies, $ip);
     }
 
     /**

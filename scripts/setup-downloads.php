@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 /**
  * One-shot patch: creates the `downloads` resource behind the landing counter
- * (schema, public flags, spam settings, CORS origin) via the Admin API.
+ * (schema, public flags, API token) via the Admin API.
+ *
+ * The resource stays fully private: the landing writes and reads it through
+ * landing/download.php and landing/api-proxy.php with the token printed at the
+ * end, so no browser can post a row and no stored text is served publicly.
  *
  * Web (shared hosting): upload next to index.php, open
  *   https://api.2js.ru/setup-downloads.php
@@ -21,7 +25,7 @@ final class DownloadsPatch
 {
     public const SLUG = 'downloads';
     public const LABEL = 'Downloads';
-    public const ORIGIN = '2js.ru';
+    public const TOKEN_NAME = 'landing-downloads';
 
     /** @var list<string> */
     private array $log = [];
@@ -30,7 +34,8 @@ final class DownloadsPatch
 
     public function __construct(
         private readonly string $baseUrl,
-        private readonly string $origin,
+        private readonly bool $rotateToken = false,
+        private readonly string $landingIp = '',
         private readonly bool $insecure = false,
     ) {
     }
@@ -50,7 +55,7 @@ final class DownloadsPatch
         $this->applySettings($id);
         $this->applySchema($id);
         $this->publish($id);
-        $this->allowOrigin();
+        $this->issueToken($id);
         $this->smokeTest();
     }
 
@@ -85,7 +90,7 @@ final class DownloadsPatch
             'label' => self::LABEL,
             'name' => self::SLUG,
             'slug' => self::SLUG,
-            'description' => 'Landing download counter (public create, public read)',
+            'description' => 'Landing download counter (token-only, written by landing/download.php)',
         ]);
         $id = (int) ($created['data']['id'] ?? 0);
         if ($id < 1) {
@@ -101,32 +106,24 @@ final class DownloadsPatch
         $this->send('PATCH', '/admin/api/resources/' . $id, [
             'settings' => [
                 'apiEnabled' => true,
+                // Every public flag off. Anonymous create would let anyone
+                // store arbitrary strings, and anonymous read would then serve
+                // them back from the landing origin; the landing uses a token.
                 'public' => [
-                    'read' => true,
-                    'create' => true,
+                    'read' => false,
+                    'create' => false,
                     'update' => false,
                     'delete' => false,
                 ],
                 'pagination' => true,
-                // The public endpoint is a counter, not a query tool.
+                // The endpoint is a counter, not a query tool.
                 'search' => false,
                 'sorting' => false,
                 'filtering' => false,
                 'deleteStrategy' => 'hard',
-                'spam' => [
-                    // On by default, and it silently drops repeat downloads
-                    // from one IP for 10 minutes. Rate limit guards instead.
-                    'rejectDuplicates' => false,
-                    'rateLimitPerMinute' => 20,
-                    'requireCaptcha' => false,
-                    'honeypotField' => '',
-                    'minSubmitMs' => 0,
-                    'maxLinks' => 0,
-                    'blocklist' => [],
-                ],
             ],
         ]);
-        $this->say('Settings: public read + create, spam rejectDuplicates off, 20 req/min');
+        $this->say('Settings: no public access, token only');
     }
 
     private function applySchema(int $id): void
@@ -137,9 +134,10 @@ final class DownloadsPatch
                 $this->field('version', 'Version', 32, true, true),
                 $this->field('source', 'Source', 32, true),
                 $this->field('referrer', 'Referrer', 190),
+                $this->dateField('date', 'Clicked at'),
             ],
         ]);
-        $this->say('Schema: asset, version, source, referrer');
+        $this->say('Schema: asset, version, source, referrer, date');
     }
 
     /**
@@ -167,49 +165,107 @@ final class DownloadsPatch
         ];
     }
 
+    /**
+     * Click timestamp, sortable and filterable: created_at is not exposed as a
+     * schema field, so the counter needs its own column to slice by day.
+     *
+     * @return array<string, mixed>
+     */
+    private function dateField(string $name, string $label): array
+    {
+        return [
+            'name' => $name,
+            'type' => 'datetime',
+            'label' => $label,
+            'required' => false,
+            'nullable' => true,
+            'unique' => false,
+            'indexed' => true,
+            'searchable' => false,
+            'sortable' => true,
+            'filterable' => true,
+            'readable' => true,
+            'writable' => true,
+            'config' => ['format' => 'DD.MM.YYYY HH:mm:ss'],
+        ];
+    }
+
     private function publish(int $id): void
     {
         $this->send('POST', '/admin/api/resources/' . $id . '/publish', ['confirmDestructive' => false]);
         $this->say('Published + migrated → /api/' . self::SLUG);
     }
 
-    private function allowOrigin(): void
+    /**
+     * The landing needs read (counter value) and create (one row per download)
+     * on this resource and nothing else. The secret is shown once — re-run with
+     * --rotate to replace a lost one.
+     */
+    private function issueToken(int $resourceId): void
     {
-        $access = $this->send('GET', '/admin/api/settings/api-access');
-        $data = is_array($access['data'] ?? null) ? $access['data'] : [];
-        if (($data['unrestricted'] ?? false) === true) {
-            $this->say('CORS: unrestricted, nothing to add');
+        $listed = $this->send('GET', '/admin/api/tokens');
+        $existing = null;
+        foreach (is_array($listed['data'] ?? null) ? $listed['data'] : [] as $row) {
+            if (is_array($row) && ($row['name'] ?? null) === self::TOKEN_NAME && ($row['revokedAt'] ?? null) === null) {
+                $existing = (int) ($row['id'] ?? 0);
 
-            return;
-        }
-
-        $origins = [];
-        foreach (is_array($data['allowedOrigins'] ?? null) ? $data['allowedOrigins'] : [] as $item) {
-            if (is_string($item)) {
-                $origins[] = $item;
+                break;
             }
         }
-        if (in_array($this->origin, $origins, true)) {
-            $this->say('CORS: ' . $this->origin . ' already allowed');
+
+        if ($existing !== null && !$this->rotateToken) {
+            $this->say('Token ' . self::TOKEN_NAME . ' already exists (#' . $existing . ') — keeping it, re-run with --rotate to replace');
 
             return;
         }
 
-        $origins[] = $this->origin;
-        $this->send('PATCH', '/admin/api/settings', [
-            'apiAccess' => ['unrestricted' => false, 'allowedOrigins' => $origins],
-        ]);
-        $this->say('CORS: added ' . $this->origin);
+        if ($existing !== null) {
+            $this->send('DELETE', '/admin/api/tokens/' . $existing);
+            $this->say('Revoked previous token #' . $existing);
+        }
+
+        $payload = [
+            'name' => self::TOKEN_NAME,
+            'grants' => [[
+                'resourceId' => $resourceId,
+                'canRead' => true,
+                'canCreate' => true,
+                'canUpdate' => false,
+                'canDelete' => false,
+            ]],
+        ];
+        // The only unforgeable restriction available: a leaked token is useless
+        // from anywhere but the landing host. Requires the CMS to *not* trust
+        // that host as a proxy, otherwise the request IP is the visitor's.
+        if ($this->landingIp !== '') {
+            $payload['allowedIps'] = [$this->landingIp];
+        }
+
+        $created = $this->send('POST', '/admin/api/tokens', $payload);
+        $secret = $created['data']['token'] ?? null;
+        if (!is_string($secret) || $secret === '') {
+            throw new RuntimeException('Token create returned no secret');
+        }
+        $this->say('Token created' . ($this->landingIp === '' ? '' : ', locked to ' . $this->landingIp)
+            . ' — put it in landing/counter-config.php as `token`:');
+        $this->say($secret);
     }
 
     private function smokeTest(): void
     {
-        $res = $this->send('GET', '/api/' . self::SLUG . '?limit=1', null, false);
+        $res = $this->send('GET', '/api/' . self::SLUG . '?limit=1');
         $total = $res['meta']['total'] ?? null;
         if (!is_int($total)) {
-            throw new RuntimeException('Public GET /api/' . self::SLUG . ' returned no meta.total');
+            throw new RuntimeException('Authenticated GET /api/' . self::SLUG . ' returned no meta.total');
         }
-        $this->say('Public GET works, meta.total = ' . $total);
+        $this->say('Authenticated GET works, meta.total = ' . $total);
+
+        try {
+            $this->send('GET', '/api/' . self::SLUG . '?limit=1', null, false);
+            $this->say('WARNING: anonymous GET still works — check the resource public flags');
+        } catch (RuntimeException $e) {
+            $this->say('Anonymous GET rejected, as expected');
+        }
     }
 
     /**
@@ -324,7 +380,7 @@ dl_web();
 
 function dl_cli(): int
 {
-    $opts = getopt('', ['url::', 'email::', 'password::', 'origin::', 'insecure', 'help']);
+    $opts = getopt('', ['url::', 'email::', 'password::', 'landing-ip::', 'rotate', 'insecure', 'help']);
     if (isset($opts['help'])) {
         fwrite(STDOUT, <<<TXT
         Create the `downloads` resource for the landing counter.
@@ -332,7 +388,8 @@ function dl_cli(): int
           --url=URL          CMS base URL (e.g. https://api.2js.ru)
           --email=EMAIL      Admin email
           --password=PASS    Admin password
-          --origin=HOST      Landing origin for CORS (default: 2js.ru)
+          --landing-ip=IP    Lock the new token to the landing server IP or CIDR
+          --rotate           Revoke the existing landing token and issue a new one
           --insecure         Skip TLS verification
 
         TXT);
@@ -349,7 +406,12 @@ function dl_cli(): int
         return 1;
     }
 
-    $patch = new DownloadsPatch($url, (string) ($opts['origin'] ?? DownloadsPatch::ORIGIN), isset($opts['insecure']));
+    $patch = new DownloadsPatch(
+        $url,
+        isset($opts['rotate']),
+        trim((string) ($opts['landing-ip'] ?? '')),
+        isset($opts['insecure']),
+    );
     try {
         $patch->run($email, $password);
     } catch (Throwable $e) {
@@ -381,7 +443,7 @@ function dl_web(): void
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        dl_page('', dl_form(dl_baseUrl(), DownloadsPatch::ORIGIN, false));
+        dl_page('', dl_form(dl_baseUrl(), '', false, false));
 
         return;
     }
@@ -389,16 +451,20 @@ function dl_web(): void
     $url = rtrim(trim((string) ($_POST['url'] ?? '')), '/');
     $email = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
-    $origin = trim((string) ($_POST['origin'] ?? DownloadsPatch::ORIGIN));
+    $landingIp = trim((string) ($_POST['landingIp'] ?? ''));
+    $rotate = isset($_POST['rotate']);
     $insecure = isset($_POST['insecure']);
 
     if ($url === '' || $email === '' || $password === '') {
-        dl_page('<p class="err">URL, email and password are required.</p>', dl_form($url, $origin, $insecure));
+        dl_page(
+            '<p class="err">URL, email and password are required.</p>',
+            dl_form($url, $landingIp, $rotate, $insecure),
+        );
 
         return;
     }
 
-    $patch = new DownloadsPatch($url, $origin, $insecure);
+    $patch = new DownloadsPatch($url, $rotate, $landingIp, $insecure);
     $error = null;
     try {
         $patch->run($email, $password);
@@ -415,7 +481,7 @@ function dl_web(): void
     if ($error !== null) {
         $html .= '<p class="err">' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '</p>';
 
-        dl_page($html, dl_form($url, $origin, $insecure));
+        dl_page($html, dl_form($url, $landingIp, $rotate, $insecure));
 
         return;
     }
@@ -435,7 +501,7 @@ function dl_baseUrl(): string
     return ($https ? 'https://' : 'http://') . $host;
 }
 
-function dl_form(string $url, string $origin, bool $insecure): string
+function dl_form(string $url, string $landingIp, bool $rotate, bool $insecure): string
 {
     $esc = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 
@@ -443,7 +509,10 @@ function dl_form(string $url, string $origin, bool $insecure): string
         . '<label>CMS URL<input name="url" value="' . $esc($url) . '" required/></label>'
         . '<label>Admin email<input name="email" type="email" autocomplete="username" required/></label>'
         . '<label>Admin password<input name="password" type="password" autocomplete="current-password" required/></label>'
-        . '<label>Landing origin<input name="origin" value="' . $esc($origin) . '"/></label>'
+        . '<label>Landing server IP <span class="hint">(optional — locks the token to it)</span>'
+        . '<input name="landingIp" value="' . $esc($landingIp) . '"/></label>'
+        . '<label class="check"><input type="checkbox" name="rotate" value="1"'
+        . ($rotate ? ' checked' : '') . '/> Issue a new landing token (revokes the old one)</label>'
         . '<label class="check"><input type="checkbox" name="insecure" value="1"'
         . ($insecure ? ' checked' : '') . '/> Skip TLS verification (certificate does not cover this host)</label>'
         . '<button type="submit">Create resource</button>'
@@ -466,6 +535,7 @@ function dl_page(string $body, ?string $form): void
         . 'label{display:block;font-size:13px;font-weight:600;margin-bottom:12px}'
         . 'input{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid #cbd5e1;'
         . 'border-radius:8px;font:inherit;box-sizing:border-box}'
+        . '.hint{font-weight:400;color:#64748b}'
         . '.check{display:flex;gap:8px;align-items:center;font-weight:500;color:#475569}'
         . '.check input{display:inline-block;width:auto;margin:0;padding:0}'
         . 'button{margin-top:8px;padding:10px 16px;border:0;border-radius:8px;background:#0d9488;color:#fff;'

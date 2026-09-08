@@ -8,6 +8,7 @@ export const en = {
   'common.creating': 'Creating…',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
+  'common.clear': 'Clear',
   'common.open': 'Open',
   'common.close': 'Close',
   'common.done': 'Done',
@@ -510,6 +511,8 @@ export const en = {
   'schema.readonly': 'Readonly',
   'schema.options': 'Options (comma-separated)',
   'schema.slug.associatedWith': 'Associated with',
+  'schema.date.format': 'Date format',
+  'schema.date.formatHint': 'Tokens DD, MM, YYYY, HH, mm, ss — e.g. DD.MM.YYYY',
   'schema.relation.relatedSlug': 'Related slug',
   'schema.relation.cardinality': 'Cardinality',
   'schema.relation.manyToOne': 'Many → one',
@@ -705,6 +708,24 @@ export const en = {
   'tokens.placeholderName': 'CI deploy',
   'tokens.integrationEmail': 'Email',
   'tokens.integrationEmailGrant': 'Email integration (send / custom APIs)',
+  'tokens.restrictions': 'Restrictions',
+  'tokens.restrictionsHint':
+    'Origin comes from the browser and can be forged by scripts, so it limits misuse of a leaked frontend token. Only the IP allowlist is unforgeable.',
+  'tokens.allowedOrigins': 'Allowed domains (optional)',
+  'tokens.allowedOriginsHint':
+    'One per line. Examples: https://app.example.com, example.com, *.example.com, http://localhost:3000. Empty = any origin.',
+  'tokens.requireOrigin': 'Browser only — reject requests without an Origin header',
+  'tokens.requireOriginHint':
+    'Blocks curl / server-side use of this token. Do not enable it for server-to-server integrations.',
+  'tokens.allowedIps': 'Allowed IPs / CIDR (optional)',
+  'tokens.allowedIpsHint':
+    'One per line. Examples: 203.0.113.7, 10.0.0.0/8, 2001:db8::/32. Empty = any IP.',
+  'tokens.originsAny': 'any origin',
+  'tokens.originsLocked': '{count} domain(s)',
+  'tokens.ipsLocked': '{count} IP rule(s)',
+  'tokens.browserOnly': 'browser only',
+  'tokens.restrictionsColumn': 'Restrictions',
+  'tokens.unlockedWarning': 'This token works from any domain and any IP.',
 
   'webhooks.title': 'Webhooks',
   'webhooks.subtitle': 'Outbound HMAC-signed hooks for content changes.',

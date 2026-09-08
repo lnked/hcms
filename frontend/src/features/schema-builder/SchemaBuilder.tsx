@@ -12,6 +12,8 @@ import { controlFieldClass } from '@/components/ui/control'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import {
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_DATETIME_FORMAT,
   emptyField,
   FIELD_TYPES,
   type FieldTypeName,
@@ -446,6 +448,20 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           })
                         }
                       />
+                    </div>
+                  ) : null}
+                  {field.type === 'date' || field.type === 'datetime' ? (
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>{t('schema.date.format')}</Label>
+                      <Input
+                        value={String(field.config.format ?? '')}
+                        maxLength={32}
+                        placeholder={
+                          field.type === 'date' ? DEFAULT_DATE_FORMAT : DEFAULT_DATETIME_FORMAT
+                        }
+                        onChange={(e) => patchConfig(index, { format: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">{t('schema.date.formatHint')}</p>
                     </div>
                   ) : null}
                   {field.type === 'slug' ? (

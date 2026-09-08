@@ -2,9 +2,34 @@
     RewriteEngine On
     RewriteBase /
 
-    # Download counter only: the rest of the API stays on its own vhost, so the
-    # landing origin never exposes admin or auth endpoints.
+    # Counted download link → 302 to GitHub. Writing the row happens here, on
+    # the server, so the browser never posts to the API.
+    RewriteRule ^download/?$ download.php [QSA,L]
+
+    # Read-only counter value. The rest of the API stays on its own vhost, so
+    # the landing origin never exposes admin or auth endpoints.
     RewriteRule ^api/downloads$ api-proxy.php [QSA,L]
 </IfModule>
+
+# counter.php is an include and counter-config.php holds the API token.
+<FilesMatch "^counter(-config)?(\.sample)?\.php$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
 
 Options -Indexes

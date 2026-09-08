@@ -6,6 +6,7 @@ namespace Cms\Tests;
 
 use Cms\Auth\MemoryRateLimitStore;
 use Cms\Http\Request;
+use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -15,10 +16,10 @@ final class SpamGuardTest extends TestCase
     public function testHoneypotRejects(): void
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
-        $request = new Request('POST', '/api/leads', [], [], null, '', '127.0.0.1', 'test');
         $this->expectException(InvalidArgumentException::class);
         $guard->assertCreateAllowed(
-            $request,
+            $this->request(),
+            'leads',
             ['spam' => ['honeypotField' => 'website', 'rejectDuplicates' => false]],
             ['name' => 'Ada', 'website' => 'http://spam'],
         );
@@ -27,9 +28,9 @@ final class SpamGuardTest extends TestCase
     public function testAllowsCleanPayload(): void
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
-        $request = new Request('POST', '/api/leads', [], [], null, '', '127.0.0.1', 'test');
         $guard->assertCreateAllowed(
-            $request,
+            $this->request(),
+            'leads',
             ['spam' => ['honeypotField' => 'website', 'rejectDuplicates' => false]],
             ['name' => 'Ada', 'website' => ''],
         );
@@ -38,13 +39,53 @@ final class SpamGuardTest extends TestCase
 
     public function testRejectsDuplicate(): void
     {
-        $store = new MemoryRateLimitStore();
-        $guard = new SpamGuard(null, $store);
-        $request = new Request('POST', '/api/leads', [], [], null, '', '127.0.0.1', 'test');
+        $guard = new SpamGuard(null, new MemoryRateLimitStore());
         $settings = ['spam' => ['rejectDuplicates' => true]];
         $payload = ['name' => 'Ada'];
-        $guard->assertCreateAllowed($request, $settings, $payload);
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
         $this->expectException(InvalidArgumentException::class);
-        $guard->assertCreateAllowed($request, $settings, $payload);
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
+    }
+
+    public function testDuplicateBucketIsPerResource(): void
+    {
+        $guard = new SpamGuard(null, new MemoryRateLimitStore());
+        $settings = ['spam' => ['rejectDuplicates' => true]];
+        $payload = ['name' => 'Ada'];
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
+        $guard->assertCreateAllowed($this->request(), 'comments', $settings, $payload);
+        $this->assertTrue(true);
+    }
+
+    public function testRateLimitIsPerResource(): void
+    {
+        $guard = new SpamGuard(null, new MemoryRateLimitStore());
+        $settings = ['spam' => ['rateLimitPerMinute' => 1, 'rejectDuplicates' => false]];
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Ada']);
+        $guard->assertCreateAllowed($this->request(), 'comments', $settings, ['name' => 'Ada']);
+
+        $this->expectException(RateLimitExceeded::class);
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Grace']);
+    }
+
+    public function testRateLimitCarriesRetryAfterAndLimit(): void
+    {
+        $guard = new SpamGuard(null, new MemoryRateLimitStore());
+        $settings = ['spam' => ['rateLimitPerMinute' => 1, 'rejectDuplicates' => false]];
+        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Ada']);
+
+        try {
+            $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Grace']);
+            $this->fail('Expected RateLimitExceeded');
+        } catch (RateLimitExceeded $e) {
+            $this->assertSame(429, $e->getCode());
+            $this->assertSame(1, $e->limit);
+            $this->assertGreaterThan(0, $e->retryAfter);
+        }
+    }
+
+    private function request(): Request
+    {
+        return new Request('POST', '/api/leads', [], [], null, '', '127.0.0.1', 'test');
     }
 }

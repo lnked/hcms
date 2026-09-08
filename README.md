@@ -78,7 +78,7 @@ Authorization: Bearer <token>
 - Swagger UI: `/api/docs`
 - React consumer demo: [`examples/react`](examples/react) (`npm run dev` после seed)
 
-В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
+В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter, анти-спам для анонимной записи — см. [docs/anti-spam.md](docs/anti-spam.md)) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
 
 ## Quality
 

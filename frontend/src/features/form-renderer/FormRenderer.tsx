@@ -2,11 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { controlHugClass, controlHugContainerClass } from '@/components/ui/control'
+import { DatePickerField } from '@/components/ui/date-picker'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
 import { useI18n } from '@/i18n'
+import { dateGranularity } from '@/lib/dateFormat'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
 import { slugifyUrl } from '@/lib/slugify'
 import type { SchemaField } from '@/types/field'
@@ -189,6 +192,8 @@ function RelationControl({
     <div className="space-y-1">
       <Select
         id={id}
+        containerClassName={controlHugContainerClass}
+        className={controlHugClass}
         disabled={disabled || loading}
         value={value == null ? '' : String(value)}
         onChange={(e) =>
@@ -285,6 +290,8 @@ function renderControl(
     return (
       <Select
         id={id}
+        containerClassName={controlHugContainerClass}
+        className={controlHugClass}
         disabled={disabled}
         value={value == null ? '' : String(value)}
         onChange={(e) => set(field.name, e.target.value)}
@@ -299,23 +306,37 @@ function renderControl(
     )
   }
 
+  if (field.type === 'date' || field.type === 'datetime') {
+    const format = typeof field.config.format === 'string' ? field.config.format : ''
+    return (
+      <DatePickerField
+        id={id}
+        value={value}
+        disabled={disabled}
+        format={format}
+        granularity={dateGranularity(format, field.type === 'datetime' ? 'minute' : 'day')}
+        aria-label={field.label || field.name}
+        onChange={(next) => set(field.name, next)}
+      />
+    )
+  }
+
   const inputType =
     field.type === 'integer' || field.type === 'float'
       ? 'number'
-      : field.type === 'date'
-        ? 'date'
-        : field.type === 'datetime'
-          ? 'datetime-local'
-          : field.type === 'email'
-            ? 'email'
-            : field.type === 'url'
-              ? 'url'
-              : 'text'
+      : field.type === 'email'
+        ? 'email'
+        : field.type === 'url'
+          ? 'url'
+          : 'text'
+
+  const hugsContent = field.type === 'integer' || field.type === 'float'
 
   return (
     <Input
       id={id}
       type={inputType}
+      className={hugsContent ? controlHugClass : undefined}
       step={field.type === 'float' ? 'any' : undefined}
       disabled={disabled}
       value={value == null ? '' : String(value)}

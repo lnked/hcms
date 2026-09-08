@@ -63,7 +63,7 @@ final class AuthController
             $this->audit->log($request, 'auth.login_blocked', null, 'user', null, ['email' => $email]);
             $this->maybeAutoBlockIp($request);
 
-            return Response::tooManyRequests($this->loginGuard->retryAfter());
+            return Response::tooManyRequests($this->loginGuard->retryAfter($request->ip, $email));
         }
 
         $captchaAfter = $this->settings !== null
@@ -220,10 +220,11 @@ final class AuthController
             return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
         }
         $email = (string) ($user['email'] ?? '');
-        if (!$this->loginGuard->canAttempt($request->ip, $email !== '' ? $email : 'oauth')) {
+        $guardEmail = $email !== '' ? $email : 'oauth';
+        if (!$this->loginGuard->canAttempt($request->ip, $guardEmail)) {
             $this->audit->log($request, 'auth.login_blocked', $userId, 'user', (string) $userId);
 
-            return Response::tooManyRequests($this->loginGuard->retryAfter());
+            return Response::tooManyRequests($this->loginGuard->retryAfter($request->ip, $guardEmail));
         }
 
         $result = $this->finishLogin($request, $user, $totpCode, $remember, 'oauth');
@@ -364,7 +365,7 @@ final class AuthController
                 $this->audit->log($request, 'auth.login_blocked', null, 'user', null, ['provider' => 'telegram']);
                 $this->maybeAutoBlockIp($request);
 
-                return Response::tooManyRequests($this->loginGuard->retryAfter());
+                return Response::tooManyRequests($this->loginGuard->retryAfter($request->ip, $guardKey));
             }
 
             $user = $this->oauth->userForTelegram($profile['id']);

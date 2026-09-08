@@ -43,7 +43,7 @@ The `fields` projection is also the **write mask**:
 
 `settings.public.{read,create,update,delete}` is tri-state: `null` inherits the resource flag, `true` / `false` overrides it for that verb. Tokens are still checked against the **resource** grants, not per API — a token allowed to create on the resource can POST to every custom API of it.
 
-The editor mirrors those rules: write methods are disabled while joins exist, the per-method access select offers *inherit / yes / no*, public writes raise a warning (configure `settings.spam` on the resource first), and saving is blocked while required fields are missing from a `POST` projection.
+The editor mirrors those rules: write methods are disabled while joins exist, the per-method access select offers *inherit / yes / no*, public writes raise a warning (configure `settings.spam` on the resource first, see [anti-spam.md](anti-spam.md)), and saving is blocked while required fields are missing from a `POST` projection.
 
 ## Entries table filters (admin)
 

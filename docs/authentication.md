@@ -73,11 +73,14 @@ Disable user ревокает admin-токены; resolve отклоняет т�
 
 429 includes `Retry-After` and `X-RateLimit-Limit`.
 
+Окно скользящее: предыдущее минутное окно учитывается с весом оставшейся части, поэтому лимит нельзя удвоить всплеском на границе минуты. `Retry-After` считается по конкретному бакету — сколько ждать, пока вес хвоста освободит слот.
+
 Trusted proxies: `security.trusted_proxies` (CIDR/IP list) — тогда IP берётся из `X-Forwarded-For`.
 
 ## Public create spam
 
 В `settings.spam` ресурса: honeypot, minSubmitMs, rateLimitPerMinute, requireCaptcha, maxLinks, blocklist, rejectDuplicates.
+По умолчанию включён только `rejectDuplicates`; разбор каждого параметра, порядок проверок и слабые места — [anti-spam.md](anti-spam.md).
 
 ## Audit
 

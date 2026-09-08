@@ -12,11 +12,14 @@ use RuntimeException;
 
 final class ApiTokenService
 {
+    private const POLICY_KEYS = ['allowedOrigins', 'requireOrigin', 'allowedIps'];
+
     public function __construct(
         private readonly Connection $db,
         private readonly TokenService $tokens,
         private readonly TokenGrantRepository $grants,
         private readonly ResourceRepository $resources,
+        private readonly TokenPolicyRepository $policies,
     ) {
     }
 
@@ -37,6 +40,7 @@ final class ApiTokenService
                 $row,
                 $this->grants->forToken((int) $row['id']),
                 $this->grants->integrationGrantsForToken((int) $row['id']),
+                $this->policies->forToken((int) $row['id']),
             ),
             $rows,
         );
@@ -56,6 +60,7 @@ final class ApiTokenService
             $row,
             $this->grants->forToken($id),
             $this->grants->integrationGrantsForToken($id),
+            $this->policies->forToken($id),
         );
     }
 
@@ -81,10 +86,16 @@ final class ApiTokenService
         }
         $normalized = $this->normalizeGrants($grantInput);
         $integrationGrants = $this->normalizeIntegrationGrants($payload['integrationGrants'] ?? []);
+        $policy = TokenPolicy::fromInput(
+            $payload['allowedOrigins'] ?? [],
+            $payload['requireOrigin'] ?? false,
+            $payload['allowedIps'] ?? [],
+        );
 
         $issued = $this->tokens->issue('api', null, $name, $expiresAt);
         $this->grants->replace($issued['id'], $normalized);
         $this->grants->replaceIntegrationGrants($issued['id'], $integrationGrants);
+        $this->policies->replace($issued['id'], $policy);
 
         return [
             'token' => $issued['token'],
@@ -101,6 +112,10 @@ final class ApiTokenService
         if ($this->findApi($id) === null) {
             throw new RuntimeException('Token not found', 404);
         }
+
+        // Resolved up front so an invalid domain/IP rejects the whole request
+        // before any column is written.
+        $policy = $this->resolvePolicyUpdate($id, $payload);
 
         $sets = [];
         $params = ['id' => $id];
@@ -145,10 +160,15 @@ final class ApiTokenService
             );
         }
 
+        if ($policy !== null) {
+            $this->policies->replace($id, $policy);
+        }
+
         if (
             $sets === []
             && !array_key_exists('grants', $payload)
             && !array_key_exists('integrationGrants', $payload)
+            && $policy === null
         ) {
             throw new InvalidArgumentException('Nothing to update');
         }
@@ -174,6 +194,31 @@ final class ApiTokenService
             throw new InvalidArgumentException('Token is not revoked');
         }
         $this->tokens->restore($id);
+    }
+
+    /**
+     * Partial update: each policy key falls back to the stored value.
+     *
+     * @param array<string, mixed> $payload
+     * @return TokenPolicy|null Null when the payload does not touch the policy
+     */
+    private function resolvePolicyUpdate(int $id, array $payload): ?TokenPolicy
+    {
+        $touched = array_filter(
+            self::POLICY_KEYS,
+            static fn (string $key): bool => array_key_exists($key, $payload),
+        );
+        if ($touched === []) {
+            return null;
+        }
+
+        $current = $this->policies->forToken($id);
+
+        return TokenPolicy::fromInput(
+            array_key_exists('allowedOrigins', $payload) ? $payload['allowedOrigins'] : $current->allowedOrigins,
+            array_key_exists('requireOrigin', $payload) ? $payload['requireOrigin'] : $current->requireOrigin,
+            array_key_exists('allowedIps', $payload) ? $payload['allowedIps'] : $current->allowedIps,
+        );
     }
 
     /**
@@ -257,8 +302,12 @@ final class ApiTokenService
      * @param list<array<string, mixed>> $integrationGrants
      * @return array<string, mixed>
      */
-    private function serialize(array $row, array $grants, array $integrationGrants = []): array
-    {
+    private function serialize(
+        array $row,
+        array $grants,
+        array $integrationGrants = [],
+        ?TokenPolicy $policy = null,
+    ): array {
         return [
             'id' => (int) $row['id'],
             'type' => $row['type'],
@@ -281,6 +330,7 @@ final class ApiTokenService
                 'integrationKey' => (string) $g['integration_key'],
                 'canUse' => (bool) $g['can_use'],
             ], $integrationGrants),
+            ...($policy ?? TokenPolicy::unrestricted())->toArray(),
         ];
     }
 }

@@ -1,181 +1,141 @@
 # Счётчик скачиваний на лендинге
 
-Лендинг [2js.ru](https://2js.ru) считает скачивания `install.php` через **обычный публичный Content API** нашей же CMS. Отдельного кода в бэкенде нет: клик пишет запись в ресурс, счётчик читает `meta.total`.
-
-API отдаётся с **того же origin**, что и лендинг — по пути `/api/`:
+Лендинг [2js.ru](https://2js.ru) считает скачивания `install.php` **на сервере**, а не в браузере. Ресурс `downloads` в нашей же CMS закрыт полностью: ни `public.read`, ни `public.create`. Пишет и читает его только лендинг — по токену, который лежит на его хосте.
 
 ```text
-2js.ru  ──POST /api/downloads──►          (публичный create)
-2js.ru  ──GET  /api/downloads?limit=1──►  (читаем только meta.total)
+клик → GET 2js.ru/download?source=hero  → 302 на GitHub
+                                        └─ POST api.2js.ru/api/downloads (Bearer, server-to-server)
+
+счётчик → GET 2js.ru/api/downloads      → {"total": 1234}   (кэш 60 с, без строк)
 ```
 
-Константа в [`landing/app.js`](../landing/app.js):
+## Почему не публичный POST из браузера
 
-```js
-const DOWNLOADS_ENDPOINT = '/api/downloads';
-```
+Так было раньше: `public.create` на ресурсе, `fetch(..., {keepalive:true})` из [`landing/app.js`](../landing/app.js). Проблемы, которые это давало:
 
-Так сделано намеренно: отдельный хост вида `api.2js.ru` требует своего SAN в сертификате и проходит CORS-preflight. Пока сертификат покрывал только `2js.ru` и `www.2js.ru`, браузер рубил все запросы лендинга на `ERR_CERT_COMMON_NAME_INVALID`, и счётчик молча не появлялся, а клики не записывались.
+- **писать мог кто угодно.** `ApiAccess::allows()` пропускает запрос без заголовка `Origin` — иначе сломались бы server-to-server клиенты. `curl` его не шлёт, значит ни CORS-список, ни `Referer` ничего не ограничивали. Ключ в JS не помог бы: он виден в исходнике страницы;
+- **произвольный текст на нашем домене.** Поля `version`/`source`/`referrer` приходили из тела запроса, а `public.read` отдавал `data` наружу. То есть чужая строка со ссылками раздавалась с `2js.ru`;
+- **лимит на всех разом.** IP посетителя до CMS не доезжает (см. ниже), поэтому `spam.rateLimitPerMinute` тратился одним ведром — скрипт выжирал его, и настоящие клики молча терялись в 429.
 
-## 0. nginx: /api/ в вхосте лендинга
+Серверный подсчёт убирает всё это сразу: накрутка стоит ровно одного настоящего скачивания, а тело записи собирается из `REMOTE_ADDR`, `Referer` и серверного времени.
 
-Без этого локейшена лендинг получает `POST https://2js.ru/api/downloads` → **404**: статический вхост про `/api/` ничего не знает.
+## Как устроено
 
-### Вариант A: CMS живёт отдельным вхостом (`api.2js.ru`)
+| файл | роль |
+|------|------|
+| [`landing/counter.php`](../landing/counter.php) | общий слой: конфиг, кэш, троттлинг, HTTP к CMS. Не роут — прямой доступ отдаёт 404 |
+| [`landing/download.php`](../landing/download.php) | `GET /download?source=…` → 302 на GitHub, запись строки после флаша ответа |
+| [`landing/api-proxy.php`](../landing/api-proxy.php) | `GET /api/downloads` → `{"total": N}` и ничего больше |
+| [`landing/.htaccess`](../landing/.htaccess) | два rewrite-правила + запрет на доступ к `counter*.php` и дотфайлам |
 
-Проксируем на неё по петле — лендинг остаётся same-origin, CORS и сертификат для api-хоста не нужны:
+Что делает `download.php` по шагам:
 
-```nginx
-location ^~ /api/ {
-    proxy_pass http://127.0.0.1:80;
-    proxy_set_header Host api.2js.ru;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-}
-```
+1. отдаёт `302 Location: https://github.com/lnked/hcms/releases/latest/download/install.php` и закрывает соединение (`fastcgi_finish_request`, иначе `Content-Length: 0` + `flush()`);
+2. отсекает `HEAD`, prefetch-заголовки (`Sec-Purpose`, `X-Moz`, `Purpose`) и ботов по User-Agent — `curl`/`wget` при этом считаются, это настоящие установки;
+3. проверяет свой файловый лимит: `clicksPerIpPerMinute` (10) на `REMOTE_ADDR`. Превышение не ломает скачивание — просто не двигает число;
+4. `POST /api/downloads` с Bearer-токеном. Полей ровно пять, все собраны на сервере.
 
-`Host` обязателен: по нему nginx выбирает вхост CMS. `X-Forwarded-Proto https` — чтобы CMS генерировала https-ссылки, а не http.
+`source` — единственное, на что влияет посетитель, и он проходит через whitelist (`nav`, `hero`, `cta`, `curl`, `button`); что угодно другое схлопывается в `button`.
 
-### Вариант B: CMS лежит каталогом на том же сервере
+## Настройка
 
-Маршрут напрямую на её фронт-контроллер (`public/index.php`):
+### 1. Ресурс и токен
 
-```nginx
-location ^~ /api/ {
-    root /var/www/hcms/public;
-    try_files $uri /index.php$is_args$args;
-
-    location ~ \.php$ {
-        include fastcgi_params;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME /var/www/hcms/public/index.php;
-    }
-}
-```
-
-`^~` в обоих вариантах не даёт regex-локейшенам лендинга перехватить `/api/`, а жёсткий `SCRIPT_FILENAME` — потому что фронт-контроллер всегда один. Пути к docroot и php-fpm сокету подставить свои.
-
-### Вариант C: shared-хостинг без доступа к nginx
-
-Так сейчас развёрнут 2js.ru: Timeweb, два вхоста одного аккаунта, конфиг nginx правит только панель. Роль локейшена берут на себя [`landing/.htaccess`](../landing/.htaccess) и [`landing/api-proxy.php`](../landing/api-proxy.php) — они лежат в docroot лендинга и форвардят единственный путь `/api/downloads` на API-хост:
-
-```apache
-RewriteRule ^api/downloads$ api-proxy.php [QSA,L]
-```
-
-Загрузить ядро CMS прямо в процессе лендинга (`require .../src/bootstrap.php`) нельзя, если у вхостов разные версии PHP: у 2js.ru — 7.2, у api.2js.ru — 8.3, и `vendor/composer/platform_check.php` валит запрос в 500. Форвард по HTTP от версии не зависит.
-
-Цена решения — CMS видит IP сервера, а не посетителя: `mod_remoteip` вырезает `X-Forwarded-For` от недоверенного источника, поэтому `security.rate_limit_ip_per_minute` (120) и `security.rate_limit_anon_write_per_minute` (20) считаются на всех разом. Для лендингового трафика этого хватает, а счётчик декоративный — на 429 страница не ломается. Если версии PHP выровнять через панель, шим сводится к двум строкам с `bootstrap.php` и IP снова становится настоящим.
-
-### Проверка после применения
-
-```bash
-curl -s 'https://2js.ru/api/downloads?limit=1' | jq '.meta.total'   # число, не 404
-```
-
-Если вместо JSON пришёл HTML лендинга — маршрут перехвачен другим правилом, проверь, что в nginx стоит именно `^~`.
-
-## Быстрый путь: патч
-
-[`scripts/setup-downloads.php`](../scripts/setup-downloads.php) делает всё из разделов 1–3 сам, через Admin API, идемпотентно (повторный запуск чинит существующий ресурс, а не дублирует его).
-
-Из браузера — залить файл рядом с `index.php` в корне сайта и открыть `https://2js.ru/setup-downloads.php`: форма спросит URL CMS, email и пароль администратора. После успеха там же кнопка **Delete this file**.
-
-Из CLI:
+[`scripts/setup-downloads.php`](../scripts/setup-downloads.php) делает всё через Admin API и идемпотентен: повторный запуск чинит существующий ресурс, а не дублирует его.
 
 ```bash
 php scripts/setup-downloads.php \
-  --url=https://2js.ru --email=admin@example.com --password=SECRET
+  --url=https://api.2js.ru --email=admin@example.com --password=SECRET \
+  --landing-ip=203.0.113.10
 ```
 
 ```text
 Logged in as admin@example.com
 Created resource downloads (#7)
-Settings: public read + create, spam rejectDuplicates off, 20 req/min
-Schema: asset, version, source, referrer
+Settings: no public access, token only
+Schema: asset, version, source, referrer, date
 Published + migrated → /api/downloads
-CORS: added 2js.ru
-Public GET works, meta.total = 0
+Token created, locked to 203.0.113.10 — put it in landing/counter-config.php as `token`:
+hcms_… 
+Authenticated GET works, meta.total = 0
+Anonymous GET rejected, as expected
 ```
 
-CORS патч трогает, только если доступ ограничен: при `unrestricted` не делает ничего, иначе дописывает `2js.ru` к существующему списку.
+Токен показывается один раз. Потерял — `--rotate` отзовёт старый и выпустит новый. Права у него ровно два: `read` + `create` на `downloads`.
 
-Файл должен лежать **в docroot** — рядом с `index.php` и папкой `admin/` (обычно `public_html/`). Если положить его в корень проекта, рядом с `src/`, веб-сервер до него не достучится и вместо формы отдаст SPA админки.
+`--landing-ip` кладёт IP лендинга в `allowedIps` политики токена — единственное неподделываемое ограничение в системе: утёкший токен снаружи бесполезен. В отличие от него `allowedOrigins` держится на заголовке `Origin`, который скрипт не шлёт вовсе.
 
-Если сертификат не покрывает хост CMS (`SSL: no alternative certificate subject name`), поставь галку **Skip TLS verification** в форме или `--insecure` в CLI. Это лечит только сам патч: лендинг ходит в API из браузера, и там нужен валидный сертификат — ещё одна причина держать API на том же хосте, что и лендинг.
+Из браузера — залить файл рядом с `index.php` в корне сайта и открыть `https://api.2js.ru/setup-downloads.php`: та же форма, после успеха кнопка **Delete this file**. Файл должен лежать **в docroot**, рядом с `index.php` и папкой `admin/` (обычно `public_html/`); в корне проекта, рядом с `src/`, веб-сервер до него не достучится.
 
-Дальше — то же самое руками.
+Если сертификат не покрывает хост CMS (`SSL: no alternative certificate subject name`) — галка **Skip TLS verification** или `--insecure` в CLI.
 
-## 1. Ресурс в админке
+### 2. Конфиг лендинга
 
-`/admin/resources/new` → content type `downloads`, затем **Schema** и **Publish**.
+```bash
+cp landing/counter-config.sample.php landing/counter-config.php
+# вписать token и api
+```
+
+Либо переменные окружения `HCMS_DOWNLOADS_TOKEN` и `HCMS_API_BASE` — они перекрывают файл. `counter-config.php` в `.gitignore` и закрыт в `.htaccess`.
+
+Схема ресурса (все поля nullable, чтобы кривой payload не стоил клика):
 
 | поле | тип | что лежит |
 |------|-----|-----------|
-| `asset` | string | всегда `install.php` |
-| `version` | string | версия из GitHub latest release (`0.50.0`), пустая если API GitHub недоступен |
-| `source` | string | откуда пришёл клик, см. таблицу ниже |
-| `referrer` | string | хост реферера, пустой при прямом заходе |
+| `asset` | string(64) | всегда `install.php` |
+| `version` | string(32) | версия из GitHub latest release, пустая если GitHub недоступен |
+| `source` | string(32) | `nav` / `hero` / `cta` / `curl` / `button` |
+| `referrer` | string(190) | хост из заголовка `Referer`, пустой при прямом заходе |
+| `date` | datetime | серверное время клика |
 
-Значения `source`:
+Новый источник добавляется в whitelist `counter_source()` и в `?source=` в разметке — схему трогать не нужно.
 
-| значение | откуда |
-|----------|--------|
-| `nav` | кнопка в шапке |
-| `hero` | кнопка в первом экране |
-| `cta` | кнопка в нижнем блоке |
-| `curl` | копирование `curl`-команды |
-| `button` | фолбэк, если у ссылки нет `data-source` (так же выглядят записи до разделения источников) |
+### 3. CORS
 
-Все поля — `string`, не `enum`: неизвестное значение не должно ронять запись в 422 и терять клик. Поэтому новый источник достаточно добавить атрибутом `data-source` в разметке — схему править не нужно.
+Не нужен вообще. Браузер ходит только на свой origin (`/download`, `/api/downloads`), в CMS стучится PHP. `/admin/settings/system` → **API access** можно оставить как есть.
 
-## 2. Settings ресурса
+## Развёртывание
 
-`/admin/resources/{id}` → **Settings**.
+Так сейчас развёрнут 2js.ru: Timeweb, два вхоста одного аккаунта, конфиг nginx правит только панель. Всё живёт в `.htaccess` лендинга:
 
-| настройка | значение | почему |
-|-----------|----------|--------|
-| `apiEnabled` | on | иначе публичный API ресурса отключён |
-| `public.read` | on | лендингу нужен `meta.total` без токена |
-| `public.create` | on | анонимная запись клика |
-| `public.update` / `public.delete` | off | наружу только append |
-| `search` / `sorting` / `filtering` | off | публичный GET — только счётчик, не query-инструмент |
-| `deleteStrategy` | hard | ревизии/корзина счётчику не нужны |
+```apache
+RewriteRule ^download/?$ download.php [QSA,L]
+RewriteRule ^api/downloads$ api-proxy.php [QSA,L]
+```
 
-**Spam** (там же):
+Загрузить ядро CMS прямо в процессе лендинга (`require .../src/bootstrap.php`) нельзя: у вхостов разные версии PHP (у 2js.ru — 7.2, у api.2js.ru — 8.3), и `vendor/composer/platform_check.php` валит запрос в 500. Поэтому код в `landing/` держится PHP 7.2 и ходит в CMS по HTTP.
 
-| настройка | значение |
-|-----------|----------|
-| `rejectDuplicates` | **off** |
-| `rateLimitPerMinute` | 20 |
-| `requireCaptcha` | off |
+Если CMS раздаётся тем же nginx, что и лендинг, шим всё равно работает — просто поставь `api` в `http://127.0.0.1` и заголовок `Host` сделает своё дело на стороне сервера.
 
-`rejectDuplicates` по умолчанию **включён** и режет одинаковый payload с одного IP в течение 10 минут — для счётчика это молча теряет повторные скачивания. Защиту от накрутки даёт `rateLimitPerMinute`.
+### IP посетителя и `trusted_proxies` — выбрать одно
 
-## 3. CORS
+`download.php` и `api-proxy.php` шлют `X-Forwarded-For: REMOTE_ADDR` (никогда из клиентского заголовка). Дальше развилка:
 
-При раздаче API с того же origin CORS не нужен — запрос лендинга уже не cross-origin, preflight не отправляется.
+| `security.trusted_proxies` | что получаешь | что теряешь |
+|---------------------------|---------------|-------------|
+| пусто (**рекомендуется**) | `allowedIps` на токене работает: запрос приходит с IP лендинга | в audit log CMS — IP лендинга, не посетителя |
+| IP лендинга в списке | настоящий IP посетителя в audit log | `ClientIp::resolve` подменяет `$request->ip`, и `allowedIps` отвергнет **все** запросы |
 
-Настройка `/admin/settings/system` → **API access** нужна только если API остаётся на отдельном хосте: тогда добавить `2js.ru` в allowed origins, иначе preflight `OPTIONS /api/downloads` вернёт 403 и счётчик просто не появится — страница не сломается.
+Совмещать нельзя: проверка политики в `Kernel` идёт уже по разрешённому IP. Раньше `trusted_proxies` был нужен ради лимитера — теперь лимит считается на лендинге, где `REMOTE_ADDR` настоящий, так что смысла жертвовать `allowedIps` нет. См. [anti-spam.md](anti-spam.md).
 
-## 4. Проверка
+## Проверка
 
 ```bash
-# запись клика
-curl -X POST https://2js.ru/api/downloads \
-  -H 'Content-Type: application/json' \
-  -d '{"asset":"install.php","version":"0.50.0","source":"button","referrer":""}'
+# счётчик
+curl -s https://2js.ru/api/downloads          # {"total":1234}
 
-# то, что читает лендинг
-curl -s 'https://2js.ru/api/downloads?limit=1' | jq '.meta.total'
+# клик: 302 на GitHub, строка пишется асинхронно
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://2js.ru/download?source=curl'
+
+# ресурс закрыт снаружи
+curl -s -o /dev/null -w '%{http_code}\n' https://api.2js.ru/api/downloads   # 401
 ```
+
+Если `/api/downloads` вернул HTML лендинга — правило перехвачено другим, проверь порядок в `.htaccess`. Если `503 UPSTREAM_UNAVAILABLE` — не задан токен или CMS недоступна.
 
 ## Поведение на фронте
 
-- Счётчик скрыт, пока `meta.total` не получен: CMS недоступна → лендинг работает без него.
-- Клик инкрементит число оптимистично, не дожидаясь ответа.
-- `fetch(..., { keepalive: true })` — клик уводит на GitHub, запрос должен пережить навигацию.
-- Копирование `curl`-команды считается как `source=curl`: это тоже установка.
-
-Публичный GET отдаёт и сами строки (`data`), поэтому в ресурсе не должно быть PII. IP не пишется в поля — он остаётся в audit log CMS.
+- Счётчик скрыт, пока `total` не получен: CMS недоступна → лендинг работает без него.
+- Клик инкрементит число оптимистично; настоящая запись идёт на сервере.
+- Копирование `curl`-команды **не** считается: в команде стоит `https://2js.ru/download?source=curl`, и клик засчитается, когда её реально выполнят.
+- `?limit=1` наружу больше не уходит: `api-proxy.php` отдаёт только число и кэширует его на 60 секунд, так что шквал открытий страницы не бьёт по API.

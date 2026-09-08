@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { DatePickerField } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
@@ -45,9 +46,22 @@ export function FilterControl({ field, label, value, onChange }: FilterControlPr
     return <RelationFilter field={field} ariaLabel={ariaLabel} value={value} onChange={onChange} />
   }
 
+  // Datetime columns are matched by day prefix, so the filter never edits time.
+  if (kind === 'date') {
+    return (
+      <DatePickerField
+        value={value}
+        onChange={(next) => onChange(next ?? '')}
+        format={typeof field.config.format === 'string' ? field.config.format : ''}
+        aria-label={ariaLabel}
+        className={CONTROL_CLASS}
+      />
+    )
+  }
+
   return (
     <Input
-      type={kind === 'number' ? 'number' : kind === 'date' ? 'date' : 'text'}
+      type={kind === 'number' ? 'number' : 'text'}
       step={kind === 'number' && field.type === 'float' ? 'any' : undefined}
       value={value}
       onChange={(e) => onChange(e.target.value)}

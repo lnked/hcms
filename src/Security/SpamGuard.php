@@ -21,19 +21,22 @@ final class SpamGuard
     }
 
     /**
+     * @param string $slug resource slug, scopes rate limit and duplicate buckets
      * @param array<string, mixed> $settings resource settings
      * @param array<string, mixed> $payload
-     * @throws InvalidArgumentException
+     * @throws InvalidArgumentException failed spam check
+     * @throws RateLimitExceeded too many submissions from this IP
      */
-    public function assertCreateAllowed(Request $request, array $settings, array $payload): void
+    public function assertCreateAllowed(Request $request, string $slug, array $settings, array $payload): void
     {
         $spam = is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
 
         $perMin = max(0, (int) ($spam['rateLimitPerMinute'] ?? 0));
         if ($perMin > 0 && $this->rateLimitStore !== null) {
             $limiter = new RateLimiter($this->rateLimitStore, 60, $perMin);
-            if (!$limiter->hit('spam:write:' . $request->ip)) {
-                throw new InvalidArgumentException('Too many submissions');
+            $bucket = 'spam:write:' . $slug . ':' . $request->ip;
+            if (!$limiter->hit($bucket)) {
+                throw new RateLimitExceeded($limiter->retryAfter($bucket), $perMin);
             }
         }
 
@@ -97,7 +100,10 @@ final class SpamGuard
 
         if ($this->rateLimitStore !== null && (bool) ($spam['rejectDuplicates'] ?? true)) {
             $dupLimiter = new RateLimiter($this->rateLimitStore, 600, 1);
-            $hash = hash('sha256', $request->ip . '|' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            $hash = hash(
+                'sha256',
+                $slug . '|' . $request->ip . '|' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            );
             if (!$dupLimiter->hit('spam:dup:' . $hash)) {
                 throw new InvalidArgumentException('Duplicate submission');
             }

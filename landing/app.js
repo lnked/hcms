@@ -1,13 +1,11 @@
 const REPO = 'lnked/hcms';
-const DOWNLOAD_LATEST = `https://github.com/${REPO}/releases/latest/download/install.php`;
-const DOWNLOAD_RAW = `https://github.com/${REPO}/raw/main/install.php`;
 
-// Download counter lives in our own HCMS instance: public create writes a row,
-// public read exposes only meta.total via ?limit=1. Same-origin path — no CORS
-// preflight and no certificate for a separate API host.
+// Counting is server-side: every .js-download link points at /download, which
+// writes the row and 302s to GitHub. This endpoint is read-only and returns a
+// bare { total } — the rows themselves never leave the API host.
 const DOWNLOADS_ENDPOINT = '/api/downloads';
 
-const state = { version: '', downloads: null };
+const state = { downloads: null };
 
 const I18N = {
   en: {
@@ -199,24 +197,6 @@ function applyLang(lang) {
   localStorage.setItem('hcms-lang', lang);
 }
 
-function curlLine(url) {
-  return `curl -fsSL -o install.php ${url}`;
-}
-
-function setDownloadUrl(url) {
-  document.querySelectorAll('.js-download').forEach((a) => {
-    a.setAttribute('href', url);
-  });
-  const line = curlLine(url);
-  const main = document.getElementById('curl');
-  if (main) {
-    main.textContent = line;
-  }
-  document.querySelectorAll('.js-curl-clone').forEach((el) => {
-    el.textContent = line;
-  });
-}
-
 async function copyText(button) {
   const code = button.closest('.code')?.querySelector('code');
   const text = code ? code.textContent : '';
@@ -225,7 +205,8 @@ async function copyText(button) {
   } catch {
     return;
   }
-  trackDownload('curl');
+  // No optimistic bump here: the copied command points at /download?source=curl
+  // and gets counted when it actually runs.
   const t = dict(currentLang());
   button.classList.add('is-copied');
   button.setAttribute('aria-label', t['hero.copied']);
@@ -246,14 +227,9 @@ async function loadRelease() {
     const data = await res.json();
     const tag = typeof data.tag_name === 'string' ? data.tag_name : '';
     const version = tag.replace(/^v/, '');
-    const assets = Array.isArray(data.assets) ? data.assets : [];
-    const hasInstall = assets.some((asset) => asset && asset.name === 'install.php');
-    setDownloadUrl(hasInstall ? DOWNLOAD_LATEST : DOWNLOAD_RAW);
-
     if (!version) {
       return;
     }
-    state.version = version;
     const bar = document.getElementById('announce');
     const lang = currentLang();
     const html = dict(lang)
@@ -266,7 +242,7 @@ async function loadRelease() {
       bar.dataset.releaseUrl = data.html_url || '';
     }
   } catch {
-    setDownloadUrl(DOWNLOAD_RAW);
+    // Announce bar is optional: GitHub being down must not break the page.
   }
 }
 
@@ -297,14 +273,12 @@ function renderCounter() {
 
 async function loadDownloads() {
   try {
-    const res = await fetch(`${DOWNLOADS_ENDPOINT}?limit=1`, {
-      headers: { Accept: 'application/json' },
-    });
+    const res = await fetch(DOWNLOADS_ENDPOINT, { headers: { Accept: 'application/json' } });
     if (!res.ok) {
       return;
     }
     const body = await res.json();
-    const total = Number(body && body.meta ? body.meta.total : NaN);
+    const total = Number(body ? body.total : NaN);
     if (!Number.isFinite(total)) {
       return;
     }
@@ -315,31 +289,12 @@ async function loadDownloads() {
   }
 }
 
-function referrerHost() {
-  try {
-    return document.referrer ? new URL(document.referrer).hostname : '';
-  } catch {
-    return '';
-  }
-}
-
-function trackDownload(source) {
+// Cosmetic only — /download does the real counting while the click navigates.
+function bumpCounter() {
   if (state.downloads !== null) {
     state.downloads += 1;
     renderCounter();
   }
-  // keepalive: the click navigates to GitHub, the request must survive it.
-  fetch(DOWNLOADS_ENDPOINT, {
-    method: 'POST',
-    keepalive: true,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      asset: 'install.php',
-      version: state.version,
-      source,
-      referrer: referrerHost(),
-    }),
-  }).catch(() => {});
 }
 
 function refreshAnnounce() {
@@ -361,7 +316,7 @@ document.querySelectorAll('[data-lang]').forEach((btn) => {
 });
 
 document.querySelectorAll('.js-download').forEach((link) => {
-  link.addEventListener('click', () => trackDownload(link.dataset.source || 'button'));
+  link.addEventListener('click', bumpCounter);
 });
 
 document.querySelectorAll('.js-copy').forEach((btn) => {
