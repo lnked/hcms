@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.51.1",
+      "date": "2026-09-08",
+      "channel": "stable",
+      "title": "Патч-скрипт для счётчика скачиваний на лендинге",
+      "changes": [
+        {
+          "type": "added",
+          "area": "release",
+          "text": "scripts/setup-downloads.php создаёт ресурс downloads для счётчика скачиваний на лендинге: схема, публичные флаги read/create, антиспам и origin в CORS. Работает из браузера (загрузить в корень сайта) и из CLI, идемпотентно — повторный запуск чинит существующий ресурс, а не дублирует его"
+        },
+        {
+          "type": "added",
+          "area": "docs",
+          "text": "docs/landing-downloads.md описывает, как лендинг считает скачивания через публичный Content API, и почему для счётчика нужно выключить spam.rejectDuplicates"
+        }
+      ]
+    },
+    {
       "version": "0.51.0",
       "date": "2026-09-08",
       "channel": "stable",

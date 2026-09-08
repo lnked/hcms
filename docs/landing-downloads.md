@@ -14,6 +14,33 @@ const API_BASE = 'https://api.2js.ru';
 const DOWNLOADS_SLUG = 'downloads';
 ```
 
+## Быстрый путь: патч
+
+[`scripts/setup-downloads.php`](../scripts/setup-downloads.php) делает всё из разделов 1–3 сам, через Admin API, идемпотентно (повторный запуск чинит существующий ресурс, а не дублирует его).
+
+Из браузера — залить файл рядом с `index.php` в корне сайта и открыть `https://api.2js.ru/setup-downloads.php`: форма спросит URL CMS, email и пароль администратора. После успеха там же кнопка **Delete this file**.
+
+Из CLI:
+
+```bash
+php scripts/setup-downloads.php \
+  --url=https://api.2js.ru --email=admin@example.com --password=SECRET
+```
+
+```text
+Logged in as admin@example.com
+Created resource downloads (#7)
+Settings: public read + create, spam rejectDuplicates off, 20 req/min
+Schema: asset, version, source, referrer
+Published + migrated → /api/downloads
+CORS: added 2js.ru
+Public GET works, meta.total = 0
+```
+
+CORS патч трогает, только если доступ ограничен: при `unrestricted` не делает ничего, иначе дописывает `2js.ru` к существующему списку.
+
+Дальше — то же самое руками.
+
 ## 1. Ресурс в админке
 
 `/admin/resources/new` → content type `downloads`, затем **Schema** и **Publish**.
