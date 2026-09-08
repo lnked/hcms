@@ -53,11 +53,11 @@ The filter row renders a control per column type instead of one text box:
 |---|---|---|
 | `string`, `text`, `email`, `slug`, `url`, `uuid` | text input | `contains` |
 | `integer`, `float` | number input | `eq` |
-| `boolean` | yes/no select | `eq` |
+| `boolean` | tri-state checkbox (any → `1` → `0`) | `eq` |
 | `enum` | select of the configured options | `eq` |
 | `date` | date picker | `eq` |
 | `datetime` | date picker | `startsWith` (day prefix of `YYYY-MM-DD HH:MM:SS`) |
 | `relation` manyToOne | select of related entries by label field | `eq` |
 | `image`, `file`, oneToMany relations | — | not filterable |
 
-Columns marked `filterable: false` in the schema stay without a control. The same mapping builds the query params for the admin entries endpoint (`filter[name]`, `filter[name][op]`).
+Columns marked `filterable: false` in the schema stay without a control. Selects carry an empty *Any* option, and the relation select loads its options through the public API of the related resource, falling back to the admin API when that one is closed — the same loader the relation form control uses. The mapping above also builds the query params for the admin entries endpoint (`filter[name]`, `filter[name][op]`).
