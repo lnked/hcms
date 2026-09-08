@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 $phpVersionId = defined('PHP_VERSION_ID') ? (int) PHP_VERSION_ID : 0;
 if ($phpVersionId < 80300) {
+    $current = defined('PHP_VERSION') ? PHP_VERSION : 'unknown';
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, 'HCMS requires PHP 8.3+, this CLI runs ' . $current . '.' . PHP_EOL);
+        exit(1);
+    }
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
-    $current = defined('PHP_VERSION') ? PHP_VERSION : 'unknown';
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"/>'
         . '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
         . '<title>HCMS — PHP version</title><style>'
@@ -39,6 +43,29 @@ $lock = $root . '/storage/installed.lock';
 $autoload = is_file($root . '/src/autoload.php')
     ? $root . '/src/autoload.php'
     : $root . '/vendor/autoload.php';
+
+// `php install.php` on a bare box: the wizard is web-only, so boot PHP's
+// built-in server instead of dumping HTML into the terminal. The child process
+// re-enters this file as the router, hence the cli-server branch below.
+if (PHP_SAPI === 'cli') {
+    cms_install_cli_serve(array_slice($argv, 1));
+}
+
+if (PHP_SAPI === 'cli-server') {
+    $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+    $requestPath = is_string($requestPath) && !str_contains($requestPath, '..') ? $requestPath : '/';
+
+    if ($requestPath !== '/install.php' && is_file($root . $requestPath)) {
+        return false; // static file — the built-in server streams it itself
+    }
+    // Installed already: hand /admin and /api to the CMS front controller so the
+    // link the wizard prints at the end actually resolves on this server.
+    if ($requestPath !== '/install.php' && is_file($lock) && is_file($root . '/index.php')) {
+        cms_install_cli_front($root . '/index.php');
+    }
+    cms_install_cli_authorize();
+}
+
 $action = $_GET['action'] ?? null;
 /** @var array<string, mixed>|null $requestBody */
 $requestBody = null;
@@ -1232,4 +1259,168 @@ function cms_install_html(): string
 </body>
 </html>
 HTML;
+}
+
+/**
+ * Serve the wizard over PHP's built-in server.
+ *
+ * A fresh box has the file but no vhost, and the installer is a web UI — so the
+ * CLI entrypoint is a supervisor: it picks a free port, mints a one-time key and
+ * re-execs itself as the router. The key matters because the default bind is
+ * 0.0.0.0: a wizard that creates the admin account must not be open to whoever
+ * scans the port first.
+ *
+ * @param list<string> $args
+ *
+ * @return never
+ */
+function cms_install_cli_serve(array $args)
+{
+    $host = '0.0.0.0';
+    $port = 8080;
+
+    foreach ($args as $arg) {
+        if ($arg === '--help' || $arg === '-h') {
+            fwrite(STDOUT, 'Usage: php install.php [--host=0.0.0.0] [--port=8080]' . PHP_EOL);
+            exit(0);
+        }
+        if (str_starts_with($arg, '--host=')) {
+            $host = trim(substr($arg, 7));
+        } elseif (str_starts_with($arg, '--port=')) {
+            $port = (int) substr($arg, 7);
+        }
+    }
+
+    if ($host === '') {
+        $host = '0.0.0.0';
+    }
+    if ($port < 1 || $port > 65535) {
+        $port = 8080;
+    }
+    $port = cms_install_cli_port($host, $port);
+    $key = bin2hex(random_bytes(16));
+
+    $command = escapeshellarg(PHP_BINARY)
+        . ' -S ' . escapeshellarg($host . ':' . $port)
+        . ' -t ' . escapeshellarg(__DIR__)
+        . ' ' . escapeshellarg(__FILE__);
+
+    if (!function_exists('passthru')) {
+        fwrite(STDERR, 'passthru() is disabled — start the wizard manually:' . PHP_EOL . '  ' . $command . PHP_EOL);
+        exit(1);
+    }
+
+    fwrite(STDOUT, PHP_EOL . 'HCMS installer — PHP ' . PHP_VERSION . PHP_EOL . PHP_EOL);
+    foreach (cms_install_cli_urls($host, $port, $key) as $url) {
+        fwrite(STDOUT, '  ' . $url . PHP_EOL);
+    }
+    fwrite(STDOUT, PHP_EOL . 'The key in the URL is what keeps the wizard private. Ctrl+C to stop.' . PHP_EOL . PHP_EOL);
+
+    putenv('CMS_INSTALL_KEY=' . $key);
+    if (DIRECTORY_SEPARATOR === '/') {
+        // The wizard downloads a zip while the browser polls status: a single
+        // blocking worker would deadlock the UI on itself.
+        putenv('PHP_CLI_SERVER_WORKERS=4');
+    }
+
+    $status = 0;
+    passthru($command, $status);
+    exit($status);
+}
+
+/**
+ * First port that actually binds, so a busy 8080 does not abort the install.
+ */
+function cms_install_cli_port(string $host, int $port): int
+{
+    $bind = $host === '0.0.0.0' ? '0.0.0.0' : $host;
+
+    for ($candidate = $port; $candidate <= $port + 20 && $candidate < 65536; $candidate++) {
+        $socket = @stream_socket_server('tcp://' . $bind . ':' . $candidate, $errno, $errstr);
+        if ($socket !== false) {
+            fclose($socket);
+
+            return $candidate;
+        }
+    }
+
+    return $port;
+}
+
+/**
+ * @return list<string>
+ */
+function cms_install_cli_urls(string $host, int $port, string $key): array
+{
+    $suffix = '/install.php?key=' . $key;
+    if ($host !== '0.0.0.0') {
+        return ['http://' . $host . ':' . $port . $suffix];
+    }
+
+    $urls = ['http://127.0.0.1:' . $port . $suffix];
+    $routable = cms_install_cli_routable_ip();
+    if ($routable !== '') {
+        $urls[] = 'http://' . $routable . ':' . $port . $suffix;
+    }
+
+    return $urls;
+}
+
+/**
+ * Address of the default-route interface — the one an SSH user can reach. UDP
+ * "connect" only fills the socket's local end, nothing is sent.
+ */
+function cms_install_cli_routable_ip(): string
+{
+    $socket = @stream_socket_client('udp://8.8.8.8:53', $errno, $errstr, 1);
+    if ($socket === false) {
+        return '';
+    }
+    $name = (string) @stream_socket_get_name($socket, false);
+    fclose($socket);
+
+    $separator = strrpos($name, ':');
+    $ip = $separator === false ? '' : substr($name, 0, $separator);
+
+    return $ip === '0.0.0.0' || $ip === '127.0.0.1' ? '' : $ip;
+}
+
+/**
+ * Gate every cli-server request on the key printed at boot. The first hit
+ * exchanges it for a cookie so the wizard's fetch() calls stay authorized.
+ */
+function cms_install_cli_authorize(): void
+{
+    $expected = (string) getenv('CMS_INSTALL_KEY');
+    if ($expected === '') {
+        return;
+    }
+
+    $supplied = isset($_GET['key']) ? (string) $_GET['key'] : '';
+    if ($supplied !== '' && hash_equals($expected, $supplied)) {
+        setcookie('cms_install_key', $expected, ['path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+
+        return;
+    }
+
+    $cookie = isset($_COOKIE['cms_install_key']) ? (string) $_COOKIE['cms_install_key'] : '';
+    if ($cookie !== '' && hash_equals($expected, $cookie)) {
+        return;
+    }
+
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Forbidden — open the URL with the key printed by `php install.php`.' . PHP_EOL;
+    exit;
+}
+
+/**
+ * Own scope: the front controller must not inherit the router's variables.
+ *
+ * @return never
+ */
+function cms_install_cli_front(string $front)
+{
+    require $front;
+    exit;
 }
