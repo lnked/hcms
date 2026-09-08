@@ -20,9 +20,10 @@ import {
   Webhook,
   X,
 } from 'lucide-react'
-import { useEffect, useState, type ReactNode, type SVGProps } from 'react'
+import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { PageSkeleton } from '@/components/skeletons'
 import { api, clearToken, getToken } from '@/lib/api'
 import { isLocale, useI18n } from '@/i18n'
 import type { AuthUser, SystemVersion } from '@/types/system'
@@ -455,7 +456,9 @@ export function AppShell() {
           collapsed ? 'md:ml-14' : 'md:ml-60',
         )}
       >
-        <Outlet />
+        <Suspense fallback={<PageSkeleton />}>
+          <Outlet />
+        </Suspense>
       </main>
       {version.data ? <WhatsNewDialog version={version.data} /> : null}
     </div>

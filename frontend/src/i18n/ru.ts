@@ -815,6 +815,7 @@ export const ru: Record<MessageKey, string> = {
   'system.ackBreaking': 'Я понимаю breaking-изменения',
   'system.latestRelease': 'У вас последняя версия.',
   'system.changelogDelta': 'Дельта changelog',
+  'system.ownerOnly': 'Устанавливать обновления может только владелец.',
   'system.previewFailed': 'Ошибка предпросмотра',
   'system.updateFailed': 'Ошибка обновления',
   'system.updateState': 'Обновление {state}',

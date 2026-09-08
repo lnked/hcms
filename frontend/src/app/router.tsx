@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { TrailingSlashRedirect } from '@/app/TrailingSlashRedirect'
 import { AppShell } from '@/components/AppShell'
@@ -5,21 +6,57 @@ import { AppToast } from '@/components/AppToast'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { OAuthCompletePage } from '@/features/auth/OAuthCompletePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
-import { ChangelogPage } from '@/features/changelog/ChangelogPage'
-import { DocsPage } from '@/features/docs/DocsPage'
 import { InstallPage } from '@/features/install/InstallPage'
-import { CreateResourcePage } from '@/features/resources/CreateResourcePage'
-import { ResourceDetailPage } from '@/features/resources/ResourceDetailPage'
-import { ResourcesPage } from '@/features/resources/ResourcesPage'
-import { MediaPage } from '@/features/media/MediaPage'
-import { LogsPage } from '@/features/logs/LogsPage'
-import { AccountPage } from '@/pages/AccountPage'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { IntegrationsPage } from '@/pages/IntegrationsPage'
-import { SystemPage } from '@/pages/SystemPage'
-import { TokensPage } from '@/pages/TokensPage'
-import { UsersPage } from '@/pages/UsersPage'
-import { WebhooksPage } from '@/features/webhooks/WebhooksPage'
+
+/**
+ * Login, OAuth and install stay eager: they are the first paint for a visitor
+ * with no session and must not wait on a chunk. Everything behind RequireAuth
+ * is split, which keeps recharts, React Aria and the editors out of that paint.
+ * `AppShell` renders the Suspense boundary, so the sidebar survives navigation.
+ */
+
+// Named exports are dereferenced inline so a renamed page is a compile error,
+// not a blank screen on that route.
+const AccountPage = lazy(() =>
+  import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })),
+)
+const ChangelogPage = lazy(() =>
+  import('@/features/changelog/ChangelogPage').then((m) => ({ default: m.ChangelogPage })),
+)
+const CreateResourcePage = lazy(() =>
+  import('@/features/resources/CreateResourcePage').then((m) => ({
+    default: m.CreateResourcePage,
+  })),
+)
+const DashboardPage = lazy(() =>
+  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+)
+const DocsPage = lazy(() =>
+  import('@/features/docs/DocsPage').then((m) => ({ default: m.DocsPage })),
+)
+const IntegrationsPage = lazy(() =>
+  import('@/pages/IntegrationsPage').then((m) => ({ default: m.IntegrationsPage })),
+)
+const LogsPage = lazy(() =>
+  import('@/features/logs/LogsPage').then((m) => ({ default: m.LogsPage })),
+)
+const MediaPage = lazy(() =>
+  import('@/features/media/MediaPage').then((m) => ({ default: m.MediaPage })),
+)
+const ResourceDetailPage = lazy(() =>
+  import('@/features/resources/ResourceDetailPage').then((m) => ({
+    default: m.ResourceDetailPage,
+  })),
+)
+const ResourcesPage = lazy(() =>
+  import('@/features/resources/ResourcesPage').then((m) => ({ default: m.ResourcesPage })),
+)
+const SystemPage = lazy(() => import('@/pages/SystemPage').then((m) => ({ default: m.SystemPage })))
+const TokensPage = lazy(() => import('@/pages/TokensPage').then((m) => ({ default: m.TokensPage })))
+const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
+const WebhooksPage = lazy(() =>
+  import('@/features/webhooks/WebhooksPage').then((m) => ({ default: m.WebhooksPage })),
+)
 
 export function AppRouter() {
   return (

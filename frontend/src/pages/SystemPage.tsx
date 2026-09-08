@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { api } from '@/lib/api'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
-import type { SystemVersion } from '@/types/system'
+import type { AuthUser, SystemVersion } from '@/types/system'
 import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
 import { cn } from '@/lib/utils'
 
@@ -117,6 +117,12 @@ export function SystemPage() {
     },
   })
 
+  const me = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
+    staleTime: 60_000,
+  })
+
   const apiAccess = useQuery({
     queryKey: ['settings-api-access'],
     queryFn: () => api<ApiAccessSettings>('/admin/api/settings/api-access'),
@@ -196,9 +202,11 @@ export function SystemPage() {
   }
 
   const data = query.data
+  const isOwner = me.data?.role === 'owner'
   const canUpdate = Boolean(preview?.updateAvailable && preview.backupReady)
   const needsAck = Boolean(preview?.hasBreaking)
-  const runDisabled = !canUpdate || (needsAck && !ackBreaking) || runUpdate.isPending || isUpdating
+  const runDisabled =
+    !isOwner || !canUpdate || (needsAck && !ackBreaking) || runUpdate.isPending || isUpdating
   const na = t('system.na')
   const accessKey = apiAccess.data
     ? `${apiAccess.data.unrestricted}:${apiAccess.data.allowedOrigins.join('|')}`
@@ -375,6 +383,10 @@ export function SystemPage() {
                   })}
                 </ol>
               </div>
+            ) : null}
+
+            {preview?.updateAvailable && !isOwner ? (
+              <p className="text-sm text-muted-foreground">{t('system.ownerOnly')}</p>
             ) : null}
 
             {preview?.hasBreaking ? (

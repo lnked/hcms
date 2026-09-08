@@ -1,17 +1,5 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,6 +20,21 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
+import type { PathCount } from './DashboardCharts'
+
+// All three charts sit in one lazy module, so recharts costs a single request
+// and stays out of the chunk that renders the KPI cards.
+const RequestsChart = lazy(() =>
+  import('./DashboardCharts').then((m) => ({ default: m.RequestsChart })),
+)
+const DurationChart = lazy(() =>
+  import('./DashboardCharts').then((m) => ({ default: m.DurationChart })),
+)
+const TopPathsChart = lazy(() =>
+  import('./DashboardCharts').then((m) => ({ default: m.TopPathsChart })),
+)
+
+const ChartFallback = <Skeleton className="h-full w-full" />
 
 interface SystemStats {
   resources: number
@@ -45,11 +48,6 @@ interface TimeseriesPoint {
   requests: number
   avgDurationMs: number
   errors: number
-}
-
-interface PathCount {
-  path: string
-  count: number
 }
 
 interface TimeseriesPayload {
@@ -164,33 +162,11 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="h-64">
             {timeseriesQuery.isLoading ? (
-              <Skeleton className="h-full w-full" />
+              ChartFallback
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="requests"
-                    name={t('dashboard.requests')}
-                    stroke="var(--primary)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="errors"
-                    name={t('dashboard.errors')}
-                    stroke="var(--destructive)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={ChartFallback}>
+                <RequestsChart data={chartData} />
+              </Suspense>
             )}
           </CardContent>
         </Card>
@@ -201,24 +177,11 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="h-64">
             {timeseriesQuery.isLoading ? (
-              <Skeleton className="h-full w-full" />
+              ChartFallback
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="avgDurationMs"
-                    name={t('dashboard.avgDuration')}
-                    stroke="var(--primary)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={ChartFallback}>
+                <DurationChart data={chartData} />
+              </Suspense>
             )}
           </CardContent>
         </Card>
@@ -231,28 +194,13 @@ export function DashboardPage() {
           </CardHeader>
           <CardContent className="h-56">
             {timeseriesQuery.isLoading ? (
-              <Skeleton className="h-full w-full" />
+              ChartFallback
             ) : (timeseriesQuery.data?.topPaths.length ?? 0) === 0 ? (
               <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={timeseriesQuery.data?.topPaths ?? []}
-                  layout="vertical"
-                  margin={{ left: 8, right: 8 }}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="path"
-                    width={120}
-                    tick={{ fontSize: 10 }}
-                    tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 20)}…` : v)}
-                  />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="var(--primary)" radius={4} />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={ChartFallback}>
+                <TopPathsChart data={timeseriesQuery.data?.topPaths ?? []} />
+              </Suspense>
             )}
           </CardContent>
         </Card>

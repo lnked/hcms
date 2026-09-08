@@ -69,8 +69,12 @@ final class RolePolicy
         if (str_starts_with($path, '/admin/api/auth/')) {
             return null;
         }
-        if (str_starts_with($path, '/admin/api/system/update')) {
+        if ($path === '/admin/api/system/update/run') {
             return 'system.write';
+        }
+        // check/preview/status are read-only despite POST
+        if (str_starts_with($path, '/admin/api/system/update')) {
+            return null;
         }
         if (str_starts_with($path, '/admin/api/system/changelog/seen')) {
             return null;

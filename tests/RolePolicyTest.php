@@ -44,6 +44,7 @@ final class RolePolicyTest extends TestCase
         self::assertSame('entries.write', RolePolicy::capabilityFor('POST', '/admin/api/resources/1/entries'));
         self::assertSame('schema.write', RolePolicy::capabilityFor('POST', '/admin/api/resources'));
         self::assertSame('system.write', RolePolicy::capabilityFor('POST', '/admin/api/system/update/run'));
+        self::assertNull(RolePolicy::capabilityFor('POST', '/admin/api/system/update/preview'));
         self::assertSame('users.write', RolePolicy::capabilityFor('POST', '/admin/api/users'));
     }
 

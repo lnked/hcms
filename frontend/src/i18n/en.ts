@@ -811,6 +811,7 @@ export const en = {
   'system.ackBreaking': 'I understand the breaking changes',
   'system.latestRelease': 'You are on the latest release.',
   'system.changelogDelta': 'Changelog delta',
+  'system.ownerOnly': 'Only the owner can install updates.',
   'system.previewFailed': 'Preview failed',
   'system.updateFailed': 'Update failed',
   'system.updateState': 'Update {state}',

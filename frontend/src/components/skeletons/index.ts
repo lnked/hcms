@@ -1,4 +1,5 @@
 export { DetailPageSkeleton } from './DetailPageSkeleton'
 export { FormBlockSkeleton } from './FormBlockSkeleton'
 export { MediaGridSkeleton } from './MediaGridSkeleton'
+export { PageSkeleton } from './PageSkeleton'
 export { TableSkeleton } from './TableSkeleton'
