@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -95,6 +95,36 @@ describe('DataTable', () => {
     )
     await user.click(screen.getByLabelText('Filter Published'))
     expect(onFilterChange).toHaveBeenLastCalledWith('isPublished', '0')
+  })
+
+  it('filters a date column from the calendar popover', async () => {
+    const user = userEvent.setup()
+    const onFilterChange = vi.fn()
+    const fields = [
+      {
+        ...emptyField('date', 0),
+        name: 'publishedAt',
+        label: 'Published at',
+        filterable: true,
+        config: { format: 'DD.MM.YYYY' },
+      },
+    ]
+    renderTable(
+      <DataTable
+        fields={fields}
+        rows={[{ id: 1, publishedAt: '2026-09-08' }]}
+        editHref={editHref}
+        onDelete={vi.fn()}
+        filters={{ publishedAt: '2026-09-08' }}
+        onFilterChange={onFilterChange}
+      />,
+    )
+    const group = screen.getByRole('group', { name: 'Filter Published at' })
+    const calendarButton = within(group).getAllByRole('button').at(-1) as HTMLElement
+    await user.click(calendarButton)
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /15/ }))
+
+    expect(onFilterChange).toHaveBeenLastCalledWith('publishedAt', '2026-09-15')
   })
 
   it('supports row selection', async () => {

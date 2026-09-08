@@ -34,3 +34,11 @@
 </FilesMatch>
 
 Options -Indexes
+
+# The admin shell references hashed bundles: cache the bundles forever, never
+# the shell, otherwise a deploy leaves browsers on the previous build.
+<IfModule mod_headers.c>
+    <FilesMatch "^index\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>

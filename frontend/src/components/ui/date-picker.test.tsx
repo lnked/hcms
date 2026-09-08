@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
+import type { DateGranularity } from '@/lib/dateFormat'
 import { DatePickerField } from './date-picker'
 
 /** Segments are wrapped in bidi isolates, which carry no meaning for assertions. */
@@ -14,13 +15,22 @@ function wrap(ui: React.ReactNode) {
   return <I18nProvider>{ui}</I18nProvider>
 }
 
-function Harness({ initial = '' }: { initial?: string }) {
+function Harness({
+  initial = '',
+  granularity = 'day',
+  format = 'DD.MM.YYYY',
+}: {
+  initial?: string
+  granularity?: DateGranularity
+  format?: string
+}) {
   const [value, setValue] = useState<string | null>(initial)
   return (
     <>
       <DatePickerField
         value={value}
-        format="DD.MM.YYYY"
+        format={format}
+        granularity={granularity}
         onChange={setValue}
         aria-label="Published at"
       />
@@ -81,5 +91,20 @@ describe('DatePickerField', () => {
     await user.click(screen.getByRole('button', { name: /15/ }))
 
     expect(screen.getByText('2026-09-15')).toBeInTheDocument()
+  })
+
+  it('keeps the time when a day is picked for a datetime value', async () => {
+    const user = userEvent.setup()
+    render(
+      wrap(
+        <Harness initial="2026-09-08 21:04:07" granularity="second" format="DD.MM.YYYY HH:mm:ss" />,
+      ),
+    )
+
+    const buttons = screen.getAllByRole('button')
+    await user.click(buttons[buttons.length - 1])
+    await user.click(screen.getByRole('button', { name: /15/ }))
+
+    expect(screen.getByText('2026-09-15 21:04:07')).toBeInTheDocument()
   })
 })

@@ -1,6 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import type { ComponentProps, HTMLAttributes } from 'react'
+import { useState, type ComponentProps, type HTMLAttributes } from 'react'
+import { UNSAFE_PortalProvider } from 'react-aria'
 import { cn } from '@/lib/utils'
 
 export const Dialog = DialogPrimitive.Root
@@ -12,6 +13,11 @@ export function DialogContent({
   children,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Content>) {
+  // React Aria overlays portal into document.body, which Radix marks `pointer-events: none`
+  // and keeps outside its focus trap — clicks inside them are dead and they dismiss on the
+  // first interaction. Hosting them in Content puts them back under the modal's own rules.
+  const [content, setContent] = useState<HTMLDivElement | null>(null)
+
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40" />
@@ -21,6 +27,7 @@ export function DialogContent({
         modal = inner card: overflow-hidden, height by content
       */}
       <DialogPrimitive.Content
+        ref={setContent}
         className="fixed inset-0 z-50 box-border h-dvh overflow-y-auto bg-transparent p-0 py-5 shadow-none outline-none"
         {...props}
       >
@@ -36,7 +43,7 @@ export function DialogContent({
               className,
             )}
           >
-            {children}
+            <UNSAFE_PortalProvider getContainer={() => content}>{children}</UNSAFE_PortalProvider>
             <DialogPrimitive.Close className="absolute right-4 top-4 opacity-70 hover:opacity-100">
               <X className="h-4 w-4" />
             </DialogPrimitive.Close>
