@@ -381,7 +381,7 @@ function dl_web(): void
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        dl_page('', dl_form(dl_baseUrl(), DownloadsPatch::ORIGIN));
+        dl_page('', dl_form(dl_baseUrl(), DownloadsPatch::ORIGIN, false));
 
         return;
     }
@@ -390,14 +390,15 @@ function dl_web(): void
     $email = trim((string) ($_POST['email'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     $origin = trim((string) ($_POST['origin'] ?? DownloadsPatch::ORIGIN));
+    $insecure = isset($_POST['insecure']);
 
     if ($url === '' || $email === '' || $password === '') {
-        dl_page('<p class="err">URL, email and password are required.</p>', dl_form($url, $origin));
+        dl_page('<p class="err">URL, email and password are required.</p>', dl_form($url, $origin, $insecure));
 
         return;
     }
 
-    $patch = new DownloadsPatch($url, $origin);
+    $patch = new DownloadsPatch($url, $origin, $insecure);
     $error = null;
     try {
         $patch->run($email, $password);
@@ -414,7 +415,7 @@ function dl_web(): void
     if ($error !== null) {
         $html .= '<p class="err">' . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . '</p>';
 
-        dl_page($html, dl_form($url, $origin));
+        dl_page($html, dl_form($url, $origin, $insecure));
 
         return;
     }
@@ -434,7 +435,7 @@ function dl_baseUrl(): string
     return ($https ? 'https://' : 'http://') . $host;
 }
 
-function dl_form(string $url, string $origin): string
+function dl_form(string $url, string $origin, bool $insecure): string
 {
     $esc = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
 
@@ -443,6 +444,8 @@ function dl_form(string $url, string $origin): string
         . '<label>Admin email<input name="email" type="email" autocomplete="username" required/></label>'
         . '<label>Admin password<input name="password" type="password" autocomplete="current-password" required/></label>'
         . '<label>Landing origin<input name="origin" value="' . $esc($origin) . '"/></label>'
+        . '<label class="check"><input type="checkbox" name="insecure" value="1"'
+        . ($insecure ? ' checked' : '') . '/> Skip TLS verification (certificate does not cover this host)</label>'
         . '<button type="submit">Create resource</button>'
         . '</form>';
 }
@@ -463,6 +466,8 @@ function dl_page(string $body, ?string $form): void
         . 'label{display:block;font-size:13px;font-weight:600;margin-bottom:12px}'
         . 'input{display:block;width:100%;margin-top:4px;padding:9px 10px;border:1px solid #cbd5e1;'
         . 'border-radius:8px;font:inherit;box-sizing:border-box}'
+        . '.check{display:flex;gap:8px;align-items:center;font-weight:500;color:#475569}'
+        . '.check input{display:inline-block;width:auto;margin:0;padding:0}'
         . 'button{margin-top:8px;padding:10px 16px;border:0;border-radius:8px;background:#0d9488;color:#fff;'
         . 'font:inherit;font-weight:600;cursor:pointer}'
         . '.log{margin:0 0 12px;padding-left:18px;font-size:14px;line-height:1.6}'

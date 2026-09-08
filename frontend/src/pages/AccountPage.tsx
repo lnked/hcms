@@ -84,7 +84,7 @@ export function AccountPage() {
   )
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t('account.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('account.description')}</p>
@@ -97,7 +97,7 @@ export function AccountPage() {
           {identities.error instanceof Error ? identities.error.message : t('common.loadError')}
         </p>
       ) : (
-        <>
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
               <div className="space-y-1.5">
@@ -167,7 +167,7 @@ export function AccountPage() {
               )}
             </CardContent>
           </Card>
-        </>
+        </div>
       )}
     </div>
   )

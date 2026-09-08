@@ -184,6 +184,13 @@ function applyLang(lang) {
       el.innerHTML = t[key];
     }
   });
+  document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-aria');
+    if (key && t[key]) {
+      el.setAttribute('aria-label', t[key]);
+      el.setAttribute('title', t[key]);
+    }
+  });
   document.querySelectorAll('[data-lang]').forEach((btn) => {
     btn.setAttribute('aria-pressed', String(btn.getAttribute('data-lang') === lang));
   });
@@ -208,8 +215,8 @@ function setDownloadUrl(url) {
   });
 }
 
-async function copyText(label) {
-  const code = document.getElementById('curl');
+async function copyText(button) {
+  const code = button.closest('.code')?.querySelector('code');
   const text = code ? code.textContent : '';
   try {
     await navigator.clipboard.writeText(text);
@@ -217,12 +224,14 @@ async function copyText(label) {
     return;
   }
   trackDownload('curl');
-  const lang = currentLang();
-  const original = dict(lang)['hero.copy'];
-  const copied = dict(lang)['hero.copied'];
-  label.textContent = copied;
+  const t = dict(currentLang());
+  button.classList.add('is-copied');
+  button.setAttribute('aria-label', t['hero.copied']);
+  button.setAttribute('title', t['hero.copied']);
   window.setTimeout(() => {
-    label.textContent = original;
+    button.classList.remove('is-copied');
+    button.setAttribute('aria-label', t['hero.copy']);
+    button.setAttribute('title', t['hero.copy']);
   }, 1400);
 }
 
@@ -353,10 +362,6 @@ document.querySelectorAll('.js-download').forEach((link) => {
   link.addEventListener('click', () => trackDownload('button'));
 });
 
-const copyBtn = document.getElementById('copy');
-if (copyBtn) {
-  copyBtn.addEventListener('click', () => copyText(copyBtn));
-}
 document.querySelectorAll('.js-copy').forEach((btn) => {
   btn.addEventListener('click', () => copyText(btn));
 });

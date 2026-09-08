@@ -9,6 +9,10 @@
       content="Drop-in admin panel and REST API for your SPA. Describe a schema, get CRUD, OpenAPI, and /admin."
     />
     <link rel="canonical" href="https://2js.ru/" />
+    <link rel="icon" href="./favicon.ico" sizes="32x32" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="theme-color" content="#4945ff" />
     <meta property="og:title" content="HCMS — a ready-made admin for your SPA" />
     <meta
       property="og:description"
@@ -63,7 +67,15 @@
           <code id="curl"
             >curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php</code
           >
-          <button type="button" id="copy" data-i18n="hero.copy">Copy</button>
+          <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Copy">
+            <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2.5" />
+              <path d="M6.5 15h-.75A1.75 1.75 0 0 1 4 13.25v-7.5A1.75 1.75 0 0 1 5.75 4h7.5A1.75 1.75 0 0 1 15 5.75v.75" />
+            </svg>
+            <svg class="i-check" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7" />
+            </svg>
+          </button>
         </div>
         <p class="counter" id="counter" hidden></p>
         <div class="pills">
@@ -282,7 +294,15 @@
           <code class="js-curl-clone"
             >curl -fsSL -o install.php https://github.com/lnked/hcms/releases/latest/download/install.php</code
           >
-          <button type="button" class="js-copy" data-i18n="hero.copy">Copy</button>
+          <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Copy">
+            <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2.5" />
+              <path d="M6.5 15h-.75A1.75 1.75 0 0 1 4 13.25v-7.5A1.75 1.75 0 0 1 5.75 4h7.5A1.75 1.75 0 0 1 15 5.75v.75" />
+            </svg>
+            <svg class="i-check" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7" />
+            </svg>
+          </button>
         </div>
       </section>
     </main>
