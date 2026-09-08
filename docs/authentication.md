@@ -1,10 +1,12 @@
 # Authentication
 
-Единственный механизм:
+Единственный механизм сессии админки:
 
 ```http
 Authorization: Bearer <token>
 ```
+
+Фронт хранит токен в `localStorage` (`hcms_token`). `POST /admin/api/auth/login` принимает `remember: true` — тогда TTL = `auth.remember_token_ttl_hours` (default 720 / 30 дней), иначе `auth.admin_token_ttl_hours` (default 12). `POST /admin/api/auth/logout` ревокает текущий токен.
 
 On Apache/CGI shared hosting the `Authorization` header is often stripped before PHP.
 HCMS restores it via web-root `.htaccess` (`HTTP_AUTHORIZATION`) and `Request::authorizationFromGlobals()`.
@@ -14,12 +16,35 @@ Login:
 
 ```http
 POST /admin/api/auth/login
-{ "email": "...", "password": "..." }
+{ "email": "...", "password": "...", "remember": false }
 ```
 
 Ответ: `{ "data": { "token": "...", "expiresAt": "2026-09-06 04:00:00", "user": { ... } } }`.
 
-Токен в БД не хранится открытым: `token_prefix` + `sha256`. Logout ревокает текущий токен.
+Токен в БД не хранится открытым: `token_prefix` + `sha256`.
+
+## Social login (Google / Telegram)
+
+Новые аккаунты **не создаются**.
+
+- **Google**: вход, если verified email совпадает с `cms_users.email` (identity создаётся автоматически) или Google id уже привязан в Аккаунте.
+- **Telegram**: вход только после ручной привязки в `/admin/settings/account`.
+
+Настройки провайдеров: Интеграции → Social login (`auth.google`, `auth.telegram` в `cms_settings`). Redirect URI: `{APP_URL}/admin/api/auth/google/callback`.
+
+```http
+GET  /admin/api/auth/providers
+GET  /admin/api/auth/google/start
+GET  /admin/api/auth/google/callback
+POST /admin/api/auth/telegram
+POST /admin/api/auth/totp/complete          # { ticket, totpCode } после Google+2FA
+GET  /admin/api/auth/identities
+POST /admin/api/auth/identities/google/start
+POST /admin/api/auth/identities/telegram
+DELETE /admin/api/auth/identities/{google|telegram}
+```
+
+Google callback редиректит на `/admin/oauth/complete#token=...` (fragment, не query). Если включён TOTP — `#ticket=...`.
 
 ## Expiry
 
@@ -56,4 +81,4 @@ Trusted proxies: `security.trusted_proxies` (CIDR/IP list) — тогда IP б�
 
 ## Audit
 
-`auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.login_denied`, `auth.logout`, `auth.totp_*`, `security.ip_blocked`, `integration.email.denied` пишутся в `cms_audit_logs`. Пароли не логируются.
+`auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.login_denied`, `auth.logout`, `auth.totp_*`, `auth.identity_linked`, `auth.identity_unlinked`, `security.ip_blocked`, `integration.email.denied` пишутся в `cms_audit_logs`. Пароли не логируются.

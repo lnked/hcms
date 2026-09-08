@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Auth\OAuthSettings;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Integrations\IntegrationApiService;
@@ -23,6 +24,8 @@ final class IntegrationsController
         private readonly Mailer $mailer,
         private readonly IntegrationApiService $apis,
         private readonly AuditLogger $audit,
+        private readonly OAuthSettings $oauth,
+        private readonly string $appUrl,
     ) {
     }
 
@@ -168,6 +171,39 @@ final class IntegrationsController
             return new Response(204, '');
         } catch (RuntimeException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        }
+    }
+
+    public function getOauth(Request $request, AuthContext $auth): Response
+    {
+        unset($request, $auth);
+        $this->oauth->ensureDefaults();
+
+        return Response::data($this->oauth->publicConfig($this->appUrl));
+    }
+
+    public function updateOauth(Request $request, AuthContext $auth): Response
+    {
+        try {
+            $this->oauth->ensureDefaults();
+            $updated = $this->oauth->update($request->json(), $this->appUrl);
+            $this->audit->log(
+                $request,
+                'integration.oauth.updated',
+                $auth->userId(),
+                'integration',
+                'oauth',
+                [
+                    'googleEnabled' => $updated['google']['enabled'],
+                    'telegramEnabled' => $updated['telegram']['enabled'],
+                ],
+            );
+
+            return Response::data($updated);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }
     }
 }

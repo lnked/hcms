@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { api, clearToken, handleUnauthorized, setToken } from './api'
+import { api, clearToken, handleUnauthorized, setToken, getToken } from './api'
 
 describe('auth session helpers', () => {
   beforeEach(() => {
+    localStorage.clear()
     sessionStorage.clear()
     vi.stubGlobal(
       'fetch',
@@ -21,7 +22,20 @@ describe('auth session helpers', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    localStorage.clear()
     sessionStorage.clear()
+  })
+
+  it('stores token in localStorage', () => {
+    setToken('abc')
+    expect(localStorage.getItem('hcms_token')).toBe('abc')
+    expect(sessionStorage.getItem('hcms_token')).toBeNull()
+    expect(getToken()).toBe('abc')
+  })
+
+  it('reads leftover sessionStorage token', () => {
+    sessionStorage.setItem('hcms_token', 'legacy')
+    expect(getToken()).toBe('legacy')
   })
 
   it('clears stale token on 401 from protected API', async () => {
@@ -34,7 +48,7 @@ describe('auth session helpers', () => {
     })
 
     await expect(api('/admin/api/system/version')).rejects.toMatchObject({ status: 401 })
-    expect(sessionStorage.getItem('hcms_token')).toBeNull()
+    expect(localStorage.getItem('hcms_token')).toBeNull()
     expect(assign).toHaveBeenCalledWith('/admin/login?from=%2Fadmin%2F')
   })
 
@@ -48,13 +62,14 @@ describe('auth session helpers', () => {
     })
 
     handleUnauthorized('/admin/api/auth/me')
-    expect(sessionStorage.getItem('hcms_token')).toBeNull()
+    expect(localStorage.getItem('hcms_token')).toBeNull()
     expect(assign).not.toHaveBeenCalled()
   })
 
   it('clearToken removes session key', () => {
     setToken('x')
     clearToken()
-    expect(sessionStorage.getItem('hcms_token')).toBeNull()
+    expect(localStorage.getItem('hcms_token')).toBeNull()
+    expect(getToken()).toBeNull()
   })
 })

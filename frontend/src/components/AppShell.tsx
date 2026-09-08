@@ -6,6 +6,7 @@ import {
   Image,
   KeyRound,
   LayoutDashboard,
+  LogOut,
   Menu,
   Moon,
   PanelLeftClose,
@@ -14,6 +15,7 @@ import {
   ScrollText,
   Settings,
   Sun,
+  UserCircle,
   Users,
   Webhook,
   X,
@@ -21,7 +23,7 @@ import {
 import { useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { api, getToken } from '@/lib/api'
+import { api, clearToken, getToken } from '@/lib/api'
 import { isLocale, useI18n } from '@/i18n'
 import type { AuthUser, SystemVersion } from '@/types/system'
 import { cn } from '@/lib/utils'
@@ -155,9 +157,36 @@ function SidebarFooter({
   const { resolved, toggleLightDark } = useTheme()
   const isDark = resolved === 'dark'
   const themeLabel = isDark ? t('nav.themeDark') : t('nav.themeLight')
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  async function logout() {
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      await api('/admin/api/auth/logout', { method: 'POST' })
+    } catch {
+      // still drop the local session
+    }
+    clearToken()
+    window.location.assign('/admin/login')
+  }
 
   return (
     <div className={cn('space-y-2 border-t border-sidebar-border', collapsed ? 'p-1' : 'p-2')}>
+      <button
+        type="button"
+        onClick={() => void logout()}
+        disabled={loggingOut}
+        title={t('nav.logout')}
+        aria-label={t('nav.logout')}
+        className={cn(
+          'flex w-full cursor-pointer items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
+          collapsed ? 'justify-center px-0' : 'gap-2 px-3',
+        )}
+      >
+        <LogOut className="h-4 w-4 shrink-0" />
+        <SidebarLabel collapsed={collapsed}>{t('nav.logout')}</SidebarLabel>
+      </button>
       <button
         type="button"
         onClick={toggleLightDark}
@@ -271,6 +300,7 @@ export function AppShell() {
         minRole: 'admin' as const,
       },
       { to: '/settings/users', label: t('nav.users'), icon: Users, minRole: 'admin' as const },
+      { to: '/settings/account', label: t('nav.account'), icon: UserCircle },
       {
         to: '/settings/integrations',
         label: t('nav.integrations'),

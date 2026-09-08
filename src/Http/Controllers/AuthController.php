@@ -7,6 +7,8 @@ namespace Cms\Http\Controllers;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\LoginGuard;
+use Cms\Auth\OAuthException;
+use Cms\Auth\OAuthService;
 use Cms\Auth\Password;
 use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenService;
@@ -18,6 +20,7 @@ use Cms\Security\CaptchaVerifier;
 use Cms\Security\IpBlockRepository;
 use Cms\Security\Totp;
 use DateTimeImmutable;
+use Throwable;
 
 final class AuthController
 {
@@ -30,6 +33,7 @@ final class AuthController
         private readonly ?Settings $settings = null,
         private readonly ?IpBlockRepository $ipBlocks = null,
         private readonly ?UsersRepository $users = null,
+        private readonly ?OAuthService $oauth = null,
     ) {
     }
 
@@ -39,6 +43,7 @@ final class AuthController
         $email = isset($payload['email']) && is_string($payload['email']) ? trim($payload['email']) : '';
         $password = isset($payload['password']) && is_string($payload['password']) ? $payload['password'] : '';
         $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $remember = $this->wantsRemember($payload);
         $captchaToken = isset($payload['captchaToken']) && is_string($payload['captchaToken'])
             ? $payload['captchaToken']
             : ($request->header('x-captcha-token') ?? '');
@@ -99,33 +104,7 @@ final class AuthController
             return Response::error('FORBIDDEN', 'Account is disabled', 403);
         }
 
-        if ((bool) ($user['totp_enabled'] ?? false)) {
-            $secret = is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
-            if ($totpCode === '') {
-                return Response::error('TOTP_REQUIRED', 'Two-factor code required', 401, [
-                    'totp' => ['required'],
-                ]);
-            }
-            if ($secret === '' || !Totp::verify($secret, $totpCode)) {
-                $this->loginGuard->fail($request->ip, $email);
-                $this->audit->log($request, 'auth.login_failed', (int) $user['id'], 'user', (string) $user['id'], [
-                    'reason' => 'totp',
-                ]);
-
-                return Response::error('UNAUTHORIZED', 'Invalid two-factor code', 401);
-            }
-        }
-
-        $expiresAt = (new DateTimeImmutable(sprintf('+%d hours', $this->adminTtlHours)))->format('Y-m-d H:i:s');
-        $issued = $this->tokens->issue('admin', (int) $user['id'], 'admin-session', $expiresAt);
-        $this->tokens->touchLogin((int) $user['id']);
-        $this->audit->log($request, 'auth.login', (int) $user['id'], 'user', (string) $user['id']);
-
-        return Response::data([
-            'token' => $issued['token'],
-            'expiresAt' => $expiresAt,
-            'user' => $this->publicUser($user),
-        ]);
+        return $this->finishLogin($request, $user, $totpCode, $remember, 'password');
     }
 
     public function logout(Request $request, AuthContext $auth): Response
@@ -219,6 +198,355 @@ final class AuthController
         $this->audit->log($request, 'auth.totp_disabled', $auth->userId(), 'user', (string) $auth->userId());
 
         return Response::data(['totpEnabled' => false]);
+    }
+
+    public function totpComplete(Request $request): Response
+    {
+        $payload = $request->json();
+        $ticket = isset($payload['ticket']) && is_string($payload['ticket']) ? $payload['ticket'] : '';
+        $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $remember = $this->wantsRemember($payload);
+        if ($ticket === '') {
+            return Response::error('VALIDATION_ERROR', 'Ticket is required', 422, ['ticket' => ['required']]);
+        }
+
+        $token = $this->tokens->resolve($ticket);
+        if ($token === null || ($token['type'] ?? '') !== 'oauth_pending') {
+            return Response::error('UNAUTHORIZED', 'Invalid or expired ticket', 401);
+        }
+        $userId = isset($token['user_id']) ? (int) $token['user_id'] : 0;
+        $user = $this->loadUser($userId);
+        if ($user === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        $email = (string) ($user['email'] ?? '');
+        if (!$this->loginGuard->canAttempt($request->ip, $email !== '' ? $email : 'oauth')) {
+            $this->audit->log($request, 'auth.login_blocked', $userId, 'user', (string) $userId);
+
+            return Response::tooManyRequests($this->loginGuard->retryAfter());
+        }
+
+        $result = $this->finishLogin($request, $user, $totpCode, $remember, 'oauth');
+        if ($result->status < 400) {
+            $this->tokens->revoke((int) $token['id']);
+        }
+
+        return $result;
+    }
+
+    public function providers(Request $request): Response
+    {
+        unset($request);
+        if ($this->oauth === null) {
+            return Response::data([
+                'google' => ['enabled' => false, 'clientId' => ''],
+                'telegram' => ['enabled' => false, 'botUsername' => ''],
+            ]);
+        }
+
+        return Response::data($this->oauth->publicProviders());
+    }
+
+    public function googleStart(Request $request): Response
+    {
+        unset($request);
+        if ($this->oauth === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+        }
+        try {
+            return Response::redirect($this->oauth->googleAuthorizeUrl('login'));
+        } catch (OAuthException $e) {
+            return $this->oauthFragmentRedirect(['error' => $e->errorCode]);
+        }
+    }
+
+    public function googleCallback(Request $request): Response
+    {
+        if ($this->oauth === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+        }
+        $error = $request->query('error');
+        if ($error !== null && $error !== '') {
+            return $this->oauthFragmentRedirect(['error' => 'PROVIDER_ERROR']);
+        }
+        $code = $request->query('code') ?? '';
+        $state = $request->query('state') ?? '';
+        if ($code === '' || $state === '') {
+            return $this->oauthFragmentRedirect(['error' => 'INVALID_STATE']);
+        }
+
+        try {
+            $decoded = $this->oauth->decodeState($state);
+            $intent = isset($decoded['intent']) && is_string($decoded['intent']) ? $decoded['intent'] : 'login';
+            $linkUserId = isset($decoded['userId']) && is_int($decoded['userId'])
+                ? $decoded['userId']
+                : (isset($decoded['userId']) && is_numeric($decoded['userId']) ? (int) $decoded['userId'] : null);
+            $profile = $this->oauth->exchangeGoogleCode($code);
+
+            if ($intent === 'link') {
+                if ($linkUserId === null || $linkUserId < 1) {
+                    return $this->oauthFragmentRedirect(['error' => 'UNAUTHORIZED']);
+                }
+                $this->oauth->linkIdentity($linkUserId, 'google', $profile['id'], $profile['email']);
+                $this->audit->log($request, 'auth.identity_linked', $linkUserId, 'user', (string) $linkUserId, [
+                    'provider' => 'google',
+                ]);
+
+                return $this->oauthFragmentRedirect(['linked' => 'google']);
+            }
+
+            $guardKey = $profile['email'];
+            if (!$this->loginGuard->canAttempt($request->ip, $guardKey)) {
+                $this->audit->log($request, 'auth.login_blocked', null, 'user', null, ['email' => $guardKey]);
+                $this->maybeAutoBlockIp($request);
+
+                return $this->oauthFragmentRedirect(['error' => 'TOO_MANY_REQUESTS']);
+            }
+
+            $user = $this->oauth->userForGoogle($profile['id'], $profile['email'], $profile['emailVerified']);
+            if ($user === null) {
+                $this->loginGuard->fail($request->ip, $guardKey);
+                $this->audit->log($request, 'auth.login_failed', null, 'user', null, [
+                    'email' => $profile['email'],
+                    'reason' => 'google_not_found',
+                ]);
+
+                return $this->oauthFragmentRedirect(['error' => 'ACCOUNT_NOT_FOUND']);
+            }
+            $user = $this->loadUser((int) $user['id']) ?? $user;
+            if (($user['status'] ?? '') !== 'active') {
+                $this->loginGuard->fail($request->ip, $guardKey);
+                $this->audit->log($request, 'auth.login_denied', (int) $user['id'], 'user', (string) $user['id']);
+
+                return $this->oauthFragmentRedirect(['error' => 'ACCOUNT_DISABLED']);
+            }
+
+            $this->oauth->ensureGoogleIdentity((int) $user['id'], $profile['id'], $profile['email']);
+
+            if ((bool) ($user['totp_enabled'] ?? false)) {
+                $expiresAt = (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
+                $issued = $this->tokens->issue('oauth_pending', (int) $user['id'], 'oauth-totp', $expiresAt);
+
+                return $this->oauthFragmentRedirect(['ticket' => $issued['token']]);
+            }
+
+            $session = $this->issueAdminToken($user, false);
+            $this->tokens->touchLogin((int) $user['id']);
+            $this->audit->log($request, 'auth.login', (int) $user['id'], 'user', (string) $user['id'], [
+                'provider' => 'google',
+            ]);
+
+            return $this->oauthFragmentRedirect([
+                'token' => $session['token'],
+                'expiresAt' => $session['expiresAt'],
+            ]);
+        } catch (OAuthException $e) {
+            return $this->oauthFragmentRedirect(['error' => $e->errorCode]);
+        } catch (Throwable) {
+            return $this->oauthFragmentRedirect(['error' => 'PROVIDER_ERROR']);
+        }
+    }
+
+    public function telegramLogin(Request $request): Response
+    {
+        if ($this->oauth === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+        }
+        $payload = $request->json();
+        $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $remember = $this->wantsRemember($payload);
+        $guardKey = 'telegram';
+
+        try {
+            $profile = $this->oauth->verifyTelegramPayload($payload);
+            $guardKey = 'telegram:' . $profile['id'];
+            if (!$this->loginGuard->canAttempt($request->ip, $guardKey)) {
+                $this->audit->log($request, 'auth.login_blocked', null, 'user', null, ['provider' => 'telegram']);
+                $this->maybeAutoBlockIp($request);
+
+                return Response::tooManyRequests($this->loginGuard->retryAfter());
+            }
+
+            $user = $this->oauth->userForTelegram($profile['id']);
+            if ($user === null) {
+                $this->loginGuard->fail($request->ip, $guardKey);
+                $this->audit->log($request, 'auth.login_failed', null, 'user', null, [
+                    'reason' => 'telegram_not_linked',
+                ]);
+
+                return Response::error('ACCOUNT_NOT_LINKED', 'Telegram is not linked to an account', 403);
+            }
+            $user = $this->loadUser((int) $user['id']) ?? $user;
+            if (($user['status'] ?? '') !== 'active') {
+                $this->loginGuard->fail($request->ip, $guardKey);
+                $this->audit->log($request, 'auth.login_denied', (int) $user['id'], 'user', (string) $user['id']);
+
+                return Response::error('FORBIDDEN', 'Account is disabled', 403);
+            }
+
+            return $this->finishLogin($request, $user, $totpCode, $remember, 'telegram');
+        } catch (OAuthException $e) {
+            if ($e->errorCode === 'UNAUTHORIZED') {
+                $this->loginGuard->fail($request->ip, $guardKey);
+            }
+
+            return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
+        }
+    }
+
+    public function listIdentities(Request $request, AuthContext $auth): Response
+    {
+        unset($request);
+        if ($this->oauth === null || $auth->userId() === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+
+        return Response::data($this->oauth->identitiesForUser($auth->userId()));
+    }
+
+    public function googleLinkStart(Request $request, AuthContext $auth): Response
+    {
+        unset($request);
+        if ($this->oauth === null || $auth->userId() === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            return Response::data(['url' => $this->oauth->googleAuthorizeUrl('link', $auth->userId())]);
+        } catch (OAuthException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
+        }
+    }
+
+    public function telegramLink(Request $request, AuthContext $auth): Response
+    {
+        if ($this->oauth === null || $auth->userId() === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            $profile = $this->oauth->verifyTelegramPayload($request->json());
+            $label = $profile['username'] !== null ? '@' . $profile['username'] : $profile['id'];
+            $this->oauth->linkIdentity($auth->userId(), 'telegram', $profile['id'], $label);
+            $this->audit->log($request, 'auth.identity_linked', $auth->userId(), 'user', (string) $auth->userId(), [
+                'provider' => 'telegram',
+            ]);
+
+            return Response::data($this->oauth->identitiesForUser($auth->userId()));
+        } catch (OAuthException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
+        }
+    }
+
+    public function unlinkIdentity(Request $request, AuthContext $auth, string $provider): Response
+    {
+        if ($this->oauth === null || $auth->userId() === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            $this->oauth->unlink($auth->userId(), $provider);
+            $this->audit->log($request, 'auth.identity_unlinked', $auth->userId(), 'user', (string) $auth->userId(), [
+                'provider' => $provider,
+            ]);
+
+            return Response::data($this->oauth->identitiesForUser($auth->userId()));
+        } catch (OAuthException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function finishLogin(Request $request, array $user, string $totpCode, bool $remember, string $via): Response
+    {
+        $email = (string) ($user['email'] ?? '');
+        if ((bool) ($user['totp_enabled'] ?? false)) {
+            $secret = is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
+            if ($totpCode === '') {
+                return Response::error('TOTP_REQUIRED', 'Two-factor code required', 401, [
+                    'totp' => ['required'],
+                ]);
+            }
+            if ($secret === '' || !Totp::verify($secret, $totpCode)) {
+                $this->loginGuard->fail($request->ip, $email !== '' ? $email : 'oauth');
+                $this->audit->log($request, 'auth.login_failed', (int) $user['id'], 'user', (string) $user['id'], [
+                    'reason' => 'totp',
+                    'via' => $via,
+                ]);
+
+                return Response::error('UNAUTHORIZED', 'Invalid two-factor code', 401);
+            }
+        }
+
+        $session = $this->issueAdminToken($user, $remember);
+        $this->tokens->touchLogin((int) $user['id']);
+        $this->audit->log($request, 'auth.login', (int) $user['id'], 'user', (string) $user['id'], [
+            'via' => $via,
+        ]);
+
+        return Response::data([
+            'token' => $session['token'],
+            'expiresAt' => $session['expiresAt'],
+            'user' => $this->publicUser($user),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @return array{token: string, expiresAt: string}
+     */
+    private function issueAdminToken(array $user, bool $remember): array
+    {
+        $ttlHours = $remember
+            ? max(1, $this->settings?->int('auth.remember_token_ttl_hours', 720) ?? 720)
+            : $this->adminTtlHours;
+        $expiresAt = (new DateTimeImmutable(sprintf('+%d hours', $ttlHours)))->format('Y-m-d H:i:s');
+        $issued = $this->tokens->issue('admin', (int) $user['id'], 'admin-session', $expiresAt);
+
+        return [
+            'token' => $issued['token'],
+            'expiresAt' => $expiresAt,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function wantsRemember(array $payload): bool
+    {
+        $value = $payload['remember'] ?? false;
+
+        return $value === true || $value === 1 || $value === '1' || $value === 'true';
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function loadUser(int $id): ?array
+    {
+        if ($id < 1) {
+            return null;
+        }
+        if ($this->users !== null) {
+            return $this->users->find($id);
+        }
+
+        return $this->tokens->userById($id);
+    }
+
+    /**
+     * @param array<string, string> $parts
+     */
+    private function oauthFragmentRedirect(array $parts): Response
+    {
+        $base = $this->oauth !== null
+            ? $this->oauth->completeUrl()
+            : '/admin/oauth/complete';
+        $pairs = [];
+        foreach ($parts as $key => $value) {
+            $pairs[] = rawurlencode($key) . '=' . rawurlencode($value);
+        }
+
+        return Response::redirect($base . '#' . implode('&', $pairs));
     }
 
     private function maybeAutoBlockIp(Request $request): void

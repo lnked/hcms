@@ -16,6 +16,7 @@ import { showError } from '@/lib/toast'
 import { useI18n, type MessageKey } from '@/i18n'
 import { CodeBlock } from '@/features/docs/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
+import { OauthIntegrationsCard } from './OauthIntegrationsCard'
 
 type EmailProvider = 'resend' | 'postmark' | 'mailgun'
 type MailgunRegion = 'us' | 'eu'
@@ -307,6 +308,8 @@ export function IntegrationsPage() {
       </div>
 
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+
+      <OauthIntegrationsCard />
 
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">

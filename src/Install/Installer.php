@@ -231,6 +231,17 @@ final class Installer
                 'allowedOrigins' => [],
             ],
             'auth.admin_token_ttl_hours' => 12,
+            'auth.remember_token_ttl_hours' => 720,
+            'auth.google' => [
+                'enabled' => false,
+                'clientId' => '',
+                'clientSecret' => '',
+            ],
+            'auth.telegram' => [
+                'enabled' => false,
+                'botUsername' => '',
+                'botToken' => '',
+            ],
             'security.login_max_attempts' => 5,
             'security.login_window_seconds' => 900,
             'security.rate_limit_ip_per_minute' => 120,

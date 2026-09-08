@@ -2,23 +2,67 @@ import { showError } from '@/lib/toast'
 
 const TOKEN_KEY = 'hcms_token'
 
+function readStorage(storage: Storage): string | null {
+  try {
+    return storage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeStorage(storage: Storage, value: string | null): void {
+  try {
+    if (value === null) {
+      storage.removeItem(TOKEN_KEY)
+    } else {
+      storage.setItem(TOKEN_KEY, value)
+    }
+  } catch {
+    // private mode / quota
+  }
+}
+
+/** Move a leftover sessionStorage token into localStorage once. */
+function migrateSessionToken(): void {
+  const fromSession = readStorage(sessionStorage)
+  if (!fromSession) {
+    return
+  }
+  if (!readStorage(localStorage)) {
+    writeStorage(localStorage, fromSession)
+  }
+  writeStorage(sessionStorage, null)
+}
+
+migrateSessionToken()
+
 export function getToken(): string | null {
-  return sessionStorage.getItem(TOKEN_KEY)
+  return readStorage(localStorage) ?? readStorage(sessionStorage)
 }
 
 export function setToken(token: string): void {
-  sessionStorage.setItem(TOKEN_KEY, token)
+  writeStorage(localStorage, token)
+  writeStorage(sessionStorage, null)
 }
 
 export function clearToken(): void {
-  sessionStorage.removeItem(TOKEN_KEY)
+  writeStorage(localStorage, null)
+  writeStorage(sessionStorage, null)
 }
 
 let redirectingToLogin = false
 
+function isAuthChallengePath(requestPath: string): boolean {
+  return (
+    requestPath.includes('/admin/api/auth/login') ||
+    requestPath.includes('/admin/api/auth/telegram') ||
+    requestPath.includes('/admin/api/auth/totp/complete')
+  )
+}
+
 /** Drop stale session and bounce to login (after reinstall / revoked token). */
 export function handleUnauthorized(requestPath: string): void {
-  if (requestPath.includes('/admin/api/auth/login')) {
+  if (isAuthChallengePath(requestPath)) {
     return
   }
   clearToken()
@@ -47,7 +91,7 @@ export class ApiError extends Error {
 }
 
 function shouldToastApiError(path: string, status: number, code: string): boolean {
-  if (path.includes('/admin/api/auth/login')) return false
+  if (isAuthChallengePath(path)) return false
   if (path.includes('/admin/api/auth/me')) return false
   if (status === 401) return false
   if (code === 'TOTP_REQUIRED' || code === 'CAPTCHA_REQUIRED') return false

@@ -12,11 +12,14 @@ use Cms\Auth\ApiTokenService;
 use Cms\Auth\AuthContext;
 use Cms\Auth\DatabaseRateLimitStore;
 use Cms\Auth\LoginGuard;
+use Cms\Auth\OAuthService;
+use Cms\Auth\OAuthSettings;
 use Cms\Auth\RateLimiter;
 use Cms\Auth\RateLimitStore;
 use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenGrantRepository;
 use Cms\Auth\TokenService;
+use Cms\Auth\UserIdentityRepository;
 use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
 use Cms\Content\ContentTypeRepository;
@@ -390,6 +393,16 @@ final class Kernel
     {
         $captcha = $this->runtimeSettings !== null ? new CaptchaVerifier($this->runtimeSettings) : null;
         $usersRepo = $this->db !== null ? new UsersRepository($this->db) : null;
+        $oauth = $this->db !== null && $this->tokens !== null && $this->runtimeSettings !== null
+            ? new OAuthService(
+                new OAuthSettings($this->runtimeSettings),
+                new UserIdentityRepository($this->db),
+                $this->tokens,
+                new CurlHttpClient(),
+                $this->config->appUrl,
+                $this->config->appSecret,
+            )
+            : null;
         $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
             ? new AuthController(
                 $this->tokens,
@@ -400,6 +413,7 @@ final class Kernel
                 $this->runtimeSettings,
                 $this->ipBlocks,
                 $usersRepo,
+                $oauth,
             )
             : null;
         $metadata = new MetadataCache(new FileCache($this->paths->cache()));
@@ -475,6 +489,86 @@ final class Kernel
             }
 
             return $auth->totpDisable($request, $context);
+        });
+
+        $this->router->add('GET', '/admin/api/auth/providers', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->providers($request);
+        }, true);
+
+        $this->router->add('GET', '/admin/api/auth/google/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->googleStart($request);
+        }, true);
+
+        $this->router->add('GET', '/admin/api/auth/google/callback', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->googleCallback($request);
+        }, true);
+
+        $this->router->add('POST', '/admin/api/auth/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->telegramLogin($request);
+        }, true);
+
+        $this->router->add('POST', '/admin/api/auth/totp/complete', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->totpComplete($request);
+        }, true);
+
+        $this->router->add('GET', '/admin/api/auth/identities', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->listIdentities($request, $context);
+        });
+
+        $this->router->add('POST', '/admin/api/auth/identities/google/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->googleLinkStart($request, $context);
+        });
+
+        $this->router->add('POST', '/admin/api/auth/identities/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->telegramLink($request, $context);
+        });
+
+        $this->router->add('DELETE', '/admin/api/auth/identities/{provider}', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->unlinkIdentity($request, $context, (string) $params['provider']);
         });
 
         if ($this->db !== null) {
@@ -1310,6 +1404,8 @@ final class Kernel
                 new Mailer($settings, $emailIntegration),
                 $integrationApiService,
                 $this->audit ?? new AuditLogger($this->db),
+                new OAuthSettings($settings),
+                $this->config->appUrl,
             );
             $this->router->add('GET', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
                 unset($params);
@@ -1326,6 +1422,22 @@ final class Kernel
                 }
 
                 return $integrations->updateEmail($request, $context);
+            });
+            $this->router->add('GET', '/admin/api/integrations/oauth', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->getOauth($request, $context);
+            });
+            $this->router->add('PUT', '/admin/api/integrations/oauth', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $integrations->updateOauth($request, $context);
             });
             $this->router->add('POST', '/admin/api/integrations/email/test', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
                 unset($params);

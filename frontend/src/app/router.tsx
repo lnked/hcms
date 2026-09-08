@@ -3,6 +3,7 @@ import { TrailingSlashRedirect } from '@/app/TrailingSlashRedirect'
 import { AppShell } from '@/components/AppShell'
 import { AppToast } from '@/components/AppToast'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { OAuthCompletePage } from '@/features/auth/OAuthCompletePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { ChangelogPage } from '@/features/changelog/ChangelogPage'
 import { DocsPage } from '@/features/docs/DocsPage'
@@ -12,6 +13,7 @@ import { ResourceDetailPage } from '@/features/resources/ResourceDetailPage'
 import { ResourcesPage } from '@/features/resources/ResourcesPage'
 import { MediaPage } from '@/features/media/MediaPage'
 import { LogsPage } from '@/features/logs/LogsPage'
+import { AccountPage } from '@/pages/AccountPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { IntegrationsPage } from '@/pages/IntegrationsPage'
 import { SystemPage } from '@/pages/SystemPage'
@@ -26,6 +28,7 @@ export function AppRouter() {
       <AppToast />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/oauth/complete" element={<OAuthCompletePage />} />
         <Route path="/install" element={<InstallPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
@@ -42,6 +45,7 @@ export function AppRouter() {
             <Route path="settings/tokens" element={<TokensPage />} />
             <Route path="settings/webhooks" element={<WebhooksPage />} />
             <Route path="settings/users" element={<UsersPage />} />
+            <Route path="settings/account" element={<AccountPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>
