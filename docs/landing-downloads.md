@@ -19,7 +19,27 @@ const DOWNLOADS_ENDPOINT = '/api/downloads';
 
 ## 0. nginx: /api/ в вхосте лендинга
 
-В `server`-блок лендинга добавить маршрут на фронт-контроллер CMS (`public/index.php` её инстанса):
+Без этого локейшена лендинг получает `POST https://2js.ru/api/downloads` → **404**: статический вхост про `/api/` ничего не знает.
+
+### Вариант A: CMS живёт отдельным вхостом (`api.2js.ru`)
+
+Проксируем на неё по петле — лендинг остаётся same-origin, CORS и сертификат для api-хоста не нужны:
+
+```nginx
+location ^~ /api/ {
+    proxy_pass http://127.0.0.1:80;
+    proxy_set_header Host api.2js.ru;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+}
+```
+
+`Host` обязателен: по нему nginx выбирает вхост CMS. `X-Forwarded-Proto https` — чтобы CMS генерировала https-ссылки, а не http.
+
+### Вариант B: CMS лежит каталогом на том же сервере
+
+Маршрут напрямую на её фронт-контроллер (`public/index.php`):
 
 ```nginx
 location ^~ /api/ {
@@ -34,7 +54,27 @@ location ^~ /api/ {
 }
 ```
 
-`^~` не даёт regex-локейшенам лендинга перехватить `/api/`, а жёсткий `SCRIPT_FILENAME` — потому что фронт-контроллер всегда один. Пути к docroot и php-fpm сокету подставить свои.
+`^~` в обоих вариантах не даёт regex-локейшенам лендинга перехватить `/api/`, а жёсткий `SCRIPT_FILENAME` — потому что фронт-контроллер всегда один. Пути к docroot и php-fpm сокету подставить свои.
+
+### Вариант C: shared-хостинг без доступа к nginx
+
+Так сейчас развёрнут 2js.ru: Timeweb, два вхоста одного аккаунта, конфиг nginx правит только панель. Роль локейшена берут на себя [`landing/.htaccess`](../landing/.htaccess) и [`landing/api-proxy.php`](../landing/api-proxy.php) — они лежат в docroot лендинга и форвардят единственный путь `/api/downloads` на API-хост:
+
+```apache
+RewriteRule ^api/downloads$ api-proxy.php [QSA,L]
+```
+
+Загрузить ядро CMS прямо в процессе лендинга (`require .../src/bootstrap.php`) нельзя, если у вхостов разные версии PHP: у 2js.ru — 7.2, у api.2js.ru — 8.3, и `vendor/composer/platform_check.php` валит запрос в 500. Форвард по HTTP от версии не зависит.
+
+Цена решения — CMS видит IP сервера, а не посетителя: `mod_remoteip` вырезает `X-Forwarded-For` от недоверенного источника, поэтому `security.rate_limit_ip_per_minute` (120) и `security.rate_limit_anon_write_per_minute` (20) считаются на всех разом. Для лендингового трафика этого хватает, а счётчик декоративный — на 429 страница не ломается. Если версии PHP выровнять через панель, шим сводится к двум строкам с `bootstrap.php` и IP снова становится настоящим.
+
+### Проверка после применения
+
+```bash
+curl -s 'https://2js.ru/api/downloads?limit=1' | jq '.meta.total'   # число, не 404
+```
+
+Если вместо JSON пришёл HTML лендинга — маршрут перехвачен другим правилом, проверь, что в nginx стоит именно `^~`.
 
 ## Быстрый путь: патч
 

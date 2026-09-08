@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.52.2",
+      "date": "2026-09-08",
+      "channel": "stable",
+      "title": "Мост /api/downloads для лендинга",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "release",
+          "text": "Счётчик скачиваний на лендинге снова пишется и читается: /api/downloads отдавал 404, потому что вхост лендинга ничего не знает про API. Мост из landing/.htaccess и landing/api-proxy.php форвардит на API-хост единственный публичный путь — админка и остальной API с origin лендинга по-прежнему недоступны"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "docs/landing-downloads.md разобрал три способа отдать /api/ с origin лендинга: proxy_pass на соседний вхост, fastcgi на фронт-контроллер CMS и .htaccess-мост для shared-хостинга без доступа к nginx. Описано, почему ядро CMS нельзя поднять в процессе лендинга при разных версиях PHP и чем платим за форвард — rate limit считается по IP сервера, потому что mod_remoteip вырезает X-Forwarded-For"
+        }
+      ]
+    },
+    {
       "version": "0.52.1",
       "date": "2026-09-08",
       "channel": "stable",
