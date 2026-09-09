@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.55.4",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Апдейт на хостинге с PHP CLI 8.2",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "system",
+          "text": "Миграции после апдейта больше не падают, когда web PHP ≥ 8.3, а shell `php` / `PHP_BINARY` — 8.2 (`Composer platform_check`). `PhpCli` ищет php8.3 и читает `CMS_PHP_CLI` из `.env`; preflight проверяет CLI до swap; `apply-pending-migrations.php` грузит только `Cms\\*` без vendor platform_check"
+        }
+      ]
+    },
+    {
       "version": "0.55.3",
       "date": "2026-09-10",
       "channel": "stable",

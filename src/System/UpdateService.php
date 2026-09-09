@@ -6,6 +6,7 @@ namespace Cms\System;
 
 use Cms\Core\Config;
 use Cms\Core\Paths;
+use Cms\Core\PhpCli;
 use Cms\Core\Settings;
 use Cms\Core\Version;
 use Cms\Database\Connection;
@@ -268,6 +269,8 @@ final class UpdateService
         if (version_compare(PHP_VERSION, '8.3.0', '<')) {
             throw new RuntimeException('PHP 8.3+ required, running ' . PHP_VERSION);
         }
+        // Fail before swap when shell PHP is older than the web SAPI (common on shared hosting).
+        PhpCli::resolve();
         if (!class_exists(ZipArchive::class)) {
             throw new RuntimeException('PHP zip extension is required to unpack releases');
         }
@@ -606,7 +609,7 @@ final class UpdateService
             return;
         }
 
-        $php = is_file(PHP_BINARY) ? PHP_BINARY : 'php';
+        $php = PhpCli::resolve();
         $cmd = escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($this->paths->root);
         $output = [];
         $code = 0;

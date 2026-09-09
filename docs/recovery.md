@@ -5,7 +5,8 @@
 `Settings → System → Update` ставит задачу в очередь, отдаёт ответ браузеру и продолжает работу в
 shutdown-хуке. Порядок шагов (`Cms\System\UpdateService`):
 
-1. **preflight** — версия PHP, наличие `zip`, права на запись в корень / `src` / `vendor` /
+1. **preflight** — версия PHP (web), CLI `php` ≥ 8.3 (или `CMS_PHP_CLI` в `.env`),
+   наличие `zip`, права на запись в корень / `src` / `vendor` /
    `database` / web-root, свободное место. Любая проблема — обновление не начинается вообще.
 2. **backup** — копия всего, что может быть заменено (включая `vendor`), в
    `storage/backups/update-<дата>`.
@@ -65,6 +66,17 @@ https://site/restore.php?action=reinstall&version=latest&token=<TOKEN>
 Токен — `sha256('hcms-restore:' . APP_SECRET)` из `.env`; напечатать: `php scripts/restore.php token`.
 Если CLI нет, положите свой токен в `storage/restore.token` — он имеет приоритет. Без токена
 браузерный доступ запрещён (CLI работает всегда).
+
+## CLI PHP старше web (platform_check / migrations)
+
+На shared-хостинге сайт часто крутится на PHP 8.3+, а `php` в shell — 8.2. Тогда шаг
+**migrate** падает с `Composer detected issues in your platform` / `require a PHP version ">= 8.3.0"`.
+
+1. Найдите бинарник 8.3+: `ls /usr/local/bin/php*` (или панель хостинга → PHP CLI).
+2. В `.env` добавьте: `CMS_PHP_CLI=/usr/local/bin/php8.3` (свой путь).
+3. Дождитесь релиза с `PhpCli` resolver (≥ 0.55.4) и повторите Update — preflight проверит CLI до swap.
+4. Если swap уже прошёл, а migrate нет:  
+   `$CMS_PHP_CLI scripts/apply-pending-migrations.php /path/to/install`
 
 ## Диагностика после падения
 

@@ -24,13 +24,22 @@ if (PHP_SAPI !== 'cli') {
 }
 
 $root = rtrim(str_replace('\\', '/', $argv[1] ?? dirname(__DIR__)), '/');
-if (!is_file($root . '/vendor/autoload.php')) {
-    fwrite(STDERR, 'FAIL: missing vendor/autoload.php in ' . $root . "\n");
+if (!is_dir($root . '/src')) {
+    fwrite(STDERR, 'FAIL: missing src/ in ' . $root . "\n");
     exit(1);
 }
 
-require $root . '/vendor/autoload.php';
-
+// Avoid vendor/autoload.php — its platform_check dies when hosting CLI PHP is
+// older than the web SAPI. Runtime needs no Composer packages.
+spl_autoload_register(static function (string $class) use ($root): void {
+    if (!str_starts_with($class, 'Cms\\')) {
+        return;
+    }
+    $file = $root . '/src/' . str_replace('\\', '/', substr($class, 4)) . '.php';
+    if (is_file($file)) {
+        require $file;
+    }
+}, true, true);
 $paths = new Paths($root);
 if (!is_file($paths->installedLock())) {
     fwrite(STDERR, 'FAIL: CMS is not installed in ' . $root . "\n");
