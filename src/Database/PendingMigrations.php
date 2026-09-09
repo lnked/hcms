@@ -6,6 +6,7 @@ namespace Cms\Database;
 
 use Cms\Core\Paths;
 use Cms\Core\Settings;
+use Throwable;
 
 final class PendingMigrations
 {
@@ -29,7 +30,15 @@ final class PendingMigrations
                 if ($statement === '' || str_starts_with($statement, '--')) {
                     continue;
                 }
-                $db->execRaw($statement);
+                try {
+                    $db->execRaw($statement);
+                } catch (Throwable $e) {
+                    // Mid-file failure after ADD COLUMN leaves installs stuck on retry
+                    // (Duplicate column). Skip only that recoverable case.
+                    if (!self::isIgnorableMigrationError($statement, $e)) {
+                        throw $e;
+                    }
+                }
             }
             $applied[] = $name;
             $changed = true;
@@ -39,6 +48,20 @@ final class PendingMigrations
         }
 
         self::repairMediaColumns($db, $settings);
+    }
+
+    private static function isIgnorableMigrationError(string $statement, Throwable $e): bool
+    {
+        $message = $e->getMessage();
+        $isAddColumn = preg_match('/^\s*ALTER\s+TABLE\b.*\bADD\s+COLUMN\b/is', $statement) === 1;
+        if ($isAddColumn && (
+            str_contains($message, 'Duplicate column name')
+            || str_contains($message, 'duplicate column')
+        )) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

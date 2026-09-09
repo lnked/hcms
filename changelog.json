@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.55.1",
+      "date": "2026-09-09",
+      "channel": "stable",
+      "title": "Фикс миграции ACL при апдейте",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "db",
+          "text": "Миграция `013_cms_user_acl` создавала FK на `INT`, тогда как `cms_users.id` / `cms_resources.id` — `BIGINT UNSIGNED`, из‑за чего апдейт до 0.55.0 падал с `SQLSTATE[HY000]: 1215 Cannot add foreign key constraint`. Типы приведены к BIGINT; повторный прогон пропускает уже добавленную колонку `acl_enabled`"
+        }
+      ]
+    },
+    {
       "version": "0.55.0",
       "date": "2026-09-09",
       "channel": "stable",

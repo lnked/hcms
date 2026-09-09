@@ -2,16 +2,16 @@ ALTER TABLE cms_users
     ADD COLUMN acl_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER role;
 
 CREATE TABLE IF NOT EXISTS cms_user_section_grants (
-    user_id INT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
     section VARCHAR(32) NOT NULL,
     PRIMARY KEY (user_id, section),
     CONSTRAINT fk_cms_user_section_grants_user FOREIGN KEY (user_id) REFERENCES cms_users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS cms_user_resource_grants (
-    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNSIGNED NOT NULL,
-    resource_id INT UNSIGNED NOT NULL,
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    resource_id BIGINT UNSIGNED NOT NULL,
     can_read TINYINT(1) NOT NULL DEFAULT 0,
     can_create TINYINT(1) NOT NULL DEFAULT 0,
     can_update TINYINT(1) NOT NULL DEFAULT 0,
