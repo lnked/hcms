@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { api, ApiError } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { generatePassword, meetsPasswordPolicy } from '@/lib/password'
-import { showSuccess } from '@/lib/toast'
+import { showError, showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 
 interface ChangePasswordResult {
@@ -124,7 +124,9 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
               disabled={next === ''}
               title={t('account.copy')}
               aria-label={t('account.copy')}
-              onClick={() => void copyToClipboard(next)}
+              onClick={() => {
+                void copyToClipboard(next).catch(() => showError(t('common.copyFailed')))
+              }}
             >
               <Copy className="size-4" />
             </Button>

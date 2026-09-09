@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,8 +13,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CodeBlock } from '@/features/docs/CodeBlock'
 import { api, getToken } from '@/lib/api'
-import { copyToClipboard } from '@/lib/clipboard'
 import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import type { AuthUser } from '@/types/system'
@@ -146,27 +145,12 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label>{t('users.totpManual')}</Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            title={t('account.copy')}
-            aria-label={t('account.copy')}
-            onClick={() => void copyToClipboard(secret)}
-          >
-            <Copy className="size-4" />
-          </Button>
-        </div>
-        <p className="break-all rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs">
-          {secret}
-        </p>
-      </div>
+      <CodeBlock code={secret} label={t('users.totpManual')} language="http" />
 
-      <div className="space-y-2">
-        <Label htmlFor="totp-enable-code">{t('login.totp')}</Label>
+      <div>
+        <Label htmlFor="totp-enable-code" className="mb-1 block">
+          {t('login.totp')}
+        </Label>
         <Input
           id="totp-enable-code"
           autoFocus

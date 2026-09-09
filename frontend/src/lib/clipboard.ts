@@ -7,6 +7,33 @@ export function isCopiedToastMessage(message: string): boolean {
   return message === COPIED_SENTINEL
 }
 
+function legacyCopy(text: string): boolean {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  // Keep off-screen but focusable — opacity:0 + size 1 avoids some mobile quirks.
+  ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0'
+  // Radix Dialog sets aria-hidden on document.body siblings; copying from there fails.
+  // Prefer the open dialog (or the focused subtree), then body as last resort.
+  const active = document.activeElement
+  const root =
+    (active instanceof Element ? active.closest('[role="dialog"]') : null) ??
+    document.querySelector('[role="dialog"]') ??
+    document.body
+
+  root.appendChild(ta)
+  ta.focus()
+  ta.select()
+  ta.setSelectionRange(0, text.length)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } finally {
+    root.removeChild(ta)
+  }
+  return ok
+}
+
 export async function copyToClipboard(text: string): Promise<void> {
   if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
     try {
@@ -18,16 +45,7 @@ export async function copyToClipboard(text: string): Promise<void> {
     }
   }
 
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.setAttribute('readonly', '')
-  ta.style.position = 'fixed'
-  ta.style.left = '-9999px'
-  document.body.appendChild(ta)
-  ta.select()
-  const ok = document.execCommand('copy')
-  document.body.removeChild(ta)
-  if (!ok) {
+  if (!legacyCopy(text)) {
     throw new Error('Copy failed')
   }
   showSuccess(COPIED_SENTINEL)

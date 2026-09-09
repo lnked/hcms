@@ -34,8 +34,29 @@ describe('copyToClipboard', () => {
       value: vi.fn().mockReturnValue(true),
     })
 
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    document.body.appendChild(dialog)
+    const btn = document.createElement('button')
+    dialog.appendChild(btn)
+    btn.focus()
+
     await copyToClipboard('/api/articles')
 
     expect(document.execCommand).toHaveBeenCalledWith('copy')
+    expect(dialog.contains(document.querySelector('textarea'))).toBe(false)
+    dialog.remove()
+  })
+
+  it('throws when both Clipboard API and execCommand fail', async () => {
+    const { copyToClipboard } = await import('./clipboard')
+    const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'))
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn().mockReturnValue(false),
+    })
+
+    await expect(copyToClipboard('/api/articles')).rejects.toThrow('Copy failed')
   })
 })

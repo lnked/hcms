@@ -33,7 +33,7 @@ export function AppToast() {
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
       className={cn(
-        'fixed right-4 bottom-4 z-50 max-w-sm rounded-md px-4 py-2 text-sm text-white shadow-lg',
+        'fixed right-4 bottom-4 z-[100] max-w-sm rounded-md px-4 py-2 text-sm text-white shadow-lg',
         toast.kind === 'error' ? 'bg-destructive' : 'bg-success',
       )}
     >
