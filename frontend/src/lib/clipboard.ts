@@ -25,13 +25,11 @@ function legacyCopy(text: string): boolean {
   ta.focus()
   ta.select()
   ta.setSelectionRange(0, text.length)
-  let ok = false
   try {
-    ok = document.execCommand('copy')
+    return document.execCommand('copy')
   } finally {
     root.removeChild(ta)
   }
-  return ok
 }
 
 export async function copyToClipboard(text: string): Promise<void> {
