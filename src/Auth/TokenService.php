@@ -104,7 +104,7 @@ final class TokenService
         );
     }
 
-    public function revokeAllForUser(int $userId, ?string $type = null): int
+    public function revokeAllForUser(int $userId, ?string $type = null, ?int $exceptId = null): int
     {
         $sql = 'UPDATE cms_tokens SET revoked_at = :now WHERE user_id = :user_id AND revoked_at IS NULL';
         $params = [
@@ -114,6 +114,10 @@ final class TokenService
         if ($type !== null) {
             $sql .= ' AND type = :type';
             $params['type'] = $type;
+        }
+        if ($exceptId !== null) {
+            $sql .= ' AND id <> :except_id';
+            $params['except_id'] = $exceptId;
         }
         return $this->db->execute($sql, $params);
     }

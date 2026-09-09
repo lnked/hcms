@@ -126,6 +126,6 @@
 
 .docs-code .sh__line {
   display: block;
-  line-height: 1.2;
+  line-height: 1;
   min-height: 1em;
 }

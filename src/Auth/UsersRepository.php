@@ -132,6 +132,18 @@ final class UsersRepository
         $this->db->execute('DELETE FROM cms_users WHERE id = :id', ['id' => $id]);
     }
 
+    public function setPassword(int $id, string $hash): void
+    {
+        $this->db->execute(
+            'UPDATE cms_users SET password_hash = :password_hash, updated_at = :updated_at WHERE id = :id',
+            [
+                'id' => $id,
+                'password_hash' => $hash,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ],
+        );
+    }
+
     public function setTotp(int $id, ?string $secret, bool $enabled): void
     {
         $this->db->execute(

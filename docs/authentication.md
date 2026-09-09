@@ -46,6 +46,21 @@ DELETE /admin/api/auth/identities/{google|telegram}
 
 Google callback редиректит на `/admin/oauth/complete#token=...` (fragment, не query). Если включён TOTP — `#ticket=...`.
 
+## Смена своего пароля
+
+```http
+POST /admin/api/auth/password
+{ "currentPassword": "...", "newPassword": "..." }
+```
+
+Доступно любой роли (`/admin/api/auth/*` не требует capability) — раздел Аккаунт в админке. Ответ: `{ "data": { "ok": true, "revokedSessions": 2 } }`.
+
+- Текущий пароль обязателен; неверный → `422 VALIDATION_ERROR` с `error.fields.currentPassword` и штрафом в brute-force бакеты логина (IP + email).
+- Новый пароль проверяется политикой `Cms\Auth\Password` (≥ 8 символов, буква + цифра) и не может совпадать с текущим.
+- После смены ревокаются все admin-токены пользователя, кроме текущего — остальные устройства разлогиниваются. API-токены приложений (`type = api`) не затрагиваются.
+
+Смена пароля другому пользователю — по-прежнему `PATCH /admin/api/users/{id}` (нужен `users.write`, старый пароль не требуется).
+
 ## Expiry
 
 Admin-токен живёт `auth.admin_token_ttl_hours` (по умолчанию 12). Просроченный → 401.
@@ -84,4 +99,4 @@ Trusted proxies: `security.trusted_proxies` (CIDR/IP list) — тогда IP б�
 
 ## Audit
 
-`auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.login_denied`, `auth.logout`, `auth.totp_*`, `auth.identity_linked`, `auth.identity_unlinked`, `security.ip_blocked`, `integration.email.denied` пишутся в `cms_audit_logs`. Пароли не логируются.
+`auth.login`, `auth.login_failed`, `auth.login_blocked`, `auth.login_denied`, `auth.logout`, `auth.totp_*`, `auth.password_changed`, `auth.password_change_failed`, `auth.password_change_blocked`, `auth.identity_linked`, `auth.identity_unlinked`, `security.ip_blocked`, `integration.email.denied` пишутся в `cms_audit_logs`. Пароли не логируются.

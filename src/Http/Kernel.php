@@ -548,6 +548,15 @@ final class Kernel
             return $auth->totpDisable($request, $context);
         });
 
+        $this->router->add('POST', '/admin/api/auth/password', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->changePassword($request, $context);
+        });
+
         $this->router->add('GET', '/admin/api/auth/providers', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
             unset($params, $context);
             if ($auth === null) {

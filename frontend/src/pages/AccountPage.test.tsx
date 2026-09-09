@@ -24,16 +24,24 @@ const api = vi.fn(async (path: string, init?: RequestInit) => {
       { provider: 'telegram', linked: false, label: null },
     ]
   }
+  if (path === '/admin/api/auth/me') {
+    return { id: 1, name: 'Ada', email: 'ada@example.com', role: 'owner', totpEnabled: false }
+  }
+  if (path === '/admin/api/auth/password') {
+    return { ok: true, revokedSessions: 2 }
+  }
   return null
 })
 
 vi.mock('@/lib/api', () => ({
   api: (...args: unknown[]) => api(...(args as [string, RequestInit?])),
+  getToken: () => 'test-token',
   ApiError: class ApiError extends Error {
     constructor(
       public status: number,
       public code: string,
       message: string,
+      public fields: Record<string, string[]> = {},
     ) {
       super(message)
     }
@@ -56,5 +64,33 @@ describe('AccountPage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }))
     expect(api).toHaveBeenCalledWith('/admin/api/auth/identities/google', { method: 'DELETE' })
+  })
+
+  it('changes the password with the generated one', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <I18nProvider initialLocale="en">
+        <QueryClientProvider client={client}>
+          <AccountPage />
+        </QueryClientProvider>
+      </I18nProvider>,
+    )
+
+    const submit = await screen.findByRole('button', { name: 'Change password' })
+    expect(submit).toBeDisabled()
+
+    await userEvent.type(screen.getByLabelText('Current password'), 'old-secret1')
+    await userEvent.click(screen.getByRole('button', { name: 'Generate' }))
+    const generated = (screen.getByLabelText('New password') as HTMLInputElement).value
+    expect(generated).toHaveLength(20)
+    expect((screen.getByLabelText('Repeat new password') as HTMLInputElement).value).toBe(generated)
+
+    expect(submit).toBeEnabled()
+    await userEvent.click(submit)
+
+    expect(api).toHaveBeenCalledWith('/admin/api/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword: 'old-secret1', newPassword: generated }),
+    })
   })
 })

@@ -200,6 +200,68 @@ final class AuthController
         return Response::data(['totpEnabled' => false]);
     }
 
+    public function changePassword(Request $request, AuthContext $auth): Response
+    {
+        $userId = $auth->userId();
+        if ($this->users === null || $userId === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Unavailable', 503);
+        }
+
+        $payload = $request->json();
+        $current = isset($payload['currentPassword']) && is_string($payload['currentPassword'])
+            ? $payload['currentPassword']
+            : '';
+        $new = isset($payload['newPassword']) && is_string($payload['newPassword'])
+            ? $payload['newPassword']
+            : '';
+
+        $fields = [];
+        if ($current === '') {
+            $fields['currentPassword'] = ['Current password is required'];
+        }
+        if ($new === '') {
+            $fields['newPassword'] = ['New password is required'];
+        }
+        if ($fields !== []) {
+            return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $fields);
+        }
+
+        $email = (string) ($auth->user['email'] ?? '');
+        if (!$this->loginGuard->canAttempt($request->ip, $email)) {
+            $this->audit->log($request, 'auth.password_change_blocked', $userId, 'user', (string) $userId);
+
+            return Response::tooManyRequests($this->loginGuard->retryAfter($request->ip, $email));
+        }
+
+        $user = $this->tokens->userByEmail($email);
+        $hash = $user === null ? '' : (string) $user['password_hash'];
+        if ($user === null || !Password::verify($current, $hash)) {
+            $this->loginGuard->fail($request->ip, $email);
+            $this->audit->log($request, 'auth.password_change_failed', $userId, 'user', (string) $userId);
+
+            return Response::error('VALIDATION_ERROR', 'Current password is incorrect', 422, [
+                'currentPassword' => ['Current password is incorrect'],
+            ]);
+        }
+
+        if (!Password::meetsPolicy($new)) {
+            return Response::error('VALIDATION_ERROR', Password::policyMessage(), 422, [
+                'newPassword' => [Password::policyMessage()],
+            ]);
+        }
+        if (Password::verify($new, $hash)) {
+            return Response::error('VALIDATION_ERROR', 'New password must differ from the current one', 422, [
+                'newPassword' => ['New password must differ from the current one'],
+            ]);
+        }
+
+        $this->users->setPassword($userId, Password::hash($new));
+        $revoked = $this->tokens->revokeAllForUser($userId, 'admin', $auth->tokenId());
+        $this->audit->log($request, 'auth.password_changed', $userId, 'user', (string) $userId);
+
+        return Response::data(['ok' => true, 'revokedSessions' => $revoked]);
+    }
+
     public function totpComplete(Request $request): Response
     {
         $payload = $request->json();

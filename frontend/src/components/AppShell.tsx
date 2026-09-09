@@ -363,9 +363,11 @@ export function AppShell() {
         <div className="flex h-14 shrink-0 items-center px-3">
           <div
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width]',
+              'flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width,margin]',
               SIDEBAR_EASE,
-              collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100',
+              // Logo lines up with the nav icons (nav px-2 + link px-3); the
+              // margin has to collapse too, or it would keep width when hidden.
+              collapsed ? 'ms-0 max-w-0 opacity-0' : 'ms-2 max-w-40 opacity-100',
             )}
             aria-hidden={collapsed}
           >
@@ -382,7 +384,13 @@ export function AppShell() {
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-sidebar-foreground"
+            className={cn(
+              'h-8 w-8 shrink-0 text-sidebar-foreground transition-[margin]',
+              SIDEBAR_EASE,
+              // Open: flush with the right edge of the nav items. Collapsed: no
+              // offset, so the button stays centered in the 3.5rem rail.
+              collapsed ? 'me-0' : '-me-1',
+            )}
             onClick={toggleCollapsed}
             aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
             title={collapsed ? t('nav.expand') : t('nav.collapse')}
@@ -414,7 +422,7 @@ export function AppShell() {
               {t('nav.menu')}
             </DialogPrimitive.Description>
             <div className="flex h-14 shrink-0 items-center gap-1 px-3">
-              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
+              <div className="ms-2 flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
                 <img
                   src="/admin/favicon.svg"
                   alt=""
@@ -429,7 +437,7 @@ export function AppShell() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-sidebar-foreground"
+                  className="-me-1 h-8 w-8 shrink-0 text-sidebar-foreground"
                   aria-label={t('nav.closeMenu')}
                 >
                   <X className="h-4 w-4" />

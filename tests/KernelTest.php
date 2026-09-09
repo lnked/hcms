@@ -89,4 +89,22 @@ final class KernelTest extends TestCase
 
         $this->assertContains($response->status, [401, 422, 503]);
     }
+
+    public function testChangePasswordRequiresToken(): void
+    {
+        $kernel = Kernel::boot(dirname(__DIR__));
+        $response = $kernel->handle(new Request(
+            'POST',
+            '/admin/api/auth/password',
+            [],
+            ['content-type' => 'application/json'],
+            ['currentPassword' => 'old-secret1', 'newPassword' => 'new-secret1'],
+            '{}',
+            '127.0.0.1',
+            'test',
+        ));
+
+        $this->assertContains($response->status, [401, 503]);
+        $this->assertStringContainsString('error', $response->body);
+    }
 }
