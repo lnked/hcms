@@ -197,6 +197,7 @@ export const en = {
   'account.securityHint': 'Password and two-factor authentication for your account.',
   'account.passwordTitle': 'Password',
   'account.passwordHint': 'Change your password. The current password is required.',
+  'account.passwordAdvice': 'We recommend changing your password regularly.',
   'account.currentPassword': 'Current password',
   'account.newPassword': 'New password',
   'account.confirmPassword': 'Repeat new password',

@@ -201,6 +201,7 @@ export const ru: Record<MessageKey, string> = {
   'account.securityHint': 'Пароль и двухфакторная аутентификация вашего аккаунта.',
   'account.passwordTitle': 'Пароль',
   'account.passwordHint': 'Смена пароля. Текущий пароль обязателен.',
+  'account.passwordAdvice': 'Рекомендуем регулярно менять пароль.',
   'account.currentPassword': 'Текущий пароль',
   'account.newPassword': 'Новый пароль',
   'account.confirmPassword': 'Повторите новый пароль',

@@ -14,12 +14,10 @@ export function SecurityCard() {
         <CardDescription>{t('account.securityHint')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">{t('account.passwordTitle')}</p>
-            <p className="text-sm text-muted-foreground">{t('account.passwordHint')}</p>
-          </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium">{t('account.passwordTitle')}</p>
           <ChangePasswordDialog />
+          <p className="text-sm text-muted-foreground">{t('account.passwordAdvice')}</p>
         </div>
 
         <Separator />
