@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.56.1",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "CSS reset и читаемость в тёмной теме",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Добавлен `reset.css`: сброс browser margin у `p`/списков и базовых элементов, чтобы дефолтные отступы не ломали вёрстку CSS Modules"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "`::selection` использует primary токен — выделение текста видно в тёмной теме"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Неактивные табы Версия/Обновление на System — primary color, читаются в dark mode"
+        }
+      ]
+    },
+    {
       "version": "0.56.0",
       "date": "2026-09-10",
       "channel": "stable",

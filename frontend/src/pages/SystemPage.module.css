@@ -44,6 +44,10 @@
   gap: var(--hcms-SPx2);
 }
 
+.tabBtnIdle {
+  color: var(--hcms-color-primary);
+}
+
 .dot {
   height: var(--hcms-SPx2);
   width: var(--hcms-SPx2);

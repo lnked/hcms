@@ -286,7 +286,7 @@ export function SystemPage() {
                 size="sm"
                 variant={section === item ? 'default' : 'ghost'}
                 onClick={() => setSection(item)}
-                className={clsx(styles.tabBtn)}
+                className={clsx(styles.tabBtn, section !== item && styles.tabBtnIdle)}
               >
                 {item === 'version' ? t('system.version') : t('system.update')}
                 {item === 'update' && data?.updateAvailable ? (

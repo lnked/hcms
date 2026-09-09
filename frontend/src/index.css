@@ -106,14 +106,7 @@
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
   border-color: var(--hcms-color-border);
-}
-
-html,
-body {
-  margin: 0;
-  min-height: 100%;
 }
 
 body {
@@ -133,23 +126,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-img,
-svg {
-  display: block;
-  max-width: 100%;
-}
-
-a {
-  color: inherit;
-  text-decoration: inherit;
+::selection {
+  background-color: var(--hcms-color-primary);
+  color: var(--hcms-color-primary-foreground);
 }
 
 .docs-code {
