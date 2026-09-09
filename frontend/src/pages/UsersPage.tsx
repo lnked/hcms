@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CircleCheck, KeyRound, Shield, Trash2 } from 'lucide-react'
 import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/account/UserAclDialogs'
-import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
+import { PasswordField } from '@/components/PasswordField'
+import { TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -295,16 +296,15 @@ export function UsersPage() {
                 placeholder="admin@example.com"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="user-password">{t('users.password')}</Label>
-              <Input
-                id="user-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t('users.placeholderPassword')}
-              />
-            </div>
+            <PasswordField
+              id="user-password"
+              label={t('users.password')}
+              value={password}
+              onChange={setPassword}
+              placeholder={t('users.placeholderPassword')}
+              allowGenerate
+              showCopy
+            />
             <div className="space-y-2">
               <Label htmlFor="user-role">{t('users.role')}</Label>
               <Select

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppToast } from '@/components/AppToast'
 import { I18nProvider } from '@/i18n'
 import { AccountPage } from './AccountPage'
@@ -50,6 +50,14 @@ vi.mock('@/lib/api', () => ({
 }))
 
 describe('AccountPage', () => {
+  beforeEach(() => {
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: vi.fn(async () => undefined),
+      },
+    })
+  })
+
   it('shows linked google and disconnects', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
@@ -91,6 +99,7 @@ describe('AccountPage', () => {
     const generated = (screen.getByLabelText('New password') as HTMLInputElement).value
     expect(generated).toHaveLength(20)
     expect((screen.getByLabelText('Repeat new password') as HTMLInputElement).value).toBe(generated)
+    expect(await screen.findByText('Value copied')).toBeInTheDocument()
 
     expect(submit).toBeEnabled()
     await userEvent.click(submit)
@@ -100,9 +109,8 @@ describe('AccountPage', () => {
       body: JSON.stringify({ currentPassword: 'old-secret1', newPassword: generated }),
     })
 
-    const toast = await screen.findByRole('status')
+    const toast = await screen.findByText(/Password changed/)
     expect(toast).toHaveClass('bg-success')
-    expect(toast.textContent).toContain('Password changed')
     await waitFor(() => expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument())
   })
 })

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Copy, Eye, EyeOff, Wand2 } from 'lucide-react'
+import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,12 +11,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { api, ApiError } from '@/lib/api'
-import { copyToClipboard } from '@/lib/clipboard'
-import { generatePassword, meetsPasswordPolicy } from '@/lib/password'
-import { showError, showSuccess } from '@/lib/toast'
+import { meetsPasswordPolicy } from '@/lib/password'
+import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 
 interface ChangePasswordResult {
@@ -51,7 +48,6 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [reveal, setReveal] = useState(false)
-  const [revealCurrent, setRevealCurrent] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
 
   const change = useMutation({
@@ -77,14 +73,6 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const canSubmit =
     current !== '' && meetsPasswordPolicy(next) && next === confirm && !change.isPending
 
-  function suggest(): void {
-    const generated = generatePassword()
-    setNext(generated)
-    setConfirm(generated)
-    setReveal(true)
-    setFieldErrors({})
-  }
-
   return (
     <form
       className="space-y-4"
@@ -93,93 +81,49 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         change.mutate()
       }}
     >
-      <div className="space-y-2">
-        <Label htmlFor="account-current-password">{t('account.currentPassword')}</Label>
-        <div className="relative">
-          <Input
-            id="account-current-password"
-            type={revealCurrent ? 'text' : 'password'}
-            autoComplete="current-password"
-            autoFocus
-            className="pr-10"
-            value={current}
-            onChange={(e) => {
-              setCurrent(e.target.value)
-              setFieldErrors({})
-            }}
-            required
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2"
-            title={revealCurrent ? t('account.hidePassword') : t('account.showPassword')}
-            aria-label={revealCurrent ? t('account.hidePassword') : t('account.showPassword')}
-            onClick={() => setRevealCurrent((value) => !value)}
-          >
-            {revealCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </Button>
-        </div>
-        <FieldError messages={fieldErrors.currentPassword} />
-      </div>
+      <PasswordField
+        id="account-current-password"
+        label={t('account.currentPassword')}
+        autoComplete="current-password"
+        autoFocus
+        value={current}
+        onChange={(value) => {
+          setCurrent(value)
+          setFieldErrors({})
+        }}
+        required
+      />
+      <FieldError messages={fieldErrors.currentPassword} />
+
+      <PasswordField
+        id="account-new-password"
+        label={t('account.newPassword')}
+        value={next}
+        onChange={(value) => {
+          setNext(value)
+          setFieldErrors({})
+        }}
+        allowGenerate
+        showCopy
+        reveal={reveal}
+        onRevealChange={setReveal}
+        onGenerate={(password) => {
+          setConfirm(password)
+          setFieldErrors({})
+        }}
+        hint={t('account.passwordPolicy')}
+        required
+      />
+      <FieldError messages={fieldErrors.newPassword} />
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <Label htmlFor="account-new-password">{t('account.newPassword')}</Label>
-          <div className="flex items-center gap-1">
-            <Button type="button" variant="ghost" size="sm" onClick={suggest}>
-              <Wand2 className="mr-1 size-3.5" />
-              {t('account.generate')}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={next === ''}
-              title={t('account.copy')}
-              aria-label={t('account.copy')}
-              onClick={() => {
-                void copyToClipboard(next).catch(() => showError(t('common.copyFailed')))
-              }}
-            >
-              <Copy className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              title={reveal ? t('account.hidePassword') : t('account.showPassword')}
-              aria-label={reveal ? t('account.hidePassword') : t('account.showPassword')}
-              onClick={() => setReveal((value) => !value)}
-            >
-              {reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </Button>
-          </div>
-        </div>
-        <Input
-          id="account-new-password"
-          type={reveal ? 'text' : 'password'}
-          autoComplete="new-password"
-          value={next}
-          onChange={(e) => {
-            setNext(e.target.value)
-            setFieldErrors({})
-          }}
-          required
-        />
-        <p className="text-xs text-muted-foreground">{t('account.passwordPolicy')}</p>
-        <FieldError messages={fieldErrors.newPassword} />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="account-confirm-password">{t('account.confirmPassword')}</Label>
-        <Input
+        <PasswordField
           id="account-confirm-password"
-          type={reveal ? 'text' : 'password'}
-          autoComplete="new-password"
+          label={t('account.confirmPassword')}
           value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
+          onChange={setConfirm}
+          reveal={reveal}
+          onRevealChange={setReveal}
           required
         />
         {mismatch ? (

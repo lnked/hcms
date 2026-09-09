@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -8,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
@@ -45,7 +45,7 @@ function emptyGrant(): GrantDraft {
     canCreate: true,
     canUpdate: true,
     canDelete: true,
-    tabs: [...RESOURCE_TABS],
+    tabs: ['overview', 'data'],
   }
 }
 
@@ -138,10 +138,20 @@ function UserPermissionsForm({
     onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
+  const selectableSections = ADMIN_SECTIONS.filter((s) => s !== 'account')
+  const allSectionsSelected =
+    selectableSections.length > 0 && selectableSections.every((s) => sections.includes(s))
+  const someSectionsSelected = selectableSections.some((s) => sections.includes(s))
+  const resourcesSectionEnabled = sections.includes('resources')
+
   function toggleSection(section: AdminSection) {
     setSections((prev) =>
       prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section],
     )
+  }
+
+  function toggleAllSections(checked: boolean) {
+    setSections(checked ? [...selectableSections] : [])
   }
 
   return (
@@ -159,8 +169,19 @@ function UserPermissionsForm({
         <>
           <div className="space-y-2">
             <Label>{t('users.acl.sections')}</Label>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={allSectionsSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSectionsSelected && !allSectionsSelected
+                }}
+                onChange={(e) => toggleAllSections(e.target.checked)}
+              />
+              {t('users.acl.allSections')}
+            </label>
             <div className="grid gap-2 sm:grid-cols-2">
-              {ADMIN_SECTIONS.filter((s) => s !== 'account').map((section) => (
+              {selectableSections.map((section) => (
                 <label key={section} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -180,6 +201,10 @@ function UserPermissionsForm({
                 type="button"
                 size="sm"
                 variant="outline"
+                disabled={!resourcesSectionEnabled}
+                title={
+                  resourcesSectionEnabled ? undefined : t('users.acl.addResourceRequiresSection')
+                }
                 onClick={() => setGrants((g) => [...g, emptyGrant()])}
               >
                 {t('users.acl.addResource')}
@@ -385,16 +410,15 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="reset-password">{t('users.password')}</Label>
-        <Input
-          id="reset-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={t('users.placeholderPassword')}
-        />
-      </div>
+      <PasswordField
+        id="reset-password"
+        label={t('users.password')}
+        value={password}
+        onChange={setPassword}
+        placeholder={t('users.placeholderPassword')}
+        allowGenerate
+        showCopy
+      />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button
         className="w-full"
