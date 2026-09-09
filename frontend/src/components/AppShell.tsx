@@ -51,12 +51,25 @@ function writeCollapsed(collapsed: boolean) {
   }
 }
 
-function SidebarLabel({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+/**
+ * Collapsing label. Spacing lives on the label itself (not as a parent `gap`),
+ * so it animates away together with the width instead of snapping.
+ */
+function SidebarLabel({
+  collapsed,
+  children,
+  className,
+}: {
+  collapsed: boolean
+  children: ReactNode
+  className?: string
+}) {
   return (
     <span
       className={cn(
-        'min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-        collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100',
+        'min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,max-width,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
+        collapsed ? 'mx-0 max-w-0 opacity-0' : 'max-w-40 opacity-100',
+        !collapsed && className,
       )}
       aria-hidden={collapsed}
     >
@@ -113,7 +126,7 @@ function SidebarNav({
   const { t } = useI18n()
 
   return (
-    <nav className={cn('flex flex-1 flex-col gap-1', collapsed ? 'px-1' : 'px-2')}>
+    <nav className="flex flex-1 flex-col gap-1 px-2">
       {nav.map((item) => (
         <NavLink
           key={item.to}
@@ -124,7 +137,9 @@ function SidebarNav({
           onClick={onNavigate}
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          <SidebarLabel collapsed={collapsed}>{item.label}</SidebarLabel>
+          <SidebarLabel collapsed={collapsed} className="ms-2">
+            {item.label}
+          </SidebarLabel>
         </NavLink>
       ))}
       <a
@@ -132,14 +147,13 @@ function SidebarNav({
         target="_blank"
         rel="noopener noreferrer"
         title={collapsed ? t('nav.docs') : undefined}
-        className={cn(
-          'flex items-center rounded-md py-2 text-sm text-[#5C9E14] hover:bg-sidebar-accent dark:text-[#85EA2D]',
-          collapsed ? 'justify-center px-0' : 'gap-2 px-3',
-        )}
+        className="flex items-center rounded-md px-3 py-2 text-sm text-[#5C9E14] hover:bg-sidebar-accent dark:text-[#85EA2D]"
         onClick={onNavigate}
       >
         <SwaggerIcon className="h-4 w-4 shrink-0" />
-        <SidebarLabel collapsed={collapsed}>{t('nav.docs')}</SidebarLabel>
+        <SidebarLabel collapsed={collapsed} className="ms-2">
+          {t('nav.docs')}
+        </SidebarLabel>
       </a>
     </nav>
   )
@@ -173,20 +187,19 @@ function SidebarFooter({
   }
 
   return (
-    <div className={cn('space-y-2 border-t border-sidebar-border', collapsed ? 'p-1' : 'p-2')}>
+    <div className="space-y-2 border-t border-sidebar-border p-2">
       <button
         type="button"
         onClick={() => void logout()}
         disabled={loggingOut}
         title={t('nav.logout')}
         aria-label={t('nav.logout')}
-        className={cn(
-          'flex w-full cursor-pointer items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
-          collapsed ? 'justify-center px-0' : 'gap-2 px-3',
-        )}
+        className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
       >
         <LogOut className="h-4 w-4 shrink-0" />
-        <SidebarLabel collapsed={collapsed}>{t('nav.logout')}</SidebarLabel>
+        <SidebarLabel collapsed={collapsed} className="ms-2">
+          {t('nav.logout')}
+        </SidebarLabel>
       </button>
       <button
         type="button"
@@ -194,19 +207,18 @@ function SidebarFooter({
         title={t('nav.themeToggle')}
         aria-label={t('nav.themeToggle')}
         aria-pressed={isDark}
-        className={cn(
-          'flex w-full cursor-pointer items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
-          collapsed ? 'justify-center px-0' : 'gap-2 px-3',
-        )}
+        className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
       >
         {isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0" />}
-        <SidebarLabel collapsed={collapsed}>{themeLabel}</SidebarLabel>
+        <SidebarLabel collapsed={collapsed} className="ms-2">
+          {themeLabel}
+        </SidebarLabel>
         <span
           className={cn(
-            'relative h-5 w-9 min-w-0 shrink-0 rounded-full transition-[opacity,max-width,colors]',
+            'relative ml-auto h-5 w-9 min-w-0 shrink-0 rounded-full transition-[opacity,max-width,colors]',
             SIDEBAR_EASE,
             isDark ? 'bg-primary' : 'bg-muted-foreground/30',
-            collapsed ? 'max-w-0 opacity-0' : 'ml-auto max-w-9 opacity-100',
+            collapsed ? 'max-w-0 opacity-0' : 'max-w-9 opacity-100',
           )}
           aria-hidden={collapsed}
         >
@@ -227,29 +239,23 @@ function SidebarFooter({
             : '/settings/system?section=version#system-release'
         }
         onClick={onNavigate}
-        className={cn(
-          'flex items-center py-1 text-xs text-muted-foreground hover:text-foreground',
-          collapsed ? 'justify-center' : 'justify-between gap-2 px-2',
-        )}
+        className="flex items-center px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
         title={
           version?.updateAvailable ? t('common.updateAvailable') : `v${version?.current ?? '…'}`
         }
         aria-label={version?.updateAvailable ? t('common.updateAvailable') : t('system.version')}
       >
-        {collapsed ? (
-          version?.updateAvailable ? (
-            <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
-          ) : (
-            <span className="tabular-nums text-[10px] leading-none">{version?.current ?? '…'}</span>
-          )
-        ) : (
-          <>
-            <span className="whitespace-nowrap">v{version?.current ?? '…'}</span>
-            {version?.updateAvailable ? (
-              <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
-            ) : null}
-          </>
-        )}
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+          <span
+            className={cn(
+              'h-2 w-2 rounded-full',
+              version?.updateAvailable ? 'bg-success' : 'bg-muted-foreground/40',
+            )}
+          />
+        </span>
+        <SidebarLabel collapsed={collapsed} className="ms-2">
+          <span className="tabular-nums">v{version?.current ?? '…'}</span>
+        </SidebarLabel>
       </Link>
     </div>
   )
@@ -314,16 +320,9 @@ export function AppShell() {
     ] satisfies NavItem[]
   ).filter((item) => roleAllows(me.data?.role, item.minRole))
 
-  const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
-      'flex items-center rounded-md py-2 text-sm hover:bg-sidebar-accent',
-      collapsed ? 'justify-center px-0' : 'gap-2 px-3',
-      isActive && 'bg-sidebar-accent font-medium text-primary',
-    )
-
-  const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-    cn(
-      'flex items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
+      'flex items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
       isActive && 'bg-sidebar-accent font-medium text-primary',
     )
 
@@ -361,24 +360,24 @@ export function AppShell() {
           collapsed ? 'w-14' : 'w-60',
         )}
       >
-        <div
-          className={cn(
-            'flex h-14 shrink-0 items-center',
-            collapsed ? 'justify-center' : 'gap-1 px-3',
-          )}
-        >
-          {!collapsed ? (
-            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
-              <img
-                src="/admin/favicon.svg"
-                alt=""
-                width={20}
-                height={20}
-                className="h-5 w-5 shrink-0"
-              />
-              HCMS
-            </div>
-          ) : null}
+        <div className="flex h-14 shrink-0 items-center px-3">
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width]',
+              SIDEBAR_EASE,
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-40 opacity-100',
+            )}
+            aria-hidden={collapsed}
+          >
+            <img
+              src="/admin/favicon.svg"
+              alt=""
+              width={20}
+              height={20}
+              className="h-5 w-5 shrink-0"
+            />
+            HCMS
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -396,7 +395,7 @@ export function AppShell() {
           </Button>
         </div>
 
-        <SidebarNav nav={nav} collapsed={collapsed} linkClass={desktopLinkClass} />
+        <SidebarNav nav={nav} collapsed={collapsed} linkClass={linkClass} />
         <SidebarFooter collapsed={collapsed} version={version.data} />
       </aside>
 
@@ -440,7 +439,7 @@ export function AppShell() {
             <SidebarNav
               nav={nav}
               collapsed={false}
-              linkClass={mobileLinkClass}
+              linkClass={linkClass}
               onNavigate={closeMobile}
             />
             <SidebarFooter collapsed={false} version={version.data} onNavigate={closeMobile} />
