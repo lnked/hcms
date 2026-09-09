@@ -284,7 +284,13 @@ export function AppShell() {
 
   const nav: NavItem[] = (
     [
-      { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard, end: true, section: 'dashboard' },
+      {
+        to: '/',
+        label: t('nav.dashboard'),
+        icon: LayoutDashboard,
+        end: true,
+        section: 'dashboard',
+      },
       { to: '/resources', label: t('nav.resources'), icon: FileText, section: 'resources' },
       {
         to: '/media',
@@ -293,7 +299,13 @@ export function AppShell() {
         section: 'media',
         minRole: 'editor' as const,
       },
-      { to: '/logs', label: t('nav.logs'), icon: Activity, section: 'logs', minRole: 'admin' as const },
+      {
+        to: '/logs',
+        label: t('nav.logs'),
+        icon: Activity,
+        section: 'logs',
+        minRole: 'admin' as const,
+      },
       {
         to: '/settings/tokens',
         label: t('nav.tokens'),

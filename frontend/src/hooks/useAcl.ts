@@ -26,7 +26,8 @@ export function useAcl() {
     me,
     user,
     isOwner: user?.role === 'owner',
-    canSection: (section: AdminSection, minRole?: AdminRole) => canAccessNav(user, section, minRole),
+    canSection: (section: AdminSection, minRole?: AdminRole) =>
+      canAccessNav(user, section, minRole),
     canResourceTab: (resourceId: number, tab: ResourceTab) =>
       allowsResourceTab(user, resourceId, tab),
     canResourceAction: (resourceId: number, action: 'read' | 'create' | 'update' | 'delete') =>

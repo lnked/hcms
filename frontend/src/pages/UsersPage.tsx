@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CircleCheck, KeyRound, Shield, Trash2 } from 'lucide-react'
-import {
-  UserPermissionsDialog,
-  UserResetPasswordDialog,
-} from '@/features/account/UserAclDialogs'
+import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/account/UserAclDialogs'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'

@@ -258,9 +258,7 @@ export function ResourceDetailPage() {
             </div>
             <Button
               disabled={
-                !schemaDirty ||
-                saveSchema.isPending ||
-                !canResourceAction(resourceId, 'update')
+                !schemaDirty || saveSchema.isPending || !canResourceAction(resourceId, 'update')
               }
               onClick={() => saveSchema.mutate()}
             >

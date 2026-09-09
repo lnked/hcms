@@ -80,7 +80,10 @@ export function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route index element={withSection('dashboard', undefined, <DashboardPage />)} />
-            <Route path="resources" element={withSection('resources', undefined, <ResourcesPage />)} />
+            <Route
+              path="resources"
+              element={withSection('resources', undefined, <ResourcesPage />)}
+            />
             <Route
               path="resources/new"
               element={withSection('resources', undefined, <CreateResourcePage />)}
@@ -92,19 +95,31 @@ export function AppRouter() {
             <Route path="media" element={withSection('media', 'editor', <MediaPage />)} />
             <Route path="logs" element={withSection('logs', 'admin', <LogsPage />)} />
             <Route path="docs/:chapter?" element={withSection('docs', undefined, <DocsPage />)} />
-            <Route path="changelog" element={withSection('changelog', undefined, <ChangelogPage />)} />
-            <Route path="settings/system" element={withSection('system', 'admin', <SystemPage />)} />
+            <Route
+              path="changelog"
+              element={withSection('changelog', undefined, <ChangelogPage />)}
+            />
+            <Route
+              path="settings/system"
+              element={withSection('system', 'admin', <SystemPage />)}
+            />
             <Route
               path="settings/integrations"
               element={withSection('integrations', 'admin', <IntegrationsPage />)}
             />
-            <Route path="settings/tokens" element={withSection('tokens', 'admin', <TokensPage />)} />
+            <Route
+              path="settings/tokens"
+              element={withSection('tokens', 'admin', <TokensPage />)}
+            />
             <Route
               path="settings/webhooks"
               element={withSection('webhooks', 'admin', <WebhooksPage />)}
             />
             <Route path="settings/users" element={withSection('users', 'admin', <UsersPage />)} />
-            <Route path="settings/account" element={withSection('account', undefined, <AccountPage />)} />
+            <Route
+              path="settings/account"
+              element={withSection('account', undefined, <AccountPage />)}
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>
