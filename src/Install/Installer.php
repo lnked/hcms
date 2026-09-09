@@ -9,6 +9,7 @@ use Cms\Core\Locale;
 use Cms\Core\Paths;
 use Cms\Core\Version;
 use Cms\Database\Connection;
+use Cms\Database\PendingMigrations;
 use RuntimeException;
 
 final class Installer
@@ -201,6 +202,7 @@ final class Installer
         // Lock absent but tables may remain from a partial / cleaned install.
         $this->dropCmsTables($connection);
         $this->runMigrations($connection);
+        PendingMigrations::ensureAclEnabledColumn($connection);
         $secret = bin2hex(random_bytes(32));
 
         $now = date('Y-m-d H:i:s');

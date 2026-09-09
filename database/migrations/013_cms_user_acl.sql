@@ -1,6 +1,3 @@
-ALTER TABLE cms_users
-    ADD COLUMN acl_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER role;
-
 CREATE TABLE IF NOT EXISTS cms_user_section_grants (
     user_id BIGINT UNSIGNED NOT NULL,
     section VARCHAR(32) NOT NULL,

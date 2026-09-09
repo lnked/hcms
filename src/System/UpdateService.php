@@ -598,7 +598,26 @@ final class UpdateService
 
     private function runPendingMigrations(): void
     {
-        PendingMigrations::apply($this->db, $this->paths, $this->settings);
+        $script = $this->paths->root . '/scripts/apply-pending-migrations.php';
+        if (!is_file($script)) {
+            // Pre-0.55.2 releases: fall back to in-process apply (may be stale after swap).
+            PendingMigrations::apply($this->db, $this->paths, $this->settings);
+
+            return;
+        }
+
+        $php = PHP_BINARY !== '' ? PHP_BINARY : 'php';
+        $cmd = escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($this->paths->root);
+        $output = [];
+        $code = 0;
+        exec($cmd . ' 2>&1', $output, $code);
+        if ($code !== 0) {
+            $detail = trim(implode("\n", $output));
+            throw new RuntimeException(
+                'Pending migrations failed'
+                . ($detail !== '' ? ': ' . $detail : ' (exit ' . $code . ')'),
+            );
+        }
     }
 
     /**

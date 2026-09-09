@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.55.2",
+      "date": "2026-09-09",
+      "channel": "stable",
+      "title": "Апдейт ACL без Duplicate column",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "db",
+          "text": "Апдейт падал с `Duplicate column name 'acl_enabled'`: после swap миграции ещё крутились в старом PHP-процессе, а колонка уже была с прошлой неудачной попытки 0.55.0. `ADD COLUMN` убран из `013` (только CREATE TABLE), колонка добавляется идемпотентно в PHP; UpdateService гоняет миграции отдельным CLI-процессом"
+        }
+      ]
+    },
+    {
       "version": "0.55.1",
       "date": "2026-09-09",
       "channel": "stable",

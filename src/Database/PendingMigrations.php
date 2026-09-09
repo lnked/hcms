@@ -47,21 +47,51 @@ final class PendingMigrations
             $settings->set('db.migrations', $applied);
         }
 
+        // Outside .sql on purpose: update runs PendingMigrations from a stale
+        // in-request class after swap, so ADD COLUMN in 013.sql 1060's when the
+        // column already exists from a previous failed attempt.
+        self::ensureAclEnabledColumn($db);
         self::repairMediaColumns($db, $settings);
+    }
+
+    public static function ensureAclEnabledColumn(Connection $db): void
+    {
+        $row = $db->selectOne(
+            "SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = 'cms_users'
+               AND COLUMN_NAME = 'acl_enabled'",
+        );
+        if ($row !== null && (int) $row['c'] > 0) {
+            return;
+        }
+
+        try {
+            $db->execRaw(
+                'ALTER TABLE cms_users ADD COLUMN acl_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER role',
+            );
+        } catch (Throwable $e) {
+            if (!self::isIgnorableMigrationError(
+                'ALTER TABLE cms_users ADD COLUMN acl_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER role',
+                $e,
+            )) {
+                throw $e;
+            }
+        }
     }
 
     private static function isIgnorableMigrationError(string $statement, Throwable $e): bool
     {
         $message = $e->getMessage();
-        $isAddColumn = preg_match('/^\s*ALTER\s+TABLE\b.*\bADD\s+COLUMN\b/is', $statement) === 1;
-        if ($isAddColumn && (
-            str_contains($message, 'Duplicate column name')
+        $duplicateColumn = str_contains($message, 'Duplicate column name')
             || str_contains($message, 'duplicate column')
-        )) {
-            return true;
+            || str_contains($message, '42S21')
+            || str_contains($message, '1060');
+        if (!$duplicateColumn) {
+            return false;
         }
 
-        return false;
+        return preg_match('/^\s*ALTER\s+TABLE\b.*\bADD\s+COLUMN\b/is', $statement) === 1;
     }
 
     /**
