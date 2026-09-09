@@ -102,7 +102,11 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
   const secret = setup.data?.secret
   const otpauthUrl = setup.data?.otpauthUrl
   const setupError =
-    setup.error instanceof Error ? setup.error.message : setup.isError ? t('common.saveFailed') : null
+    setup.error instanceof Error
+      ? setup.error.message
+      : setup.isError
+        ? t('common.saveFailed')
+        : null
 
   if (setup.isPending) {
     return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
@@ -156,7 +160,9 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
             <Copy className="size-4" />
           </Button>
         </div>
-        <p className="break-all rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs">{secret}</p>
+        <p className="break-all rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs">
+          {secret}
+        </p>
       </div>
 
       <div className="space-y-2">
