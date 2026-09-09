@@ -43,7 +43,7 @@ final class PhpCli
         self::push($out, $preferred);
         self::push($out, self::envValue('CMS_PHP_CLI'));
 
-        if (defined('PHP_BINARY') && is_string(PHP_BINARY) && PHP_BINARY !== '') {
+        if (defined('PHP_BINARY')) {
             self::push($out, PHP_BINARY);
             foreach (self::binarySiblings(PHP_BINARY) as $sibling) {
                 self::push($out, $sibling);
