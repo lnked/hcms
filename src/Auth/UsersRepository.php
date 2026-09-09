@@ -19,7 +19,7 @@ final class UsersRepository
     public function all(): array
     {
         return $this->db->select(
-            'SELECT id, name, email, status, role, totp_enabled, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, role, acl_enabled, totp_enabled, last_login_at, created_at, updated_at
              FROM cms_users
              ORDER BY id ASC',
         );
@@ -31,7 +31,7 @@ final class UsersRepository
     public function find(int $id): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, role, totp_enabled, totp_secret, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, role, acl_enabled, totp_enabled, totp_secret, last_login_at, created_at, updated_at
              FROM cms_users WHERE id = :id',
             ['id' => $id],
         );
@@ -43,7 +43,7 @@ final class UsersRepository
     public function findByEmail(string $email): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, role, password_hash, totp_enabled, totp_secret, last_login_at, created_at, updated_at
+            'SELECT id, name, email, status, role, acl_enabled, password_hash, totp_enabled, totp_secret, last_login_at, created_at, updated_at
              FROM cms_users WHERE email = :email LIMIT 1',
             ['email' => $email],
         );
@@ -139,6 +139,18 @@ final class UsersRepository
             [
                 'id' => $id,
                 'password_hash' => $hash,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ],
+        );
+    }
+
+    public function setAclEnabled(int $id, bool $enabled): void
+    {
+        $this->db->execute(
+            'UPDATE cms_users SET acl_enabled = :acl_enabled, updated_at = :updated_at WHERE id = :id',
+            [
+                'id' => $id,
+                'acl_enabled' => $enabled ? 1 : 0,
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         );

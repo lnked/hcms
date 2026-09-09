@@ -13,6 +13,7 @@ use Cms\Auth\Password;
 use Cms\Auth\RolePolicy;
 use Cms\Auth\TokenService;
 use Cms\Auth\UsersRepository;
+use Cms\Auth\UsersService;
 use Cms\Core\Settings;
 use Cms\Http\Request;
 use Cms\Http\Response;
@@ -34,6 +35,7 @@ final class AuthController
         private readonly ?IpBlockRepository $ipBlocks = null,
         private readonly ?UsersRepository $users = null,
         private readonly ?OAuthService $oauth = null,
+        private readonly ?UsersService $usersService = null,
     ) {
     }
 
@@ -642,7 +644,7 @@ final class AuthController
      */
     private function publicUser(array $user): array
     {
-        return [
+        $base = [
             'id' => (int) $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
@@ -650,5 +652,14 @@ final class AuthController
             'totpEnabled' => (bool) ($user['totp_enabled'] ?? false),
             'changelogSeenVersion' => $user['changelog_seen_version'] ?? null,
         ];
+        $acl = $this->usersService !== null
+            ? $this->usersService->aclSnapshot($user)
+            : [
+                'aclEnabled' => false,
+                'sections' => [],
+                'resourceGrants' => [],
+            ];
+
+        return array_merge($base, $acl);
     }
 }

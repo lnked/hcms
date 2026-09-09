@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { lazy, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { TrailingSlashRedirect } from '@/app/TrailingSlashRedirect'
 import { AppShell } from '@/components/AppShell'
@@ -6,7 +6,9 @@ import { AppToast } from '@/components/AppToast'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { OAuthCompletePage } from '@/features/auth/OAuthCompletePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
+import { RequireSection } from '@/features/auth/RequireSection'
 import { InstallPage } from '@/features/install/InstallPage'
+import type { AdminRole, AdminSection } from '@/lib/rbac'
 
 /**
  * Login, OAuth and install stay eager: they are the first paint for a visitor
@@ -58,6 +60,14 @@ const WebhooksPage = lazy(() =>
   import('@/features/webhooks/WebhooksPage').then((m) => ({ default: m.WebhooksPage })),
 )
 
+function withSection(section: AdminSection, minRole: AdminRole | undefined, page: ReactNode) {
+  return (
+    <RequireSection section={section} minRole={minRole}>
+      {page}
+    </RequireSection>
+  )
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter basename="/admin">
@@ -69,20 +79,32 @@ export function AppRouter() {
         <Route path="/install" element={<InstallPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="resources" element={<ResourcesPage />} />
-            <Route path="resources/new" element={<CreateResourcePage />} />
-            <Route path="resources/:id/:tab?/:entryId?" element={<ResourceDetailPage />} />
-            <Route path="media" element={<MediaPage />} />
-            <Route path="logs" element={<LogsPage />} />
-            <Route path="docs/:chapter?" element={<DocsPage />} />
-            <Route path="changelog" element={<ChangelogPage />} />
-            <Route path="settings/system" element={<SystemPage />} />
-            <Route path="settings/integrations" element={<IntegrationsPage />} />
-            <Route path="settings/tokens" element={<TokensPage />} />
-            <Route path="settings/webhooks" element={<WebhooksPage />} />
-            <Route path="settings/users" element={<UsersPage />} />
-            <Route path="settings/account" element={<AccountPage />} />
+            <Route index element={withSection('dashboard', undefined, <DashboardPage />)} />
+            <Route path="resources" element={withSection('resources', undefined, <ResourcesPage />)} />
+            <Route
+              path="resources/new"
+              element={withSection('resources', undefined, <CreateResourcePage />)}
+            />
+            <Route
+              path="resources/:id/:tab?/:entryId?"
+              element={withSection('resources', undefined, <ResourceDetailPage />)}
+            />
+            <Route path="media" element={withSection('media', 'editor', <MediaPage />)} />
+            <Route path="logs" element={withSection('logs', 'admin', <LogsPage />)} />
+            <Route path="docs/:chapter?" element={withSection('docs', undefined, <DocsPage />)} />
+            <Route path="changelog" element={withSection('changelog', undefined, <ChangelogPage />)} />
+            <Route path="settings/system" element={withSection('system', 'admin', <SystemPage />)} />
+            <Route
+              path="settings/integrations"
+              element={withSection('integrations', 'admin', <IntegrationsPage />)}
+            />
+            <Route path="settings/tokens" element={withSection('tokens', 'admin', <TokensPage />)} />
+            <Route
+              path="settings/webhooks"
+              element={withSection('webhooks', 'admin', <WebhooksPage />)}
+            />
+            <Route path="settings/users" element={withSection('users', 'admin', <UsersPage />)} />
+            <Route path="settings/account" element={withSection('account', undefined, <AccountPage />)} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

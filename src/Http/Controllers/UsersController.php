@@ -52,18 +52,26 @@ final class UsersController
     public function update(Request $request, AuthContext $auth, int $id): Response
     {
         try {
-            $updated = $this->users->update($id, $request->json());
+            $payload = $request->json();
+            $updated = $this->users->update($id, $payload, $auth);
             $this->audit->log(
                 $request,
                 'user.updated',
                 $auth->userId(),
                 'user',
                 (string) $id,
+                isset($payload['password']) ? ['passwordReset' => true] : [],
             );
 
             return Response::data($updated);
         } catch (InvalidArgumentException $e) {
-            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+            $message = $e->getMessage();
+            $status = str_contains($message, 'Only an owner') || str_contains($message, 'Cannot reset')
+                ? 403
+                : 422;
+            $code = $status === 403 ? 'FORBIDDEN' : 'VALIDATION_ERROR';
+
+            return Response::error($code, $message, $status);
         } catch (RuntimeException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
         } catch (Throwable $e) {
@@ -92,6 +100,53 @@ final class UsersController
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        }
+    }
+
+    public function getAcl(Request $request, AuthContext $auth, int $id): Response
+    {
+        unset($request);
+        try {
+            return Response::data($this->users->getAcl($id, $auth));
+        } catch (InvalidArgumentException $e) {
+            return Response::error('FORBIDDEN', $e->getMessage(), 403);
+        } catch (RuntimeException $e) {
+            $code = $e->getCode() === 503 ? 'SERVICE_UNAVAILABLE' : 'NOT_FOUND';
+            $status = $e->getCode() === 503 ? 503 : 404;
+
+            return Response::error($code, $e->getMessage(), $status);
+        }
+    }
+
+    public function setAcl(Request $request, AuthContext $auth, int $id): Response
+    {
+        try {
+            $acl = $this->users->setAcl($id, $request->json(), $auth);
+            $this->audit->log(
+                $request,
+                'user.acl_updated',
+                $auth->userId(),
+                'user',
+                (string) $id,
+                ['aclEnabled' => $acl['aclEnabled']],
+            );
+
+            return Response::data($acl);
+        } catch (InvalidArgumentException $e) {
+            $message = $e->getMessage();
+            $status = str_contains($message, 'Only an owner') || str_contains($message, 'Cannot change ACL')
+                ? 403
+                : 422;
+            $code = $status === 403 ? 'FORBIDDEN' : 'VALIDATION_ERROR';
+
+            return Response::error($code, $message, $status);
+        } catch (RuntimeException $e) {
+            $code = $e->getCode() === 503 ? 'SERVICE_UNAVAILABLE' : 'NOT_FOUND';
+            $status = $e->getCode() === 503 ? 503 : 404;
+
+            return Response::error($code, $e->getMessage(), $status);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }
     }
 }

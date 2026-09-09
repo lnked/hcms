@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, CircleCheck, Trash2 } from 'lucide-react'
+import { Ban, CircleCheck, KeyRound, Shield, Trash2 } from 'lucide-react'
+import {
+  UserPermissionsDialog,
+  UserResetPasswordDialog,
+} from '@/features/account/UserAclDialogs'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
@@ -24,9 +28,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
-import { api, getToken } from '@/lib/api'
-import type { AuthUser } from '@/types/system'
+import { api } from '@/lib/api'
 
 interface AdminUser {
   id: number
@@ -34,6 +38,7 @@ interface AdminUser {
   email: string
   status: 'active' | 'disabled'
   role: 'owner' | 'admin' | 'editor' | 'viewer'
+  aclEnabled?: boolean
   lastLoginAt: string | null
   createdAt: string | null
   updatedAt: string | null
@@ -44,19 +49,15 @@ const ROLES = ['owner', 'admin', 'editor', 'viewer'] as const
 export function UsersPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
+  const { isOwner, user: meUser } = useAcl()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<(typeof ROLES)[number]>('admin')
   const [error, setError] = useState<string | null>(null)
-
-  const me = useQuery({
-    queryKey: ['auth-me', getToken()],
-    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
-    staleTime: 30_000,
-    refetchOnMount: false,
-  })
+  const [aclUser, setAclUser] = useState<AdminUser | null>(null)
+  const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null)
 
   const users = useQuery({
     queryKey: ['admin-users'],
@@ -110,8 +111,8 @@ export function UsersPage() {
     setError(null)
   }
 
-  function roleLabel(role: (typeof ROLES)[number]): string {
-    switch (role) {
+  function roleLabel(roleValue: (typeof ROLES)[number]): string {
+    switch (roleValue) {
       case 'owner':
         return t('users.role.owner')
       case 'admin':
@@ -123,7 +124,7 @@ export function UsersPage() {
     }
   }
 
-  const currentId = me.data?.id
+  const currentId = meUser?.id
 
   return (
     <div className="space-y-6">
@@ -166,9 +167,17 @@ export function UsersPage() {
               <TableBody>
                 {(users.data ?? []).map((user) => {
                   const isSelf = currentId === user.id
+                  const canManageAcl = isOwner && user.role !== 'owner'
                   return (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {user.name}
+                        {user.aclEnabled ? (
+                          <Badge variant="secondary" className="ml-2">
+                            {t('users.acl.badge')}
+                          </Badge>
+                        ) : null}
+                      </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Select
@@ -198,6 +207,28 @@ export function UsersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="inline-flex items-center justify-end gap-1">
+                          {canManageAcl ? (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('users.resetPassword')}
+                                title={t('users.resetPassword')}
+                                onClick={() => setPasswordUser(user)}
+                              >
+                                <KeyRound className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('users.acl.title')}
+                                title={t('users.acl.title')}
+                                onClick={() => setAclUser(user)}
+                              >
+                                <Shield className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : null}
                           <Button
                             size="icon"
                             variant="ghost"
@@ -302,6 +333,24 @@ export function UsersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <UserPermissionsDialog
+        userId={aclUser?.id ?? null}
+        userName={aclUser?.name ?? ''}
+        open={aclUser !== null}
+        onOpenChange={(next) => {
+          if (!next) setAclUser(null)
+        }}
+        onSaved={() => void queryClient.invalidateQueries({ queryKey: ['admin-users'] })}
+      />
+      <UserResetPasswordDialog
+        userId={passwordUser?.id ?? null}
+        userName={passwordUser?.name ?? ''}
+        open={passwordUser !== null}
+        onOpenChange={(next) => {
+          if (!next) setPasswordUser(null)
+        }}
+      />
     </div>
   )
 }

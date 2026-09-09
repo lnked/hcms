@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.55.0",
+      "date": "2026-09-09",
+      "channel": "stable",
+      "title": "Owner: ACL пользователей и сброс паролей",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Владелец может сбрасывать пароли других админов и выдавать кастомный ACL поверх роли: allowlist разделов админки, гранты на ресурсы (read/create/update/delete, пресеты «только создание» / полные права) и разрешённые вкладки ресурса. Роль остаётся потолком; owner ACL не ограничивает"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Миграция `013_cms_user_acl`, эндпоинты `GET/PATCH /admin/api/users/{id}/acl`, enforcement в Kernel после RolePolicy, `/auth/me` отдаёт `aclEnabled` / `sections` / `resourceGrants`. При ACL нельзя создавать ресурсы и импортировать пакеты"
+        }
+      ]
+    },
+    {
       "version": "0.54.5",
       "date": "2026-09-09",
       "channel": "stable",

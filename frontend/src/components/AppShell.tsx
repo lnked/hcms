@@ -28,6 +28,7 @@ import { api, clearToken, getToken } from '@/lib/api'
 import { isLocale, useI18n } from '@/i18n'
 import type { AuthUser, SystemVersion } from '@/types/system'
 import { cn } from '@/lib/utils'
+import { canAccessNav, type AdminRole, type AdminSection } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
 import { useTheme } from '@/theme'
@@ -95,21 +96,9 @@ type NavItem = {
   label: string
   icon: typeof LayoutDashboard
   end?: boolean
+  section: AdminSection
   /** Minimum role: viewer < editor < admin < owner */
-  minRole?: 'viewer' | 'editor' | 'admin' | 'owner'
-}
-
-const ROLE_RANK: Record<string, number> = {
-  viewer: 1,
-  editor: 2,
-  admin: 3,
-  owner: 4,
-}
-
-function roleAllows(userRole: string | undefined, minRole: NavItem['minRole']): boolean {
-  if (!minRole) return true
-  const rank = ROLE_RANK[userRole ?? 'admin'] ?? 3
-  return rank >= (ROLE_RANK[minRole] ?? 0)
+  minRole?: AdminRole
 }
 
 function SidebarNav({
@@ -295,30 +284,56 @@ export function AppShell() {
 
   const nav: NavItem[] = (
     [
-      { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard, end: true },
-      { to: '/resources', label: t('nav.resources'), icon: FileText },
-      { to: '/media', label: t('nav.media'), icon: Image, minRole: 'editor' as const },
-      { to: '/logs', label: t('nav.logs'), icon: Activity, minRole: 'admin' as const },
-      { to: '/settings/tokens', label: t('nav.tokens'), icon: KeyRound, minRole: 'admin' as const },
+      { to: '/', label: t('nav.dashboard'), icon: LayoutDashboard, end: true, section: 'dashboard' },
+      { to: '/resources', label: t('nav.resources'), icon: FileText, section: 'resources' },
+      {
+        to: '/media',
+        label: t('nav.media'),
+        icon: Image,
+        section: 'media',
+        minRole: 'editor' as const,
+      },
+      { to: '/logs', label: t('nav.logs'), icon: Activity, section: 'logs', minRole: 'admin' as const },
+      {
+        to: '/settings/tokens',
+        label: t('nav.tokens'),
+        icon: KeyRound,
+        section: 'tokens',
+        minRole: 'admin' as const,
+      },
       {
         to: '/settings/webhooks',
         label: t('nav.webhooks'),
         icon: Webhook,
+        section: 'webhooks',
         minRole: 'admin' as const,
       },
-      { to: '/settings/users', label: t('nav.users'), icon: Users, minRole: 'admin' as const },
-      { to: '/settings/account', label: t('nav.account'), icon: UserCircle },
+      {
+        to: '/settings/users',
+        label: t('nav.users'),
+        icon: Users,
+        section: 'users',
+        minRole: 'admin' as const,
+      },
+      { to: '/settings/account', label: t('nav.account'), icon: UserCircle, section: 'account' },
       {
         to: '/settings/integrations',
         label: t('nav.integrations'),
         icon: Plug,
+        section: 'integrations',
         minRole: 'admin' as const,
       },
-      { to: '/settings/system', label: t('nav.system'), icon: Settings, minRole: 'admin' as const },
-      { to: '/docs', label: t('nav.documentation'), icon: BookOpen },
-      { to: '/changelog', label: t('nav.changelog'), icon: ScrollText },
+      {
+        to: '/settings/system',
+        label: t('nav.system'),
+        icon: Settings,
+        section: 'system',
+        minRole: 'admin' as const,
+      },
+      { to: '/docs', label: t('nav.documentation'), icon: BookOpen, section: 'docs' },
+      { to: '/changelog', label: t('nav.changelog'), icon: ScrollText, section: 'changelog' },
     ] satisfies NavItem[]
-  ).filter((item) => roleAllows(me.data?.role, item.minRole))
+  ).filter((item) => canAccessNav(me.data, item.section, item.minRole))
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     cn(

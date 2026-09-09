@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DetailPageSkeleton } from '@/components/skeletons'
@@ -13,10 +13,12 @@ import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
+import { useAcl } from '@/hooks/useAcl'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
+import type { ResourceTab } from '@/lib/rbac'
 
 const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'] as const
 type Tab = (typeof TABS)[number]
@@ -39,6 +41,7 @@ function isTab(value: string | undefined): value is Tab {
 
 export function ResourceDetailPage() {
   const { t } = useI18n()
+  const { user, canResourceTab, canResourceAction, aclEnabled } = useAcl()
   const { id, tab: tabParam, entryId: entryParam } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -48,12 +51,23 @@ export function ResourceDetailPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [playgroundPath, setPlaygroundPath] = useState<string | null>(null)
 
+  const visibleTabs = useMemo(
+    () => TABS.filter((item) => canResourceTab(resourceId, item as ResourceTab)),
+    // user identity drives grants; canResourceTab is recreated each render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, resourceId],
+  )
+
   useEffect(() => {
     if (!Number.isFinite(resourceId) || resourceId <= 0) return
     if (!isTab(tabParam)) {
       navigate(`/resources/${resourceId}/overview`, { replace: true })
+      return
     }
-  }, [navigate, resourceId, tabParam])
+    if (visibleTabs.length > 0 && !visibleTabs.includes(tab)) {
+      navigate(`/resources/${resourceId}/${visibleTabs[0]}`, { replace: true })
+    }
+  }, [navigate, resourceId, tabParam, tab, visibleTabs])
 
   const query = useQuery({
     queryKey: ['resource', resourceId],
@@ -134,12 +148,12 @@ export function ResourceDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          {resource.status !== 'published' ? (
+          {resource.status !== 'published' && canResourceAction(resourceId, 'update') ? (
             <Button disabled={publish.isPending} onClick={() => publish.mutate()}>
               {t('resources.publish')}
             </Button>
           ) : null}
-          {!resource.isSystem ? (
+          {!resource.isSystem && canResourceAction(resourceId, 'delete') ? (
             <Button
               variant="destructive"
               disabled={remove.isPending}
@@ -156,7 +170,7 @@ export function ResourceDetailPage() {
       </div>
 
       <div className="flex flex-wrap gap-2 border-b pb-2">
-        {TABS.map((item) => (
+        {visibleTabs.map((item) => (
           <Link
             key={item}
             to={`/resources/${resource.id}/${item}`}
@@ -168,6 +182,10 @@ export function ResourceDetailPage() {
           </Link>
         ))}
       </div>
+
+      {aclEnabled && visibleTabs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('users.acl.noResourceTabs')}</p>
+      ) : null}
 
       {tab === 'overview' ? (
         <div className="grid gap-4 md:grid-cols-2">
@@ -239,7 +257,11 @@ export function ResourceDetailPage() {
               <CardDescription>{t('resources.schemaHint')}</CardDescription>
             </div>
             <Button
-              disabled={!schemaDirty || saveSchema.isPending}
+              disabled={
+                !schemaDirty ||
+                saveSchema.isPending ||
+                !canResourceAction(resourceId, 'update')
+              }
               onClick={() => saveSchema.mutate()}
             >
               {saveSchema.isPending ? t('common.saving') : t('resources.saveSchema')}

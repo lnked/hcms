@@ -24,6 +24,15 @@ export interface SystemVersion {
   changelogSeenVersion: string | null
 }
 
+export interface ResourceGrant {
+  resourceId: number
+  canRead: boolean
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+  tabs: Array<'overview' | 'schema' | 'data' | 'settings' | 'api' | 'export'>
+}
+
 export interface AuthUser {
   id: number
   name: string
@@ -31,6 +40,9 @@ export interface AuthUser {
   role?: 'owner' | 'admin' | 'editor' | 'viewer'
   totpEnabled?: boolean
   changelogSeenVersion: string | null
+  aclEnabled?: boolean
+  sections?: string[]
+  resourceGrants?: ResourceGrant[]
 }
 
 export interface InstallStatus {

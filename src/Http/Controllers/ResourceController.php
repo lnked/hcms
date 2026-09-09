@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Auth\UserAclGuard;
 use Cms\Database\MigrationService;
 use Cms\Http\Request;
 use Cms\Http\Response;
@@ -22,14 +23,24 @@ final class ResourceController
         private readonly AuditLogger $audit,
         private readonly ?MigrationService $migrations = null,
         private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?UserAclGuard $userAcl = null,
     ) {
     }
 
     public function index(Request $request, AuthContext $auth): Response
     {
-        unset($request, $auth);
+        unset($request);
+        $list = $this->resources->list();
+        $allowed = $this->userAcl?->allowedResourceIds($auth);
+        if ($allowed !== null) {
+            $allowedMap = array_fill_keys($allowed, true);
+            $list = array_values(array_filter(
+                $list,
+                static fn (array $row): bool => isset($allowedMap[(int) ($row['id'] ?? 0)]),
+            ));
+        }
 
-        return Response::data($this->resources->list());
+        return Response::data($list);
     }
 
     public function show(Request $request, AuthContext $auth, int $id): Response

@@ -23,6 +23,9 @@ use Cms\Auth\TokenService;
 use Cms\Auth\UserIdentityRepository;
 use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
+use Cms\Auth\UserAclGuard;
+use Cms\Auth\UserResourceGrantRepository;
+use Cms\Auth\UserSectionGrantRepository;
 use Cms\Content\ContentTypeRepository;
 use Cms\Content\EntryRevisionService;
 use Cms\Core\Config;
@@ -84,6 +87,8 @@ use Throwable;
 
 final class Kernel
 {
+    private ?UserAclGuard $userAcl = null;
+
     private function __construct(
         private readonly Paths $paths,
         private readonly Config $config,
@@ -295,6 +300,12 @@ final class Kernel
                 if ($rbac !== null) {
                     return $this->withSecurityHeaders($rbac);
                 }
+                if ($this->userAcl !== null) {
+                    $acl = $this->userAcl->enforce($auth, $request->method, $request->path);
+                    if ($acl !== null) {
+                        return $this->withSecurityHeaders($acl);
+                    }
+                }
             }
         } elseif ($this->tokens !== null && $request->bearerToken() !== null) {
             $resolved = $this->authenticate($request, 'api');
@@ -450,6 +461,14 @@ final class Kernel
     {
         $captcha = $this->runtimeSettings !== null ? new CaptchaVerifier($this->runtimeSettings) : null;
         $usersRepo = $this->db !== null ? new UsersRepository($this->db) : null;
+        $sectionGrants = $this->db !== null ? new UserSectionGrantRepository($this->db) : null;
+        $resourceGrants = $this->db !== null ? new UserResourceGrantRepository($this->db) : null;
+        $usersService = $usersRepo !== null
+            ? new UsersService($usersRepo, $this->tokens, $sectionGrants, $resourceGrants)
+            : null;
+        if ($this->db !== null && $sectionGrants !== null && $resourceGrants !== null) {
+            $this->userAcl = new UserAclGuard($this->db, $sectionGrants, $resourceGrants);
+        }
         $oauth = $this->db !== null && $this->tokens !== null && $this->runtimeSettings !== null
             ? new OAuthService(
                 new OAuthSettings($this->runtimeSettings),
@@ -471,6 +490,7 @@ final class Kernel
                 $this->ipBlocks,
                 $usersRepo,
                 $oauth,
+                $usersService,
             )
             : null;
         $metadata = new MetadataCache(new FileCache($this->paths->cache()));
@@ -741,7 +761,7 @@ final class Kernel
             );
             $webhookRepo = new WebhookRepository($this->db);
             $webhookDispatcher = new WebhookDispatcher($webhookRepo);
-            $resources = new ResourceController($resourceService, $audit, $migrationService, $webhookDispatcher);
+            $resources = new ResourceController($resourceService, $audit, $migrationService, $webhookDispatcher, $this->userAcl);
 
             $this->router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
                 unset($params);
@@ -1119,7 +1139,7 @@ final class Kernel
             });
 
             $users = new UsersController(
-                new UsersService(new UsersRepository($this->db), $this->tokens),
+                $usersService ?? new UsersService(new UsersRepository($this->db), $this->tokens),
                 $audit,
             );
             $this->router->add('GET', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
@@ -1151,6 +1171,20 @@ final class Kernel
                 }
 
                 return $users->delete($request, $context, (int) $params['id']);
+            });
+            $this->router->add('GET', '/admin/api/users/{id}/acl', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->getAcl($request, $context, (int) $params['id']);
+            });
+            $this->router->add('PATCH', '/admin/api/users/{id}/acl', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $users->setAcl($request, $context, (int) $params['id']);
             });
 
             $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');

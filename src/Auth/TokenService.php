@@ -128,7 +128,7 @@ final class TokenService
     public function userById(int $id): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, email, status, role, totp_enabled, changelog_seen_version, created_at FROM cms_users WHERE id = :id',
+            'SELECT id, name, email, status, role, acl_enabled, totp_enabled, changelog_seen_version, created_at FROM cms_users WHERE id = :id',
             ['id' => $id],
         );
     }

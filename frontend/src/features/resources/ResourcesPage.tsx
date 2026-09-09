@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
+import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { api, ApiError } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
@@ -62,6 +63,7 @@ export function ResourcesPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { aclEnabled } = useAcl()
 
   const [importOpen, setImportOpen] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
@@ -199,10 +201,14 @@ export function ResourcesPage() {
           <p className="text-sm text-muted-foreground">{t('resources.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={openImport}>
-            {t('resources.package.import')}
-          </Button>
-          <Button onClick={() => navigate('/resources/new')}>{t('resources.create')}</Button>
+          {!aclEnabled ? (
+            <>
+              <Button variant="outline" onClick={openImport}>
+                {t('resources.package.import')}
+              </Button>
+              <Button onClick={() => navigate('/resources/new')}>{t('resources.create')}</Button>
+            </>
+          ) : null}
         </div>
       </div>
 
