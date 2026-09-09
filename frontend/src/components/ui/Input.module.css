@@ -1,0 +1,3 @@
+.input::placeholder {
+  color: var(--hcms-color-muted-foreground);
+}

@@ -16,9 +16,7 @@
   "dependencies": {
     "@internationalized/date": "^3.12.4",
     "@radix-ui/react-dialog": "^1.1.23",
-    "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.102.8",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.41.0",
     "qrcode.react": "^4.2.0",
@@ -28,9 +26,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
     "recharts": "^2.15.4",
-    "sugar-high": "^2.3.1",
-    "tailwind-merge": "^3.6.0",
-    "tailwindcss": "^4.3.3"
+    "sugar-high": "^2.3.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,4 +1,6 @@
+import { clsx } from 'clsx'
 import type { MediaFieldValue, MediaItemRef } from '@/types/field'
+import styles from './MediaCell.module.css'
 
 const MAX_PREVIEWS = 3
 
@@ -36,13 +38,13 @@ function smallestVariant(item: MediaFieldValue): MediaItemRef | null {
 
 export function MediaCell({ value, fieldType }: MediaCellProps) {
   const items = toItems(value)
-  if (items.length === 0) return <span className="text-muted-foreground">—</span>
+  if (items.length === 0) return <span className={clsx(styles.empty)}>—</span>
 
   const shown = items.slice(0, MAX_PREVIEWS)
   const hidden = items.length - shown.length
 
   return (
-    <div className="flex items-center gap-1">
+    <div className={clsx(styles.root)}>
       {shown.map((item, index) => {
         const mime = item.media?.mime ?? ''
         const isImage = mime ? mime.startsWith('image/') : fieldType === 'image'
@@ -57,14 +59,14 @@ export function MediaCell({ value, fieldType }: MediaCellProps) {
             target="_blank"
             rel="noreferrer"
             title={name}
-            className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted"
+            className={clsx(styles.thumb)}
           >
             {isImage ? (
               <img
                 src={variant?.url ?? href}
                 alt=""
                 loading="lazy"
-                className="h-full w-full object-cover"
+                className={clsx(styles.thumbImg)}
                 style={
                   variant || !item.rotation
                     ? undefined
@@ -72,14 +74,12 @@ export function MediaCell({ value, fieldType }: MediaCellProps) {
                 }
               />
             ) : (
-              <span className="px-1 text-center text-[9px] leading-tight text-muted-foreground">
-                {mime.split('/').pop() || 'file'}
-              </span>
+              <span className={clsx(styles.fileExt)}>{mime.split('/').pop() || 'file'}</span>
             )}
           </a>
         )
       })}
-      {hidden > 0 ? <span className="text-xs text-muted-foreground">+{hidden}</span> : null}
+      {hidden > 0 ? <span className={clsx(styles.more)}>+{hidden}</span> : null}
     </div>
   )
 }

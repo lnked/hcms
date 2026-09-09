@@ -1,0 +1,43 @@
+.empty {
+  color: var(--hcms-color-muted-foreground);
+}
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx1);
+}
+
+.thumb {
+  display: flex;
+  height: var(--hcms-SPx10);
+  width: var(--hcms-SPx10);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--hcms-CRx1);
+  border: 1px solid var(--hcms-color-border);
+  background-color: var(--hcms-color-muted);
+}
+
+.thumbImg {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.fileExt {
+  padding-left: var(--hcms-SPx1);
+  padding-right: var(--hcms-SPx1);
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.25;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.more {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}

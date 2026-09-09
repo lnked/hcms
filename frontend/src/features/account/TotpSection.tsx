@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,6 +19,7 @@ import { api, getToken } from '@/lib/api'
 import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import type { AuthUser } from '@/types/system'
+import styles from './TotpSection.module.css'
 
 export function TotpSection() {
   const { t } = useI18n()
@@ -29,10 +31,10 @@ export function TotpSection() {
   const refreshMe = () => void queryClient.invalidateQueries({ queryKey: ['auth-me'] })
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <p className="text-sm font-medium">{t('users.totpTitle')}</p>
-        <p className="text-sm text-muted-foreground">
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.intro)}>
+        <p className={clsx(styles.title)}>{t('users.totpTitle')}</p>
+        <p className={clsx(styles.muted)}>
           {me.data?.totpEnabled ? t('users.totpEnabled') : t('users.totpDisabled')}
         </p>
       </div>
@@ -108,14 +110,14 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
         : null
 
   if (setup.isPending) {
-    return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+    return <p className={clsx(styles.muted)}>{t('common.loading')}</p>
   }
 
   if (!secret || !otpauthUrl) {
     return (
-      <div className="space-y-4">
-        {setupError ? <p className="text-sm text-destructive">{setupError}</p> : null}
-        <div className="flex justify-end gap-2">
+      <div className={clsx(styles.stack)}>
+        {setupError ? <p className={clsx(styles.error)}>{setupError}</p> : null}
+        <div className={clsx(styles.actions)}>
           <DialogClose asChild>
             <Button type="button" variant="ghost">
               {t('common.cancel')}
@@ -131,16 +133,16 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      className="space-y-4"
+      className={clsx(styles.stack)}
       onSubmit={(event) => {
         event.preventDefault()
         setError(null)
         enable.mutate()
       }}
     >
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">{t('users.totpScan')}</p>
-        <div className="inline-flex rounded-md border bg-white p-3">
+      <div className={clsx(styles.stackSm)}>
+        <p className={clsx(styles.muted)}>{t('users.totpScan')}</p>
+        <div className={clsx(styles.qrWrap)}>
           <QRCodeSVG value={otpauthUrl} size={180} level="M" marginSize={0} />
         </div>
       </div>
@@ -148,7 +150,7 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
       <CodeBlock code={secret} label={t('users.totpManual')} language="http" />
 
       <div>
-        <Label htmlFor="totp-enable-code" className="mb-2 block">
+        <Label htmlFor="totp-enable-code" className={clsx(styles.labelBlock)}>
           {t('login.totp')}
         </Label>
 
@@ -167,9 +169,9 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
         />
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
-      <div className="flex justify-end gap-2">
+      <div className={clsx(styles.actions)}>
         <DialogClose asChild>
           <Button type="button" variant="ghost">
             {t('common.cancel')}
@@ -228,14 +230,14 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      className="space-y-4"
+      className={clsx(styles.stack)}
       onSubmit={(event) => {
         event.preventDefault()
         setError(null)
         disable.mutate()
       }}
     >
-      <div className="space-y-2">
+      <div className={clsx(styles.stackSm)}>
         <Label htmlFor="totp-disable-password">{t('common.password')}</Label>
         <Input
           id="totp-disable-password"
@@ -251,9 +253,9 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
         />
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
-      <div className="flex justify-end gap-2">
+      <div className={clsx(styles.actions)}>
         <DialogClose asChild>
           <Button type="button" variant="ghost">
             {t('common.cancel')}

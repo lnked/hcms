@@ -1,0 +1,58 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hcms-SPx1) * 1.5);
+}
+
+.label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.frame {
+  position: relative;
+}
+
+.copyBtn {
+  position: absolute;
+  top: var(--hcms-SPx2);
+  right: var(--hcms-SPx2);
+  z-index: 10;
+  height: calc(var(--hcms-SPx7));
+  width: calc(var(--hcms-SPx7));
+  background-color: color-mix(in srgb, var(--hcms-color-background) 90%, transparent);
+}
+
+.icon {
+  height: calc(var(--hcms-SPx1) * 3.5);
+  width: calc(var(--hcms-SPx1) * 3.5);
+}
+
+.code {
+  min-height: calc(0.5rem + 1.75rem + 0.5rem);
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
+  padding: var(--hcms-SPx3);
+  padding-right: calc(var(--hcms-SPx11));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 0.8;
+  white-space: pre;
+  box-shadow: none;
+  resize: vertical;
+  color: var(--hcms-color-foreground);
+}
+
+.code:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--hcms-color-ring);
+}
+
+.textarea {
+  min-height: 200px;
+}

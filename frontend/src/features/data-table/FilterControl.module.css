@@ -1,0 +1,20 @@
+.control {
+  height: var(--hcms-SPx8);
+}
+
+.boolLabel {
+  display: flex;
+  height: var(--hcms-SPx8);
+  cursor: pointer;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.boolInput {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+  cursor: pointer;
+}

@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n'
 import { ApiError, getToken, handleUnauthorized } from '@/lib/api'
 import { showError } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
+import styles from './ResourceExportPanel.module.css'
 
 interface ResourceExportPanelProps {
   resource: Resource
@@ -62,11 +63,11 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
         <CardTitle>{t('resources.package.exportTitle')}</CardTitle>
         <CardDescription>{t('resources.package.exportHint')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <label className="flex items-start gap-2 text-sm">
+      <CardContent className={styles.stack}>
+        <label className={styles.checkLabel}>
           <input
             type="checkbox"
-            className="mt-0.5"
+            className={styles.checkbox}
             checked={includeData}
             disabled={resource.status !== 'published'}
             onChange={(e) => {
@@ -75,20 +76,18 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
             }}
           />
           <span>
-            <span className="font-medium">{t('resources.package.includeData')}</span>
-            <span className="mt-0.5 block text-muted-foreground">
-              {t('resources.package.includeDataHint')}
-            </span>
+            <span className={styles.labelStrong}>{t('resources.package.includeData')}</span>
+            <span className={styles.hint}>{t('resources.package.includeDataHint')}</span>
           </span>
         </label>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={styles.actions}>
           <Button onClick={() => doExport.mutate()} disabled={doExport.isPending}>
             {doExport.isPending
               ? t('resources.package.exporting')
               : t('resources.package.download')}
           </Button>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p className={styles.error}>{error}</p> : null}
         </div>
       </CardContent>
     </Card>

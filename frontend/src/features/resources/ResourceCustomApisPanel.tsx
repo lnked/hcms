@@ -23,6 +23,7 @@ import {
   type ResourceCustomApi,
   type ResourceCustomApiInput,
 } from '@/types/resourceApi'
+import styles from './ResourceCustomApisPanel.module.css'
 
 interface ResourceCustomApisPanelProps {
   resource: Resource
@@ -242,36 +243,33 @@ export function ResourceCustomApisPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
+      <CardHeader className={styles.headerRow}>
         <div>
           <CardTitle>{t('resources.customApis.title')}</CardTitle>
           <CardDescription>{t('resources.customApis.hint')}</CardDescription>
         </div>
         <Button size="sm" onClick={startCreate}>
-          <Plus className="h-4 w-4" />
+          <Plus className={styles.icon} />
           {t('resources.customApis.create')}
         </Button>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={styles.stack}>
         {apisQuery.isLoading ? (
           <TableSkeleton columns={3} rows={4} />
         ) : apis.length === 0 && editingId === null ? (
           <EmptyState title={t('resources.customApis.empty')} />
         ) : (
-          <div className="space-y-2">
+          <div className={styles.list}>
             {apis.map((apiItem) => (
-              <div
-                key={apiItem.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{apiItem.label}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
+              <div key={apiItem.id} className={styles.apiRow}>
+                <div className={styles.apiMeta}>
+                  <p className={styles.apiLabel}>{apiItem.label}</p>
+                  <p className={styles.apiPath}>
                     {apiItem.methods.join(' ')} {apiItem.path}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
+                <div className={styles.apiActions}>
+                  <span className={styles.statusHint}>
                     {apiItem.enabled ? t('common.enabled') : t('common.disabled')}
                   </span>
                   <Button size="sm" variant="outline" onClick={() => onSelectPath?.(apiItem.path)}>
@@ -292,7 +290,7 @@ export function ResourceCustomApisPanel({
                       }
                     }}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className={styles.iconDestructive} />
                   </Button>
                 </div>
               </div>
@@ -301,9 +299,9 @@ export function ResourceCustomApisPanel({
         )}
 
         {editingId !== null ? (
-          <div className="space-y-4 rounded-md border p-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
+          <div className={styles.editor}>
+            <div className={styles.grid2}>
+              <div className={styles.field}>
                 <Label htmlFor="custom-api-label">{t('common.label')}</Label>
                 <Input
                   id="custom-api-label"
@@ -311,11 +309,11 @@ export function ResourceCustomApisPanel({
                   onChange={(e) => setDraft((prev) => ({ ...prev, label: e.target.value }))}
                 />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label htmlFor="custom-api-slug">{t('common.slug')}</Label>
                 <Input
                   id="custom-api-slug"
-                  className="font-mono"
+                  className={styles.mono}
                   value={draft.slug}
                   onChange={(e) =>
                     setDraft((prev) => ({
@@ -325,13 +323,13 @@ export function ResourceCustomApisPanel({
                   }
                   placeholder="with-category"
                 />
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className={styles.monoHint}>
                   {resource.endpoint}/{draft.slug || '…'}
                 </p>
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className={styles.checkLabel}>
               <input
                 type="checkbox"
                 checked={draft.enabled}
@@ -340,43 +338,37 @@ export function ResourceCustomApisPanel({
               {t('resources.customApis.enabled')}
             </label>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{t('resources.customApis.methods')}</p>
-              <p className="text-xs text-muted-foreground">
-                {t('resources.customApis.methodsHint')}
-              </p>
-              <div className="flex flex-wrap gap-3">
+            <div className={styles.field}>
+              <p className={styles.sectionTitle}>{t('resources.customApis.methods')}</p>
+              <p className={styles.hint}>{t('resources.customApis.methodsHint')}</p>
+              <div className={styles.methodRow}>
                 {RESOURCE_API_METHODS.map((method) => (
-                  <label key={method} className="flex items-center gap-2 text-sm">
+                  <label key={method} className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={draft.methods.includes(method)}
                       disabled={writesBlockedByJoins && isWriteMethod(method)}
                       onChange={() => toggleMethod(method)}
                     />
-                    <span className="font-mono text-xs">{method}</span>
+                    <span className={styles.monoXs}>{method}</span>
                   </label>
                 ))}
               </div>
               {writesBlockedByJoins ? (
-                <p className="text-xs text-muted-foreground">
-                  {t('resources.customApis.methodsJoinsBlocked')}
-                </p>
+                <p className={styles.hint}>{t('resources.customApis.methodsJoinsBlocked')}</p>
               ) : null}
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{t('resources.customApis.publicAccess')}</p>
-              <p className="text-xs text-muted-foreground">
-                {t('resources.customApis.publicAccessHint')}
-              </p>
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className={styles.field}>
+              <p className={styles.sectionTitle}>{t('resources.customApis.publicAccess')}</p>
+              <p className={styles.hint}>{t('resources.customApis.publicAccessHint')}</p>
+              <div className={styles.grid2}>
                 {RESOURCE_API_METHODS.filter((method) => draft.methods.includes(method)).map(
                   (method) => {
                     const action = methodAction(method)
                     const value = draft.settings.public[action]
                     return (
-                      <div key={action} className="space-y-1">
+                      <div key={action} className={styles.fieldTight}>
                         <Label htmlFor={`custom-api-public-${action}`}>
                           {t(`resources.customApis.public.${action}`)}
                         </Label>
@@ -400,18 +392,14 @@ export function ResourceCustomApisPanel({
                 )}
               </div>
               {publicWriteEnabled ? (
-                <p className="rounded-md border border-amber-500 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
-                  {t('resources.customApis.publicWriteWarning')}
-                </p>
+                <p className={styles.warning}>{t('resources.customApis.publicWriteWarning')}</p>
               ) : null}
-              <p className="text-xs text-muted-foreground">
-                {t('resources.customApis.grantsHint')}
-              </p>
+              <p className={styles.hint}>{t('resources.customApis.grantsHint')}</p>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{t('resources.customApis.fields')}</p>
-              <label className="flex items-center gap-2 text-sm">
+            <div className={styles.field}>
+              <p className={styles.sectionTitle}>{t('resources.customApis.fields')}</p>
+              <label className={styles.checkLabel}>
                 <input
                   type="checkbox"
                   checked={allFields}
@@ -427,21 +415,21 @@ export function ResourceCustomApisPanel({
                 {t('resources.customApis.allFields')}
               </label>
               {!allFields ? (
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                <div className={styles.fieldsGrid}>
                   {selectable.map((field) => (
-                    <label key={field.name} className="flex items-center gap-2 text-sm">
+                    <label key={field.name} className={styles.checkLabel}>
                       <input
                         type="checkbox"
                         checked={(draft.fields ?? []).includes(field.name)}
                         onChange={() => toggleField(field.name)}
                       />
-                      <span className="font-mono text-xs">{field.name}</span>
+                      <span className={styles.monoXs}>{field.name}</span>
                     </label>
                   ))}
                 </div>
               ) : null}
               {missingRequired.length > 0 ? (
-                <p className="text-xs text-destructive">
+                <p className={styles.error}>
                   {t('resources.customApis.missingRequired', {
                     fields: missingRequired.join(', '),
                   })}
@@ -449,9 +437,9 @@ export function ResourceCustomApisPanel({
               ) : null}
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium">{t('resources.customApis.joins')}</p>
+            <div className={styles.joinsSection}>
+              <div className={styles.joinsHeader}>
+                <p className={styles.sectionTitle}>{t('resources.customApis.joins')}</p>
                 <Button
                   size="sm"
                   variant="outline"
@@ -459,28 +447,26 @@ export function ResourceCustomApisPanel({
                     setDraft((prev) => ({ ...prev, joins: [...prev.joins, emptyJoin()] }))
                   }
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className={styles.icon} />
                   {t('resources.customApis.addJoin')}
                 </Button>
               </div>
               {draft.joins.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t('resources.customApis.joinsEmpty')}
-                </p>
+                <p className={styles.muted}>{t('resources.customApis.joinsEmpty')}</p>
               ) : (
                 draft.joins.map((join, index) => {
                   const relatedFields = relatedFieldsQuery.data?.[join.relatedSlug] ?? []
                   return (
-                    <div key={index} className="space-y-3 rounded-md border p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium">
+                    <div key={index} className={styles.joinCard}>
+                      <div className={styles.joinHeader}>
+                        <p className={styles.joinTitle}>
                           {t('resources.customApis.joinItem', { n: index + 1 })}
                         </p>
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 shrink-0"
+                          className={styles.removeBtn}
                           aria-label={t('resources.customApis.removeJoin')}
                           title={t('resources.customApis.removeJoin')}
                           onClick={() =>
@@ -490,14 +476,14 @@ export function ResourceCustomApisPanel({
                             }))
                           }
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className={styles.iconDestructive} />
                         </Button>
                       </div>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
+                      <div className={styles.grid2}>
+                        <div className={styles.field}>
                           <Label>{t('resources.customApis.joinAs')}</Label>
                           <Input
-                            className="font-mono"
+                            className={styles.mono}
                             value={join.as}
                             onChange={(e) =>
                               patchJoin(index, {
@@ -507,7 +493,7 @@ export function ResourceCustomApisPanel({
                             placeholder="category"
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className={styles.field}>
                           <Label>{t('resources.customApis.relatedSlug')}</Label>
                           <Select
                             value={join.relatedSlug}
@@ -523,7 +509,7 @@ export function ResourceCustomApisPanel({
                             ))}
                           </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className={styles.field}>
                           <Label>{t('resources.customApis.localField')}</Label>
                           <Select
                             value={join.localField}
@@ -537,10 +523,10 @@ export function ResourceCustomApisPanel({
                             ))}
                           </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className={styles.field}>
                           <Label>{t('resources.customApis.foreignField')}</Label>
                           <Input
-                            className="font-mono"
+                            className={styles.mono}
                             value={join.foreignField}
                             onChange={(e) =>
                               patchJoin(index, {
@@ -552,19 +538,17 @@ export function ResourceCustomApisPanel({
                         </div>
                       </div>
                       {join.relatedSlug && relatedFields.length > 0 ? (
-                        <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground">
-                            {t('resources.customApis.joinFieldsHint')}
-                          </p>
-                          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+                        <div className={styles.field}>
+                          <p className={styles.hint}>{t('resources.customApis.joinFieldsHint')}</p>
+                          <div className={styles.fieldsGrid}>
                             {projectableFields(relatedFields).map((field) => (
-                              <label key={field.name} className="flex items-center gap-2 text-sm">
+                              <label key={field.name} className={styles.checkLabel}>
                                 <input
                                   type="checkbox"
                                   checked={(join.fields ?? []).includes(field.name)}
                                   onChange={() => toggleJoinField(index, field.name)}
                                 />
-                                <span className="font-mono text-xs">{field.name}</span>
+                                <span className={styles.monoXs}>{field.name}</span>
                               </label>
                             ))}
                           </div>
@@ -576,7 +560,7 @@ export function ResourceCustomApisPanel({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={styles.editorActions}>
               <Button disabled={save.isPending || saveBlocked} onClick={() => save.mutate()}>
                 {save.isPending ? t('common.saving') : t('common.save')}
               </Button>
@@ -587,7 +571,7 @@ export function ResourceCustomApisPanel({
           </div>
         ) : null}
 
-        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+        {message ? <p className={styles.message}>{message}</p> : null}
       </CardContent>
     </Card>
   )

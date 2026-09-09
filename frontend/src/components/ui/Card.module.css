@@ -1,0 +1,30 @@
+.card {
+  border-radius: var(--hcms-CRx4);
+  border: 1px solid var(--hcms-color-border);
+  background-color: var(--hcms-color-card);
+  color: var(--hcms-color-card-foreground);
+  box-shadow: 0 1px 2px 0 color-mix(in srgb, var(--hcms-color-foreground) 5%, transparent);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hcms-SPx1) * 1.5);
+  padding: var(--hcms-SPx6);
+}
+
+.title {
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+.description {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.content {
+  padding: 0 var(--hcms-SPx6) var(--hcms-SPx6);
+}

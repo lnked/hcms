@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +9,7 @@ import { showError, showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import { SecurityCard } from '@/features/account/SecurityCard'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
+import styles from './AccountPage.module.css'
 
 interface AuthProviders {
   google: { enabled: boolean; clientId: string }
@@ -85,23 +87,23 @@ export function AccountPage() {
   )
 
   return (
-    <div className="space-y-6">
+    <div className={clsx(styles.root)}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('account.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('account.description')}</p>
+        <h1 className={clsx(styles.title)}>{t('account.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('account.description')}</p>
       </div>
 
       {identities.isLoading ? (
         <FormBlockSkeleton fields={4} />
       ) : identities.isError ? (
-        <p className="text-sm text-destructive">
+        <p className={clsx(styles.error)}>
           {identities.error instanceof Error ? identities.error.message : t('common.loadError')}
         </p>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className={clsx(styles.grid)}>
           <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-              <div className="space-y-1.5">
+            <CardHeader className={clsx(styles.cardHeader)}>
+              <div className={clsx(styles.cardIntro)}>
                 <CardTitle>Google</CardTitle>
                 <CardDescription>
                   {googleReady ? t('account.googleHint') : t('account.providerOff')}
@@ -111,9 +113,9 @@ export function AccountPage() {
                 {google?.linked ? t('account.linkedStatus') : t('account.notLinked')}
               </Badge>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={clsx(styles.cardBody)}>
               {google?.linked && google.label ? (
-                <p className="text-sm text-muted-foreground">{google.label}</p>
+                <p className={clsx(styles.muted)}>{google.label}</p>
               ) : null}
               {google?.linked ? (
                 <Button
@@ -135,8 +137,8 @@ export function AccountPage() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-              <div className="space-y-1.5">
+            <CardHeader className={clsx(styles.cardHeader)}>
+              <div className={clsx(styles.cardIntro)}>
                 <CardTitle>Telegram</CardTitle>
                 <CardDescription>
                   {telegramReady ? t('account.telegramHint') : t('account.providerOff')}
@@ -146,9 +148,9 @@ export function AccountPage() {
                 {telegram?.linked ? t('account.linkedStatus') : t('account.notLinked')}
               </Badge>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className={clsx(styles.cardBody)}>
               {telegram?.linked && telegram.label ? (
-                <p className="text-sm text-muted-foreground">{telegram.label}</p>
+                <p className={clsx(styles.muted)}>{telegram.label}</p>
               ) : null}
               {telegram?.linked ? (
                 <Button

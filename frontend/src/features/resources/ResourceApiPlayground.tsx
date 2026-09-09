@@ -14,6 +14,7 @@ import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceCustomApi } from '@/types/resourceApi'
 import { buildResourceFetchExample } from './buildResourceFetchExample'
+import styles from './ResourceApiPlayground.module.css'
 
 interface ResourceApiPlaygroundProps {
   resource: Resource
@@ -178,13 +179,13 @@ export function ResourceApiPlayground({
         <CardTitle>{t('resources.playground.title')}</CardTitle>
         <CardDescription>{t('resources.playground.hint')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1 font-mono text-sm text-muted-foreground">
+      <CardContent className={styles.stack}>
+        <div className={styles.endpoints}>
           {endpoints.map((line) => (
             <button
               key={line}
               type="button"
-              className="block w-full text-left hover:text-foreground"
+              className={styles.endpointBtn}
               onClick={() => {
                 const match = line.match(/^(GET|POST|PATCH|DELETE)\s+(\S+)/)
                 if (!match) return
@@ -199,13 +200,13 @@ export function ResourceApiPlayground({
         </div>
 
         {fields.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className={styles.hint}>
             {t('resources.playground.fieldsHint', { count: fields.length })}
           </p>
         ) : null}
 
-        <div className="grid gap-3 md:grid-cols-[8rem_1fr]">
-          <div className="space-y-2">
+        <div className={styles.methodGrid}>
+          <div className={styles.field}>
             <Label htmlFor="api-method">{t('resources.playground.method')}</Label>
             <Select
               id="api-method"
@@ -219,11 +220,11 @@ export function ResourceApiPlayground({
               ))}
             </Select>
           </div>
-          <div className="space-y-2">
+          <div className={styles.field}>
             <Label htmlFor="api-path">{t('resources.playground.path')}</Label>
             <Input
               id="api-path"
-              className="font-mono"
+              className={styles.mono}
               value={path}
               onChange={(e) => {
                 setPath(e.target.value)
@@ -233,11 +234,11 @@ export function ResourceApiPlayground({
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className={styles.field}>
           <Label htmlFor="api-query">{t('resources.playground.query')}</Label>
           <Textarea
             id="api-query"
-            className="min-h-20 font-mono"
+            className={styles.queryArea}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="limit=20&sort=id"
@@ -245,18 +246,18 @@ export function ResourceApiPlayground({
         </div>
 
         {method === 'POST' || method === 'PATCH' ? (
-          <div className="space-y-2">
+          <div className={styles.field}>
             <Label htmlFor="api-body">{t('resources.playground.body')}</Label>
             <Textarea
               id="api-body"
-              className="min-h-36 font-mono"
+              className={styles.bodyArea}
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={styles.actions}>
           <Button
             disabled={!pathDirty || saveEndpoint.isPending}
             onClick={() => saveEndpoint.mutate()}
@@ -275,18 +276,16 @@ export function ResourceApiPlayground({
           <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
             {t('resources.openDocs')}
           </Button>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <p className={styles.message}>{message}</p> : null}
         </div>
 
         {status !== null ? (
-          <div className="space-y-2">
-            <p className="text-sm">
-              <span className="text-muted-foreground">{t('resources.playground.status')}: </span>
-              <span className="font-mono font-medium">{status}</span>
+          <div className={styles.response}>
+            <p className={styles.statusLine}>
+              <span className={styles.statusLabel}>{t('resources.playground.status')}: </span>
+              <span className={styles.statusValue}>{status}</span>
             </p>
-            <pre className="max-h-80 overflow-auto rounded-md border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap">
-              {responseText}
-            </pre>
+            <pre className={styles.pre}>{responseText}</pre>
           </div>
         ) : null}
       </CardContent>

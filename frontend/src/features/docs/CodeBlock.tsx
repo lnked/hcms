@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
 import { Check, Copy } from 'lucide-react'
+import { clsx } from 'clsx'
 import { highlight, type LanguageName } from 'sugar-high'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { copyToClipboard } from '@/lib/clipboard'
+import styles from './CodeBlock.module.css'
 
 type DocLanguage = 'bash' | 'js' | 'http'
 
@@ -51,23 +53,27 @@ export function CodeBlock({
   const title = copied ? t('docs.copied') : t('docs.copy')
 
   return (
-    <div className="space-y-1.5">
+    <div className={clsx(styles.root)}>
       {label ? (
-        <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+        <label htmlFor={id} className={clsx(styles.label)}>
           {label}
         </label>
       ) : null}
-      <div className="relative">
+      <div className={clsx(styles.frame)}>
         <Button
           type="button"
           size="icon"
           variant="outline"
-          className="absolute top-2 right-2 z-10 h-7 w-7 bg-background/90"
+          className={clsx(styles.copyBtn)}
           onClick={() => void copy()}
           title={title}
           aria-label={title}
         >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+          {copied ? (
+            <Check className={clsx(styles.icon)} />
+          ) : (
+            <Copy className={clsx(styles.icon)} />
+          )}
         </Button>
         {editable ? (
           <textarea
@@ -76,10 +82,10 @@ export function CodeBlock({
             value={code}
             spellCheck={false}
             onChange={(e) => onChange?.(e.target.value)}
-            className="docs-code min-h-[200px] w-full resize-y rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre shadow-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className={clsx('docs-code', styles.code, styles.textarea)}
           />
         ) : (
-          <pre className="docs-code min-h-[calc(0.5rem+1.75rem+0.5rem)] overflow-x-auto rounded-md border bg-muted/40 p-3 pr-11 font-mono text-xs leading-[0.8] whitespace-pre">
+          <pre className={clsx('docs-code', styles.code)}>
             <code dangerouslySetInnerHTML={{ __html: html }} />
           </pre>
         )}

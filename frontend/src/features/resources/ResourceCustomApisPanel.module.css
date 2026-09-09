@@ -1,0 +1,239 @@
+.headerRow {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hcms-SPx4);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.apiRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+}
+
+.apiMeta {
+  min-width: 0;
+}
+
+.apiLabel {
+  font-weight: 500;
+}
+
+.apiPath {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.apiActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.statusHint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.icon {
+  width: var(--hcms-SPx4);
+  height: var(--hcms-SPx4);
+  flex-shrink: 0;
+}
+
+.iconDestructive {
+  width: var(--hcms-SPx4);
+  height: var(--hcms-SPx4);
+  flex-shrink: 0;
+  color: var(--hcms-color-destructive);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  padding: var(--hcms-SPx4);
+}
+
+.grid2 {
+  display: grid;
+  gap: var(--hcms-SPx3);
+}
+
+@media (min-width: 768px) {
+  .grid2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.fieldTight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.monoHint {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.hint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.methodRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx3);
+}
+
+.monoXs {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.warning {
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-destructive);
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 10%, transparent);
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-destructive);
+}
+
+.fieldsGrid {
+  display: grid;
+  gap: var(--hcms-SPx2);
+}
+
+@media (min-width: 640px) {
+  .fieldsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .fieldsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.error {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-destructive);
+}
+
+.joinsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+}
+
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.joinCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  padding: var(--hcms-SPx3);
+}
+
+.joinHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+}
+
+.joinTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.removeBtn {
+  width: var(--hcms-SPx8);
+  height: var(--hcms-SPx8);
+  flex-shrink: 0;
+}
+
+.editorActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.message {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.joinsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+}

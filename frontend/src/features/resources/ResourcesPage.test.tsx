@@ -103,7 +103,7 @@ describe('ResourcesPage', () => {
     expect(await screen.findByText('Articles')).toBeInTheDocument()
     const endpoint = screen.getByRole('button', { name: '/api/articles' })
     expect(endpoint).toBeInTheDocument()
-    expect(endpoint.className).toContain('decoration-dashed')
+    expect(endpoint.className).toMatch(/endpointBtn/)
     expect(screen.getByRole('button', { name: 'Usage example' })).toBeInTheDocument()
     expect(document.querySelector('.docs-code')).toBeNull()
   })

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
+import { clsx } from 'clsx'
 import {
   FlipHorizontal,
   FlipVertical,
@@ -20,7 +21,6 @@ import {
 } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/i18n'
-import { cn } from '@/lib/utils'
 import type { CropRect, ImageSizeConfig, MediaEdit } from '@/types/field'
 import {
   anchorCrop,
@@ -32,6 +32,7 @@ import {
   roundCrop,
   useCropFrame,
 } from './useCropFrame'
+import styles from './ImageEditorDialog.module.css'
 
 const BASE_TAB = 'base'
 const PAN_STEP = 0.02
@@ -61,7 +62,7 @@ interface ImageEditorDialogProps {
 function CropLayer({ crop, children }: { crop: CropRect; children: ReactNode }) {
   return (
     <div
-      className="absolute"
+      className={clsx(styles.cropLayer)}
       style={{
         width: `${100 / crop.w}%`,
         height: `${100 / crop.h}%`,
@@ -103,7 +104,7 @@ function SourceImage({
       src={src}
       alt=""
       draggable={false}
-      className="pointer-events-none absolute max-w-none select-none"
+      className={clsx(styles.sourceImg)}
       style={{
         left: '50%',
         top: '50%',
@@ -121,7 +122,7 @@ export function ImageEditorDialog(props: ImageEditorDialogProps) {
   const { t } = useI18n()
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className={clsx(styles.dialogWide)}>
         <DialogHeader>
           <DialogTitle>{t('media.editTitle')}</DialogTitle>
           <DialogDescription>{t('media.editDescription')}</DialogDescription>
@@ -335,8 +336,8 @@ function ImageEditor({
   )
 
   return (
-    <div className="space-y-3">
-      <div role="tablist" className="flex flex-wrap gap-1 border-b border-border pb-2">
+    <div className={clsx(styles.root)}>
+      <div role="tablist" className={clsx(styles.tabList)}>
         <TabButton active={tab === BASE_TAB} onClick={() => setTab(BASE_TAB)}>
           {t('media.tabOriginal')}
         </TabButton>
@@ -347,12 +348,8 @@ function ImageEditor({
             onClick={() => setTab(size.prefix)}
           >
             {size.prefix}
-            {overrides[size.prefix] ? (
-              <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-            ) : null}
-            {upscaleFor(size) ? (
-              <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
-            ) : null}
+            {overrides[size.prefix] ? <span className={clsx(styles.tabDot)} /> : null}
+            {upscaleFor(size) ? <span className={clsx(styles.tabDotWarn)} /> : null}
           </TabButton>
         ))}
       </div>
@@ -362,10 +359,7 @@ function ImageEditor({
         role="application"
         tabIndex={0}
         aria-label={t('media.editTitle')}
-        className={cn(
-          'relative mx-auto touch-none select-none overflow-hidden rounded-md border border-border bg-muted',
-          'cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        )}
+        className={clsx(styles.frame)}
         style={{
           width: `min(100%, calc(${FRAME_MAX_HEIGHT} * ${activeAspect}))`,
           aspectRatio: `${activeAspect}`,
@@ -380,20 +374,16 @@ function ImageEditor({
           {activeSize ? <CropLayer crop={baseCrop}>{sourceLayer}</CropLayer> : sourceLayer}
         </CropLayer>
         {grid ? (
-          <div className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
+          <div className={clsx(styles.gridOverlay)}>
             {Array.from({ length: 9 }, (_, i) => (
-              <div key={i} className="border border-white/25" />
+              <div key={i} className={clsx(styles.gridCell)} />
             ))}
           </div>
         ) : null}
-        {failed ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/80 text-sm text-destructive">
-            {t('media.imageLoadFailed')}
-          </div>
-        ) : null}
+        {failed ? <div className={clsx(styles.loadError)}>{t('media.imageLoadFailed')}</div> : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className={clsx(styles.toolbar)}>
         <Button
           type="button"
           size="sm"
@@ -401,7 +391,7 @@ function ImageEditor({
           title={t('media.rotateLeft')}
           onClick={() => reorient(rotation - 90, flipH, flipV)}
         >
-          <RotateCcw className="h-3.5 w-3.5" />
+          <RotateCcw className={clsx(styles.iconSm)} />
         </Button>
         <Button
           type="button"
@@ -410,7 +400,7 @@ function ImageEditor({
           title={t('media.rotateRight')}
           onClick={() => reorient(rotation + 90, flipH, flipV)}
         >
-          <RotateCw className="h-3.5 w-3.5" />
+          <RotateCw className={clsx(styles.iconSm)} />
         </Button>
         <Button
           type="button"
@@ -419,7 +409,7 @@ function ImageEditor({
           title={t('media.flipH')}
           onClick={() => reorient(rotation, !flipH, flipV)}
         >
-          <FlipHorizontal className="h-3.5 w-3.5" />
+          <FlipHorizontal className={clsx(styles.iconSm)} />
         </Button>
         <Button
           type="button"
@@ -428,7 +418,7 @@ function ImageEditor({
           title={t('media.flipV')}
           onClick={() => reorient(rotation, flipH, !flipV)}
         >
-          <FlipVertical className="h-3.5 w-3.5" />
+          <FlipVertical className={clsx(styles.iconSm)} />
         </Button>
         <Button
           type="button"
@@ -437,33 +427,33 @@ function ImageEditor({
           title={t('media.grid')}
           onClick={() => setGrid(!grid)}
         >
-          <Grid3x3 className="h-3.5 w-3.5" />
+          <Grid3x3 className={clsx(styles.iconSm)} />
         </Button>
 
-        <div className="flex min-w-48 flex-1 items-center gap-2">
-          <ZoomOut className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <div className={clsx(styles.zoomRow)}>
+          <ZoomOut className={clsx(styles.iconMuted)} />
           <input
             type="range"
             aria-label={t('media.zoom')}
-            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-input accent-primary"
+            className={clsx(styles.zoomSlider)}
             min={MIN_ZOOM}
             max={MAX_ZOOM}
             step={0.01}
             value={frame.zoom}
             onChange={(e) => frame.setZoom(Number(e.target.value))}
           />
-          <ZoomIn className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <ZoomIn className={clsx(styles.iconMuted)} />
         </div>
 
         <Button type="button" size="sm" variant="ghost" onClick={() => frame.reset()}>
-          <Undo2 className="h-3.5 w-3.5" />
+          <Undo2 className={clsx(styles.iconSm)} />
           {t('media.resetFrame')}
         </Button>
       </div>
 
       {activeSize ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3">
-          <label className="flex items-center gap-2 text-sm">
+        <div className={clsx(styles.sizePanel)}>
+          <label className={clsx(styles.switchLabel)}>
             <Switch
               checked={overrides[activeSize.prefix] != null}
               onCheckedChange={(checked) =>
@@ -480,11 +470,11 @@ function ImageEditor({
             />
             {t('media.customCrop')}
           </label>
-          <span className="text-xs text-muted-foreground">
+          <span className={clsx(styles.sizeMeta)}>
             {activeSize.width}×{activeSize.height} · {activeSize.mode}
           </span>
           {upscaleFor(activeSize) ? (
-            <span className="text-xs text-amber-600">
+            <span className={clsx(styles.upscaleWarn)}>
               {t('media.upscaleWarning', {
                 width: String(activeSize.width),
                 height: String(activeSize.height),
@@ -495,9 +485,9 @@ function ImageEditor({
       ) : null}
 
       {sizes.length > 0 && natural ? (
-        <div className="space-y-1">
-          <div className="text-xs text-muted-foreground">{t('media.previews')}</div>
-          <div className="flex flex-wrap gap-3">
+        <div className={clsx(styles.previews)}>
+          <div className={clsx(styles.previewsLabel)}>{t('media.previews')}</div>
+          <div className={clsx(styles.previewsRow)}>
             {sizes.map((size) => {
               const crop = sourceCropFor(size)
               const previewAspect = (rotatedWidth * crop.w) / Math.max(rotatedHeight * crop.h, 1e-6)
@@ -505,11 +495,11 @@ function ImageEditor({
                 <button
                   key={size.prefix}
                   type="button"
-                  className="space-y-1 text-left"
+                  className={clsx(styles.previewBtn)}
                   onClick={() => setTab(size.prefix)}
                 >
                   <div
-                    className="relative h-16 overflow-hidden rounded border border-border bg-muted"
+                    className={clsx(styles.previewFrame)}
                     style={{ aspectRatio: `${previewAspect}` }}
                   >
                     <CropLayer crop={crop}>
@@ -522,7 +512,7 @@ function ImageEditor({
                       />
                     </CropLayer>
                   </div>
-                  <div className="text-xs text-muted-foreground">{size.prefix}</div>
+                  <div className={clsx(styles.previewLabel)}>{size.prefix}</div>
                 </button>
               )
             })}
@@ -530,9 +520,9 @@ function ImageEditor({
         </div>
       ) : null}
 
-      <p className="text-xs text-muted-foreground">{t('media.editHotkeys')}</p>
+      <p className={clsx(styles.hotkeys)}>{t('media.editHotkeys')}</p>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
+      <div className={clsx(styles.footer)}>
         {overrideCount > 0 ? (
           <Button type="button" size="sm" variant="ghost" onClick={() => setOverrides({})}>
             {t('media.resetSizeCrops')}
@@ -575,10 +565,7 @@ function TabButton({
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      className={cn(
-        'inline-flex cursor-pointer items-center rounded-md px-3 py-1.5 text-sm transition-colors',
-        active ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:bg-accent',
-      )}
+      className={clsx(styles.tabBtn, active && styles.tabBtnActive)}
     >
       {children}
     </button>

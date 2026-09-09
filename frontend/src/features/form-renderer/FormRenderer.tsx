@@ -13,6 +13,7 @@ import { dateGranularity } from '@/lib/dateFormat'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
 import { slugifyUrl } from '@/lib/slugify'
 import type { SchemaField } from '@/types/field'
+import styles from './FormRenderer.module.css'
 
 export type EntryValues = Record<string, unknown>
 
@@ -80,21 +81,19 @@ export function FormRenderer({ fields, values, onChange, disabled, entryId }: Fo
     entryId ?? (typeof values.id === 'number' ? values.id : Number(values.id) || null)
 
   return (
-    <div className="space-y-4">
+    <div className={styles.root}>
       {visible.map((field) => {
         const id = `field-${field.name}`
         const value = values[field.name]
         return (
-          <div key={field.name} className="space-y-1.5">
+          <div key={field.name} className={styles.field}>
             <Label htmlFor={id}>
               {field.label || field.name}
               {field.required && !isOneToManyRelation(field) ? (
-                <span className="text-destructive"> *</span>
+                <span className={styles.required}> *</span>
               ) : null}
             </Label>
-            {field.description ? (
-              <p className="text-xs text-muted-foreground">{field.description}</p>
-            ) : null}
+            {field.description ? <p className={styles.hint}>{field.description}</p> : null}
             {field.type === 'relation' ? (
               <RelationControl
                 field={field}
@@ -110,9 +109,7 @@ export function FormRenderer({ fields, values, onChange, disabled, entryId }: Fo
           </div>
         )
       })}
-      {visible.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('entries.noWritable')}</p>
-      ) : null}
+      {visible.length === 0 ? <p className={styles.muted}>{t('entries.noWritable')}</p> : null}
     </div>
   )
 }
@@ -159,28 +156,26 @@ function RelationControl({
         : null
 
   if (!relatedSlug) {
-    return (
-      <p className="text-sm text-muted-foreground">{t('schema.relation.relatedSlugRequired')}</p>
-    )
+    return <p className={styles.muted}>{t('schema.relation.relatedSlugRequired')}</p>
   }
 
   if (cardinality === 'oneToMany') {
     if (!entryId) {
-      return <p className="text-sm text-muted-foreground">{t('entries.relationSaveFirst')}</p>
+      return <p className={styles.muted}>{t('entries.relationSaveFirst')}</p>
     }
     if (loading) {
-      return <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+      return <p className={styles.muted}>{t('common.loading')}</p>
     }
     if (error) {
-      return <p className="text-sm text-destructive">{error}</p>
+      return <p className={styles.error}>{error}</p>
     }
     if (options.length === 0) {
-      return <p className="text-sm text-muted-foreground">{t('entries.relationEmpty')}</p>
+      return <p className={styles.muted}>{t('entries.relationEmpty')}</p>
     }
     return (
-      <ul className="space-y-1 rounded-md border p-3 text-sm">
+      <ul className={styles.relationList}>
         {options.map((row) => (
-          <li key={row.id} className="font-mono text-xs">
+          <li key={row.id} className={styles.relationItem}>
             #{row.id} · {entryLabel(row, labelField)}
           </li>
         ))}
@@ -189,7 +184,7 @@ function RelationControl({
   }
 
   return (
-    <div className="space-y-1">
+    <div className={styles.relationSelect}>
       <Select
         id={id}
         containerClassName={controlHugContainerClass}
@@ -207,8 +202,8 @@ function RelationControl({
           </option>
         ))}
       </Select>
-      {loading ? <p className="text-xs text-muted-foreground">{t('common.loading')}</p> : null}
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {loading ? <p className={styles.hintXs}>{t('common.loading')}</p> : null}
+      {error ? <p className={styles.errorXs}>{error}</p> : null}
     </div>
   )
 }
@@ -222,11 +217,11 @@ function renderControl(
 ) {
   if (field.type === 'boolean') {
     return (
-      <label className="flex items-center gap-2 text-sm">
+      <label className={styles.checkLabel}>
         <input
           id={id}
           type="checkbox"
-          className="h-4 w-4"
+          className={styles.checkbox}
           checked={Boolean(value)}
           disabled={disabled}
           onChange={(e) => set(field.name, e.target.checked)}
@@ -277,7 +272,7 @@ function renderControl(
     return (
       <Textarea
         id={id}
-        className="min-h-24"
+        className={styles.textArea}
         disabled={disabled}
         value={typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value)}
         onChange={(e) => set(field.name, e.target.value)}

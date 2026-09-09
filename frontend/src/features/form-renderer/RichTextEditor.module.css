@@ -1,0 +1,65 @@
+.root {
+  overflow: hidden;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-input);
+  box-shadow: 0 1px 2px 0 color-mix(in srgb, var(--hcms-color-foreground) 5%, transparent);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx1);
+  border-bottom: 1px solid var(--hcms-color-border);
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
+  padding: calc(var(--hcms-SPx1) * 1.5) var(--hcms-SPx2);
+}
+
+.tabs {
+  margin-right: var(--hcms-SPx2);
+  display: flex;
+  gap: var(--hcms-SPx1);
+}
+
+.toolIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+.toolBtn {
+  width: var(--hcms-SPx7);
+  height: var(--hcms-SPx7);
+}
+
+.textarea {
+  min-height: 10rem;
+  width: 100%;
+  resize: vertical;
+  background-color: transparent;
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border: none;
+  color: var(--hcms-color-foreground);
+}
+
+.textarea:focus-visible {
+  outline: none;
+}
+
+.preview {
+  min-height: 10rem;
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.emptyPreview {
+  min-height: 10rem;
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}

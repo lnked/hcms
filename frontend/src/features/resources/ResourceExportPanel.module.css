@@ -1,0 +1,40 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.checkLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.checkbox {
+  margin-top: calc(var(--hcms-SPx1) / 2);
+}
+
+.labelStrong {
+  font-weight: 500;
+}
+
+.hint {
+  margin-top: calc(var(--hcms-SPx1) / 2);
+  display: block;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}

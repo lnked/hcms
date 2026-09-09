@@ -8,6 +8,7 @@ import { api, getToken, setToken } from '@/lib/api'
 import { showError } from '@/lib/toast'
 import { useI18n, type MessageKey } from '@/i18n'
 import type { AuthUser } from '@/types/system'
+import styles from './OAuthCompletePage.module.css'
 
 const OAUTH_ERRORS: Record<string, MessageKey> = {
   ACCOUNT_NOT_FOUND: 'login.oauth.accountNotFound',
@@ -76,19 +77,19 @@ export function OAuthCompletePage() {
   const errorText = error ? t(OAUTH_ERRORS[error] ?? 'login.oauth.providerError') : null
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+    <div className={styles.center}>
+      <Card className={styles.card}>
         <CardHeader>
           <CardTitle>{t('login.oauth.completeTitle')}</CardTitle>
           <CardDescription>
             {ticket ? t('login.totpRequired') : t('login.oauth.completeHint')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {errorText ? <p className="text-sm text-destructive">{errorText}</p> : null}
+        <CardContent className={styles.content}>
+          {errorText ? <p className={styles.error}>{errorText}</p> : null}
           {ticket ? (
-            <form onSubmit={onTotp} className="space-y-4">
-              <div className="space-y-2">
+            <form onSubmit={onTotp} className={styles.form}>
+              <div className={styles.field}>
                 <Label htmlFor="oauth-totp">{t('login.totp')}</Label>
                 <Input
                   id="oauth-totp"
@@ -99,13 +100,16 @@ export function OAuthCompletePage() {
                   required
                 />
               </div>
-              {message ? <p className="text-sm text-destructive">{message}</p> : null}
-              <Button type="submit" className="w-full" disabled={pending}>
+              {message ? <p className={styles.error}>{message}</p> : null}
+              <Button type="submit" className={styles.fullWidth} disabled={pending}>
                 {pending ? t('login.submitting') : t('login.submit')}
               </Button>
             </form>
           ) : errorText ? (
-            <Button className="w-full" onClick={() => navigate('/login', { replace: true })}>
+            <Button
+              className={styles.fullWidth}
+              onClick={() => navigate('/login', { replace: true })}
+            >
               {t('login.title')}
             </Button>
           ) : null}

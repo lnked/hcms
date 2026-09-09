@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from 'react'
 import { GripVertical } from 'lucide-react'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
-import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
 import { listableFields, mergeColumns } from './columns'
+import styles from './ColumnsDialog.module.css'
 
 /** Unsaved layout tied to the schema + settings it was opened with. */
 interface ColumnsDraft {
@@ -102,12 +103,12 @@ export function ColumnsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader className="pr-6">
+        <DialogHeader className={clsx(styles.header)}>
           <DialogTitle>{t('entries.columnsTitle')}</DialogTitle>
           <DialogDescription>{t('entries.columnsHint')}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <ul className="space-y-2">
+        <div className={clsx(styles.root)}>
+          <ul className={clsx(styles.list)}>
             {items.map((item, index) => {
               const field = labels.get(item.field)
               return (
@@ -115,12 +116,13 @@ export function ColumnsDialog({
                   key={item.field}
                   onDragOver={(e) => onDragOver(index, e)}
                   onDrop={(e) => onDrop(index, e)}
-                  className={cn(
-                    'flex flex-wrap items-center gap-2 rounded-lg border bg-card px-2 py-2',
-                    dragIndex === index && 'opacity-40',
-                    overIndex === index && dragIndex !== null && dragIndex !== index
-                      ? 'border-primary'
-                      : null,
+                  className={clsx(
+                    styles.row,
+                    dragIndex === index && styles.rowDragging,
+                    overIndex === index &&
+                      dragIndex !== null &&
+                      dragIndex !== index &&
+                      styles.rowOver,
                   )}
                 >
                   <span
@@ -129,7 +131,7 @@ export function ColumnsDialog({
                     tabIndex={0}
                     aria-label={t('entries.columnsReorder')}
                     title={t('entries.columnsReorder')}
-                    className="inline-flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent active:cursor-grabbing"
+                    className={clsx(styles.handle)}
                     onDragStart={(e) => onDragStart(index, e)}
                     onDragEnd={onDragEnd}
                     onKeyDown={(e) => {
@@ -142,28 +144,26 @@ export function ColumnsDialog({
                       }
                     }}
                   >
-                    <GripVertical className="h-4 w-4" />
+                    <GripVertical className={clsx(styles.handleIcon)} />
                   </span>
-                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+                  <label className={clsx(styles.fieldLabel)}>
                     <input
                       type="checkbox"
                       checked={item.visible}
                       onChange={(e) => patchAt(index, { visible: e.target.checked })}
                       aria-label={t('entries.columnsVisible', { field: item.field })}
                     />
-                    <span className="truncate font-mono text-xs text-muted-foreground">
-                      {item.field}
-                    </span>
+                    <span className={clsx(styles.fieldName)}>{item.field}</span>
                   </label>
                   <Input
-                    className="h-8 w-40"
+                    className={clsx(styles.labelInput)}
                     value={item.label ?? ''}
                     placeholder={field?.label || item.field}
                     aria-label={t('entries.columnsLabel', { field: item.field })}
                     onChange={(e) => patchAt(index, { label: e.target.value || null })}
                   />
                   <Input
-                    className="h-8 w-24"
+                    className={clsx(styles.widthInput)}
                     type="number"
                     min={40}
                     max={2000}
@@ -176,7 +176,7 @@ export function ColumnsDialog({
               )
             })}
           </ul>
-          <div className="flex justify-end gap-2">
+          <div className={clsx(styles.actions)}>
             <Button variant="outline" onClick={() => edit(mergeColumns(fields, undefined))}>
               {t('entries.columnsReset')}
             </Button>

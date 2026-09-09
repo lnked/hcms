@@ -1,10 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { Bold, Code2, Italic, Link2, List } from 'lucide-react'
 import { highlight } from 'sugar-high'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { markdownToHtml } from '@/lib/markdown'
-import { cn } from '@/lib/utils'
+import styles from './RichTextEditor.module.css'
 
 interface RichTextEditorProps {
   id: string
@@ -66,9 +67,9 @@ export function RichTextEditor({ id, value, disabled, onChange }: RichTextEditor
   const previewHtml = enhanceCodeBlocks(markdownToHtml(value))
 
   return (
-    <div className="overflow-hidden rounded-md border border-input shadow-sm">
-      <div className="flex flex-wrap items-center gap-1 border-b bg-muted/40 px-2 py-1.5">
-        <div className="mr-2 flex gap-1">
+    <div className={styles.root}>
+      <div className={styles.toolbar}>
+        <div className={styles.tabs}>
           <Button
             type="button"
             size="sm"
@@ -95,27 +96,27 @@ export function RichTextEditor({ id, value, disabled, onChange }: RichTextEditor
               disabled={disabled}
               onClick={() => wrapSelection('**', '**', 'bold')}
             >
-              <Bold className="h-3.5 w-3.5" />
+              <Bold className={styles.toolIcon} />
             </ToolBtn>
             <ToolBtn
               label={t('richtext.italic')}
               disabled={disabled}
               onClick={() => wrapSelection('*', '*', 'italic')}
             >
-              <Italic className="h-3.5 w-3.5" />
+              <Italic className={styles.toolIcon} />
             </ToolBtn>
             <ToolBtn label={t('richtext.link')} disabled={disabled} onClick={insertLink}>
-              <Link2 className="h-3.5 w-3.5" />
+              <Link2 className={styles.toolIcon} />
             </ToolBtn>
             <ToolBtn label={t('richtext.list')} disabled={disabled} onClick={insertList}>
-              <List className="h-3.5 w-3.5" />
+              <List className={styles.toolIcon} />
             </ToolBtn>
             <ToolBtn
               label={t('richtext.code')}
               disabled={disabled}
               onClick={() => wrapSelection('`', '`', 'code')}
             >
-              <Code2 className="h-3.5 w-3.5" />
+              <Code2 className={styles.toolIcon} />
             </ToolBtn>
           </>
         ) : null}
@@ -124,23 +125,19 @@ export function RichTextEditor({ id, value, disabled, onChange }: RichTextEditor
         <textarea
           ref={textareaRef}
           id={id}
-          className={cn(
-            'min-h-40 w-full resize-y bg-transparent px-3 py-2 font-mono text-sm',
-            'focus-visible:outline-none',
-          )}
+          className={styles.textarea}
           disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           spellCheck={false}
         />
-      ) : (
+      ) : previewHtml ? (
         <div
-          className="richtext-preview min-h-40 px-3 py-2 text-sm prose-sm [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2 [&_pre]:mb-2 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-2"
-          dangerouslySetInnerHTML={{
-            __html:
-              previewHtml || `<p class="text-muted-foreground">${t('richtext.emptyPreview')}</p>`,
-          }}
+          className={clsx(styles.preview, 'hcms-richtext-preview')}
+          dangerouslySetInnerHTML={{ __html: previewHtml }}
         />
+      ) : (
+        <p className={styles.emptyPreview}>{t('richtext.emptyPreview')}</p>
       )}
     </div>
   )
@@ -162,7 +159,7 @@ function ToolBtn({
       type="button"
       size="icon"
       variant="ghost"
-      className="h-7 w-7"
+      className={styles.toolBtn}
       title={label}
       aria-label={label}
       disabled={disabled}

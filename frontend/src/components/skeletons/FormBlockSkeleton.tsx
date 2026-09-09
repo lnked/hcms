@@ -1,4 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import styles from './FormBlockSkeleton.module.css'
 
 interface FormBlockSkeletonProps {
   fields?: number
@@ -6,14 +7,14 @@ interface FormBlockSkeletonProps {
 
 export function FormBlockSkeleton({ fields = 4 }: FormBlockSkeletonProps) {
   return (
-    <div className="space-y-4" role="status" aria-busy="true">
+    <div className={styles.root} role="status" aria-busy="true">
       {Array.from({ length: fields }, (_, i) => (
-        <div key={i} className="space-y-2">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-9 w-full" />
+        <div key={i} className={styles.field}>
+          <Skeleton className={styles.label} />
+          <Skeleton className={styles.control} />
         </div>
       ))}
-      <Skeleton className="h-9 w-28" />
+      <Skeleton className={styles.submit} />
     </div>
   )
 }

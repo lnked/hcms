@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
-import { cn } from '@/lib/utils'
+import { clsx } from 'clsx'
+import styles from './AnchorPicker.module.css'
 
 export type AnchorPosition = 'nw' | 'n' | 'ne' | 'w' | 'c' | 'e' | 'sw' | 's' | 'se'
 
@@ -107,18 +108,12 @@ export function AnchorPicker({ value, disabled, onChange, className, title }: An
       title={title}
       aria-label={title ?? 'Image anchor'}
       data-position={current}
-      className={cn(
-        'flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input p-0.5',
-        'bg-transparent text-foreground transition-colors hover:bg-muted',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'disabled:pointer-events-none disabled:opacity-50',
-        className,
-      )}
+      className={clsx(styles.root, className)}
       onClick={(event) => shift(event.shiftKey ? -1 : 1)}
       onKeyDown={handleKeyDown}
     >
-      <svg viewBox={`0 0 ${GRID} ${GRID}`} className="h-full w-full" aria-hidden="true">
-        <g className="text-border" stroke="currentColor" strokeWidth={1}>
+      <svg viewBox={`0 0 ${GRID} ${GRID}`} className={styles.svg} aria-hidden="true">
+        <g className={styles.grid} stroke="currentColor" strokeWidth={1}>
           <line x1={CELL} y1={2} x2={CELL} y2={GRID - 2} />
           <line x1={CELL * 2} y1={2} x2={CELL * 2} y2={GRID - 2} />
           <line x1={2} y1={CELL} x2={GRID - 2} y2={CELL} />

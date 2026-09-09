@@ -38,3 +38,13 @@ composer qa && npm run qa
 ```
 
 Frontend собирается в `public/admin/` (`base: /admin/`).
+
+## Admin styles (CSS Modules)
+
+Стили админки — CSS Modules рядом с компонентом: `ComponentName.module.css` (или `.module.scss`). Tailwind не используется.
+
+- Без вложенности селекторов; модификаторы — отдельные классы.
+- Отступы/радиусы/цвета только через токены из `frontend/src/index.css`:
+  - `--hcms-SPx1` … `--hcms-SPx14` (шаг 4px),
+  - `--hcms-CRx1` … `--hcms-CRx5` (шаг 4px),
+  - `--hcms-color-*`.

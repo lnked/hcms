@@ -23,18 +23,18 @@ import {
 import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { PageSkeleton } from '@/components/skeletons'
 import { api, clearToken, getToken } from '@/lib/api'
 import { isLocale, useI18n } from '@/i18n'
 import type { AuthUser, SystemVersion } from '@/types/system'
-import { cn } from '@/lib/utils'
 import { canAccessNav, type AdminRole, type AdminSection } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
 import { useTheme } from '@/theme'
+import styles from './AppShell.module.css'
 
 const SIDEBAR_COLLAPSED_KEY = 'hcms.sidebar.collapsed'
-const SIDEBAR_EASE = 'duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]'
 
 function readCollapsed(): boolean {
   try {
@@ -67,9 +67,9 @@ function SidebarLabel({
 }) {
   return (
     <span
-      className={cn(
-        'min-w-0 overflow-hidden whitespace-nowrap transition-[opacity,max-width,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]',
-        collapsed ? 'mx-0 max-w-0 opacity-0' : 'max-w-40 opacity-100',
+      className={clsx(
+        styles.sidebarLabel,
+        collapsed ? styles.sidebarLabelCollapsed : styles.sidebarLabelOpen,
         !collapsed && className,
       )}
       aria-hidden={collapsed}
@@ -115,7 +115,7 @@ function SidebarNav({
   const { t } = useI18n()
 
   return (
-    <nav className="flex flex-1 flex-col gap-1 px-2">
+    <nav className={styles.nav}>
       {nav.map((item) => (
         <NavLink
           key={item.to}
@@ -125,8 +125,8 @@ function SidebarNav({
           className={linkClass}
           onClick={onNavigate}
         >
-          <item.icon className="h-4 w-4 shrink-0" />
-          <SidebarLabel collapsed={collapsed} className="ms-2">
+          <item.icon className={styles.icon} />
+          <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
             {item.label}
           </SidebarLabel>
         </NavLink>
@@ -136,11 +136,11 @@ function SidebarNav({
         target="_blank"
         rel="noopener noreferrer"
         title={collapsed ? t('nav.docs') : undefined}
-        className="flex items-center rounded-md px-3 py-2 text-sm text-[#5C9E14] hover:bg-sidebar-accent dark:text-[#85EA2D]"
+        className={styles.docsLink}
         onClick={onNavigate}
       >
-        <SwaggerIcon className="h-4 w-4 shrink-0" />
-        <SidebarLabel collapsed={collapsed} className="ms-2">
+        <SwaggerIcon className={styles.icon} />
+        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
           {t('nav.docs')}
         </SidebarLabel>
       </a>
@@ -176,17 +176,17 @@ function SidebarFooter({
   }
 
   return (
-    <div className="space-y-2 border-t border-sidebar-border p-2">
+    <div className={styles.footer}>
       <button
         type="button"
         onClick={() => void logout()}
         disabled={loggingOut}
         title={t('nav.logout')}
         aria-label={t('nav.logout')}
-        className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
+        className={styles.footerButton}
       >
-        <LogOut className="h-4 w-4 shrink-0" />
-        <SidebarLabel collapsed={collapsed} className="ms-2">
+        <LogOut className={styles.icon} />
+        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
           {t('nav.logout')}
         </SidebarLabel>
       </button>
@@ -196,28 +196,21 @@ function SidebarFooter({
         title={t('nav.themeToggle')}
         aria-label={t('nav.themeToggle')}
         aria-pressed={isDark}
-        className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent"
+        className={styles.footerButton}
       >
-        {isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0" />}
-        <SidebarLabel collapsed={collapsed} className="ms-2">
+        {isDark ? <Moon className={styles.icon} /> : <Sun className={styles.icon} />}
+        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
           {themeLabel}
         </SidebarLabel>
         <span
-          className={cn(
-            'relative ml-auto h-5 w-9 min-w-0 shrink-0 rounded-full transition-[opacity,max-width,colors]',
-            SIDEBAR_EASE,
-            isDark ? 'bg-primary' : 'bg-muted-foreground/30',
-            collapsed ? 'max-w-0 opacity-0' : 'max-w-9 opacity-100',
+          className={clsx(
+            styles.themeTrack,
+            isDark ? styles.themeTrackOn : styles.themeTrackOff,
+            collapsed ? styles.themeTrackCollapsed : styles.themeTrackOpen,
           )}
           aria-hidden={collapsed}
         >
-          <span
-            className={cn(
-              'absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-background shadow transition-transform',
-              SIDEBAR_EASE,
-              isDark && 'translate-x-4',
-            )}
-          />
+          <span className={clsx(styles.themeThumb, isDark && styles.themeThumbOn)} />
         </span>
       </button>
 
@@ -228,22 +221,22 @@ function SidebarFooter({
             : '/settings/system?section=version#system-release'
         }
         onClick={onNavigate}
-        className="flex items-center px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+        className={styles.versionLink}
         title={
           version?.updateAvailable ? t('common.updateAvailable') : `v${version?.current ?? '…'}`
         }
         aria-label={version?.updateAvailable ? t('common.updateAvailable') : t('system.version')}
       >
-        <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+        <span className={styles.versionDotWrap} aria-hidden>
           <span
-            className={cn(
-              'h-2 w-2 rounded-full',
-              version?.updateAvailable ? 'bg-success' : 'bg-muted-foreground/40',
+            className={clsx(
+              styles.versionDot,
+              version?.updateAvailable ? styles.versionDotUpdate : styles.versionDotOk,
             )}
           />
         </span>
-        <SidebarLabel collapsed={collapsed} className="ms-2">
-          <span className="tabular-nums">v{version?.current ?? '…'}</span>
+        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
+          <span className={styles.versionNum}>v{version?.current ?? '…'}</span>
         </SidebarLabel>
       </Link>
     </div>
@@ -348,53 +341,43 @@ export function AppShell() {
   ).filter((item) => canAccessNav(me.data, item.section, item.minRole))
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    cn(
-      'flex items-center rounded-md px-3 py-2 text-sm hover:bg-sidebar-accent',
-      isActive && 'bg-sidebar-accent font-medium text-primary',
-    )
+    clsx(styles.navLink, isActive && styles.navLinkActive)
 
   const closeMobile = () => setMobileOpen(false)
 
   return (
-    <div className="min-h-svh">
-      <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background px-4 md:hidden">
+    <div className={styles.root}>
+      <header className={styles.mobileHeader}>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-9 w-9"
+          className={styles.btnIconMd}
           onClick={() => setMobileOpen(true)}
           aria-label={t('nav.openMenu')}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className={styles.iconMd} />
         </Button>
-        <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+        <div className={styles.mobileBrand}>
           <img
             src="/admin/favicon.svg"
             alt=""
             width={20}
             height={20}
-            className="h-5 w-5 shrink-0"
+            className={styles.brandMark}
           />
           HCMS
         </div>
       </header>
 
       <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] md:flex',
-          SIDEBAR_EASE,
-          collapsed ? 'w-14' : 'w-60',
-        )}
+        className={clsx(styles.sidebar, collapsed ? styles.sidebarCollapsed : styles.sidebarOpen)}
       >
-        <div className="flex h-14 shrink-0 items-center px-3">
+        <div className={styles.sidebarHeader}>
           <div
-            className={cn(
-              'flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight transition-[opacity,max-width,margin]',
-              SIDEBAR_EASE,
-              // Logo lines up with the nav icons (nav px-2 + link px-3); the
-              // margin has to collapse too, or it would keep width when hidden.
-              collapsed ? 'ms-0 max-w-0 opacity-0' : 'ms-2 max-w-40 opacity-100',
+            className={clsx(
+              styles.sidebarBrand,
+              collapsed ? styles.sidebarBrandCollapsed : styles.sidebarBrandOpen,
             )}
             aria-hidden={collapsed}
           >
@@ -403,7 +386,7 @@ export function AppShell() {
               alt=""
               width={20}
               height={20}
-              className="h-5 w-5 shrink-0"
+              className={styles.brandMark}
             />
             HCMS
           </div>
@@ -411,21 +394,18 @@ export function AppShell() {
             type="button"
             variant="ghost"
             size="icon"
-            className={cn(
-              'h-8 w-8 shrink-0 text-sidebar-foreground transition-[margin]',
-              SIDEBAR_EASE,
-              // Open: flush with the right edge of the nav items. Collapsed: no
-              // offset, so the button stays centered in the 3.5rem rail.
-              collapsed ? 'me-0' : '-me-1',
+            className={clsx(
+              styles.collapseBtn,
+              collapsed ? styles.collapseBtnCollapsed : styles.collapseBtnOpen,
             )}
             onClick={toggleCollapsed}
             aria-label={collapsed ? t('nav.expand') : t('nav.collapse')}
             title={collapsed ? t('nav.expand') : t('nav.collapse')}
           >
             {collapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
+              <PanelLeftOpen className={styles.icon} />
             ) : (
-              <PanelLeftClose className="h-4 w-4" />
+              <PanelLeftClose className={styles.icon} />
             )}
           </Button>
         </div>
@@ -436,26 +416,20 @@ export function AppShell() {
 
       <DialogPrimitive.Root open={mobileOpen} onOpenChange={setMobileOpen}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-black/40 md:hidden" />
-          <DialogPrimitive.Content
-            className={cn(
-              'fixed inset-y-0 left-0 z-50 flex w-[min(100vw-3rem,15rem)] flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground outline-none md:hidden',
-              SIDEBAR_EASE,
-            )}
-            aria-label={t('nav.menu')}
-          >
-            <DialogPrimitive.Title className="sr-only">{t('nav.menu')}</DialogPrimitive.Title>
-            <DialogPrimitive.Description className="sr-only">
+          <DialogPrimitive.Overlay className={styles.overlay} />
+          <DialogPrimitive.Content className={styles.drawer} aria-label={t('nav.menu')}>
+            <DialogPrimitive.Title className={styles.srOnly}>{t('nav.menu')}</DialogPrimitive.Title>
+            <DialogPrimitive.Description className={styles.srOnly}>
               {t('nav.menu')}
             </DialogPrimitive.Description>
-            <div className="flex h-14 shrink-0 items-center gap-1 px-3">
-              <div className="ms-2 flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-sm font-semibold tracking-tight">
+            <div className={styles.drawerHeader}>
+              <div className={styles.drawerBrand}>
                 <img
                   src="/admin/favicon.svg"
                   alt=""
                   width={20}
                   height={20}
-                  className="h-5 w-5 shrink-0"
+                  className={styles.brandMark}
                 />
                 HCMS
               </div>
@@ -464,10 +438,10 @@ export function AppShell() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="-me-1 h-8 w-8 shrink-0 text-sidebar-foreground"
+                  className={styles.closeBtn}
                   aria-label={t('nav.closeMenu')}
                 >
-                  <X className="h-4 w-4" />
+                  <X className={styles.icon} />
                 </Button>
               </DialogPrimitive.Close>
             </div>
@@ -483,11 +457,9 @@ export function AppShell() {
       </DialogPrimitive.Root>
 
       <main
-        className={cn(
-          'min-h-svh p-4 transition-[margin-left] md:p-8',
-          SIDEBAR_EASE,
-          'ml-0',
-          collapsed ? 'md:ml-14' : 'md:ml-60',
+        className={clsx(
+          styles.main,
+          collapsed ? styles.mainSidebarCollapsed : styles.mainSidebarOpen,
         )}
       >
         <Suspense fallback={<PageSkeleton />}>

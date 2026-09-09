@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +16,7 @@ import { api, ApiError } from '@/lib/api'
 import { meetsPasswordPolicy } from '@/lib/password'
 import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
+import styles from './ChangePasswordDialog.module.css'
 
 interface ChangePasswordResult {
   ok: boolean
@@ -75,7 +77,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 
   return (
     <form
-      className="space-y-4"
+      className={clsx(styles.form)}
       onSubmit={(event) => {
         event.preventDefault()
         change.mutate()
@@ -116,7 +118,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       />
       <FieldError messages={fieldErrors.newPassword} />
 
-      <div className="space-y-2">
+      <div className={clsx(styles.fieldGroup)}>
         <PasswordField
           id="account-confirm-password"
           label={t('account.confirmPassword')}
@@ -126,12 +128,10 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
           onRevealChange={setReveal}
           required
         />
-        {mismatch ? (
-          <p className="text-sm text-destructive">{t('account.passwordMismatch')}</p>
-        ) : null}
+        {mismatch ? <p className={clsx(styles.error)}>{t('account.passwordMismatch')}</p> : null}
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className={clsx(styles.actions)}>
         <DialogClose asChild>
           <Button type="button" variant="ghost">
             {t('common.cancel')}
@@ -150,5 +150,5 @@ function FieldError({ messages }: { messages?: string[] }) {
     return null
   }
 
-  return <p className="text-sm text-destructive">{messages.join(' ')}</p>
+  return <p className={clsx(styles.error)}>{messages.join(' ')}</p>
 }

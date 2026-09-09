@@ -1,8 +1,10 @@
+import { clsx } from 'clsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ChangePasswordDialog } from '@/features/account/ChangePasswordDialog'
 import { TotpSection } from '@/features/account/TotpSection'
 import { useI18n } from '@/i18n'
+import styles from './SecurityCard.module.css'
 
 export function SecurityCard() {
   const { t } = useI18n()
@@ -13,11 +15,11 @@ export function SecurityCard() {
         <CardTitle>{t('account.securityTitle')}</CardTitle>
         <CardDescription>{t('account.securityHint')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <p className="text-sm font-medium">{t('account.passwordTitle')}</p>
+      <CardContent className={clsx(styles.content)}>
+        <div className={clsx(styles.section)}>
+          <p className={clsx(styles.title)}>{t('account.passwordTitle')}</p>
           <ChangePasswordDialog />
-          <p className="text-sm text-muted-foreground">{t('account.passwordAdvice')}</p>
+          <p className={clsx(styles.muted)}>{t('account.passwordAdvice')}</p>
         </div>
 
         <Separator />

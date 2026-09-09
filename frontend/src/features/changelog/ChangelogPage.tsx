@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,6 +7,7 @@ import { FormBlockSkeleton } from '@/components/skeletons'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { ChangeType, Release } from '@/types/system'
+import styles from './ChangelogPage.module.css'
 
 const typeVariant: Record<ChangeType, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   added: 'default',
@@ -27,10 +29,10 @@ export function ChangelogPage() {
   const releases = query.data ?? []
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('changelog.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('changelog.subtitle')}</p>
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.header)}>
+        <h1 className={clsx(styles.title)}>{t('changelog.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('changelog.subtitle')}</p>
       </div>
       {query.isLoading ? (
         <FormBlockSkeleton fields={4} />
@@ -42,18 +44,18 @@ export function ChangelogPage() {
         releases.map((release) => (
           <Card key={release.version}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className={clsx(styles.releaseTitle)}>
                 v{release.version}
                 {release.title ? (
-                  <span className="text-muted-foreground">— {release.title}</span>
+                  <span className={clsx(styles.releaseTitleMuted)}>— {release.title}</span>
                 ) : null}
                 <Badge variant="outline">{release.channel}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
+              <ul className={clsx(styles.changeList)}>
                 {release.changes.map((change) => (
-                  <li key={change.text} className="flex items-start gap-2 text-sm">
+                  <li key={change.text} className={clsx(styles.changeItem)}>
                     <Badge variant={typeVariant[change.type]}>{change.type}</Badge>
                     <span>{change.text}</span>
                   </li>

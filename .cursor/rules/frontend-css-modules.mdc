@@ -1,0 +1,35 @@
+---
+description: Admin frontend CSS Modules conventions and HCMS design tokens
+globs: frontend/**/*.{tsx,ts,css,scss}
+alwaysApply: false
+---
+
+# Frontend CSS Modules
+
+Admin UI styles use CSS Modules + `--hcms-*` tokens. Do not add Tailwind or utility `className` strings.
+
+## Files
+
+- Co-locate: `ComponentName.module.css` (or `.module.scss`) next to the component.
+- Name matches the exported component (`Button.module.css` for `Button`).
+- Import: `import styles from './Button.module.css'`.
+
+## Flat CSS only
+
+- No nested selectors (`&:hover` blocks, `.parent .child` blocks).
+- Modifiers are sibling classes: `.navLink`, `.navLinkActive`, `.navLink:hover` as top-level rules.
+- Dark mode via token values on `:root` / `.dark` — not per-component color forks when tokens cover it.
+
+## Tokens (from `frontend/src/index.css`)
+
+- Spacing: `--hcms-SPx1` … `--hcms-SPx14` (4px step → 4…56px).
+- Radius: `--hcms-CRx1` … `--hcms-CRx5` (4px step → 4…20px).
+- Colors: `--hcms-color-*` only in modules. No raw hex/rgb for theme colors/spacing/radius.
+
+## Composition
+
+```tsx
+className={clsx(styles.root, isActive && styles.rootActive, className)}
+```
+
+Variants = separate classes (`variantDefault`, `sizeSm`), composed with `clsx` / `cn`.

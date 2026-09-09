@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { FormBlockSkeleton } from '@/components/skeletons'
@@ -10,7 +11,7 @@ import { api } from '@/lib/api'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
 import type { AuthUser, SystemVersion } from '@/types/system'
 import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
-import { cn } from '@/lib/utils'
+import styles from './SystemPage.module.css'
 
 interface UpdatePreview {
   from: string
@@ -243,21 +244,21 @@ export function SystemPage() {
         : (previewError ?? message)
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{t('system.title')}</h1>
+    <div className={clsx(styles.root)}>
+      <h1 className={clsx(styles.title)}>{t('system.title')}</h1>
 
       <Card>
         <CardHeader>
           <CardTitle>{t('system.languageTitle')}</CardTitle>
           <CardDescription>{t('system.languageHint')}</CardDescription>
         </CardHeader>
-        <CardContent className="max-w-xs space-y-2">
+        <CardContent className={clsx(styles.langContent)}>
           <Label htmlFor="admin-language">{t('common.language')}</Label>
           <LanguageSelect
             id="admin-language"
             value={locale}
             onChange={onLanguageChange}
-            className={saveLanguage.isPending ? 'opacity-70' : undefined}
+            className={clsx(saveLanguage.isPending && styles.pending)}
           />
         </CardContent>
       </Card>
@@ -267,7 +268,7 @@ export function SystemPage() {
           <CardTitle>{t('system.apiAccessTitle')}</CardTitle>
           <CardDescription>{t('system.apiAccessHint')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={clsx(styles.stackMd)}>
           {apiAccess.isLoading || !apiAccess.data ? (
             <FormBlockSkeleton fields={3} />
           ) : (
@@ -277,22 +278,19 @@ export function SystemPage() {
       </Card>
 
       <Card id="system-release">
-        <CardHeader className="space-y-4">
-          <div className="flex gap-2 border-b pb-2">
+        <CardHeader className={clsx(styles.cardHeaderStack)}>
+          <div className={clsx(styles.tabs)}>
             {(['version', 'update'] as SystemSection[]).map((item) => (
               <Button
                 key={item}
                 size="sm"
                 variant={section === item ? 'default' : 'ghost'}
                 onClick={() => setSection(item)}
-                className="gap-2"
+                className={clsx(styles.tabBtn)}
               >
                 {item === 'version' ? t('system.version') : t('system.update')}
                 {item === 'update' && data?.updateAvailable ? (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full bg-success"
-                    title={t('common.updateAvailable')}
-                  />
+                  <span className={clsx(styles.dot)} title={t('common.updateAvailable')} />
                 ) : null}
               </Button>
             ))}
@@ -302,7 +300,7 @@ export function SystemPage() {
           </CardDescription>
         </CardHeader>
         {section === 'version' ? (
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className={clsx(styles.infoContent)}>
             <p>{t('system.current', { value: data?.current ?? '…' })}</p>
             <p>{t('system.latest', { value: data?.latest ?? na })}</p>
             <p>{t('system.released', { value: data?.releasedAt ?? na })}</p>
@@ -315,8 +313,8 @@ export function SystemPage() {
             <p>{t('system.lastState', { value: status.data?.state ?? t('system.idle') })}</p>
           </CardContent>
         ) : (
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
+          <CardContent className={clsx(styles.stackMd)}>
+            <div className={clsx(styles.actionsRow)}>
               <Button
                 variant="outline"
                 disabled={checking || isUpdating}
@@ -334,13 +332,13 @@ export function SystemPage() {
             </div>
 
             {showProgress ? (
-              <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <p className="font-medium">{t('system.updateProgress')}</p>
-                  <span className="tabular-nums text-muted-foreground">{progress}%</span>
+              <div className={clsx(styles.progressBox)}>
+                <div className={clsx(styles.progressHeader)}>
+                  <p className={clsx(styles.progressTitle)}>{t('system.updateProgress')}</p>
+                  <span className={clsx(styles.progressPct)}>{progress}%</span>
                 </div>
                 <div
-                  className="h-2 overflow-hidden rounded-full bg-muted"
+                  className={clsx(styles.progressTrack)}
                   role="progressbar"
                   aria-valuenow={progress}
                   aria-valuemin={0}
@@ -348,15 +346,15 @@ export function SystemPage() {
                   aria-label={t('system.updateProgress')}
                 >
                   <div
-                    className={cn(
-                      'h-full rounded-full transition-[width] duration-300',
-                      live?.state === 'failed' ? 'bg-destructive' : 'bg-primary',
+                    className={clsx(
+                      styles.progressBar,
+                      live?.state === 'failed' && styles.progressBarError,
                     )}
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground">{stepText}</p>
-                <ol className="space-y-1 text-xs text-muted-foreground">
+                <p className={clsx(styles.muted)}>{stepText}</p>
+                <ol className={clsx(styles.stepList)}>
                   {UPDATE_STEPS.map((step, index) => {
                     const done =
                       live?.state === 'done' ||
@@ -365,17 +363,14 @@ export function SystemPage() {
                     return (
                       <li
                         key={step}
-                        className={cn(
-                          'flex items-center gap-2',
-                          done && 'text-foreground',
-                          active && 'font-medium text-foreground',
+                        className={clsx(
+                          styles.stepItem,
+                          done && styles.stepItemDone,
+                          active && styles.stepItemActive,
                         )}
                       >
                         <span
-                          className={cn(
-                            'inline-block h-1.5 w-1.5 rounded-full',
-                            done || active ? 'bg-primary' : 'bg-border',
-                          )}
+                          className={clsx(styles.stepDot, (done || active) && styles.stepDotOn)}
                         />
                         {t(stepLabelKey(step))}
                       </li>
@@ -386,27 +381,27 @@ export function SystemPage() {
             ) : null}
 
             {preview?.updateAvailable && !isOwner ? (
-              <p className="text-sm text-muted-foreground">{t('system.ownerOnly')}</p>
+              <p className={clsx(styles.muted)}>{t('system.ownerOnly')}</p>
             ) : null}
 
             {preview?.hasBreaking ? (
-              <div className="space-y-2 rounded-md border border-destructive bg-destructive/10 p-3 text-sm">
-                <p className="font-medium text-destructive">{t('system.breakingTitle')}</p>
-                <ul className="list-disc space-y-1 pl-5">
+              <div className={clsx(styles.breakingBox)}>
+                <p className={clsx(styles.breakingTitle)}>{t('system.breakingTitle')}</p>
+                <ul className={clsx(styles.breakingList)}>
                   {preview.changes
                     .filter((c) => c.type === 'breaking')
                     .map((c, i) => (
                       <li key={i}>
-                        <span className="font-mono text-xs">v{c.version}</span> — {c.text}
+                        <span className={clsx(styles.monoXs)}>v{c.version}</span> — {c.text}
                         {c.migration ? (
-                          <span className="block text-muted-foreground">
+                          <span className={clsx(styles.blockMuted)}>
                             {t('system.migration', { text: c.migration })}
                           </span>
                         ) : null}
                       </li>
                     ))}
                 </ul>
-                <label className="flex items-center gap-2">
+                <label className={clsx(styles.checkRow)}>
                   <input
                     type="checkbox"
                     checked={ackBreaking}
@@ -418,16 +413,16 @@ export function SystemPage() {
             ) : null}
 
             {preview && !preview.updateAvailable ? (
-              <p className="text-sm text-muted-foreground">{t('system.latestRelease')}</p>
+              <p className={clsx(styles.muted)}>{t('system.latestRelease')}</p>
             ) : null}
 
             {preview?.changes && preview.changes.length > 0 ? (
-              <div className="space-y-1 text-sm">
-                <p className="font-medium">{t('system.changelogDelta')}</p>
-                <ul className="max-h-48 space-y-1 overflow-auto text-muted-foreground">
+              <div className={clsx(styles.delta)}>
+                <p className={clsx(styles.deltaTitle)}>{t('system.changelogDelta')}</p>
+                <ul className={clsx(styles.deltaList)}>
                   {preview.changes.map((c, i) => (
                     <li key={i}>
-                      <span className="font-mono text-xs">[{c.type}]</span> {c.text}
+                      <span className={clsx(styles.monoXs)}>[{c.type}]</span> {c.text}
                     </li>
                   ))}
                 </ul>
@@ -436,9 +431,9 @@ export function SystemPage() {
 
             {statusMessage ? (
               <p
-                className={cn(
-                  'text-sm',
-                  live?.state === 'failed' ? 'text-destructive' : 'text-muted-foreground',
+                className={clsx(
+                  styles.statusMsg,
+                  live?.state === 'failed' && styles.statusMsgError,
                 )}
               >
                 {statusMessage}

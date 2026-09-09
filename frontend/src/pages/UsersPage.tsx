@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, CircleCheck, KeyRound, Shield, Trash2 } from 'lucide-react'
 import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/account/UserAclDialogs'
@@ -29,6 +30,7 @@ import {
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import styles from './UsersPage.module.css'
 
 interface AdminUser {
   id: number
@@ -125,11 +127,11 @@ export function UsersPage() {
   const currentId = meUser?.id
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.pageHeader)}>
         <div>
-          <h1 className="text-2xl font-semibold">{t('users.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('users.subtitle')}</p>
+          <h1 className={clsx(styles.title)}>{t('users.title')}</h1>
+          <p className={clsx(styles.subtitle)}>{t('users.subtitle')}</p>
         </div>
         <Button
           onClick={() => {
@@ -159,7 +161,7 @@ export function UsersPage() {
                   <TableHead>{t('users.email')}</TableHead>
                   <TableHead>{t('users.role')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
-                  <TableHead className="text-right">{t('common.actions')}</TableHead>
+                  <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -168,10 +170,10 @@ export function UsersPage() {
                   const canManageAcl = isOwner && user.role !== 'owner'
                   return (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className={clsx(styles.nameCell)}>
                         {user.name}
                         {user.aclEnabled ? (
-                          <Badge variant="secondary" className="ml-2">
+                          <Badge variant="secondary" className={clsx(styles.aclBadge)}>
                             {t('users.acl.badge')}
                           </Badge>
                         ) : null}
@@ -179,8 +181,8 @@ export function UsersPage() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Select
-                          containerClassName="w-auto"
-                          className="h-8"
+                          containerClassName={clsx(styles.roleSelect)}
+                          className={clsx(styles.roleSelectControl)}
                           value={user.role ?? 'admin'}
                           disabled={changeRole.isPending}
                           aria-label={t('users.role')}
@@ -203,8 +205,8 @@ export function UsersPage() {
                           {user.status === 'active' ? t('users.active') : t('users.disabled')}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center justify-end gap-1">
+                      <TableCell className={clsx(styles.alignRight)}>
+                        <div className={clsx(styles.rowActions)}>
                           {canManageAcl ? (
                             <>
                               <Button
@@ -214,7 +216,7 @@ export function UsersPage() {
                                 title={t('users.resetPassword')}
                                 onClick={() => setPasswordUser(user)}
                               >
-                                <KeyRound className="h-4 w-4" />
+                                <KeyRound className={clsx(styles.icon)} />
                               </Button>
                               <Button
                                 size="icon"
@@ -223,7 +225,7 @@ export function UsersPage() {
                                 title={t('users.acl.title')}
                                 onClick={() => setAclUser(user)}
                               >
-                                <Shield className="h-4 w-4" />
+                                <Shield className={clsx(styles.icon)} />
                               </Button>
                             </>
                           ) : null}
@@ -240,9 +242,9 @@ export function UsersPage() {
                             onClick={() => toggleStatus.mutate(user)}
                           >
                             {user.status === 'active' ? (
-                              <Ban className="h-4 w-4" />
+                              <Ban className={clsx(styles.icon)} />
                             ) : (
-                              <CircleCheck className="h-4 w-4" />
+                              <CircleCheck className={clsx(styles.icon)} />
                             )}
                           </Button>
                           <Button
@@ -257,7 +259,7 @@ export function UsersPage() {
                               }
                             }}
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className={clsx(styles.iconDanger)} />
                           </Button>
                         </div>
                       </TableCell>
@@ -276,8 +278,8 @@ export function UsersPage() {
             <DialogTitle>{t('users.createTitle')}</DialogTitle>
             <DialogDescription>{t('users.createHint')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className={clsx(styles.form)}>
+            <div className={clsx(styles.field)}>
               <Label htmlFor="user-name">{t('common.name')}</Label>
               <Input
                 id="user-name"
@@ -286,7 +288,7 @@ export function UsersPage() {
                 placeholder={t('users.placeholderName')}
               />
             </div>
-            <div className="space-y-2">
+            <div className={clsx(styles.field)}>
               <Label htmlFor="user-email">{t('users.email')}</Label>
               <Input
                 id="user-email"
@@ -305,7 +307,7 @@ export function UsersPage() {
               allowGenerate
               showCopy
             />
-            <div className="space-y-2">
+            <div className={clsx(styles.field)}>
               <Label htmlFor="user-role">{t('users.role')}</Label>
               <Select
                 id="user-role"
@@ -319,9 +321,9 @@ export function UsersPage() {
                 ))}
               </Select>
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <Button
-              className="w-full"
+              className={clsx(styles.fullWidth)}
               disabled={create.isPending || !name || !email || password.length < 8}
               onClick={() => create.mutate()}
             >

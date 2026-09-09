@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { clsx } from 'clsx'
 import { DetailPageSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -15,10 +16,10 @@ import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
 import { useAcl } from '@/hooks/useAcl'
 import { api } from '@/lib/api'
-import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceTab } from '@/lib/rbac'
+import styles from './ResourceDetailPage.module.css'
 
 const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'] as const
 type Tab = (typeof TABS)[number]
@@ -122,8 +123,8 @@ export function ResourceDetailPage() {
 
   if (!resource) {
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-destructive">{t('resources.notFound')}</p>
+      <div className={styles.root}>
+        <p className={styles.error}>{t('resources.notFound')}</p>
         <Button variant="outline" onClick={() => navigate('/resources')}>
           {t('common.back')}
         </Button>
@@ -132,22 +133,22 @@ export function ResourceDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className={styles.stack}>
+      <div className={styles.header}>
         <div>
-          <p className="text-sm text-muted-foreground">
-            <Link to="/resources" className="hover:underline">
+          <p className={styles.crumb}>
+            <Link to="/resources" className={styles.crumbLink}>
               {t('nav.resources')}
             </Link>{' '}
             / {resource.label}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold">{resource.label}</h1>
-          <div className="mt-2 flex items-center gap-2">
+          <h1 className={styles.title}>{resource.label}</h1>
+          <div className={styles.meta}>
             <Badge>{resource.status}</Badge>
-            <span className="font-mono text-xs text-muted-foreground">{resource.endpoint}</span>
+            <span className={styles.endpoint}>{resource.endpoint}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className={styles.actions}>
           {resource.status !== 'published' && canResourceAction(resourceId, 'update') ? (
             <Button disabled={publish.isPending} onClick={() => publish.mutate()}>
               {t('resources.publish')}
@@ -169,12 +170,12 @@ export function ResourceDetailPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b pb-2">
+      <div className={styles.tabs}>
         {visibleTabs.map((item) => (
           <Link
             key={item}
             to={`/resources/${resource.id}/${item}`}
-            className={cn(
+            className={clsx(
               buttonVariants({ size: 'sm', variant: tab === item ? 'default' : 'ghost' }),
             )}
           >
@@ -184,32 +185,30 @@ export function ResourceDetailPage() {
       </div>
 
       {aclEnabled && visibleTabs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('users.acl.noResourceTabs')}</p>
+        <p className={styles.muted}>{t('users.acl.noResourceTabs')}</p>
       ) : null}
 
       {tab === 'overview' ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={styles.overviewGrid}>
           <Card>
             <CardHeader>
               <CardTitle>{t('resources.overview')}</CardTitle>
               <CardDescription>{t('resources.overviewHint')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className={styles.cardStack}>
               <p>
-                <span className="text-muted-foreground">{t('resources.slugLabel')}</span>{' '}
-                {resource.slug}
+                <span className={styles.muted}>{t('resources.slugLabel')}</span> {resource.slug}
               </p>
               <p>
-                <span className="text-muted-foreground">{t('resources.apiVersion')}</span>{' '}
+                <span className={styles.muted}>{t('resources.apiVersion')}</span>{' '}
                 {resource.apiVersion}
               </p>
               <p>
-                <span className="text-muted-foreground">{t('resources.schemaVersion')}</span>{' '}
+                <span className={styles.muted}>{t('resources.schemaVersion')}</span>{' '}
                 {resource.schemaVersion}
               </p>
               <p>
-                <span className="text-muted-foreground">{t('resources.fieldsCount')}</span>{' '}
-                {schema.length}
+                <span className={styles.muted}>{t('resources.fieldsCount')}</span> {schema.length}
               </p>
             </CardContent>
           </Card>
@@ -217,7 +216,7 @@ export function ResourceDetailPage() {
             <CardHeader>
               <CardTitle>{t('resources.apiAccess')}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className={styles.cardStack}>
               <p>
                 {t('resources.apiEnabled', {
                   value: resource.settings.apiEnabled ? t('common.yes') : t('common.no'),
@@ -236,7 +235,7 @@ export function ResourceDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
+          <Card className={styles.cardSpan}>
             <CardHeader>
               <CardTitle>{t('resources.fetchExample')}</CardTitle>
               <CardDescription>{t('resources.fetchExampleHint')}</CardDescription>
@@ -251,7 +250,7 @@ export function ResourceDetailPage() {
 
       {tab === 'schema' ? (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className={styles.schemaHeader}>
             <div>
               <CardTitle>{t('resources.schema')}</CardTitle>
               <CardDescription>{t('resources.schemaHint')}</CardDescription>
@@ -265,7 +264,7 @@ export function ResourceDetailPage() {
               {saveSchema.isPending ? t('common.saving') : t('resources.saveSchema')}
             </Button>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className={styles.schemaBody}>
             <SchemaBuilder
               schema={schema}
               onChange={(next) => {
@@ -273,7 +272,7 @@ export function ResourceDetailPage() {
                 setMessage(null)
               }}
             />
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+            {message ? <p className={styles.muted}>{message}</p> : null}
           </CardContent>
         </Card>
       ) : null}
@@ -303,7 +302,7 @@ export function ResourceDetailPage() {
       ) : null}
 
       {tab === 'api' ? (
-        <div className="space-y-6">
+        <div className={styles.stack}>
           <ResourceCustomApisPanel
             resource={resource}
             fields={fieldsQuery.data ?? schema}

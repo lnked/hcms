@@ -1,0 +1,113 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+.subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.alignRight {
+  text-align: right;
+}
+.rowSelected {
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
+}
+.nameBtn {
+  text-align: left;
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.nameBtn:hover {
+  text-decoration: underline;
+}
+.mutedXs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.urlCell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}
+.testResult {
+  margin-top: var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.monoXs {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.dialogMd {
+  max-width: 36rem;
+}
+.stackMd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+.stackXs {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hcms-SPx1) * 1.5);
+}
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.eventsBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  padding: var(--hcms-SPx3);
+}
+.eventLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}

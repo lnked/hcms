@@ -1,9 +1,10 @@
 import { Link, Navigate, NavLink, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
+import { clsx } from 'clsx'
 import { useI18n } from '@/i18n'
-import { cn } from '@/lib/utils'
 import { CodeBlock } from './CodeBlock'
 import { DEFAULT_CHAPTER, getChapter, getChapters, isChapterId, type DocLink } from './chapters'
+import styles from './DocsPage.module.css'
 
 function DocNavLink({ link }: { link: DocLink }) {
   if (link.external) {
@@ -12,16 +13,16 @@ function DocNavLink({ link }: { link: DocLink }) {
         href={link.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        className={clsx(styles.docLinkExternal)}
       >
         {link.label}
-        <ExternalLink className="h-3.5 w-3.5" />
+        <ExternalLink className={clsx(styles.externalIcon)} />
       </a>
     )
   }
 
   return (
-    <Link to={link.href} className="text-sm text-primary hover:underline">
+    <Link to={link.href} className={clsx(styles.docLink)}>
       {link.label}
     </Link>
   )
@@ -46,27 +47,22 @@ export function DocsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('docs.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('docs.subtitle')}</p>
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.header)}>
+        <h1 className={clsx(styles.title)}>{t('docs.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('docs.subtitle')}</p>
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <nav aria-label={t('docs.toc')} className="shrink-0 lg:sticky lg:top-8 lg:w-56">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {t('docs.toc')}
-          </p>
-          <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+      <div className={clsx(styles.layout)}>
+        <nav aria-label={t('docs.toc')} className={clsx(styles.nav)}>
+          <p className={clsx(styles.tocLabel)}>{t('docs.toc')}</p>
+          <ul className={clsx(styles.tocList)}>
             {chapters.map((item) => (
-              <li key={item.id} className="shrink-0">
+              <li key={item.id} className={clsx(styles.tocItem)}>
                 <NavLink
                   to={`/docs/${item.id}`}
                   className={({ isActive }) =>
-                    cn(
-                      'block rounded-md px-3 py-2 text-sm whitespace-nowrap hover:bg-accent',
-                      isActive && 'bg-accent font-medium',
-                    )
+                    clsx(styles.tocLink, isActive && styles.tocLinkActive)
                   }
                 >
                   {item.title}
@@ -76,15 +72,15 @@ export function DocsPage() {
           </ul>
         </nav>
 
-        <article className="min-w-0 flex-1 space-y-8">
-          <h2 className="text-xl font-semibold">{chapter.title}</h2>
+        <article className={clsx(styles.article)}>
+          <h2 className={clsx(styles.chapterTitle)}>{chapter.title}</h2>
           {chapter.sections.map((section, index) => (
-            <section key={`${chapter.id}-${index}`} className="space-y-3">
+            <section key={`${chapter.id}-${index}`} className={clsx(styles.section)}>
               {section.heading ? (
-                <h3 className="text-base font-medium">{section.heading}</h3>
+                <h3 className={clsx(styles.sectionHeading)}>{section.heading}</h3>
               ) : null}
               {section.paragraphs?.map((paragraph) => (
-                <p key={paragraph} className="text-sm leading-relaxed text-muted-foreground">
+                <p key={paragraph} className={clsx(styles.paragraph)}>
                   {paragraph}
                 </p>
               ))}
@@ -97,7 +93,7 @@ export function DocsPage() {
                 />
               ))}
               {section.links && section.links.length > 0 ? (
-                <ul className="flex flex-wrap gap-x-4 gap-y-2">
+                <ul className={clsx(styles.linkList)}>
                   {section.links.map((link) => (
                     <li key={`${link.href}-${link.label}`}>
                       <DocNavLink link={link} />

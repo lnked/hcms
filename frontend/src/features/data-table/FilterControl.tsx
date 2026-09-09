@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { DatePickerField } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -6,6 +7,7 @@ import { useI18n } from '@/i18n'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
 import type { SchemaField } from '@/types/field'
 import { filterControlKind } from './filters'
+import styles from './FilterControl.module.css'
 
 interface FilterControlProps {
   field: SchemaField
@@ -14,8 +16,6 @@ interface FilterControlProps {
   value: string
   onChange: (value: string) => void
 }
-
-const CONTROL_CLASS = 'h-8'
 
 /** Renders the filter input matching the column type: checkbox, select, picker or text. */
 export function FilterControl({ field, label, value, onChange }: FilterControlProps) {
@@ -54,7 +54,7 @@ export function FilterControl({ field, label, value, onChange }: FilterControlPr
         onChange={(next) => onChange(next ?? '')}
         format={typeof field.config.format === 'string' ? field.config.format : ''}
         aria-label={ariaLabel}
-        className={CONTROL_CLASS}
+        className={clsx(styles.control)}
       />
     )
   }
@@ -67,7 +67,7 @@ export function FilterControl({ field, label, value, onChange }: FilterControlPr
       onChange={(e) => onChange(e.target.value)}
       placeholder={kind === 'text' ? t('entries.filterPlaceholder') : undefined}
       aria-label={ariaLabel}
-      className={CONTROL_CLASS}
+      className={clsx(styles.control)}
     />
   )
 }
@@ -88,10 +88,10 @@ function BooleanFilter({
     state === 'on' ? t('common.yes') : state === 'off' ? t('common.no') : t('entries.filterAny')
 
   return (
-    <label className="flex h-8 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+    <label className={clsx(styles.boolLabel)}>
       <input
         type="checkbox"
-        className="h-4 w-4 cursor-pointer"
+        className={clsx(styles.boolInput)}
         checked={state === 'on'}
         ref={(el) => {
           if (el) el.indeterminate = state === 'any'
@@ -125,7 +125,7 @@ function FilterSelect({
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel}
-      className={CONTROL_CLASS}
+      className={clsx(styles.control)}
     >
       <option value="">{t('entries.filterAny')}</option>
       {children}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,6 +13,7 @@ import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Release, SystemVersion } from '@/types/system'
 import { useNavigate } from 'react-router-dom'
+import styles from './WhatsNewDialog.module.css'
 
 export function WhatsNewDialog({ version }: { version: SystemVersion }) {
   const { t } = useI18n()
@@ -51,7 +53,7 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
           <DialogDescription>{t('whatsNew.description')}</DialogDescription>
         </DialogHeader>
 
-        <ul className="max-h-64 space-y-2 overflow-auto text-sm mb-2">
+        <ul className={clsx(styles.list)}>
           {(query.data ?? []).flatMap((release) =>
             release.changes.map((change) => (
               <li key={`${release.version}-${change.text}`}>
@@ -61,7 +63,7 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
           )}
         </ul>
 
-        <div className="flex justify-end gap-2">
+        <div className={clsx(styles.actions)}>
           <Button
             variant="outline"
             onClick={() => {

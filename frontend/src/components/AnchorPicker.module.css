@@ -1,0 +1,40 @@
+.root {
+  display: flex;
+  height: var(--hcms-SPx9);
+  width: var(--hcms-SPx9);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-input);
+  padding: calc(var(--hcms-SPx1) * 0.5);
+  background-color: transparent;
+  color: var(--hcms-color-foreground);
+  transition:
+    color 0.15s,
+    background-color 0.15s;
+  cursor: pointer;
+}
+
+.root:hover {
+  background-color: var(--hcms-color-muted);
+}
+
+.root:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--hcms-color-ring);
+}
+
+.root:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.svg {
+  height: 100%;
+  width: 100%;
+}
+
+.grid {
+  color: var(--hcms-color-border);
+}

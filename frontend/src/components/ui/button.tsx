@@ -1,41 +1,46 @@
-import { cva, type VariantProps } from 'class-variance-authority'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import styles from './Button.module.css'
 
-const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        outline: 'border border-input bg-background hover:bg-accent',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        destructive: 'bg-destructive text-white hover:bg-destructive/90',
-        link: 'text-primary underline-offset-4 hover:underline',
-      },
-      size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3',
-        lg: 'h-10 rounded-md px-6',
-        icon: 'h-9 w-9',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-    },
-  },
-)
+const variantClass = {
+  default: styles.variantDefault,
+  secondary: styles.variantSecondary,
+  outline: styles.variantOutline,
+  ghost: styles.variantGhost,
+  destructive: styles.variantDestructive,
+  link: styles.variantLink,
+} as const
+
+const sizeClass = {
+  default: styles.sizeDefault,
+  sm: styles.sizeSm,
+  lg: styles.sizeLg,
+  icon: styles.sizeIcon,
+} as const
+
+export type ButtonVariant = keyof typeof variantClass
+export type ButtonSize = keyof typeof sizeClass
+
+export interface ButtonVariantsProps {
+  variant?: ButtonVariant | null
+  size?: ButtonSize | null
+  className?: string
+}
+
+export function buttonVariants({
+  variant = 'default',
+  size = 'default',
+  className,
+}: ButtonVariantsProps = {}) {
+  return cn(styles.btn, variantClass[variant ?? 'default'], sizeClass[size ?? 'default'], className)
+}
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVariantsProps {}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => (
-    <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    <button className={buttonVariants({ variant, size, className })} ref={ref} {...props} />
   ),
 )
 Button.displayName = 'Button'
-
-export { buttonVariants }

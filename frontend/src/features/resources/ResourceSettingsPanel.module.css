@@ -1,0 +1,77 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+
+.warning {
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-destructive);
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 10%, transparent);
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.grid2 {
+  display: grid;
+  gap: var(--hcms-SPx3);
+}
+
+@media (min-width: 768px) {
+  .grid2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+}
+
+.sectionTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.hint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.deleteStrategy {
+  max-width: 20rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.message {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}

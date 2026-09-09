@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.56.0",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Админка на CSS Modules и design tokens",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Стили админки переведены с Tailwind на CSS Modules (`ComponentName.module.css`) с токенами `--hcms-SPx1…14`, `--hcms-CRx1…5`, `--hcms-color-*`. Tailwind, `cva` и `tailwind-merge` удалены"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "Правила стилей админки: `docs/development.md` и `.cursor/rules/frontend-css-modules.mdc`"
+        }
+      ]
+    },
+    {
       "version": "0.55.4",
       "date": "2026-09-10",
       "channel": "stable",

@@ -10,7 +10,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { clsx } from 'clsx'
 import { useI18n } from '@/i18n'
+import styles from './DashboardCharts.module.css'
 
 /**
  * recharts is the heaviest dependency in the admin bundle, so every chart lives
@@ -38,7 +40,7 @@ export function RequestsChart({ data }: { data: ChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <CartesianGrid strokeDasharray="3 3" className={clsx(styles.gridStroke)} />
         <XAxis dataKey="label" tick={TICK} />
         <YAxis tick={TICK} allowDecimals={false} />
         <Tooltip />
@@ -47,7 +49,7 @@ export function RequestsChart({ data }: { data: ChartPoint[] }) {
           type="monotone"
           dataKey="requests"
           name={t('dashboard.requests')}
-          stroke="var(--primary)"
+          stroke="var(--hcms-color-primary)"
           strokeWidth={2}
           dot={false}
         />
@@ -55,7 +57,7 @@ export function RequestsChart({ data }: { data: ChartPoint[] }) {
           type="monotone"
           dataKey="errors"
           name={t('dashboard.errors')}
-          stroke="var(--destructive)"
+          stroke="var(--hcms-color-destructive)"
           strokeWidth={2}
           dot={false}
         />
@@ -70,7 +72,7 @@ export function DurationChart({ data }: { data: ChartPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+        <CartesianGrid strokeDasharray="3 3" className={clsx(styles.gridStroke)} />
         <XAxis dataKey="label" tick={TICK} />
         <YAxis tick={TICK} />
         <Tooltip />
@@ -78,7 +80,7 @@ export function DurationChart({ data }: { data: ChartPoint[] }) {
           type="monotone"
           dataKey="avgDurationMs"
           name={t('dashboard.avgDuration')}
-          stroke="var(--primary)"
+          stroke="var(--hcms-color-primary)"
           strokeWidth={2}
           dot={false}
         />
@@ -100,7 +102,7 @@ export function TopPathsChart({ data }: { data: PathCount[] }) {
           tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 20)}…` : v)}
         />
         <Tooltip />
-        <Bar dataKey="count" fill="var(--primary)" radius={4} />
+        <Bar dataKey="count" fill="var(--hcms-color-primary)" radius={4} />
       </BarChart>
     </ResponsiveContainer>
   )

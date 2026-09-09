@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { LayoutGrid, Table2, Upload } from 'lucide-react'
 import { MediaGridSkeleton, TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
@@ -15,8 +16,8 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api, apiPage, apiUpload } from '@/lib/api'
-import { cn } from '@/lib/utils'
 import type { MediaItem } from '@/types/media'
+import styles from './MediaPage.module.css'
 
 type MediaView = 'list' | 'table'
 
@@ -170,17 +171,17 @@ export function MediaPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{t('media.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('media.subtitle')}</p>
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.pageHeader)}>
+        <h1 className={clsx(styles.title)}>{t('media.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('media.subtitle')}</p>
       </div>
 
       <input
         ref={inputRef}
         type="file"
         multiple
-        className="hidden"
+        className={clsx(styles.hiddenInput)}
         onChange={(e) => {
           enqueue(e.target.files)
           e.target.value = ''
@@ -223,27 +224,24 @@ export function MediaPage() {
           setDragging(false)
           enqueue(e.dataTransfer.files)
         }}
-        className={cn(
-          'sticky top-3 z-20 flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-dashed px-4 py-3 transition-colors',
-          'bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/85',
-          dragging
-            ? 'border-primary bg-primary/5'
-            : 'border-border hover:border-primary/50 hover:bg-muted/40',
-          busy && 'pointer-events-none opacity-70',
+        className={clsx(
+          styles.dropzone,
+          dragging && styles.dropzoneActive,
+          busy && styles.dropzoneBusy,
         )}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <Upload className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0 space-y-0.5">
-            <p className="truncate text-sm font-medium">{t('media.dropzone')}</p>
-            <p className="truncate text-xs text-muted-foreground">{t('media.dropzoneHint')}</p>
+        <div className={clsx(styles.dropzoneLeft)}>
+          <Upload className={clsx(styles.uploadIcon)} />
+          <div className={clsx(styles.dropzoneText)}>
+            <p className={clsx(styles.dropzoneTitle)}>{t('media.dropzone')}</p>
+            <p className={clsx(styles.dropzoneHint)}>{t('media.dropzoneHint')}</p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className={clsx(styles.dropzoneRight)}>
           {progress ? (
-            <div className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-muted sm:block">
+            <div className={clsx(styles.progressTrack)}>
               <div
-                className="h-full bg-primary transition-[width] duration-200"
+                className={clsx(styles.progressBar)}
                 style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
               />
             </div>
@@ -267,15 +265,15 @@ export function MediaPage() {
         </div>
       </div>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
       <Card>
-        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
-          <div className="space-y-1.5">
+        <CardHeader className={clsx(styles.cardHeader)}>
+          <div className={clsx(styles.headerIntro)}>
             <CardTitle>{t('media.library')}</CardTitle>
             <CardDescription>{t('media.publicUrl')}</CardDescription>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={clsx(styles.headerActions)}>
             {selectedIds.length > 0 ? (
               <Button
                 variant="destructive"
@@ -292,30 +290,30 @@ export function MediaPage() {
                   : t('media.bulkDelete', { count: selectedIds.length })}
               </Button>
             ) : null}
-            <div className="flex items-center gap-1 rounded-md border p-0.5">
+            <div className={clsx(styles.viewToggle)}>
               <Button
                 type="button"
                 size="icon"
                 variant={view === 'list' ? 'secondary' : 'ghost'}
-                className="h-8 w-8"
+                className={clsx(styles.viewBtn)}
                 aria-pressed={view === 'list'}
                 title={t('media.viewList')}
                 aria-label={t('media.viewList')}
                 onClick={() => changeView('list')}
               >
-                <LayoutGrid className="h-4 w-4" />
+                <LayoutGrid className={clsx(styles.iconSm)} />
               </Button>
               <Button
                 type="button"
                 size="icon"
                 variant={view === 'table' ? 'secondary' : 'ghost'}
-                className="h-8 w-8"
+                className={clsx(styles.viewBtn)}
                 aria-pressed={view === 'table'}
                 title={t('media.viewTable')}
                 aria-label={t('media.viewTable')}
                 onClick={() => changeView('table')}
               >
-                <Table2 className="h-4 w-4" />
+                <Table2 className={clsx(styles.iconSm)} />
               </Button>
             </div>
           </div>
@@ -330,42 +328,40 @@ export function MediaPage() {
           ) : items.length === 0 ? (
             <EmptyState title={t('media.empty')} />
           ) : view === 'list' ? (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+            <div className={clsx(styles.grid)}>
               {items.map((item) => (
-                <div key={item.id} className="overflow-hidden rounded-md border">
-                  <div className="flex aspect-square items-center justify-center bg-muted">
+                <div key={item.id} className={clsx(styles.mediaCard)}>
+                  <div className={clsx(styles.thumb)}>
                     {item.mime.startsWith('image/') ? (
                       <img
                         src={item.url}
                         alt={item.originalName}
-                        className="h-full w-full object-cover"
+                        className={clsx(styles.thumbImg)}
                       />
                     ) : (
-                      <span className="px-1.5 text-center text-[10px] leading-tight text-muted-foreground">
-                        {item.mime}
-                      </span>
+                      <span className={clsx(styles.mimeFallback)}>{item.mime}</span>
                     )}
                   </div>
-                  <div className="space-y-1.5 p-2">
-                    <p className="truncate text-xs font-medium" title={item.originalName}>
+                  <div className={clsx(styles.cardMeta)}>
+                    <p className={clsx(styles.cardName)} title={item.originalName}>
                       {item.originalName}
                     </p>
-                    <p className="font-mono text-[10px] text-muted-foreground">
+                    <p className={clsx(styles.cardMetaLine)}>
                       #{item.id} · {formatSize(item.size)}
                     </p>
-                    <div className="flex gap-1">
+                    <div className={clsx(styles.cardActions)}>
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-7 flex-1 items-center justify-center rounded-md border border-input px-1.5 text-[11px] hover:bg-accent"
+                        className={clsx(styles.openLink)}
                       >
                         {t('common.open')}
                       </a>
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="h-7 px-2 text-[11px]"
+                        className={clsx(styles.cardDeleteBtn)}
                         onClick={() => confirmDelete(item)}
                       >
                         {t('common.delete')}
@@ -379,7 +375,7 @@ export function MediaPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-10">
+                  <TableHead className={clsx(styles.colSelect)}>
                     <input
                       type="checkbox"
                       checked={allSelected}
@@ -390,12 +386,12 @@ export function MediaPage() {
                       aria-label={t('media.selectAll')}
                     />
                   </TableHead>
-                  <TableHead className="w-14">{t('media.preview')}</TableHead>
+                  <TableHead className={clsx(styles.colPreview)}>{t('media.preview')}</TableHead>
                   <TableHead>{t('common.name')}</TableHead>
-                  <TableHead className="hidden md:table-cell">{t('common.type')}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{t('media.size')}</TableHead>
-                  <TableHead className="hidden lg:table-cell">{t('media.created')}</TableHead>
-                  <TableHead className="text-right">{t('common.actions')}</TableHead>
+                  <TableHead className={clsx(styles.colMime)}>{t('common.type')}</TableHead>
+                  <TableHead className={clsx(styles.colSize)}>{t('media.size')}</TableHead>
+                  <TableHead className={clsx(styles.colCreated)}>{t('media.created')}</TableHead>
+                  <TableHead className={clsx(styles.colActions)}>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -410,38 +406,32 @@ export function MediaPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded bg-muted">
+                      <div className={clsx(styles.thumbSm)}>
                         {item.mime.startsWith('image/') ? (
-                          <img src={item.url} alt="" className="h-full w-full object-cover" />
+                          <img src={item.url} alt="" className={clsx(styles.thumbImg)} />
                         ) : (
-                          <span className="text-[9px] text-muted-foreground">file</span>
+                          <span className={clsx(styles.fileLabel)}>file</span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium" title={item.originalName}>
+                      <div className={clsx(styles.nameCell)}>
+                        <p className={clsx(styles.nameText)} title={item.originalName}>
                           {item.originalName}
                         </p>
-                        <p className="font-mono text-xs text-muted-foreground">#{item.id}</p>
+                        <p className={clsx(styles.idText)}>#{item.id}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden max-w-[12rem] truncate text-xs text-muted-foreground md:table-cell">
-                      {item.mime}
-                    </TableCell>
-                    <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground sm:table-cell">
-                      {formatSize(item.size)}
-                    </TableCell>
-                    <TableCell className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
-                      {item.createdAt}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                    <TableCell className={clsx(styles.colMime)}>{item.mime}</TableCell>
+                    <TableCell className={clsx(styles.colSize)}>{formatSize(item.size)}</TableCell>
+                    <TableCell className={clsx(styles.colCreated)}>{item.createdAt}</TableCell>
+                    <TableCell className={clsx(styles.colActions)}>
+                      <div className={clsx(styles.rowActions)}>
                         <a
                           href={item.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex h-8 items-center rounded-md border border-input px-3 text-sm hover:bg-accent"
+                          className={clsx(styles.openLinkTable)}
                         >
                           {t('common.open')}
                         </a>
@@ -457,9 +447,9 @@ export function MediaPage() {
           )}
 
           {meta ? (
-            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+            <div className={clsx(styles.pagination)}>
               <span>{t('common.pageOf', { page: meta.page, totalPages: meta.totalPages })}</span>
-              <div className="flex gap-2">
+              <div className={clsx(styles.paginationActions)}>
                 <Button
                   size="sm"
                   variant="outline"

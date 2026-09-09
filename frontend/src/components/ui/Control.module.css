@@ -1,0 +1,46 @@
+.shell {
+  display: flex;
+  width: 100%;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-input);
+  background-color: transparent;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: 0 1px 2px 0 color-mix(in srgb, var(--hcms-color-foreground) 5%, transparent);
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.shell:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--hcms-color-ring);
+}
+
+.shell:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.field {
+  height: var(--hcms-SPx9);
+  padding: var(--hcms-SPx1) var(--hcms-SPx3);
+}
+
+.area {
+  min-height: calc(var(--hcms-SPx14) * 2 + var(--hcms-SPx2));
+  padding: var(--hcms-SPx2) var(--hcms-SPx3);
+}
+
+.hug {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hugContainer {
+  width: fit-content;
+  max-width: 100%;
+}

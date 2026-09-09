@@ -1,8 +1,7 @@
 import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs))
+  return clsx(inputs)
 }
 
 /** UUID v4 — works outside secure contexts where `crypto.randomUUID` is missing. */

@@ -1,0 +1,234 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+
+.langContent {
+  max-width: 20rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.pending {
+  opacity: 0.7;
+}
+
+.stackMd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.cardHeaderStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--hcms-SPx2);
+  border-bottom: 1px solid var(--hcms-color-border);
+  padding-bottom: var(--hcms-SPx2);
+}
+
+.tabBtn {
+  gap: var(--hcms-SPx2);
+}
+
+.dot {
+  height: var(--hcms-SPx2);
+  width: var(--hcms-SPx2);
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background-color: var(--hcms-color-success);
+}
+
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+
+.progressBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 30%, transparent);
+  padding: var(--hcms-SPx4);
+}
+
+.progressHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.progressTitle {
+  font-weight: 500;
+}
+
+.progressPct {
+  font-variant-numeric: tabular-nums;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.progressTrack {
+  height: var(--hcms-SPx2);
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--hcms-color-muted);
+}
+
+.progressBar {
+  height: 100%;
+  background-color: var(--hcms-color-primary);
+  transition: width 200ms;
+}
+
+.progressBarError {
+  background-color: var(--hcms-color-destructive);
+}
+
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.stepItemDone {
+  color: var(--hcms-color-foreground);
+}
+
+.stepItemActive {
+  font-weight: 500;
+  color: var(--hcms-color-foreground);
+}
+
+.stepDot {
+  display: inline-block;
+  height: calc(var(--hcms-SPx1) * 1.5);
+  width: calc(var(--hcms-SPx1) * 1.5);
+  border-radius: 9999px;
+  background-color: var(--hcms-color-border);
+}
+
+.stepDotOn {
+  background-color: var(--hcms-color-primary);
+}
+
+.breakingBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-destructive);
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 10%, transparent);
+  padding: var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.breakingTitle {
+  font-weight: 500;
+  color: var(--hcms-color-destructive);
+}
+
+.breakingList {
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  padding-left: var(--hcms-SPx5);
+  margin: 0;
+}
+
+.monoXs {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.blockMuted {
+  display: block;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.delta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.deltaTitle {
+  font-weight: 500;
+}
+
+.deltaList {
+  max-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  overflow: auto;
+  color: var(--hcms-color-muted-foreground);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.statusMsg {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.statusMsgError {
+  color: var(--hcms-color-destructive);
+}

@@ -1,0 +1,23 @@
+.root {
+  position: fixed;
+  right: var(--hcms-SPx4);
+  bottom: var(--hcms-SPx4);
+  z-index: 100;
+  max-width: 24rem;
+  border-radius: var(--hcms-CRx2);
+  padding: var(--hcms-SPx2) var(--hcms-SPx4);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-primary-foreground);
+  box-shadow:
+    0 10px 15px -3px color-mix(in srgb, var(--hcms-color-foreground) 10%, transparent),
+    0 4px 6px -4px color-mix(in srgb, var(--hcms-color-foreground) 10%, transparent);
+}
+
+.success {
+  background-color: var(--hcms-color-success);
+}
+
+.error {
+  background-color: var(--hcms-color-destructive);
+}

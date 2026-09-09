@@ -1,0 +1,184 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx4);
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.resourceLink {
+  font-weight: 500;
+}
+
+.resourceLink:hover {
+  text-decoration: underline;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.endpointBtn {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 2px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.endpointBtn:hover {
+  color: var(--hcms-color-primary);
+}
+
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx1);
+}
+
+.icon {
+  width: var(--hcms-SPx4);
+  height: var(--hcms-SPx4);
+  flex-shrink: 0;
+}
+
+.iconDestructive {
+  width: var(--hcms-SPx4);
+  height: var(--hcms-SPx4);
+  flex-shrink: 0;
+  color: var(--hcms-color-destructive);
+}
+
+.exampleRow:hover {
+  background-color: transparent;
+}
+
+.exampleCell {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: var(--hcms-SPx4);
+}
+
+.dialogHeader {
+  padding-right: var(--hcms-SPx6);
+}
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.dropzone {
+  display: flex;
+  min-height: 6rem;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--hcms-CRx2);
+  border: 1px dashed var(--hcms-color-border);
+  padding: var(--hcms-SPx6) var(--hcms-SPx4);
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.dropzoneActive {
+  border-color: var(--hcms-color-primary);
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
+}
+
+.pasteArea {
+  min-height: 7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.slugInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.conflict {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.warningsTitle {
+  font-weight: 500;
+}
+
+.warningsList {
+  list-style-type: disc;
+  padding-left: var(--hcms-SPx5);
+  color: var(--hcms-color-muted-foreground);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}

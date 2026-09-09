@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ import {
 import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
 import type { PathCount } from './DashboardCharts'
+import styles from './DashboardPage.module.css'
 
 // All three charts sit in one lazy module, so recharts costs a single request
 // and stays out of the chunk that renders the KPI cards.
@@ -34,7 +36,7 @@ const TopPathsChart = lazy(() =>
   import('./DashboardCharts').then((m) => ({ default: m.TopPathsChart })),
 )
 
-const ChartFallback = <Skeleton className="h-full w-full" />
+const ChartFallback = <Skeleton className={clsx(styles.skeletonFill)} />
 
 interface SystemStats {
   resources: number
@@ -132,35 +134,39 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={clsx(styles.root)}>
       <div>
-        <h1 className="text-2xl font-semibold">{t('dashboard.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('dashboard.subtitle')}</p>
+        <h1 className={clsx(styles.title)}>{t('dashboard.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('dashboard.subtitle')}</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className={clsx(styles.kpiGrid)}>
         {stats.map((item) => (
           <Card key={item.label}>
             <CardHeader>
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {item.label}
-              </CardTitle>
+              <CardTitle className={clsx(styles.kpiLabel)}>{item.label}</CardTitle>
             </CardHeader>
-            <CardContent className="text-3xl font-semibold">
-              {statsQuery.isLoading ? <Skeleton className="h-8 w-16" /> : (item.value ?? '—')}
+            <CardContent className={clsx(styles.kpiValue)}>
+              {statsQuery.isLoading ? (
+                <Skeleton className={clsx(styles.skeletonKpi)} />
+              ) : (
+                (item.value ?? '—')
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={clsx(styles.chartsGrid)}>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">{t('dashboard.requestsOverTime')}</CardTitle>
-            <p className="text-xs text-muted-foreground">
+            <CardTitle className={clsx(styles.cardTitle)}>
+              {t('dashboard.requestsOverTime')}
+            </CardTitle>
+            <p className={clsx(styles.cardHint)}>
               {t('dashboard.lastDays', { days: String(days) })}
             </p>
           </CardHeader>
-          <CardContent className="h-64">
+          <CardContent className={clsx(styles.chartTall)}>
             {timeseriesQuery.isLoading ? (
               ChartFallback
             ) : (
@@ -173,9 +179,9 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">{t('dashboard.avgDuration')}</CardTitle>
+            <CardTitle className={clsx(styles.cardTitle)}>{t('dashboard.avgDuration')}</CardTitle>
           </CardHeader>
-          <CardContent className="h-64">
+          <CardContent className={clsx(styles.chartTall)}>
             {timeseriesQuery.isLoading ? (
               ChartFallback
             ) : (
@@ -187,16 +193,16 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className={clsx(styles.bottomGrid)}>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">{t('dashboard.topPaths')}</CardTitle>
+            <CardTitle className={clsx(styles.cardTitle)}>{t('dashboard.topPaths')}</CardTitle>
           </CardHeader>
-          <CardContent className="h-56">
+          <CardContent className={clsx(styles.chartShort)}>
             {timeseriesQuery.isLoading ? (
               ChartFallback
             ) : (timeseriesQuery.data?.topPaths.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
+              <p className={clsx(styles.muted)}>{t('dashboard.noData')}</p>
             ) : (
               <Suspense fallback={ChartFallback}>
                 <TopPathsChart data={timeseriesQuery.data?.topPaths ?? []} />
@@ -207,29 +213,27 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">{t('dashboard.topErrors')}</CardTitle>
-            <p className="text-xs text-muted-foreground">{t('dashboard.topErrorsHint')}</p>
+            <CardTitle className={clsx(styles.cardTitle)}>{t('dashboard.topErrors')}</CardTitle>
+            <p className={clsx(styles.cardHint)}>{t('dashboard.topErrorsHint')}</p>
           </CardHeader>
-          <CardContent className="h-56 overflow-y-auto">
+          <CardContent className={clsx(styles.chartShortScroll)}>
             {timeseriesQuery.isLoading ? (
-              <Skeleton className="h-full w-full" />
+              <Skeleton className={clsx(styles.skeletonFill)} />
             ) : (timeseriesQuery.data?.topErrors.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
+              <p className={clsx(styles.muted)}>{t('dashboard.noData')}</p>
             ) : (
-              <ul className="space-y-1">
+              <ul className={clsx(styles.errorList)}>
                 {(timeseriesQuery.data?.topErrors ?? []).map((row) => (
                   <li key={row.path}>
                     <button
                       type="button"
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-muted/60"
+                      className={clsx(styles.errorBtn)}
                       onClick={() => openErrorDetails(row.path)}
                     >
-                      <span className="min-w-0 flex-1 truncate font-mono text-xs" title={row.path}>
+                      <span className={clsx(styles.errorPath)} title={row.path}>
                         {row.path}
                       </span>
-                      <span className="shrink-0 text-xs font-medium text-destructive">
-                        {row.count}
-                      </span>
+                      <span className={clsx(styles.errorCount)}>{row.count}</span>
                     </button>
                   </li>
                 ))}
@@ -240,25 +244,27 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">{t('dashboard.recentActivity')}</CardTitle>
+            <CardTitle className={clsx(styles.cardTitle)}>
+              {t('dashboard.recentActivity')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {auditQuery.isLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-4/5" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-2/3" />
+              <div className={clsx(styles.activitySkeleton)}>
+                <Skeleton className={clsx(styles.skelFull)} />
+                <Skeleton className={clsx(styles.skel5)} />
+                <Skeleton className={clsx(styles.skel4)} />
+                <Skeleton className={clsx(styles.skel3)} />
+                <Skeleton className={clsx(styles.skel2)} />
               </div>
             ) : (auditQuery.data?.data.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
+              <p className={clsx(styles.muted)}>{t('dashboard.noData')}</p>
             ) : (
-              <ul className="space-y-2 text-sm">
+              <ul className={clsx(styles.activityList)}>
                 {auditQuery.data?.data.map((row) => (
-                  <li key={row.id} className="border-b border-border/60 pb-2 last:border-0">
-                    <div className="font-medium">{row.action}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <li key={row.id} className={clsx(styles.activityItem)}>
+                    <div className={clsx(styles.activityAction)}>{row.action}</div>
+                    <div className={clsx(styles.activityMeta)}>
                       {[row.entityType, row.entityId].filter(Boolean).join(' · ') || '—'}
                       {' · '}
                       {row.createdAt}
@@ -272,7 +278,7 @@ export function DashboardPage() {
       </div>
 
       {statsQuery.isError || timeseriesQuery.isError || auditQuery.isError ? (
-        <p className="text-sm text-destructive">
+        <p className={clsx(styles.error)}>
           {(statsQuery.error instanceof Error && statsQuery.error.message) ||
             (timeseriesQuery.error instanceof Error && timeseriesQuery.error.message) ||
             (auditQuery.error instanceof Error && auditQuery.error.message) ||
@@ -286,7 +292,7 @@ export function DashboardPage() {
           if (!open) setErrorPath(null)
         }}
       >
-        <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+        <DialogContent className={clsx(styles.dialogWide)}>
           <DialogHeader>
             <DialogTitle>{t('dashboard.errorDetailsTitle')}</DialogTitle>
             <DialogDescription>
@@ -298,19 +304,19 @@ export function DashboardPage() {
           </DialogHeader>
 
           {errorDetailsQuery.isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
+            <div className={clsx(styles.stack)}>
+              <Skeleton className={clsx(styles.skelRow)} />
+              <Skeleton className={clsx(styles.skelRow)} />
+              <Skeleton className={clsx(styles.skelRow)} />
             </div>
           ) : errorDetailsQuery.isError ? (
-            <p className="text-sm text-destructive">
+            <p className={clsx(styles.error)}>
               {errorDetailsQuery.error instanceof Error
                 ? errorDetailsQuery.error.message
                 : t('common.requestFailed')}
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className={clsx(styles.details)}>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -325,21 +331,19 @@ export function DashboardPage() {
                 <TableBody>
                   {(errorDetailsQuery.data?.data.length ?? 0) === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-muted-foreground">
+                      <TableCell colSpan={6} className={clsx(styles.mutedCell)}>
                         {t('dashboard.noData')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     errorDetailsQuery.data?.data.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="whitespace-nowrap text-xs">{row.createdAt}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.method}</TableCell>
-                        <TableCell className="text-xs font-medium text-destructive">
-                          {row.status}
-                        </TableCell>
-                        <TableCell className="text-xs">{row.durationMs}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.ip ?? '—'}</TableCell>
-                        <TableCell className="text-xs">{row.apiKeyId ?? '—'}</TableCell>
+                        <TableCell className={clsx(styles.cellNowrap)}>{row.createdAt}</TableCell>
+                        <TableCell className={clsx(styles.cellMono)}>{row.method}</TableCell>
+                        <TableCell className={clsx(styles.cellStatus)}>{row.status}</TableCell>
+                        <TableCell className={clsx(styles.cellXs)}>{row.durationMs}</TableCell>
+                        <TableCell className={clsx(styles.cellMono)}>{row.ip ?? '—'}</TableCell>
+                        <TableCell className={clsx(styles.cellXs)}>{row.apiKeyId ?? '—'}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -347,7 +351,7 @@ export function DashboardPage() {
               </Table>
 
               {errorMeta ? (
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className={clsx(styles.pager)}>
                   <span>
                     {t('common.pageOfTotal', {
                       page: errorMeta.page,
@@ -355,7 +359,7 @@ export function DashboardPage() {
                       total: errorMeta.total,
                     })}
                   </span>
-                  <div className="flex gap-2">
+                  <div className={clsx(styles.pagerBtns)}>
                     <Button
                       size="sm"
                       variant="outline"

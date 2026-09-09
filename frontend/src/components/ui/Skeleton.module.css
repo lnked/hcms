@@ -1,0 +1,11 @@
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.root {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: var(--hcms-CRx2);
+  background-color: var(--hcms-color-muted);
+}

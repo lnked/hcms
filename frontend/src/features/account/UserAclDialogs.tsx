@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +16,7 @@ import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { ADMIN_SECTIONS, RESOURCE_TABS, type AdminSection, type ResourceTab } from '@/lib/rbac'
 import type { Resource } from '@/types/resource'
+import styles from './UserAclDialogs.module.css'
 
 export interface UserAclPayload {
   aclEnabled: boolean
@@ -155,8 +157,8 @@ function UserPermissionsForm({
   }
 
   return (
-    <div className="space-y-5">
-      <label className="flex items-center gap-2 text-sm">
+    <div className={clsx(styles.root)}>
+      <label className={clsx(styles.checkLabel)}>
         <input
           type="checkbox"
           checked={aclEnabled}
@@ -167,9 +169,9 @@ function UserPermissionsForm({
 
       {aclEnabled ? (
         <>
-          <div className="space-y-2">
+          <div className={clsx(styles.stack)}>
             <Label>{t('users.acl.sections')}</Label>
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <label className={clsx(styles.checkLabelMedium)}>
               <input
                 type="checkbox"
                 checked={allSectionsSelected}
@@ -180,9 +182,9 @@ function UserPermissionsForm({
               />
               {t('users.acl.allSections')}
             </label>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className={clsx(styles.sectionGrid)}>
               {selectableSections.map((section) => (
-                <label key={section} className="flex items-center gap-2 text-sm">
+                <label key={section} className={clsx(styles.checkLabel)}>
                   <input
                     type="checkbox"
                     checked={sections.includes(section)}
@@ -194,8 +196,8 @@ function UserPermissionsForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
+          <div className={clsx(styles.stack)}>
+            <div className={clsx(styles.resourcesHeader)}>
               <Label>{t('users.acl.resources')}</Label>
               <Button
                 type="button"
@@ -211,13 +213,13 @@ function UserPermissionsForm({
               </Button>
             </div>
             {grants.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('users.acl.noResources')}</p>
+              <p className={clsx(styles.muted)}>{t('users.acl.noResources')}</p>
             ) : null}
             {grants.map((grant, index) => (
-              <div key={index} className="space-y-2 rounded-md border p-3">
-                <div className="flex flex-wrap items-center gap-2">
+              <div key={index} className={clsx(styles.grantCard)}>
+                <div className={clsx(styles.grantToolbar)}>
                   <Select
-                    containerClassName="min-w-[12rem] flex-1"
+                    containerClassName={clsx(styles.selectGrow)}
                     value={grant.resourceId === '' ? '' : String(grant.resourceId)}
                     onChange={(e) => {
                       const value = e.target.value
@@ -270,7 +272,7 @@ function UserPermissionsForm({
                     {t('common.delete')}
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-3 text-sm">
+                <div className={clsx(styles.flagRow)}>
                   {(
                     [
                       ['canRead', 'tokens.canRead'],
@@ -279,7 +281,7 @@ function UserPermissionsForm({
                       ['canDelete', 'tokens.canDelete'],
                     ] as const
                   ).map(([key, labelKey]) => (
-                    <label key={key} className="flex items-center gap-1.5">
+                    <label key={key} className={clsx(styles.flagLabel)}>
                       <input
                         type="checkbox"
                         checked={grant[key]}
@@ -295,11 +297,11 @@ function UserPermissionsForm({
                     </label>
                   ))}
                 </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">{t('users.acl.tabs')}</p>
-                  <div className="flex flex-wrap gap-3 text-sm">
+                <div className={clsx(styles.stackXs)}>
+                  <p className={clsx(styles.mutedXs)}>{t('users.acl.tabs')}</p>
+                  <div className={clsx(styles.flagRow)}>
                     {RESOURCE_TABS.map((tab) => (
-                      <label key={tab} className="flex items-center gap-1.5">
+                      <label key={tab} className={clsx(styles.flagLabel)}>
                         <input
                           type="checkbox"
                           checked={grant.tabs.includes(tab)}
@@ -326,8 +328,8 @@ function UserPermissionsForm({
         </>
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="flex justify-end gap-2">
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
+      <div className={clsx(styles.actions)}>
         <Button variant="outline" onClick={onClose}>
           {t('common.cancel')}
         </Button>
@@ -368,14 +370,14 @@ export function UserPermissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className={clsx(styles.dialogWide)}>
         <DialogHeader>
           <DialogTitle>{t('users.acl.title')}</DialogTitle>
           <DialogDescription>{t('users.acl.hint', { name: userName })}</DialogDescription>
         </DialogHeader>
 
         {acl.isLoading || userId === null ? (
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          <p className={clsx(styles.muted)}>{t('common.loading')}</p>
         ) : acl.data ? (
           <UserPermissionsForm
             key={`${userId}-${acl.dataUpdatedAt}`}
@@ -386,7 +388,7 @@ export function UserPermissionsDialog({
             onSaved={onSaved}
           />
         ) : (
-          <p className="text-sm text-destructive">{t('common.loadError')}</p>
+          <p className={clsx(styles.error)}>{t('common.loadError')}</p>
         )}
       </DialogContent>
     </Dialog>
@@ -409,7 +411,7 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
   })
 
   return (
-    <div className="space-y-4">
+    <div className={clsx(styles.resetRoot)}>
       <PasswordField
         id="reset-password"
         label={t('users.password')}
@@ -419,9 +421,9 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
         allowGenerate
         showCopy
       />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
       <Button
-        className="w-full"
+        className={clsx(styles.fullWidth)}
         disabled={save.isPending || password.length < 8}
         onClick={() => save.mutate()}
       >

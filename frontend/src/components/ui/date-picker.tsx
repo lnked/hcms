@@ -21,6 +21,7 @@ import { useI18n } from '@/i18n'
 import { type DateGranularity, dateFieldLocale } from '@/lib/dateFormat'
 import { fromCalendarValue, toCalendarValue } from '@/lib/dateValue'
 import { cn } from '@/lib/utils'
+import styles from './DatePickerField.module.css'
 
 export interface DatePickerFieldProps {
   id?: string
@@ -36,15 +37,6 @@ export interface DatePickerFieldProps {
   className?: string
   'aria-label'?: string
 }
-
-const iconButtonClass =
-  'grid size-6 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[focus-visible]:ring-2 data-[focus-visible]:ring-ring'
-
-const segmentClass =
-  'rounded px-0.5 tabular-nums outline-none data-[placeholder]:text-muted-foreground data-[focused]:bg-primary data-[focused]:text-primary-foreground data-[type=literal]:px-0 data-[type=literal]:text-muted-foreground'
-
-const cellClass =
-  'grid size-8 cursor-pointer place-items-center rounded-md text-sm outline-none transition-colors data-[disabled]:cursor-default data-[disabled]:text-muted-foreground/40 data-[outside-month]:text-muted-foreground/40 data-[hovered]:bg-accent data-[hovered]:text-accent-foreground data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[focus-visible]:ring-2 data-[focus-visible]:ring-ring'
 
 /**
  * Segmented date/datetime picker with a calendar popover.
@@ -74,58 +66,44 @@ export function DatePickerField({
         aria-label={ariaLabel}
         onChange={(next) => onChange(fromCalendarValue(next, granularity))}
       >
-        <Group
-          id={id}
-          className={cn(
-            controlFieldClass,
-            controlHugClass,
-            'items-center gap-1 pr-1 data-[focus-within]:ring-2 data-[focus-within]:ring-ring',
-            className,
-          )}
-        >
-          <DateInput className="flex items-center whitespace-nowrap">
-            {(segment) => <DateSegment segment={segment} className={segmentClass} />}
+        <Group id={id} className={cn(controlFieldClass, controlHugClass, styles.group, className)}>
+          <DateInput className={styles.dateInput}>
+            {(segment) => <DateSegment segment={segment} className={styles.segment} />}
           </DateInput>
           {calendarValue && !disabled ? (
             <Button
               slot={null}
-              className={iconButtonClass}
+              className={styles.iconButton}
               aria-label={t('common.clear')}
               onPress={() => onChange(null)}
             >
-              <X className="size-3.5" aria-hidden />
+              <X className={styles.icon} aria-hidden />
             </Button>
           ) : null}
-          <Button className={iconButtonClass}>
-            <CalendarIcon className="size-3.5" aria-hidden />
+          <Button className={styles.iconButton}>
+            <CalendarIcon className={styles.icon} aria-hidden />
           </Button>
         </Group>
-        <Popover
-          placement="bottom start"
-          offset={4}
-          className="z-[60] rounded-md border bg-popover p-3 text-popover-foreground shadow-md"
-        >
-          <Dialog className="outline-none">
+        <Popover placement="bottom start" offset={4} className={styles.popover}>
+          <Dialog className={styles.dialog}>
             <Calendar>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <Button slot="previous" className={iconButtonClass}>
-                  <ChevronLeft className="size-4" aria-hidden />
+              <div className={styles.calendarNav}>
+                <Button slot="previous" className={styles.iconButton}>
+                  <ChevronLeft className={styles.navIcon} aria-hidden />
                 </Button>
-                <Heading className="text-sm font-medium capitalize" />
-                <Button slot="next" className={iconButtonClass}>
-                  <ChevronRight className="size-4" aria-hidden />
+                <Heading className={styles.heading} />
+                <Button slot="next" className={styles.iconButton}>
+                  <ChevronRight className={styles.navIcon} aria-hidden />
                 </Button>
               </div>
-              <CalendarGrid className="border-collapse">
+              <CalendarGrid className={styles.grid}>
                 <CalendarGridHeader>
                   {(day) => (
-                    <CalendarHeaderCell className="size-8 text-xs font-normal capitalize text-muted-foreground">
-                      {day}
-                    </CalendarHeaderCell>
+                    <CalendarHeaderCell className={styles.headerCell}>{day}</CalendarHeaderCell>
                   )}
                 </CalendarGridHeader>
                 <CalendarGridBody>
-                  {(date) => <CalendarCell date={date} className={cellClass} />}
+                  {(date) => <CalendarCell date={date} className={styles.cell} />}
                 </CalendarGridBody>
               </CalendarGrid>
             </Calendar>

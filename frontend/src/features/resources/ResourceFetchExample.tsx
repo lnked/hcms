@@ -1,7 +1,9 @@
+import { clsx } from 'clsx'
 import { CodeBlock } from '@/features/docs/CodeBlock'
 import { useI18n } from '@/i18n'
 import type { Resource } from '@/types/resource'
 import { buildResourceFetchExample } from './buildResourceFetchExample'
+import styles from './ResourceFetchExample.module.css'
 
 interface ResourceFetchExampleProps {
   resource: Pick<Resource, 'endpoint' | 'settings'>
@@ -18,7 +20,7 @@ export function ResourceFetchExample({
   const snippet = buildResourceFetchExample(resource)
 
   return (
-    <div className={className}>
+    <div className={clsx(styles.root, className)}>
       <CodeBlock
         code={snippet}
         language="js"

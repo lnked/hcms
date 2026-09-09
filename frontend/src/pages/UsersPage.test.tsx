@@ -78,6 +78,6 @@ describe('UsersPage', () => {
     expect(password).toHaveLength(20)
     expect(copyToClipboard).toHaveBeenCalledWith(password)
     const toast = await screen.findByText('Value copied')
-    expect(toast).toHaveClass('bg-success')
+    expect(toast.className).toMatch(/success/)
   })
 })

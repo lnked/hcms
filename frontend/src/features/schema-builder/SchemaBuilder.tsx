@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
+import { clsx } from 'clsx'
 import { AnchorPicker } from '@/components/AnchorPicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,7 +22,7 @@ import {
   type SchemaField,
 } from '@/types/field'
 import { slugifyIdentifier } from '@/lib/slugify'
-import { cn } from '@/lib/utils'
+import styles from './SchemaBuilder.module.css'
 
 interface SchemaBuilderProps {
   schema: SchemaField[]
@@ -226,22 +227,18 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t('schema.fields')}</h2>
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>{t('schema.fields')}</h2>
         <Button type="button" size="sm" onClick={addField}>
-          <Plus className="h-4 w-4" />
+          <Plus className={styles.icon} />
           {t('schema.addField')}
         </Button>
       </div>
 
-      {schema.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          {t('schema.empty')}
-        </p>
-      ) : null}
+      {schema.length === 0 ? <p className={styles.empty}>{t('schema.empty')}</p> : null}
 
-      <ul ref={listRef} className="space-y-2" onDragOver={onListDragOver} onDrop={onListDrop}>
+      <ul ref={listRef} className={styles.list} onDragOver={onListDragOver} onDrop={onListDrop}>
         {schema.map((field, index) => {
           const shiftY = rowShiftY(index)
           const isDragging = dragIndex === index
@@ -254,32 +251,32 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
               style={{
                 transform: shiftY ? `translateY(${shiftY}px)` : undefined,
               }}
-              className={cn(
-                'rounded-lg border bg-card will-change-transform',
+              className={clsx(
+                styles.row,
                 // Animate only while dragging so drop + DOM reorder don't double-shift.
-                dragIndex !== null && 'transition-transform duration-200 ease-out',
-                isDragging && 'border-dashed opacity-40 shadow-none',
+                dragIndex !== null && styles.rowAnimating,
+                isDragging && styles.rowDragging,
                 overIndex === index &&
                   dragIndex !== null &&
                   dragIndex !== index &&
-                  'border-primary',
+                  styles.rowDropTarget,
               )}
             >
-              <div className="flex items-center gap-2 px-3 py-2">
+              <div className={styles.rowHeader}>
                 <button
                   type="button"
                   draggable
                   aria-label={t('schema.reorder')}
                   title={t('schema.reorder')}
-                  className="inline-flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent active:cursor-grabbing"
+                  className={styles.grip}
                   onDragStart={(e) => onGripDragStart(index, e)}
                   onDragEnd={onGripDragEnd}
                 >
-                  <GripVertical className="h-4 w-4" />
+                  <GripVertical className={styles.icon} />
                 </button>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">
+                <div className={styles.rowMain}>
+                  <div className={styles.rowTitleLine}>
+                    <span className={styles.rowLabel}>
                       {field.label || field.name || t('schema.untitled')}
                     </span>
                     <Badge variant="outline">{field.type}</Badge>
@@ -289,9 +286,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       <Badge variant="secondary">{t('common.optional')}</Badge>
                     )}
                   </div>
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    {field.name || '—'}
-                  </p>
+                  <p className={styles.rowName}>{field.name || '—'}</p>
                 </div>
                 <Button
                   type="button"
@@ -299,19 +294,16 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   variant="ghost"
                   onClick={() => setEditingIndex(editingIndex === index ? null : index)}
                 >
-                  <Settings2 className="h-4 w-4" />
+                  <Settings2 className={styles.icon} />
                 </Button>
                 <Button type="button" size="icon" variant="ghost" onClick={() => removeAt(index)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className={styles.iconDestructive} />
                 </Button>
               </div>
 
               {editingIndex === index ? (
-                <div
-                  ref={editFormRef}
-                  className="grid scroll-mt-4 gap-3 border-t p-3 md:grid-cols-2"
-                >
-                  <div className="space-y-2">
+                <div ref={editFormRef} className={styles.editForm}>
+                  <div className={styles.field}>
                     <Label>{t('common.name')}</Label>
                     <Input
                       value={field.name}
@@ -325,14 +317,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       placeholder="title"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className={styles.field}>
                     <Label>{t('common.label')}</Label>
                     <Input
                       value={field.label}
                       onChange={(e) => updateAt(index, { label: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className={styles.field}>
                     <Label>{t('common.type')}</Label>
                     <Select
                       value={field.type}
@@ -345,14 +337,14 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       ))}
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className={styles.field}>
                     <Label>{t('common.description')}</Label>
                     <Input
                       value={field.description ?? ''}
                       onChange={(e) => updateAt(index, { description: e.target.value })}
                     />
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.required}
@@ -362,7 +354,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('common.required')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.unique}
@@ -370,7 +362,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.unique')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.searchable}
@@ -378,7 +370,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.searchable')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.sortable}
@@ -386,7 +378,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.sortable')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.filterable}
@@ -394,7 +386,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.filterable')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.readable}
@@ -402,7 +394,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.readable')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.writable}
@@ -413,7 +405,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.writable')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.hidden}
@@ -421,7 +413,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     />
                     {t('schema.hidden')}
                   </label>
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={field.readonly}
@@ -430,7 +422,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     {t('schema.readonly')}
                   </label>
                   {field.type === 'enum' ? (
-                    <div className="space-y-2 md:col-span-2">
+                    <div className={clsx(styles.field, styles.span2)}>
                       <Label>{t('schema.options')}</Label>
                       <Input
                         value={
@@ -451,7 +443,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     </div>
                   ) : null}
                   {field.type === 'date' || field.type === 'datetime' ? (
-                    <div className="space-y-2 md:col-span-2">
+                    <div className={clsx(styles.field, styles.span2)}>
                       <Label>{t('schema.date.format')}</Label>
                       <Input
                         value={String(field.config.format ?? '')}
@@ -461,11 +453,11 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         }
                         onChange={(e) => patchConfig(index, { format: e.target.value })}
                       />
-                      <p className="text-xs text-muted-foreground">{t('schema.date.formatHint')}</p>
+                      <p className={styles.hint}>{t('schema.date.formatHint')}</p>
                     </div>
                   ) : null}
                   {field.type === 'slug' ? (
-                    <div className="space-y-2 md:col-span-2">
+                    <div className={clsx(styles.field, styles.span2)}>
                       <Label>{t('schema.slug.associatedWith')}</Label>
                       <Select
                         value={String(field.config.associatedWith ?? '')}
@@ -487,7 +479,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   ) : null}
                   {field.type === 'file' || field.type === 'image' ? (
                     <>
-                      <label className="flex items-center gap-2 text-sm md:col-span-2">
+                      <label className={clsx(styles.checkLabel, styles.span2)}>
                         <input
                           type="checkbox"
                           checked={Boolean(field.config.multiple)}
@@ -497,7 +489,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           field.type === 'image' ? 'schema.image.multiple' : 'schema.file.multiple',
                         )}
                       </label>
-                      <div className="space-y-2 md:col-span-2">
+                      <div className={clsx(styles.field, styles.span2)}>
                         <Label>
                           {t(
                             field.type === 'image' ? 'schema.image.formats' : 'schema.file.formats',
@@ -519,7 +511,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           }
                           placeholder={field.type === 'image' ? 'jpg, png, webp' : 'pdf, docx, zip'}
                         />
-                        <p className="text-xs text-muted-foreground">
+                        <p className={styles.hint}>
                           {t(
                             field.type === 'image'
                               ? 'schema.image.formatsHint'
@@ -530,8 +522,8 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     </>
                   ) : null}
                   {field.type === 'image' ? (
-                    <div className="space-y-3 md:col-span-2">
-                      <div className="flex items-center justify-between gap-2">
+                    <div className={clsx(styles.sizesSection, styles.span2)}>
+                      <div className={styles.sizesHeader}>
                         <Label>{t('schema.image.sizes')}</Label>
                         <Button
                           type="button"
@@ -551,7 +543,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                             patchConfig(index, { sizes })
                           }}
                         >
-                          <Plus className="mr-1 h-3.5 w-3.5" />
+                          <Plus className={styles.iconSmGap} />
                           {t('schema.image.addSize')}
                         </Button>
                       </div>
@@ -559,14 +551,11 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         ? (field.config.sizes as ImageSizeConfig[])
                         : []
                       ).map((size, sizeIndex) => (
-                        <div
-                          key={`size-${sizeIndex}`}
-                          className="flex flex-wrap items-end gap-2 rounded-md border border-border p-2"
-                        >
-                          <div className="space-y-1">
-                            <Label className="text-xs">{t('schema.image.prefix')}</Label>
+                        <div key={`size-${sizeIndex}`} className={styles.sizeRow}>
+                          <div className={styles.fieldTight}>
+                            <Label className={styles.labelXs}>{t('schema.image.prefix')}</Label>
                             <Input
-                              className="w-28"
+                              className={styles.inputPrefix}
                               value={size.prefix}
                               maxLength={32}
                               placeholder="crop"
@@ -580,10 +569,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               }}
                             />
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">{t('schema.image.width')}</Label>
+                          <div className={styles.fieldTight}>
+                            <Label className={styles.labelXs}>{t('schema.image.width')}</Label>
                             <Input
-                              className="w-20"
+                              className={styles.inputDim}
                               type="number"
                               min={1}
                               value={size.width}
@@ -597,10 +586,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               }}
                             />
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">{t('schema.image.height')}</Label>
+                          <div className={styles.fieldTight}>
+                            <Label className={styles.labelXs}>{t('schema.image.height')}</Label>
                             <Input
-                              className="w-20"
+                              className={styles.inputDim}
                               type="number"
                               min={1}
                               value={size.height}
@@ -614,16 +603,16 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               }}
                             />
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">{t('schema.image.mode')}</Label>
-                            <div className={cn(controlFieldClass, 'w-auto items-center gap-2')}>
+                          <div className={styles.fieldTight}>
+                            <Label className={styles.labelXs}>{t('schema.image.mode')}</Label>
+                            <div className={clsx(controlFieldClass, styles.modeControl)}>
                               <span
-                                className={cn(
-                                  'flex items-center gap-1 text-xs',
-                                  size.mode === 'resize' ? 'text-muted-foreground' : 'text-primary',
+                                className={clsx(
+                                  styles.modeOption,
+                                  size.mode === 'resize' ? styles.modeMuted : styles.modeActive,
                                 )}
                               >
-                                <Crop className="h-3.5 w-3.5" />
+                                <Crop className={styles.iconSm} />
                                 {t('schema.image.modeCrop')}
                               </span>
                               <Switch
@@ -639,18 +628,18 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                                 }}
                               />
                               <span
-                                className={cn(
-                                  'flex items-center gap-1 text-xs',
-                                  size.mode === 'resize' ? 'text-primary' : 'text-muted-foreground',
+                                className={clsx(
+                                  styles.modeOption,
+                                  size.mode === 'resize' ? styles.modeActive : styles.modeMuted,
                                 )}
                               >
-                                <Images className="h-3.5 w-3.5" />
+                                <Images className={styles.iconSm} />
                                 {t('schema.image.modeResize')}
                               </span>
                             </div>
                           </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">{t('schema.image.position')}</Label>
+                          <div className={styles.fieldTight}>
+                            <Label className={styles.labelXs}>{t('schema.image.position')}</Label>
                             <AnchorPicker
                               value={size.position || 'c'}
                               title={t('schema.image.position')}
@@ -665,7 +654,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                             type="button"
                             size="sm"
                             variant="ghost"
-                            className="text-destructive"
+                            className={styles.destructiveText}
                             onClick={() => {
                               const sizes = (field.config.sizes as ImageSizeConfig[]).filter(
                                 (_, i) => i !== sizeIndex,
@@ -681,7 +670,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   ) : null}
                   {field.type === 'relation' ? (
                     <>
-                      <div className="space-y-2">
+                      <div className={styles.field}>
                         <Label>{t('schema.relation.relatedSlug')}</Label>
                         <Input
                           value={String(field.config.relatedSlug ?? '')}
@@ -689,7 +678,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           placeholder="posts"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className={styles.field}>
                         <Label>{t('schema.relation.cardinality')}</Label>
                         <Select
                           value={
@@ -708,7 +697,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
                         </Select>
                       </div>
-                      <div className="space-y-2">
+                      <div className={styles.field}>
                         <Label>{t('schema.relation.labelField')}</Label>
                         <Input
                           value={String(field.config.labelField ?? 'id')}
@@ -717,7 +706,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         />
                       </div>
                       {field.config.cardinality === 'oneToMany' ? (
-                        <div className="space-y-2">
+                        <div className={styles.field}>
                           <Label>{t('schema.relation.foreignKey')}</Label>
                           <Input
                             value={String(field.config.foreignKey ?? '')}

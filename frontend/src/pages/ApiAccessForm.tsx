@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { useI18n } from '@/i18n'
+import styles from './ApiAccessForm.module.css'
 
 export interface ApiAccessSettings {
   unrestricted: boolean
@@ -56,17 +58,17 @@ export function ApiAccessForm({
 
   return (
     <>
-      <label className="flex items-start gap-2 text-sm">
+      <label className={clsx(styles.checkRow)}>
         <input
           type="checkbox"
-          className="mt-1"
+          className={clsx(styles.checkInput)}
           checked={unrestricted}
           onChange={(e) => setUnrestricted(e.target.checked)}
         />
         <span>{t('system.apiAccessUnrestricted')}</span>
       </label>
       {!unrestricted ? (
-        <div className="space-y-2">
+        <div className={clsx(styles.field)}>
           <Label htmlFor="api-origins">{t('system.apiAccessOrigins')}</Label>
           <Textarea
             id="api-origins"
@@ -74,7 +76,7 @@ export function ApiAccessForm({
             value={originsText}
             onChange={(e) => setOriginsText(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">{t('system.apiAccessOriginsHint')}</p>
+          <p className={clsx(styles.hint)}>{t('system.apiAccessOriginsHint')}</p>
         </div>
       ) : null}
       {isDirty ? (

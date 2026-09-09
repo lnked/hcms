@@ -1,0 +1,49 @@
+.root {
+  display: inline-flex;
+  height: var(--hcms-SPx5);
+  width: var(--hcms-SPx9);
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 9999px;
+  border: none;
+  padding: 0;
+  transition: background-color 0.15s;
+}
+
+.root:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--hcms-color-ring);
+}
+
+.root:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.rootChecked {
+  background-color: var(--hcms-color-primary);
+}
+
+.rootUnchecked {
+  background-color: var(--hcms-color-input);
+}
+
+.thumb {
+  pointer-events: none;
+  display: block;
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+  border-radius: 9999px;
+  background-color: var(--hcms-color-background);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--hcms-color-foreground) 20%, transparent);
+  transition: transform 0.15s;
+}
+
+.thumbChecked {
+  transform: translateX(calc(var(--hcms-SPx9) - var(--hcms-SPx4) - var(--hcms-SPx1) / 2));
+}
+
+.thumbUnchecked {
+  transform: translateX(calc(var(--hcms-SPx1) / 2));
+}

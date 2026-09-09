@@ -1,33 +1,33 @@
-import { cva, type VariantProps } from 'class-variance-authority'
 import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
+import styles from './Alert.module.css'
 
-const alertVariants = cva(
-  'flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left text-sm',
-  {
-    variants: {
-      variant: {
-        default: 'border-border bg-muted/40 text-foreground',
-        info: 'border-primary bg-primary/10 text-foreground',
-        destructive: 'border-destructive bg-destructive/10 text-foreground',
-      },
-    },
-    defaultVariants: { variant: 'default' },
-  },
-)
+const variantClass = {
+  default: styles.variantDefault,
+  info: styles.variantInfo,
+  destructive: styles.variantDestructive,
+} as const
+
+export type AlertVariant = keyof typeof variantClass
 
 export function Alert({
   className,
-  variant,
+  variant = 'default',
   ...props
-}: HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>) {
-  return <div role="status" className={cn(alertVariants({ variant }), className)} {...props} />
+}: HTMLAttributes<HTMLDivElement> & { variant?: AlertVariant | null }) {
+  return (
+    <div
+      role="status"
+      className={cn(styles.alert, variantClass[variant ?? 'default'], className)}
+      {...props}
+    />
+  )
 }
 
 export function AlertTitle({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm font-medium text-foreground', className)} {...props} />
+  return <p className={cn(styles.title, className)} {...props} />
 }
 
 export function AlertDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-sm text-muted-foreground', className)} {...props} />
+  return <p className={cn(styles.description, className)} {...props} />
 }

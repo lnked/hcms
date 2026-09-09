@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { controlFieldClass } from './control'
+import styles from './Select.module.css'
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   /** Applied to the positioning wrapper, e.g. to opt out of full width. */
@@ -10,22 +11,11 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, containerClassName, children, ...props }, ref) => (
-    <div className={cn('relative w-full', containerClassName)}>
-      <select
-        ref={ref}
-        className={cn(
-          controlFieldClass,
-          'cursor-pointer appearance-none pr-8 hover:border-muted-foreground/40',
-          className,
-        )}
-        {...props}
-      >
+    <div className={cn(styles.container, containerClassName)}>
+      <select ref={ref} className={cn(controlFieldClass, styles.select, className)} {...props}>
         {children}
       </select>
-      <ChevronDown
-        className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-        aria-hidden
-      />
+      <ChevronDown className={styles.icon} aria-hidden />
     </div>
   ),
 )

@@ -1,0 +1,26 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.label {
+  height: var(--hcms-SPx4);
+  width: 7rem;
+}
+
+.control {
+  height: var(--hcms-SPx9);
+  width: 100%;
+}
+
+.submit {
+  height: var(--hcms-SPx9);
+  width: 7rem;
+}

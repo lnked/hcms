@@ -1,0 +1,103 @@
+.btn {
+  display: inline-flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hcms-SPx2);
+  white-space: nowrap;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--hcms-color-ring);
+}
+
+.btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.variantDefault {
+  background-color: var(--hcms-color-primary);
+  color: var(--hcms-color-primary-foreground);
+}
+
+.variantDefault:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-primary) 90%, transparent);
+}
+
+.variantSecondary {
+  background-color: var(--hcms-color-secondary);
+  color: var(--hcms-color-secondary-foreground);
+}
+
+.variantSecondary:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-secondary) 80%, transparent);
+}
+
+.variantOutline {
+  border-color: var(--hcms-color-input);
+  background-color: var(--hcms-color-background);
+}
+
+.variantOutline:hover {
+  background-color: var(--hcms-color-accent);
+}
+
+.variantGhost:hover {
+  background-color: var(--hcms-color-accent);
+  color: var(--hcms-color-accent-foreground);
+}
+
+.variantDestructive {
+  background-color: var(--hcms-color-destructive);
+  color: var(--hcms-color-primary-foreground);
+}
+
+.variantDestructive:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 90%, transparent);
+}
+
+.variantLink {
+  background-color: transparent;
+  color: var(--hcms-color-primary);
+  text-underline-offset: var(--hcms-SPx1);
+}
+
+.variantLink:hover {
+  text-decoration: underline;
+}
+
+.sizeDefault {
+  height: var(--hcms-SPx9);
+  padding: var(--hcms-SPx2) var(--hcms-SPx4);
+}
+
+.sizeSm {
+  height: var(--hcms-SPx8);
+  border-radius: var(--hcms-CRx2);
+  padding-left: var(--hcms-SPx3);
+  padding-right: var(--hcms-SPx3);
+}
+
+.sizeLg {
+  height: var(--hcms-SPx10);
+  border-radius: var(--hcms-CRx2);
+  padding-left: var(--hcms-SPx6);
+  padding-right: var(--hcms-SPx6);
+}
+
+.sizeIcon {
+  height: var(--hcms-SPx9);
+  width: var(--hcms-SPx9);
+  padding: 0;
+}

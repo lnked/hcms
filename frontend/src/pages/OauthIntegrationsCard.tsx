@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +11,7 @@ import { api } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
 import { useI18n } from '@/i18n'
+import styles from './OauthIntegrationsCard.module.css'
 
 interface OauthConfig {
   google: {
@@ -88,38 +90,36 @@ export function OauthIntegrationsCard() {
         <CardTitle>{t('integrations.oauth.cardTitle')}</CardTitle>
         <CardDescription>{t('integrations.oauth.description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className={clsx(styles.content)}>
         {query.isLoading ? (
           <FormBlockSkeleton fields={4} />
         ) : query.isError ? (
-          <p className="text-sm text-destructive">
+          <p className={clsx(styles.error)}>
             {query.error instanceof Error ? query.error.message : t('common.requestFailed')}
           </p>
         ) : (
           <>
-            <div className="space-y-4 rounded-md border p-4">
-              <div className="flex items-center justify-between gap-3">
+            <div className={clsx(styles.panel)}>
+              <div className={clsx(styles.panelHeader)}>
                 <div>
-                  <h3 className="text-sm font-medium">Google</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {t('integrations.oauth.googleHint')}
-                  </p>
+                  <h3 className={clsx(styles.panelTitle)}>Google</h3>
+                  <p className={clsx(styles.hint)}>{t('integrations.oauth.googleHint')}</p>
                 </div>
                 <Badge variant={googleEnabled ? 'default' : 'secondary'}>
                   {googleEnabled ? t('common.enabled') : t('common.disabled')}
                 </Badge>
               </div>
-              <label className="flex items-start gap-2 text-sm">
+              <label className={clsx(styles.checkRow)}>
                 <input
                   type="checkbox"
-                  className="mt-1"
+                  className={clsx(styles.checkInput)}
                   checked={googleEnabled}
                   onChange={(e) => setGoogleEnabled(e.target.checked)}
                 />
                 <span>{t('integrations.oauth.googleEnabled')}</span>
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+              <div className={clsx(styles.grid)}>
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="google-client-id">{t('integrations.oauth.clientId')}</Label>
                   <Input
                     id="google-client-id"
@@ -127,10 +127,10 @@ export function OauthIntegrationsCard() {
                     onChange={(e) => setGoogleClientId(e.target.value)}
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className={clsx(styles.hint)}>
                     {t('integrations.oauth.clientIdHelp')}{' '}
                     <a
-                      className="underline underline-offset-2"
+                      className={clsx(styles.link)}
                       href="https://console.cloud.google.com/apis/credentials"
                       target="_blank"
                       rel="noreferrer"
@@ -139,7 +139,7 @@ export function OauthIntegrationsCard() {
                     </a>
                   </p>
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="google-client-secret">
                     {t('integrations.oauth.clientSecret')}
                   </Label>
@@ -157,15 +157,13 @@ export function OauthIntegrationsCard() {
                     }
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t('integrations.oauth.clientSecretHelp')}
-                  </p>
+                  <p className={clsx(styles.hint)}>{t('integrations.oauth.clientSecretHelp')}</p>
                 </div>
               </div>
               {query.data?.google.redirectUri ? (
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label>{t('integrations.oauth.redirectUri')}</Label>
-                  <div className="flex gap-2">
+                  <div className={clsx(styles.row)}>
                     <Input readOnly value={query.data.google.redirectUri} />
                     <Button
                       type="button"
@@ -179,29 +177,27 @@ export function OauthIntegrationsCard() {
               ) : null}
             </div>
 
-            <div className="space-y-4 rounded-md border p-4">
-              <div className="flex items-center justify-between gap-3">
+            <div className={clsx(styles.panel)}>
+              <div className={clsx(styles.panelHeader)}>
                 <div>
-                  <h3 className="text-sm font-medium">Telegram</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {t('integrations.oauth.telegramHint')}
-                  </p>
+                  <h3 className={clsx(styles.panelTitle)}>Telegram</h3>
+                  <p className={clsx(styles.hint)}>{t('integrations.oauth.telegramHint')}</p>
                 </div>
                 <Badge variant={telegramEnabled ? 'default' : 'secondary'}>
                   {telegramEnabled ? t('common.enabled') : t('common.disabled')}
                 </Badge>
               </div>
-              <label className="flex items-start gap-2 text-sm">
+              <label className={clsx(styles.checkRow)}>
                 <input
                   type="checkbox"
-                  className="mt-1"
+                  className={clsx(styles.checkInput)}
                   checked={telegramEnabled}
                   onChange={(e) => setTelegramEnabled(e.target.checked)}
                 />
                 <span>{t('integrations.oauth.telegramEnabled')}</span>
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+              <div className={clsx(styles.grid)}>
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="tg-bot">{t('integrations.oauth.botUsername')}</Label>
                   <Input
                     id="tg-bot"
@@ -210,10 +206,10 @@ export function OauthIntegrationsCard() {
                     placeholder="MyCmsBot"
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className={clsx(styles.hint)}>
                     {t('integrations.oauth.botUsernameHelp')}{' '}
                     <a
-                      className="underline underline-offset-2"
+                      className={clsx(styles.link)}
                       href="https://t.me/BotFather"
                       target="_blank"
                       rel="noreferrer"
@@ -222,7 +218,7 @@ export function OauthIntegrationsCard() {
                     </a>
                   </p>
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="tg-token">{t('integrations.oauth.botToken')}</Label>
                   <Input
                     id="tg-token"
@@ -238,14 +234,12 @@ export function OauthIntegrationsCard() {
                     }
                     autoComplete="off"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t('integrations.oauth.botTokenHelp')}
-                  </p>
+                  <p className={clsx(styles.hint)}>{t('integrations.oauth.botTokenHelp')}</p>
                 </div>
               </div>
             </div>
 
-            {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+            {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
             <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
               {save.isPending ? t('common.saving') : t('common.save')}
             </Button>

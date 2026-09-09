@@ -1,0 +1,37 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  overflow: auto;
+}
+
+.table {
+  width: 100%;
+  caption-side: bottom;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  border-collapse: collapse;
+}
+
+.row {
+  border-bottom: 1px solid var(--hcms-color-border);
+  transition: background-color 0.15s;
+}
+
+.row:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 50%, transparent);
+}
+
+.head {
+  height: var(--hcms-SPx10);
+  padding-left: var(--hcms-SPx3);
+  padding-right: var(--hcms-SPx3);
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 500;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.cell {
+  padding: var(--hcms-SPx3);
+  vertical-align: middle;
+}

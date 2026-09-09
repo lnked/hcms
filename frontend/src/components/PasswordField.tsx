@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Copy, Eye, EyeOff, Wand2 } from 'lucide-react'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,7 +8,7 @@ import { useI18n } from '@/i18n'
 import { copyToClipboard } from '@/lib/clipboard'
 import { generatePassword } from '@/lib/password'
 import { showError } from '@/lib/toast'
-import { cn } from '@/lib/utils'
+import styles from './PasswordField.module.css'
 
 type PasswordFieldProps = {
   id: string
@@ -62,35 +63,35 @@ export function PasswordField({
   }
 
   return (
-    <div className={cn('space-y-2', className)}>
-      <div className="flex items-center justify-between gap-2">
+    <div className={clsx(styles.root, className)}>
+      <div className={styles.header}>
         <Label htmlFor={id}>{label}</Label>
         {allowGenerate ? (
           <Button type="button" variant="ghost" size="sm" onClick={suggest}>
-            <Wand2 className="mr-1 size-3.5" />
+            <Wand2 className={styles.generateIcon} />
             {t('account.generate')}
           </Button>
         ) : null}
       </div>
-      <div className="relative">
+      <div className={styles.field}>
         <Input
           id={id}
           type={reveal ? 'text' : 'password'}
           autoComplete={autoComplete}
           autoFocus={autoFocus}
-          className={trailingCount > 1 ? 'pr-20' : 'pr-10'}
+          className={trailingCount > 1 ? styles.inputPadTwo : styles.inputPadOne}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
         />
-        <div className="absolute top-1/2 right-1 flex -translate-y-1/2 items-center">
+        <div className={styles.trailing}>
           {copyEnabled ? (
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className={styles.iconBtn}
               disabled={value === ''}
               title={t('account.copy')}
               aria-label={t('account.copy')}
@@ -98,23 +99,23 @@ export function PasswordField({
                 void copyToClipboard(value).catch(() => showError(t('common.copyFailed')))
               }}
             >
-              <Copy className="size-4" />
+              <Copy className={styles.icon} />
             </Button>
           ) : null}
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className={styles.iconBtn}
             title={reveal ? t('account.hidePassword') : t('account.showPassword')}
             aria-label={reveal ? t('account.hidePassword') : t('account.showPassword')}
             onClick={() => setReveal(!reveal)}
           >
-            {reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {reveal ? <EyeOff className={styles.icon} /> : <Eye className={styles.icon} />}
           </Button>
         </div>
       </div>
-      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className={styles.hint}>{hint}</p> : null}
     </div>
   )
 }

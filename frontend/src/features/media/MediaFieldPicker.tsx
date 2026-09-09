@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { clsx } from 'clsx'
 import { Pencil, RotateCcw, RotateCw } from 'lucide-react'
 import { AnchorPicker, type AnchorPosition } from '@/components/AnchorPicker'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ import type {
   MediaItemRef,
 } from '@/types/field'
 import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
+import styles from './MediaFieldPicker.module.css'
 
 type UploadResult = MediaFieldValue & { media?: MediaItemRef; warning?: string | null }
 
@@ -264,13 +266,13 @@ export function MediaFieldPicker({
   const editingItem = editingIndex == null ? null : (items[editingIndex] ?? null)
 
   return (
-    <div className="space-y-3">
+    <div className={clsx(styles.root)}>
       <input
         ref={inputRef}
         id={id}
         type="file"
         accept={resolvedAccept}
-        className="hidden"
+        className={clsx(styles.hiddenInput)}
         disabled={disabled || busy}
         multiple={false}
         onChange={async (e) => {
@@ -282,8 +284,8 @@ export function MediaFieldPicker({
       />
 
       {items.map((item, index) => (
-        <div key={`${item.id}-${index}`} className="space-y-2 rounded-md border border-border p-3">
-          <div className="flex flex-wrap items-start gap-3">
+        <div key={`${item.id}-${index}`} className={clsx(styles.item)}>
+          <div className={clsx(styles.itemRow)}>
             {isImage ||
             resolvedAccept?.includes('image') ||
             sizes.length > 0 ||
@@ -291,19 +293,19 @@ export function MediaFieldPicker({
               <img
                 src={mediaUrl(item)}
                 alt=""
-                className="h-20 w-20 rounded object-cover bg-muted"
+                className={clsx(styles.preview)}
                 style={{
                   transform: item.rotation ? `rotate(${item.rotation}deg)` : undefined,
                 }}
               />
             ) : null}
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className={clsx(styles.itemBody)}>
+              <div className={clsx(styles.itemToolbar)}>
                 <a
                   href={mediaUrl(item)}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-primary underline-offset-4 hover:underline"
+                  className={clsx(styles.mediaLink)}
                 >
                   #{item.id}
                   {item.media?.originalName ? ` · ${item.media.originalName}` : ''}
@@ -318,7 +320,7 @@ export function MediaFieldPicker({
                       title={t('media.edit')}
                       onClick={() => setEditingIndex(index)}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className={clsx(styles.iconSm)} />
                     </Button>
                     {/* Quick rotate stays for untouched uploads; once edited, the editor owns orientation. */}
                     {item.sourceId == null ? (
@@ -335,7 +337,7 @@ export function MediaFieldPicker({
                             })
                           }
                         >
-                          <RotateCcw className="h-3.5 w-3.5" />
+                          <RotateCcw className={clsx(styles.iconSm)} />
                         </Button>
                         <Button
                           type="button"
@@ -349,11 +351,11 @@ export function MediaFieldPicker({
                             })
                           }
                         >
-                          <RotateCw className="h-3.5 w-3.5" />
+                          <RotateCw className={clsx(styles.iconSm)} />
                         </Button>
                       </>
                     ) : (
-                      <span className="text-xs text-muted-foreground">{t('media.edited')}</span>
+                      <span className={clsx(styles.editedLabel)}>{t('media.edited')}</span>
                     )}
                   </>
                 ) : null}
@@ -368,13 +370,13 @@ export function MediaFieldPicker({
                 </Button>
               </div>
               {sizes.length > 0 ? (
-                <div className="flex flex-wrap gap-3">
+                <div className={clsx(styles.sizesRow)}>
                   {sizes.map((size) => {
                     const pos = item.positions[size.prefix] ?? size.position ?? 'c'
                     const vid = item.variants[size.prefix]
                     return (
-                      <div key={size.prefix} className="space-y-1">
-                        <div className="text-xs text-muted-foreground">
+                      <div key={size.prefix} className={clsx(styles.sizeBlock)}>
+                        <div className={clsx(styles.sizeLabel)}>
                           {size.prefix} ({size.width}×{size.height} {size.mode})
                           {vid != null ? (
                             <>
@@ -383,7 +385,7 @@ export function MediaFieldPicker({
                                 href={`/media/${variantId(vid)}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="underline-offset-2 hover:underline"
+                                className={clsx(styles.variantLink)}
                               >
                                 #{variantId(vid)}
                               </a>
@@ -413,7 +415,7 @@ export function MediaFieldPicker({
         </div>
       ))}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className={clsx(styles.actionsRow)}>
         {(multiple || items.length === 0) && (
           <Button
             type="button"
@@ -430,14 +432,12 @@ export function MediaFieldPicker({
           </Button>
         )}
         {!multiple && items.length === 0 ? (
-          <span className="text-sm text-muted-foreground">{t('media.noFile')}</span>
+          <span className={clsx(styles.emptyHint)}>{t('media.noFile')}</span>
         ) : null}
       </div>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
       {warning ? (
-        <p className="text-xs text-muted-foreground">
-          {t('media.variantsFailed', { reason: warning })}
-        </p>
+        <p className={clsx(styles.warning)}>{t('media.variantsFailed', { reason: warning })}</p>
       ) : null}
 
       {editingItem ? (

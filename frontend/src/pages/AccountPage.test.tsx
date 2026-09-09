@@ -110,7 +110,7 @@ describe('AccountPage', () => {
     })
 
     const toast = await screen.findByText(/Password changed/)
-    expect(toast).toHaveClass('bg-success')
+    expect(toast.className).toMatch(/success/)
     await waitFor(() => expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument())
   })
 })

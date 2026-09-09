@@ -1,29 +1,30 @@
 import { Skeleton } from '@/components/ui/skeleton'
+import styles from './DetailPageSkeleton.module.css'
 
 export function DetailPageSkeleton() {
   return (
-    <div className="space-y-6" role="status" aria-busy="true">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-72" />
+    <div className={styles.root} role="status" aria-busy="true">
+      <div className={styles.top}>
+        <div className={styles.heading}>
+          <Skeleton className={styles.title} />
+          <Skeleton className={styles.subtitle} />
         </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-9 w-24" />
-          <Skeleton className="h-9 w-24" />
+        <div className={styles.actions}>
+          <Skeleton className={styles.actionBtn} />
+          <Skeleton className={styles.actionBtn} />
         </div>
       </div>
-      <div className="flex gap-2 border-b pb-2">
+      <div className={styles.tabs}>
         {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} className="h-8 w-20" />
+          <Skeleton key={i} className={styles.tab} />
         ))}
       </div>
-      <div className="space-y-3 rounded-lg border p-4">
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5 max-w-md" />
-        <Skeleton className="h-4 w-3/5 max-w-sm" />
-        <div className="pt-4">
+      <div className={styles.block}>
+        <Skeleton className={styles.blockTitle} />
+        <Skeleton className={styles.lineFull} />
+        <Skeleton className={styles.lineMd} />
+        <Skeleton className={styles.lineSm} />
+        <div className={styles.tableWrap}>
           <TableishRows />
         </div>
       </div>
@@ -33,12 +34,12 @@ export function DetailPageSkeleton() {
 
 function TableishRows() {
   return (
-    <div className="space-y-3">
+    <div className={styles.rows}>
       {Array.from({ length: 4 }, (_, row) => (
-        <div key={row} className="flex gap-3">
-          <Skeleton className="h-4 flex-1" />
-          <Skeleton className="h-4 flex-1" />
-          <Skeleton className="h-4 w-20" />
+        <div key={row} className={styles.row}>
+          <Skeleton className={styles.cellGrow} />
+          <Skeleton className={styles.cellGrow} />
+          <Skeleton className={styles.cellFixed} />
         </div>
       ))}
     </div>

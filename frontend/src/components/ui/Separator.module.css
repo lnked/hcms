@@ -1,0 +1,5 @@
+.root {
+  height: 1px;
+  width: 100%;
+  background-color: var(--hcms-color-border);
+}

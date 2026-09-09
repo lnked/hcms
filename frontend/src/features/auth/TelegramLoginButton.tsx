@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import styles from './TelegramLoginButton.module.css'
 
 export interface TelegramAuthPayload {
   id: number
@@ -51,5 +52,5 @@ export function TelegramLoginButton({
     }
   }, [botUsername])
 
-  return <div ref={host} className="flex min-h-10 justify-center" />
+  return <div ref={host} className={styles.root} />
 }

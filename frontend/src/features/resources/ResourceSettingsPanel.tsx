@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource, ResourceSettings } from '@/types/resource'
+import styles from './ResourceSettingsPanel.module.css'
 
 interface ResourceSettingsPanelProps {
   resource: Resource
@@ -101,14 +102,12 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
         <CardTitle>{t('resources.settings.title')}</CardTitle>
         <CardDescription>{t('resources.settings.hint')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className={styles.stack}>
         {isPublicWriteUnprotected(settings) ? (
-          <p className="rounded-md border border-amber-500 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
-            {t('resources.settings.unprotectedWarning')}
-          </p>
+          <p className={styles.warning}>{t('resources.settings.unprotectedWarning')}</p>
         ) : null}
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm">
+        <div className={styles.grid2}>
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.apiEnabled}
@@ -116,7 +115,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.apiEnabled')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.pagination}
@@ -124,7 +123,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.pagination')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.search}
@@ -132,7 +131,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.search')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.sorting}
@@ -140,7 +139,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.sorting')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.filtering}
@@ -150,10 +149,10 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
           </label>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-sm font-medium">{t('resources.settings.publicAccess')}</p>
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="flex items-center gap-2 text-sm">
+        <div className={styles.section}>
+          <p className={styles.sectionTitle}>{t('resources.settings.publicAccess')}</p>
+          <div className={styles.grid2}>
+            <label className={styles.checkLabel}>
               <input
                 type="checkbox"
                 checked={settings.public.read}
@@ -161,7 +160,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.publicRead')}
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className={styles.checkLabel}>
               <input
                 type="checkbox"
                 checked={settings.public.create}
@@ -169,7 +168,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.publicCreate')}
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className={styles.checkLabel}>
               <input
                 type="checkbox"
                 checked={settings.public.update}
@@ -177,7 +176,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.publicUpdate')}
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className={styles.checkLabel}>
               <input
                 type="checkbox"
                 checked={settings.public.delete}
@@ -188,11 +187,11 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
           </div>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-sm font-medium">{t('resources.settings.spamTitle')}</p>
-          <p className="text-xs text-muted-foreground">{t('resources.settings.spamHint')}</p>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-2">
+        <div className={styles.section}>
+          <p className={styles.sectionTitle}>{t('resources.settings.spamTitle')}</p>
+          <p className={styles.hint}>{t('resources.settings.spamHint')}</p>
+          <div className={styles.grid2}>
+            <div className={styles.field}>
               <Label htmlFor="honeypot">{t('resources.settings.honeypot')}</Label>
               <Input
                 id="honeypot"
@@ -201,7 +200,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
                 placeholder="website"
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="min-submit">{t('resources.settings.minSubmitMs')}</Label>
               <Input
                 id="min-submit"
@@ -211,7 +210,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
                 onChange={(e) => patchSpam({ minSubmitMs: Number(e.target.value) || 0 })}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="spam-rl">{t('resources.settings.rateLimitPerMinute')}</Label>
               <Input
                 id="spam-rl"
@@ -221,7 +220,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
                 onChange={(e) => patchSpam({ rateLimitPerMinute: Number(e.target.value) || 0 })}
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="max-links">{t('resources.settings.maxLinks')}</Label>
               <Input
                 id="max-links"
@@ -232,7 +231,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.spam?.requireCaptcha ?? false}
@@ -240,7 +239,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.requireCaptcha')}
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className={styles.checkLabel}>
             <input
               type="checkbox"
               checked={settings.spam?.rejectDuplicates ?? true}
@@ -248,7 +247,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
             />
             {t('resources.settings.rejectDuplicates')}
           </label>
-          <div className="space-y-2">
+          <div className={styles.field}>
             <Label htmlFor="blocklist">{t('resources.settings.blocklist')}</Label>
             <Input
               id="blocklist"
@@ -266,7 +265,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
           </div>
         </div>
 
-        <div className="max-w-xs space-y-2">
+        <div className={styles.deleteStrategy}>
           <Label htmlFor="delete-strategy">{t('resources.settings.deleteStrategy')}</Label>
           <Select
             id="delete-strategy"
@@ -278,11 +277,11 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
           </Select>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className={styles.footer}>
           <Button disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? t('common.saving') : t('common.save')}
           </Button>
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <p className={styles.message}>{message}</p> : null}
         </div>
       </CardContent>
     </Card>

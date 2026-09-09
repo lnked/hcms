@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
+import styles from './LogsPage.module.css'
 
 interface AuditRow {
   id: number
@@ -128,7 +130,7 @@ export function LogsPage() {
       return <TableSkeleton columns={2} rows={4} />
     }
     if (!rows || rows.length === 0) {
-      return <p className="text-sm text-muted-foreground">{empty}</p>
+      return <p className={clsx(styles.muted)}>{empty}</p>
     }
     return (
       <Table>
@@ -141,8 +143,8 @@ export function LogsPage() {
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.ip}>
-              <TableCell className="font-mono text-xs">{row.ip}</TableCell>
-              <TableCell className="text-xs">{row.count}</TableCell>
+              <TableCell className={clsx(styles.monoXs)}>{row.ip}</TableCell>
+              <TableCell className={clsx(styles.xs)}>{row.count}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -151,13 +153,13 @@ export function LogsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={clsx(styles.root)}>
       <div>
-        <h1 className="text-2xl font-semibold">{t('logs.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('logs.subtitle')}</p>
+        <h1 className={clsx(styles.title)}>{t('logs.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('logs.subtitle')}</p>
       </div>
 
-      <div className="flex gap-2 border-b pb-2">
+      <div className={clsx(styles.tabs)}>
         {(['audit', 'api', 'security'] as Tab[]).map((item) => (
           <Button
             key={item}
@@ -178,8 +180,8 @@ export function LogsPage() {
       </div>
 
       {tab === 'security' ? (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className={clsx(styles.section)}>
+          <div className={clsx(styles.grid2)}>
             <Card>
               <CardHeader>
                 <CardTitle>{t('logs.failedLogins')}</CardTitle>
@@ -235,23 +237,23 @@ export function LogsPage() {
               <CardTitle>{t('logs.ipBlocks')}</CardTitle>
               <CardDescription>{t('logs.ipBlocksHint')}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={clsx(styles.stackMd)}>
               <form
-                className="flex flex-wrap gap-2"
+                className={clsx(styles.formRow)}
                 onSubmit={(e) => {
                   e.preventDefault()
                   createBlock.mutate()
                 }}
               >
                 <Input
-                  className="max-w-xs"
+                  className={clsx(styles.maxXs)}
                   placeholder="1.2.3.4"
                   value={blockIp}
                   onChange={(e) => setBlockIp(e.target.value)}
                   required
                 />
                 <Input
-                  className="max-w-xs"
+                  className={clsx(styles.maxXs)}
                   placeholder={t('logs.reason')}
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
@@ -260,9 +262,7 @@ export function LogsPage() {
                   {t('logs.blockIp')}
                 </Button>
               </form>
-              {blockMessage ? (
-                <p className="text-sm text-muted-foreground">{blockMessage}</p>
-              ) : null}
+              {blockMessage ? <p className={clsx(styles.muted)}>{blockMessage}</p> : null}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -275,16 +275,16 @@ export function LogsPage() {
                 <TableBody>
                   {(ipBlocks.data?.data ?? []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground">
+                      <TableCell colSpan={4} className={clsx(styles.mutedCell)}>
                         {t('logs.noIpBlocks')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     (ipBlocks.data?.data ?? []).map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="font-mono text-xs">{row.ip}</TableCell>
-                        <TableCell className="text-xs">{row.reason}</TableCell>
-                        <TableCell className="text-xs">{row.expiresAt ?? '—'}</TableCell>
+                        <TableCell className={clsx(styles.monoXs)}>{row.ip}</TableCell>
+                        <TableCell className={clsx(styles.xs)}>{row.reason}</TableCell>
+                        <TableCell className={clsx(styles.xs)}>{row.expiresAt ?? '—'}</TableCell>
                         <TableCell>
                           <Button
                             size="sm"
@@ -310,10 +310,10 @@ export function LogsPage() {
               {tab === 'audit' ? t('logs.auditHint') : t('logs.apiHint')}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className={clsx(styles.stackMd)}>
             {tab === 'audit' ? (
               <form
-                className="flex gap-2"
+                className={clsx(styles.filterRow)}
                 onSubmit={(e) => {
                   e.preventDefault()
                   setPage(1)
@@ -324,7 +324,7 @@ export function LogsPage() {
                   placeholder={t('logs.filterAction')}
                   value={action}
                   onChange={(e) => setAction(e.target.value)}
-                  className="max-w-sm"
+                  className={clsx(styles.maxSm)}
                 />
                 <Button type="submit" variant="outline">
                   {t('common.filter')}
@@ -349,23 +349,21 @@ export function LogsPage() {
                   <TableBody>
                     {(audit.data?.data ?? []).length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-muted-foreground">
+                        <TableCell colSpan={5} className={clsx(styles.mutedCell)}>
                           {t('logs.noAudit')}
                         </TableCell>
                       </TableRow>
                     ) : (
                       (audit.data?.data ?? []).map((row) => (
                         <TableRow key={row.id}>
-                          <TableCell className="whitespace-nowrap text-xs">
-                            {row.createdAt}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs">{row.action}</TableCell>
-                          <TableCell className="text-xs">
+                          <TableCell className={clsx(styles.cellNowrap)}>{row.createdAt}</TableCell>
+                          <TableCell className={clsx(styles.monoXs)}>{row.action}</TableCell>
+                          <TableCell className={clsx(styles.xs)}>
                             {row.entityType ?? '—'}
                             {row.entityId ? ` #${row.entityId}` : ''}
                           </TableCell>
-                          <TableCell className="text-xs">{row.userId ?? '—'}</TableCell>
-                          <TableCell className="text-xs">{row.ip ?? '—'}</TableCell>
+                          <TableCell className={clsx(styles.xs)}>{row.userId ?? '—'}</TableCell>
+                          <TableCell className={clsx(styles.xs)}>{row.ip ?? '—'}</TableCell>
                         </TableRow>
                       ))
                     )}
@@ -389,19 +387,19 @@ export function LogsPage() {
                 <TableBody>
                   {(apiLogs.data?.data ?? []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-muted-foreground">
+                      <TableCell colSpan={6} className={clsx(styles.mutedCell)}>
                         {t('logs.noApi')}
                       </TableCell>
                     </TableRow>
                   ) : (
                     (apiLogs.data?.data ?? []).map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="whitespace-nowrap text-xs">{row.createdAt}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.method}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.path}</TableCell>
-                        <TableCell className="text-xs">{row.status}</TableCell>
-                        <TableCell className="text-xs">{row.durationMs}</TableCell>
-                        <TableCell className="text-xs">{row.apiKeyId ?? '—'}</TableCell>
+                        <TableCell className={clsx(styles.cellNowrap)}>{row.createdAt}</TableCell>
+                        <TableCell className={clsx(styles.monoXs)}>{row.method}</TableCell>
+                        <TableCell className={clsx(styles.monoXs)}>{row.path}</TableCell>
+                        <TableCell className={clsx(styles.xs)}>{row.status}</TableCell>
+                        <TableCell className={clsx(styles.xs)}>{row.durationMs}</TableCell>
+                        <TableCell className={clsx(styles.xs)}>{row.apiKeyId ?? '—'}</TableCell>
                       </TableRow>
                     ))
                   )}
@@ -410,7 +408,7 @@ export function LogsPage() {
             )}
 
             {meta ? (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className={clsx(styles.pager)}>
                 <span>
                   {t('common.pageOfTotal', {
                     page: meta.page,
@@ -418,7 +416,7 @@ export function LogsPage() {
                     total: meta.total,
                   })}
                 </span>
-                <div className="flex gap-2">
+                <div className={clsx(styles.pagerBtns)}>
                   <Button
                     size="sm"
                     variant="outline"

@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api, clearToken, getToken } from '@/lib/api'
 import type { AuthUser } from '@/types/system'
+import styles from './RequireAuth.module.css'
 
 export function RequireAuth() {
   const location = useLocation()
@@ -30,13 +31,9 @@ export function RequireAuth() {
   // (UsersPage shares auth-me; remount+refetch would loop forever).
   if (!me.data && (me.isLoading || me.isPending)) {
     return (
-      <div
-        className="flex min-h-svh flex-col items-center justify-center gap-3"
-        role="status"
-        aria-busy="true"
-      >
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-32" />
+      <div className={styles.root} role="status" aria-busy="true">
+        <Skeleton className={styles.title} />
+        <Skeleton className={styles.subtitle} />
       </div>
     )
   }

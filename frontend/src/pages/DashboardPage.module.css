@@ -1,0 +1,283 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.kpiGrid {
+  display: grid;
+  gap: var(--hcms-SPx4);
+}
+
+@media (min-width: 768px) {
+  .kpiGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.kpiLabel {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.kpiValue {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 600;
+}
+
+.skeletonKpi {
+  height: var(--hcms-SPx8);
+  width: 4rem;
+}
+
+.chartsGrid {
+  display: grid;
+  gap: var(--hcms-SPx4);
+}
+
+@media (min-width: 1024px) {
+  .chartsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.cardTitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.cardHint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.chartTall {
+  height: 16rem;
+}
+
+.bottomGrid {
+  display: grid;
+  gap: var(--hcms-SPx4);
+}
+
+@media (min-width: 1024px) {
+  .bottomGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.chartShort {
+  height: 14rem;
+}
+
+.chartShortScroll {
+  height: 14rem;
+  overflow-y: auto;
+}
+
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.skeletonFill {
+  height: 100%;
+  width: 100%;
+}
+
+.errorList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.errorBtn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  border-radius: var(--hcms-CRx2);
+  border: none;
+  background: transparent;
+  padding: calc(var(--hcms-SPx1) * 1.5) var(--hcms-SPx2);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.errorBtn:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-muted) 60%, transparent);
+}
+
+.errorPath {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.errorCount {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--hcms-color-destructive);
+}
+
+.activitySkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.skelFull {
+  height: var(--hcms-SPx4);
+  width: 100%;
+}
+
+.skel5 {
+  height: var(--hcms-SPx4);
+  width: 83.333%;
+}
+
+.skel4 {
+  height: var(--hcms-SPx4);
+  width: 80%;
+}
+
+.skel3 {
+  height: var(--hcms-SPx4);
+  width: 75%;
+}
+
+.skel2 {
+  height: var(--hcms-SPx4);
+  width: 66.666%;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.activityItem {
+  border-bottom: 1px solid color-mix(in srgb, var(--hcms-color-border) 60%, transparent);
+  padding-bottom: var(--hcms-SPx2);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityAction {
+  font-weight: 500;
+}
+
+.activityMeta {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.dialogWide {
+  max-height: 85vh;
+  max-width: 48rem;
+  overflow-y: auto;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.skelRow {
+  height: var(--hcms-SPx8);
+  width: 100%;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.mutedCell {
+  color: var(--hcms-color-muted-foreground);
+}
+
+.cellNowrap {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.cellMono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.cellStatus {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--hcms-color-destructive);
+}
+
+.cellXs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.pagerBtns {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}

@@ -1,4 +1,5 @@
 import { Pencil, Trash2 } from 'lucide-react'
+import { clsx } from 'clsx'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -20,6 +21,7 @@ import { isFilterable } from './filters'
 import { MediaCell } from './MediaCell'
 import { RelationCell } from './RelationCell'
 import { isManyToOneRelation, type RelationTarget } from './useRelationLabels'
+import styles from './DataTable.module.css'
 
 export type EntryRow = Record<string, unknown> & { id: number }
 
@@ -98,7 +100,7 @@ export function DataTable({
       <TableHeader>
         <TableRow>
           {selectionEnabled ? (
-            <TableHead className="w-10">
+            <TableHead className={clsx(styles.colNarrow)}>
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -110,7 +112,7 @@ export function DataTable({
               />
             </TableHead>
           ) : null}
-          <TableHead className="w-16">ID</TableHead>
+          <TableHead className={clsx(styles.colId)}>ID</TableHead>
           {columns.map((col) => (
             <TableHead
               key={col.field.name}
@@ -119,7 +121,7 @@ export function DataTable({
               {col.field.sortable && onSort ? (
                 <button
                   type="button"
-                  className="hover:underline"
+                  className={clsx(styles.sortBtn)}
                   onClick={() => toggleSort(col.field.name, true)}
                 >
                   {col.label}
@@ -130,14 +132,14 @@ export function DataTable({
               )}
             </TableHead>
           ))}
-          <TableHead className="w-24 text-right">{t('common.actions')}</TableHead>
+          <TableHead className={clsx(styles.colActions)}>{t('common.actions')}</TableHead>
         </TableRow>
         {showFilters && filterableColumns.length > 0 ? (
           <TableRow>
             {selectionEnabled ? <TableHead /> : null}
             <TableHead />
             {columns.map((col) => (
-              <TableHead key={`filter-${col.field.name}`} className="py-2">
+              <TableHead key={`filter-${col.field.name}`} className={clsx(styles.filterHead)}>
                 <FilterControl
                   field={col.field}
                   label={col.label}
@@ -153,7 +155,7 @@ export function DataTable({
       <TableBody>
         {rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={colSpan} className="py-8 text-center text-muted-foreground">
+            <TableCell colSpan={colSpan} className={clsx(styles.emptyCell)}>
               {t('entries.empty')}
             </TableCell>
           </TableRow>
@@ -170,7 +172,7 @@ export function DataTable({
                   />
                 </TableCell>
               ) : null}
-              <TableCell className="font-mono text-xs">{row.id}</TableCell>
+              <TableCell className={clsx(styles.monoXs)}>{row.id}</TableCell>
               {columns.map((col) =>
                 isMediaField(col.field.type) ? (
                   <TableCell key={col.field.name}>
@@ -186,22 +188,22 @@ export function DataTable({
                 ) : (
                   <TableCell
                     key={col.field.name}
-                    className="truncate"
+                    className={clsx(styles.truncate)}
                     style={{ maxWidth: col.width ?? '12rem' }}
                   >
                     {formatCell(row[col.field.name], col.field, t)}
                   </TableCell>
                 ),
               )}
-              <TableCell className="text-right">
-                <div className="inline-flex items-center justify-end gap-1">
+              <TableCell className={clsx(styles.alignRight)}>
+                <div className={clsx(styles.rowActions)}>
                   <Link
                     to={editHref(row)}
                     className={buttonVariants({ size: 'icon', variant: 'ghost' })}
                     aria-label={t('common.edit')}
                     title={t('common.edit')}
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className={clsx(styles.icon)} />
                   </Link>
                   <Button
                     size="icon"
@@ -210,7 +212,7 @@ export function DataTable({
                     title={t('common.delete')}
                     onClick={() => onDelete(row)}
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
+                    <Trash2 className={clsx(styles.iconDanger)} />
                   </Button>
                 </div>
               </TableCell>

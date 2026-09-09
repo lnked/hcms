@@ -1,0 +1,25 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  padding-right: var(--hcms-SPx8);
+}
+
+.select:hover {
+  border-color: color-mix(in srgb, var(--hcms-color-muted-foreground) 40%, transparent);
+}
+
+.icon {
+  pointer-events: none;
+  position: absolute;
+  right: calc(var(--hcms-SPx2) + var(--hcms-SPx1) / 2);
+  top: 50%;
+  width: calc(var(--hcms-SPx1) * 3.5);
+  height: calc(var(--hcms-SPx1) * 3.5);
+  transform: translateY(-50%);
+  color: var(--hcms-color-muted-foreground);
+}

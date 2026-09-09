@@ -2,6 +2,7 @@ import { Fragment, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Code2, Pencil, Trash2, Upload } from 'lucide-react'
+import { clsx } from 'clsx'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
 import { Badge } from '@/components/ui/badge'
@@ -31,8 +32,8 @@ import { useI18n } from '@/i18n'
 import { api, ApiError } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
-import { cn } from '@/lib/utils'
 import type { Resource } from '@/types/resource'
+import styles from './ResourcesPage.module.css'
 
 interface ResourcePackage {
   kind?: string
@@ -194,13 +195,13 @@ export function ResourcesPage() {
   const resources = query.data ?? []
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+    <div className={styles.stack}>
+      <div className={styles.header}>
         <div>
-          <h1 className="text-2xl font-semibold">{t('resources.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('resources.subtitle')}</p>
+          <h1 className={styles.title}>{t('resources.title')}</h1>
+          <p className={styles.subtitle}>{t('resources.subtitle')}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.headerActions}>
           {!aclEnabled ? (
             <>
               <Button variant="outline" onClick={openImport}>
@@ -230,7 +231,7 @@ export function ResourcesPage() {
                   <TableHead>{t('common.slug')}</TableHead>
                   <TableHead>{t('common.endpoint')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
-                  <TableHead className="text-right">{t('common.actions')}</TableHead>
+                  <TableHead className={styles.alignRight}>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -239,17 +240,17 @@ export function ResourcesPage() {
                     <TableRow>
                       <TableCell>
                         <Link
-                          className="font-medium hover:underline"
+                          className={styles.resourceLink}
                           to={`/resources/${resource.id}/overview`}
                         >
                           {resource.label}
                         </Link>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{resource.slug}</TableCell>
-                      <TableCell className="font-mono text-xs">
+                      <TableCell className={styles.mono}>{resource.slug}</TableCell>
+                      <TableCell className={styles.mono}>
                         <button
                           type="button"
-                          className="cursor-pointer underline decoration-dashed underline-offset-2 hover:text-primary"
+                          className={styles.endpointBtn}
                           onClick={() => void copyEndpoint(resource.endpoint)}
                         >
                           {resource.endpoint}
@@ -268,8 +269,8 @@ export function ResourcesPage() {
                           {resource.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center justify-end gap-1">
+                      <TableCell className={styles.alignRight}>
+                        <div className={styles.rowActions}>
                           {resource.status !== 'published' ? (
                             <Button
                               size="icon"
@@ -279,7 +280,7 @@ export function ResourcesPage() {
                               title={t('resources.publish')}
                               onClick={() => publish.mutate(resource.id)}
                             >
-                              <Upload className="h-4 w-4" />
+                              <Upload className={styles.icon} />
                             </Button>
                           ) : null}
                           <Button
@@ -289,7 +290,7 @@ export function ResourcesPage() {
                             title={t('common.edit')}
                             onClick={() => navigate(`/resources/${resource.id}/overview`)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className={styles.icon} />
                           </Button>
                           <Button
                             size="icon"
@@ -303,7 +304,7 @@ export function ResourcesPage() {
                               )
                             }
                           >
-                            <Code2 className="h-4 w-4" />
+                            <Code2 className={styles.icon} />
                           </Button>
                           {!resource.isSystem ? (
                             <Button
@@ -320,15 +321,15 @@ export function ResourcesPage() {
                                 }
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className={styles.iconDestructive} />
                             </Button>
                           ) : null}
                         </div>
                       </TableCell>
                     </TableRow>
                     {openExampleId === resource.id ? (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={5} className="border-t-0 pt-0 pb-4">
+                      <TableRow className={styles.exampleRow}>
+                        <TableCell colSpan={5} className={styles.exampleCell}>
                           <ResourceFetchExample resource={resource} showLabel={false} />
                         </TableCell>
                       </TableRow>
@@ -343,17 +344,17 @@ export function ResourcesPage() {
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent>
-          <DialogHeader className="pr-6">
+          <DialogHeader className={styles.dialogHeader}>
             <DialogTitle>{t('resources.package.importTitle')}</DialogTitle>
             <DialogDescription>{t('resources.package.importHint')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className={styles.formStack}>
+            <div className={styles.field}>
               <Label>{t('resources.package.importFile')}</Label>
               <input
                 ref={importFileInputRef}
                 type="file"
-                className="hidden"
+                className={styles.hiddenInput}
                 accept=".json,application/json,.cms-resource.json"
                 onChange={(e) => {
                   void assignImportFile(e.target.files?.[0] ?? null)
@@ -395,10 +396,7 @@ export function ResourcesPage() {
                   const file = e.dataTransfer.files?.[0] ?? null
                   void assignImportFile(file)
                 }}
-                className={cn(
-                  'flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-6 text-center text-sm text-muted-foreground',
-                  importDragging && 'border-primary bg-muted/40',
-                )}
+                className={clsx(styles.dropzone, importDragging && styles.dropzoneActive)}
               >
                 {importFile
                   ? importFile.name
@@ -408,11 +406,11 @@ export function ResourcesPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="package-paste">{t('resources.package.importPaste')}</Label>
               <Textarea
                 id="package-paste"
-                className="min-h-28 font-mono text-xs"
+                className={styles.pasteArea}
                 placeholder={t('resources.package.importPastePlaceholder')}
                 value={importPaste}
                 onChange={(e) => {
@@ -431,9 +429,9 @@ export function ResourcesPage() {
             </div>
 
             {importPackage && packageSlug ? (
-              <div className="space-y-2">
+              <div className={styles.field}>
                 {slugConflict ? (
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                  <p className={styles.conflict}>
                     {t('resources.package.slugConflict', { slug: packageSlug })}
                   </p>
                 ) : null}
@@ -442,14 +440,14 @@ export function ResourcesPage() {
                   id="package-slug"
                   value={importSlug}
                   onChange={(e) => setImportSlug(e.target.value)}
-                  className="font-mono text-sm"
+                  className={styles.slugInput}
                 />
               </div>
             ) : null}
 
-            {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
+            {importError ? <p className={styles.error}>{importError}</p> : null}
             {importResult ? (
-              <div className="space-y-2 text-sm">
+              <div className={styles.result}>
                 <p>
                   {t('resources.package.importResult', {
                     slug: importResult.slugResolved,
@@ -460,8 +458,8 @@ export function ResourcesPage() {
                 </p>
                 {importResult.warnings.length > 0 ? (
                   <div>
-                    <p className="font-medium">{t('resources.package.warnings')}</p>
-                    <ul className="list-disc pl-5 text-muted-foreground">
+                    <p className={styles.warningsTitle}>{t('resources.package.warnings')}</p>
+                    <ul className={styles.warningsList}>
                       {importResult.warnings.map((w) => (
                         <li key={w}>{w}</li>
                       ))}
@@ -471,7 +469,7 @@ export function ResourcesPage() {
               </div>
             ) : null}
 
-            <div className="flex justify-end gap-2">
+            <div className={styles.formActions}>
               <Button variant="outline" onClick={() => setImportOpen(false)}>
                 {t('common.cancel')}
               </Button>

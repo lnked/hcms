@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Plus, Trash2 } from 'lucide-react'
 import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
@@ -17,6 +18,7 @@ import { useI18n, type MessageKey } from '@/i18n'
 import { CodeBlock } from '@/features/docs/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
 import { OauthIntegrationsCard } from './OauthIntegrationsCard'
+import styles from './IntegrationsPage.module.css'
 
 type EmailProvider = 'resend' | 'postmark' | 'mailgun'
 type MailgunRegion = 'us' | 'eu'
@@ -301,19 +303,19 @@ export function IntegrationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={clsx(styles.root)}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t('integrations.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t('integrations.description')}</p>
+        <h1 className={clsx(styles.title)}>{t('integrations.title')}</h1>
+        <p className={clsx(styles.subtitle)}>{t('integrations.description')}</p>
       </div>
 
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
 
       <OauthIntegrationsCard />
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-          <div className="space-y-1.5">
+        <CardHeader className={clsx(styles.cardHeader)}>
+          <div className={clsx(styles.cardIntro)}>
             <CardTitle>{t('integrations.email.cardTitle')}</CardTitle>
             <CardDescription>{t(activeMeta.descriptionKey)}</CardDescription>
           </div>
@@ -321,18 +323,18 @@ export function IntegrationsPage() {
             {query.data?.enabled ? t('common.enabled') : t('common.disabled')}
           </Badge>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={clsx(styles.stackMd)}>
           {query.isLoading ? (
             <FormBlockSkeleton fields={5} />
           ) : query.isError ? (
-            <p className="text-sm text-destructive">
+            <p className={clsx(styles.error)}>
               {query.error instanceof Error ? query.error.message : t('common.requestFailed')}
             </p>
           ) : (
             <>
-              <div className="space-y-2">
+              <div className={clsx(styles.field)}>
                 <Label>{t('integrations.email.provider')}</Label>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className={clsx(styles.providerGrid)}>
                   {PROVIDERS.map((item) => (
                     <button
                       key={item.id}
@@ -342,33 +344,29 @@ export function IntegrationsPage() {
                         setApiKey('')
                         setMessage(null)
                       }}
-                      className={
-                        provider === item.id
-                          ? 'rounded-md border border-primary bg-primary/5 px-3 py-2 text-left text-sm'
-                          : 'rounded-md border border-input px-3 py-2 text-left text-sm hover:bg-accent'
-                      }
+                      className={clsx(
+                        provider === item.id ? styles.providerBtnActive : styles.providerBtn,
+                      )}
                     >
-                      <div className="font-medium">{item.title}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {t(item.descriptionKey)}
-                      </div>
+                      <div className={clsx(styles.providerTitle)}>{item.title}</div>
+                      <div className={clsx(styles.providerDesc)}>{t(item.descriptionKey)}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              <label className="flex items-start gap-2 text-sm">
+              <label className={clsx(styles.checkRow)}>
                 <input
                   type="checkbox"
-                  className="mt-1"
+                  className={clsx(styles.checkInput)}
                   checked={enabled}
                   onChange={(e) => setEnabled(e.target.checked)}
                 />
                 <span>{t('integrations.email.enabled')}</span>
               </label>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+              <div className={clsx(styles.grid2)}>
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-from">{t('integrations.email.fromEmail')}</Label>
                   <Input
                     id="email-from"
@@ -379,7 +377,7 @@ export function IntegrationsPage() {
                     autoComplete="off"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-from-name">{t('integrations.email.fromName')}</Label>
                   <Input
                     id="email-from-name"
@@ -389,7 +387,7 @@ export function IntegrationsPage() {
                     autoComplete="off"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-quota">{t('integrations.email.dailyQuota')}</Label>
                   <Input
                     id="email-quota"
@@ -399,7 +397,7 @@ export function IntegrationsPage() {
                     onChange={(e) => setDailyQuota(Number(e.target.value) || 0)}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-domains">{t('integrations.email.allowedDomains')}</Label>
                   <Input
                     id="email-domains"
@@ -410,7 +408,7 @@ export function IntegrationsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className={clsx(styles.field)}>
                 <Label htmlFor="email-api-key">{t('integrations.email.apiKey')}</Label>
                 <Input
                   id="email-api-key"
@@ -426,14 +424,12 @@ export function IntegrationsPage() {
                   }
                   autoComplete="new-password"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t('integrations.email.apiKeyHint')}
-                </p>
+                <p className={clsx(styles.hint)}>{t('integrations.email.apiKeyHint')}</p>
               </div>
 
               {provider === 'mailgun' ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                <div className={clsx(styles.grid2)}>
+                  <div className={clsx(styles.field)}>
                     <Label htmlFor="mailgun-domain">{t('integrations.email.mailgunDomain')}</Label>
                     <Input
                       id="mailgun-domain"
@@ -443,7 +439,7 @@ export function IntegrationsPage() {
                       autoComplete="off"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className={clsx(styles.field)}>
                     <Label htmlFor="mailgun-region">{t('integrations.email.mailgunRegion')}</Label>
                     <Select
                       id="mailgun-region"
@@ -457,14 +453,14 @@ export function IntegrationsPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap gap-2">
+              <div className={clsx(styles.actionsRow)}>
                 <Button disabled={save.isPending} onClick={() => save.mutate()}>
                   {save.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
 
-              <div className="space-y-3 border-t border-border pt-4">
-                <div className="space-y-2">
+              <div className={clsx(styles.testSection)}>
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-test-to">{t('integrations.email.testTo')}</Label>
                   <Input
                     id="email-test-to"
@@ -495,11 +491,9 @@ export function IntegrationsPage() {
           <CardTitle>{t('integrations.email.endpoints.title')}</CardTitle>
           <CardDescription>{t('integrations.email.endpoints.hint')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded-md border bg-muted px-2 py-1 font-mono text-xs">
-              {SEND_PATH}
-            </code>
+        <CardContent className={clsx(styles.stack)}>
+          <div className={clsx(styles.endpointRow)}>
+            <code className={clsx(styles.pathCode)}>{SEND_PATH}</code>
             <Badge variant="secondary">POST</Badge>
             <Button size="sm" variant="outline" onClick={() => void copyPath(SEND_PATH)}>
               {t('integrations.email.endpoints.copy')}
@@ -508,9 +502,7 @@ export function IntegrationsPage() {
               {t('integrations.email.endpoints.useInPlayground')}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t('integrations.email.endpoints.authHint')}
-          </p>
+          <p className={clsx(styles.hint)}>{t('integrations.email.endpoints.authHint')}</p>
           <CodeBlock
             code={buildEmailSendFetchExample(SEND_PATH)}
             language="js"
@@ -520,8 +512,8 @@ export function IntegrationsPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-          <div className="space-y-1.5">
+        <CardHeader className={clsx(styles.cardHeader)}>
+          <div className={clsx(styles.cardIntro)}>
             <CardTitle>{t('integrations.email.apis.title')}</CardTitle>
             <CardDescription>{t('integrations.email.apis.hint')}</CardDescription>
           </div>
@@ -533,39 +525,39 @@ export function IntegrationsPage() {
               setApiMessage(null)
             }}
           >
-            <Plus className="size-4" />
+            <Plus className={clsx(styles.iconSm)} />
             {t('integrations.email.apis.create')}
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {apiMessage ? <p className="text-sm text-muted-foreground">{apiMessage}</p> : null}
+        <CardContent className={clsx(styles.stackMd)}>
+          {apiMessage ? <p className={clsx(styles.muted)}>{apiMessage}</p> : null}
 
           {apisQuery.isLoading ? (
             <TableSkeleton columns={3} rows={4} />
           ) : (apisQuery.data ?? []).length === 0 && editingId === null ? (
             <EmptyState title={t('integrations.email.apis.empty')} />
           ) : (
-            <div className="space-y-2">
+            <div className={clsx(styles.apiList)}>
               {(apisQuery.data ?? []).map((item) => (
-                <div key={item.id} className="space-y-3 rounded-md border px-3 py-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{item.label}</span>
+                <div key={item.id} className={clsx(styles.apiItem)}>
+                  <div className={clsx(styles.apiItemHeader)}>
+                    <div className={clsx(styles.apiItemMeta)}>
+                      <div className={clsx(styles.apiItemTitleRow)}>
+                        <span className={clsx(styles.apiLabel)}>{item.label}</span>
                         <Badge variant={item.enabled ? 'default' : 'secondary'}>
                           {item.enabled ? t('common.enabled') : t('common.disabled')}
                         </Badge>
                       </div>
                       <button
                         type="button"
-                        className="font-mono text-xs text-muted-foreground hover:text-foreground"
+                        className={clsx(styles.pathBtn)}
                         onClick={() => void copyPath(item.path)}
                         title={t('integrations.email.endpoints.copy')}
                       >
                         {item.path}
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className={clsx(styles.actionsRow)}>
                       <Button
                         size="sm"
                         variant="outline"
@@ -588,7 +580,7 @@ export function IntegrationsPage() {
                           }
                         }}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className={clsx(styles.iconSm)} />
                       </Button>
                     </div>
                   </div>
@@ -603,9 +595,9 @@ export function IntegrationsPage() {
           )}
 
           {editingId !== null ? (
-            <div className="space-y-3 rounded-md border p-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
+            <div className={clsx(styles.editPanel)}>
+              <div className={clsx(styles.grid2Sm)}>
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-api-slug">{t('common.slug')}</Label>
                   <Input
                     id="email-api-slug"
@@ -614,7 +606,7 @@ export function IntegrationsPage() {
                     placeholder="welcome"
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={clsx(styles.field)}>
                   <Label htmlFor="email-api-label">{t('common.label')}</Label>
                   <Input
                     id="email-api-label"
@@ -624,7 +616,7 @@ export function IntegrationsPage() {
                   />
                 </div>
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className={clsx(styles.checkRowCenter)}>
                 <input
                   type="checkbox"
                   checked={draft.enabled}
@@ -632,7 +624,7 @@ export function IntegrationsPage() {
                 />
                 {t('common.enabled')}
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className={clsx(styles.checkRowCenter)}>
                 <input
                   type="checkbox"
                   checked={draft.settings.allowFromOverride}
@@ -645,7 +637,7 @@ export function IntegrationsPage() {
                 />
                 {t('integrations.email.apis.allowFromOverride')}
               </label>
-              <div className="space-y-2">
+              <div className={clsx(styles.field)}>
                 <Label htmlFor="email-api-subject">
                   {t('integrations.email.apis.defaultSubject')}
                 </Label>
@@ -661,7 +653,7 @@ export function IntegrationsPage() {
                   placeholder="Welcome, {{name}}"
                 />
               </div>
-              <div className="space-y-2">
+              <div className={clsx(styles.field)}>
                 <Label htmlFor="email-api-html">{t('integrations.email.apis.defaultHtml')}</Label>
                 <Textarea
                   id="email-api-html"
@@ -670,11 +662,11 @@ export function IntegrationsPage() {
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, defaults: { ...d.defaults, html: e.target.value } }))
                   }
-                  className="min-h-24 font-mono"
+                  className={clsx(styles.monoTextareaHtml)}
                   placeholder="<p>Hello {{name}}</p>"
                 />
               </div>
-              <div className="space-y-2">
+              <div className={clsx(styles.field)}>
                 <Label htmlFor="email-api-text">{t('integrations.email.apis.defaultText')}</Label>
                 <Textarea
                   id="email-api-text"
@@ -683,14 +675,12 @@ export function IntegrationsPage() {
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, defaults: { ...d.defaults, text: e.target.value } }))
                   }
-                  className="min-h-18 font-mono"
+                  className={clsx(styles.monoTextareaText)}
                   placeholder="Hello {{name}}"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
-                {t('integrations.email.apis.varsHint')}
-              </p>
-              <div className="flex flex-wrap gap-2">
+              <p className={clsx(styles.hint)}>{t('integrations.email.apis.varsHint')}</p>
+              <div className={clsx(styles.actionsRow)}>
                 <Button
                   disabled={saveApi.isPending || !draft.slug.trim() || !draft.label.trim()}
                   onClick={() => saveApi.mutate()}
@@ -717,9 +707,9 @@ export function IntegrationsPage() {
           <CardTitle>{t('integrations.email.playground.title')}</CardTitle>
           <CardDescription>{t('integrations.email.playground.hint')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
+        <CardContent className={clsx(styles.stack)}>
+          <div className={clsx(styles.grid2Sm)}>
+            <div className={clsx(styles.field)}>
               <Label htmlFor="email-pg-path">{t('integrations.email.playground.path')}</Label>
               <Select
                 id="email-pg-path"
@@ -736,7 +726,7 @@ export function IntegrationsPage() {
                 ) : null}
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className={clsx(styles.field)}>
               <Label htmlFor="email-pg-token">{t('integrations.email.playground.token')}</Label>
               <Input
                 id="email-pg-token"
@@ -748,7 +738,7 @@ export function IntegrationsPage() {
               />
             </div>
           </div>
-          <div className="space-y-2">
+          <div className={clsx(styles.field)}>
             <CodeBlock
               id="email-pg-body"
               label={t('integrations.email.playground.body')}
@@ -766,7 +756,7 @@ export function IntegrationsPage() {
           </Button>
           {playgroundResult ? <CodeBlock code={playgroundResult} language="js" /> : null}
           {runPlayground.error instanceof ApiError ? (
-            <p className="text-sm text-destructive">{runPlayground.error.message}</p>
+            <p className={clsx(styles.error)}>{runPlayground.error.message}</p>
           ) : null}
         </CardContent>
       </Card>

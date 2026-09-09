@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -7,6 +8,7 @@ import { LanguageSelect } from '@/components/LanguageSelect'
 import { useI18n, type Locale } from '@/i18n'
 import { ApiError, clearToken, installApi } from '@/lib/api'
 import type { InstallStatus } from '@/types/system'
+import styles from './InstallPage.module.css'
 
 const stepKeys = [
   'install.step.files',
@@ -24,7 +26,7 @@ function firstMessage(value: string[] | undefined): string | undefined {
 function FieldError({ errors, id }: { errors: FieldErrors; id: string }) {
   const msg = errors[id]
   if (!msg) return null
-  return <p className="text-xs font-medium text-destructive">{msg}</p>
+  return <p className={styles.fieldError}>{msg}</p>
 }
 
 export function InstallPage() {
@@ -200,7 +202,7 @@ export function InstallPage() {
 
   if (done) {
     return (
-      <div className="mx-auto max-w-lg py-16">
+      <div className={styles.page}>
         <Card>
           <CardHeader>
             <CardTitle>{t('install.completedTitle')}</CardTitle>
@@ -230,11 +232,11 @@ export function InstallPage() {
   ] as const
 
   return (
-    <div className="mx-auto max-w-lg py-16">
+    <div className={styles.page}>
       <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1.5">
+        <CardHeader className={styles.header}>
+          <div className={styles.headerRow}>
+            <div className={styles.intro}>
               <CardTitle>{t('install.title')}</CardTitle>
               <CardDescription>
                 {t('install.stepOf', {
@@ -244,27 +246,27 @@ export function InstallPage() {
                 })}
               </CardDescription>
             </div>
-            <div className="w-36 shrink-0 space-y-1">
-              <Label htmlFor="install-lang" className="text-xs text-muted-foreground">
+            <div className={styles.langBlock}>
+              <Label htmlFor="install-lang" className={styles.langLabel}>
                 {t('common.language')}
               </Label>
               <LanguageSelect id="install-lang" value={locale} onChange={onLanguageChange} />
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className={styles.content}>
           {step === 0 ? (
             <>
               {status ? (
-                <ul className="space-y-1 text-sm">
+                <ul className={styles.checks}>
                   {Object.entries(status.requirements.checks).map(([key, ok]) => (
-                    <li key={key} className={ok ? 'text-success' : 'text-destructive'}>
+                    <li key={key} className={clsx(ok ? styles.checkOk : styles.checkFail)}>
                       {key}: {ok ? t('install.ok') : t('install.fail')}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">{t('install.checking')}</p>
+                <p className={styles.muted}>{t('install.checking')}</p>
               )}
               <Button onClick={() => void download()}>{t('install.downloadContinue')}</Button>
             </>
@@ -273,7 +275,7 @@ export function InstallPage() {
           {step === 1 ? (
             <>
               {dbFields.map(([key, labelKey]) => (
-                <div key={key} className="space-y-2">
+                <div key={key} className={styles.field}>
                   <Label>{t(labelKey)}</Label>
                   <Input
                     type={key === 'password' ? 'password' : 'text'}
@@ -290,7 +292,7 @@ export function InstallPage() {
                   <FieldError errors={fieldErrors} id={key} />
                 </div>
               ))}
-              <div className="flex gap-2">
+              <div className={styles.actions}>
                 <Button type="button" variant="outline" onClick={() => void testConnection()}>
                   {t('install.testConnection')}
                 </Button>
@@ -310,7 +312,7 @@ export function InstallPage() {
 
           {step === 2 ? (
             <>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('install.appName')}</Label>
                 <Input
                   value={app.name}
@@ -322,7 +324,7 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="name" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('install.url')}</Label>
                 <Input
                   value={app.url}
@@ -334,7 +336,7 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="url" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('install.timezone')}</Label>
                 <Input
                   value={app.timezone}
@@ -346,11 +348,11 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="timezone" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label htmlFor="app-language">{t('common.language')}</Label>
                 <LanguageSelect id="app-language" value={locale} onChange={onLanguageChange} />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('install.publicDir')}</Label>
                 <Input
                   value={app.publicDir}
@@ -369,7 +371,7 @@ export function InstallPage() {
                   <option value="htdocs" />
                 </datalist>
                 <FieldError errors={fieldErrors} id="publicDir" />
-                <p className="text-xs text-muted-foreground">
+                <p className={styles.hint}>
                   {status?.insideWebRoot
                     ? t('install.publicDirHintInside', { folder: app.publicDir })
                     : t('install.publicDirHint', {
@@ -392,7 +394,7 @@ export function InstallPage() {
 
           {step === 3 ? (
             <>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('install.adminName')}</Label>
                 <Input
                   value={admin.name}
@@ -404,7 +406,7 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="name" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('common.email')}</Label>
                 <Input
                   type="email"
@@ -417,7 +419,7 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="email" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('common.password')}</Label>
                 <Input
                   type="password"
@@ -430,7 +432,7 @@ export function InstallPage() {
                 />
                 <FieldError errors={fieldErrors} id="password" />
               </div>
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label>{t('common.confirm')}</Label>
                 <Input
                   type="password"
@@ -447,7 +449,7 @@ export function InstallPage() {
             </>
           ) : null}
 
-          {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+          {message ? <p className={styles.muted}>{message}</p> : null}
         </CardContent>
       </Card>
     </div>

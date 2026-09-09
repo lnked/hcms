@@ -1,0 +1,83 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.nameCell {
+  font-weight: 500;
+}
+
+.aclBadge {
+  margin-left: var(--hcms-SPx2);
+}
+
+.roleSelect {
+  width: auto;
+}
+
+.roleSelectControl {
+  height: var(--hcms-SPx8);
+}
+
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx1);
+}
+
+.icon {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+}
+
+.iconDanger {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+  color: var(--hcms-color-destructive);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.fullWidth {
+  width: 100%;
+}

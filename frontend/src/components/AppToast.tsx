@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { clsx } from 'clsx'
 import { useI18n } from '@/i18n'
 import { isCopiedToastMessage } from '@/lib/clipboard'
 import { onToast, type ToastPayload } from '@/lib/toast'
-import { cn } from '@/lib/utils'
+import styles from './AppToast.module.css'
 
 const DURATION_MS = 3500
 
@@ -32,10 +33,7 @@ export function AppToast() {
   return (
     <div
       role={toast.kind === 'error' ? 'alert' : 'status'}
-      className={cn(
-        'fixed right-4 bottom-4 z-[100] max-w-sm rounded-md px-4 py-2 text-sm text-white shadow-lg',
-        toast.kind === 'error' ? 'bg-destructive' : 'bg-success',
-      )}
+      className={clsx(styles.root, toast.kind === 'error' ? styles.error : styles.success)}
     >
       {message}
     </div>

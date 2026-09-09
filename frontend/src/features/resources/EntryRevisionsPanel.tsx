@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import styles from './EntryRevisionsPanel.module.css'
 
 interface RevisionDiff {
   [key: string]: { from: unknown; to: unknown }
@@ -66,29 +67,29 @@ export function EntryRevisionsPanel({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent className={styles.dialog}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <History className="size-4" />
+          <DialogTitle className={styles.title}>
+            <History className={styles.icon} />
             {t('entries.revisionsTitle')}
           </DialogTitle>
           <DialogDescription>{t('entries.revisionsHint')}</DialogDescription>
         </DialogHeader>
 
         {query.isLoading ? (
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          <p className={styles.muted}>{t('common.loading')}</p>
         ) : query.isError ? (
-          <p className="text-sm text-destructive">{t('common.loadError')}</p>
+          <p className={styles.error}>{t('common.loadError')}</p>
         ) : revisions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('entries.revisionsEmpty')}</p>
+          <p className={styles.muted}>{t('entries.revisionsEmpty')}</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className={styles.list}>
             {revisions.map((rev) => (
-              <li key={rev.id} className="rounded-md border p-3 text-sm">
-                <div className="flex items-center justify-between gap-2">
+              <li key={rev.id} className={styles.item}>
+                <div className={styles.itemHeader}>
                   <button
                     type="button"
-                    className="text-left font-medium hover:underline"
+                    className={styles.selectBtn}
                     onClick={() => setSelected(selected?.id === rev.id ? null : rev)}
                   >
                     #{rev.id} · {rev.createdAt}
@@ -107,22 +108,20 @@ export function EntryRevisionsPanel({
                   </Button>
                 </div>
                 {selected?.id === rev.id ? (
-                  <div className="mt-2 space-y-2">
+                  <div className={styles.detail}>
                     {rev.diff && Object.keys(rev.diff).length > 0 ? (
-                      <div className="space-y-1 font-mono text-xs">
+                      <div className={styles.diff}>
                         {Object.entries(rev.diff).map(([key, change]) => (
                           <div key={key}>
-                            <span className="text-muted-foreground">{key}:</span>{' '}
-                            <span className="text-destructive">{formatVal(change.from)}</span>
+                            <span className={styles.diffKey}>{key}:</span>{' '}
+                            <span className={styles.diffFrom}>{formatVal(change.from)}</span>
                             {' → '}
-                            <span className="text-success">{formatVal(change.to)}</span>
+                            <span className={styles.diffTo}>{formatVal(change.to)}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <pre className="overflow-x-auto rounded bg-muted p-2 text-xs">
-                        {JSON.stringify(rev.data, null, 2)}
-                      </pre>
+                      <pre className={styles.snapshot}>{JSON.stringify(rev.data, null, 2)}</pre>
                     )}
                   </div>
                 ) : null}

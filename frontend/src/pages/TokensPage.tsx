@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Check, Copy } from 'lucide-react'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
@@ -34,6 +35,7 @@ import {
   TokenRestrictionsFields,
   type TokenRestrictions,
 } from './TokenRestrictionsFields'
+import styles from './TokensPage.module.css'
 
 interface TokenGrant {
   resourceId: number | null
@@ -225,11 +227,11 @@ export function TokensPage() {
   const busy = create.isPending || update.isPending
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.pageHeader)}>
         <div>
-          <h1 className="text-2xl font-semibold">{t('tokens.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('tokens.subtitle')}</p>
+          <h1 className={clsx(styles.title)}>{t('tokens.title')}</h1>
+          <p className={clsx(styles.subtitle)}>{t('tokens.subtitle')}</p>
         </div>
         <Button onClick={openCreate}>{t('tokens.create')}</Button>
       </div>
@@ -253,15 +255,15 @@ export function TokensPage() {
                   <TableHead>{t('tokens.grants')}</TableHead>
                   <TableHead>{t('tokens.restrictionsColumn')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
-                  <TableHead className="text-right">{t('common.actions')}</TableHead>
+                  <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(tokens.data ?? []).map((token) => (
                   <TableRow key={token.id}>
                     <TableCell>{token.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{token.prefix}…</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
+                    <TableCell className={clsx(styles.monoXs)}>{token.prefix}…</TableCell>
+                    <TableCell className={clsx(styles.mutedXs)}>
                       {[
                         ...(token.grants.length === 0
                           ? []
@@ -280,7 +282,7 @@ export function TokensPage() {
                       ].join(', ') || t('common.none')}
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
+                      <div className={clsx(styles.badgeRow)}>
                         {isRestricted(token) ? (
                           <>
                             {(token.allowedOrigins ?? []).length > 0 ? (
@@ -302,7 +304,7 @@ export function TokensPage() {
                         ) : (
                           <Badge
                             variant="outline"
-                            className="border-amber-500/60 text-amber-700 dark:text-amber-400"
+                            className={clsx(styles.warnBadge)}
                             title={t('tokens.unlockedWarning')}
                           >
                             {t('tokens.originsAny')}
@@ -317,8 +319,8 @@ export function TokensPage() {
                         <Badge>{t('tokens.active')}</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                    <TableCell className={clsx(styles.alignRight)}>
+                      <div className={clsx(styles.rowActions)}>
                         <Button size="sm" variant="outline" onClick={() => openEdit(token)}>
                           {t('common.edit')}
                         </Button>
@@ -365,7 +367,7 @@ export function TokensPage() {
           if (!next) resetForm()
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className={clsx(styles.dialogMd)}>
           <DialogHeader>
             <DialogTitle>{isEdit ? t('tokens.editTitle') : t('tokens.createTitle')}</DialogTitle>
             <DialogDescription>
@@ -374,33 +376,31 @@ export function TokensPage() {
           </DialogHeader>
 
           {createdToken ? (
-            <div className="space-y-3">
-              <p className="text-sm">{t('tokens.copyOnce')}</p>
-              <div className="relative">
+            <div className={clsx(styles.stack)}>
+              <p className={clsx(styles.textSm)}>{t('tokens.copyOnce')}</p>
+              <div className={clsx(styles.tokenFrame)}>
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
-                  className="absolute top-2 right-2 z-10 h-7 w-7 bg-background/90"
+                  className={clsx(styles.copyBtn)}
                   onClick={() => void copyCreatedToken()}
                   title={tokenCopied ? t('docs.copied') : t('docs.copy')}
                   aria-label={tokenCopied ? t('docs.copied') : t('docs.copy')}
                 >
                   {tokenCopied ? (
-                    <Check className="h-3.5 w-3.5" />
+                    <Check className={clsx(styles.iconSm)} />
                   ) : (
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy className={clsx(styles.iconSm)} />
                   )}
                 </Button>
-                <code className="block break-all rounded-md border bg-muted p-3 pr-11 text-xs">
-                  {createdToken}
-                </code>
+                <code className={clsx(styles.tokenCode)}>{createdToken}</code>
               </div>
               <Button onClick={() => setOpen(false)}>{t('common.done')}</Button>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
+            <div className={clsx(styles.stackMd)}>
+              <div className={clsx(styles.stackXs)}>
                 <Label htmlFor="token-name">{t('common.name')}</Label>
                 <Input
                   id="token-name"
@@ -409,7 +409,7 @@ export function TokensPage() {
                   placeholder={t('tokens.placeholderName')}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className={clsx(styles.stackXs)}>
                 <Label htmlFor="token-expires">{t('tokens.expires')}</Label>
                 <DatePickerField
                   id="token-expires"
@@ -420,8 +420,8 @@ export function TokensPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div className={clsx(styles.stackSm)}>
+                <div className={clsx(styles.grantsHeader)}>
                   <Label>{t('tokens.grants')}</Label>
                   <Button
                     type="button"
@@ -433,7 +433,7 @@ export function TokensPage() {
                   </Button>
                 </div>
                 {grants.map((grant, index) => (
-                  <div key={index} className="space-y-2 rounded-md border p-3">
+                  <div key={index} className={clsx(styles.grantCard)}>
                     <Select
                       value={grant.resourceId ?? ''}
                       onChange={(e) => {
@@ -454,7 +454,7 @@ export function TokensPage() {
                         </option>
                       ))}
                     </Select>
-                    <div className="flex flex-wrap gap-3 text-sm">
+                    <div className={clsx(styles.flagRow)}>
                       {(
                         [
                           ['canRead', 'tokens.canRead'],
@@ -463,7 +463,7 @@ export function TokensPage() {
                           ['canDelete', 'tokens.canDelete'],
                         ] as const
                       ).map(([key, labelKey]) => (
-                        <label key={key} className="flex items-center gap-1.5">
+                        <label key={key} className={clsx(styles.flagLabel)}>
                           <input
                             type="checkbox"
                             checked={grant[key]}
@@ -481,7 +481,7 @@ export function TokensPage() {
                     </div>
                   </div>
                 ))}
-                <label className="flex items-center gap-2 rounded-md border p-3 text-sm">
+                <label className={clsx(styles.globalBox)}>
                   <input
                     type="checkbox"
                     checked={emailCanUse}
@@ -500,8 +500,8 @@ export function TokensPage() {
                 onRequireOriginChange={setRequireOrigin}
               />
 
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              <div className="flex justify-end gap-2">
+              {error ? <p className={clsx(styles.error)}>{error}</p> : null}
+              <div className={clsx(styles.actions)}>
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   {t('common.cancel')}
                 </Button>

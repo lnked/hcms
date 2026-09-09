@@ -1,0 +1,127 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx5);
+}
+
+.dialogWide {
+  max-width: 42rem;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.checkLabelMedium {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.stackXs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.sectionGrid {
+  display: grid;
+  gap: var(--hcms-SPx2);
+}
+
+@media (min-width: 640px) {
+  .sectionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.resourcesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+}
+
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.mutedXs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.error {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+}
+
+.grantCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  padding: var(--hcms-SPx3);
+}
+
+.grantToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.selectGrow {
+  min-width: 12rem;
+  flex: 1;
+}
+
+.flagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx3);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.flagLabel {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--hcms-SPx1) * 1.5);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}
+
+.resetRoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.fullWidth {
+  width: 100%;
+}

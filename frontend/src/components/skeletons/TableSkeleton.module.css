@@ -1,0 +1,29 @@
+.header {
+  margin-bottom: var(--hcms-SPx3);
+  display: flex;
+  gap: var(--hcms-SPx3);
+  border-bottom: 1px solid var(--hcms-color-border);
+  padding-bottom: var(--hcms-SPx3);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+}
+
+.row {
+  display: flex;
+  gap: var(--hcms-SPx3);
+}
+
+.cell {
+  height: var(--hcms-SPx4);
+  flex: 1;
+}
+
+.cellLast {
+  margin-left: auto;
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx8);
+}

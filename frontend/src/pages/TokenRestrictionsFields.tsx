@@ -1,6 +1,8 @@
+import { clsx } from 'clsx'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
+import styles from './TokenRestrictionsFields.module.css'
 
 export interface TokenRestrictions {
   allowedOrigins: string[]
@@ -33,13 +35,13 @@ export function TokenRestrictionsFields({
   const { t } = useI18n()
 
   return (
-    <div className="space-y-3 rounded-md border p-3">
+    <div className={clsx(styles.root)}>
       <div>
         <Label>{t('tokens.restrictions')}</Label>
-        <p className="mt-1 text-xs text-muted-foreground">{t('tokens.restrictionsHint')}</p>
+        <p className={clsx(styles.introHint)}>{t('tokens.restrictionsHint')}</p>
       </div>
 
-      <div className="space-y-1.5">
+      <div className={clsx(styles.field)}>
         <Label htmlFor="token-origins">{t('tokens.allowedOrigins')}</Label>
         <Textarea
           id="token-origins"
@@ -47,25 +49,23 @@ export function TokenRestrictionsFields({
           value={originsText}
           onChange={(e) => onOriginsTextChange(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">{t('tokens.allowedOriginsHint')}</p>
+        <p className={clsx(styles.hint)}>{t('tokens.allowedOriginsHint')}</p>
       </div>
 
-      <label className="flex items-start gap-2 text-sm">
+      <label className={clsx(styles.checkRow)}>
         <input
           type="checkbox"
-          className="mt-1"
+          className={clsx(styles.checkInput)}
           checked={requireOrigin}
           onChange={(e) => onRequireOriginChange(e.target.checked)}
         />
         <span>
           {t('tokens.requireOrigin')}
-          <span className="block text-xs text-muted-foreground">
-            {t('tokens.requireOriginHint')}
-          </span>
+          <span className={clsx(styles.hintBlock)}>{t('tokens.requireOriginHint')}</span>
         </span>
       </label>
 
-      <div className="space-y-1.5">
+      <div className={clsx(styles.field)}>
         <Label htmlFor="token-ips">{t('tokens.allowedIps')}</Label>
         <Textarea
           id="token-ips"
@@ -73,7 +73,7 @@ export function TokenRestrictionsFields({
           value={ipsText}
           onChange={(e) => onIpsTextChange(e.target.value)}
         />
-        <p className="text-xs text-muted-foreground">{t('tokens.allowedIpsHint')}</p>
+        <p className={clsx(styles.hint)}>{t('tokens.allowedIpsHint')}</p>
       </div>
     </div>
   )

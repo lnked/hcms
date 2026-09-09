@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,7 @@ import { api, ApiError, getToken, setToken } from '@/lib/api'
 import { showError } from '@/lib/toast'
 import type { AuthUser } from '@/types/system'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
+import styles from './LoginPage.module.css'
 
 interface CaptchaConfig {
   enabled: boolean
@@ -122,11 +124,7 @@ export function LoginPage() {
   }
 
   if (checkingSession) {
-    return (
-      <div className="flex min-h-svh items-center justify-center p-6 text-sm text-muted-foreground">
-        {t('common.loading')}
-      </div>
-    )
+    return <div className={clsx(styles.center, styles.loading)}>{t('common.loading')}</div>
   }
 
   const googleEnabled = providers.data?.google.enabled === true
@@ -135,15 +133,15 @@ export function LoginPage() {
   )
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+    <div className={styles.center}>
+      <Card className={styles.card}>
         <CardHeader>
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1.5">
+          <div className={styles.cardHeaderRow}>
+            <div className={styles.cardIntro}>
               <CardTitle>{t('login.title')}</CardTitle>
               <CardDescription>{t('login.description')}</CardDescription>
             </div>
-            <div className="w-28 shrink-0">
+            <div className={styles.langSelect}>
               <LanguageSelect value={locale} onChange={setLocale} />
             </div>
           </div>
@@ -158,11 +156,11 @@ export function LoginPage() {
               }
               void onSubmit(event)
             }}
-            className="space-y-4"
+            className={styles.form}
           >
             {!telegramPayload ? (
               <>
-                <div className="space-y-2">
+                <div className={styles.field}>
                   <Label htmlFor="email">{t('common.email')}</Label>
                   <Input
                     id="email"
@@ -172,7 +170,7 @@ export function LoginPage() {
                     required={!telegramPayload}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className={styles.field}>
                   <Label htmlFor="password">{t('common.password')}</Label>
                   <Input
                     id="password"
@@ -185,7 +183,7 @@ export function LoginPage() {
               </>
             ) : null}
             {needTotp ? (
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label htmlFor="totp">{t('login.totp')}</Label>
                 <Input
                   id="totp"
@@ -198,7 +196,7 @@ export function LoginPage() {
               </div>
             ) : null}
             {(needCaptcha || captcha?.enabled) && captcha?.siteKey ? (
-              <div className="space-y-2">
+              <div className={styles.field}>
                 <Label htmlFor="captcha">{t('login.captchaToken')}</Label>
                 <Input
                   id="captcha"
@@ -206,37 +204,37 @@ export function LoginPage() {
                   onChange={(e) => setCaptchaToken(e.target.value)}
                   placeholder={t('login.captchaPlaceholder')}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className={styles.hint}>
                   {t('login.captchaHint', { provider: captcha.provider ?? 'captcha' })}
                 </p>
               </div>
             ) : null}
-            <label className="flex items-center gap-2 text-sm">
+            <label className={styles.remember}>
               <input
                 id="remember"
                 type="checkbox"
-                className="size-4"
+                className={styles.checkbox}
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
               />
               <span>{t('login.remember')}</span>
             </label>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full" disabled={pending}>
+            {error ? <p className={styles.error}>{error}</p> : null}
+            <Button type="submit" className={styles.fullWidth} disabled={pending}>
               {pending ? t('login.submitting') : t('login.submit')}
             </Button>
           </form>
           {googleEnabled || telegramEnabled ? (
-            <div className="mt-6 space-y-3">
-              <div className="relative text-center text-xs text-muted-foreground">
-                <span className="bg-card px-2">{t('login.oauth.or')}</span>
-                <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-border" />
+            <div className={styles.oauth}>
+              <div className={styles.oauthDivider}>
+                <span className={styles.oauthDividerLabel}>{t('login.oauth.or')}</span>
+                <div className={styles.oauthDividerLine} />
               </div>
               {googleEnabled ? (
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className={styles.fullWidth}
                   disabled={pending}
                   onClick={() => {
                     window.location.assign('/admin/api/auth/google/start')

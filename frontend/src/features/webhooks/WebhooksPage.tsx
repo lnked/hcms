@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
@@ -26,6 +27,7 @@ import {
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource } from '@/types/resource'
+import styles from './WebhooksPage.module.css'
 
 const WEBHOOK_EVENTS = [
   'entry.created',
@@ -231,11 +233,11 @@ export function WebhooksPage() {
   const busy = create.isPending || update.isPending
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.pageHeader)}>
         <div>
-          <h1 className="text-2xl font-semibold">{t('webhooks.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('webhooks.subtitle')}</p>
+          <h1 className={clsx(styles.title)}>{t('webhooks.title')}</h1>
+          <p className={clsx(styles.subtitle)}>{t('webhooks.subtitle')}</p>
         </div>
         <Button onClick={openCreate}>{t('webhooks.create')}</Button>
       </div>
@@ -258,19 +260,19 @@ export function WebhooksPage() {
                   <TableHead>{t('webhooks.url')}</TableHead>
                   <TableHead>{t('webhooks.events')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
-                  <TableHead className="text-right">{t('common.actions')}</TableHead>
+                  <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(webhooks.data ?? []).map((hook) => (
                   <TableRow
                     key={hook.id}
-                    className={selectedId === hook.id ? 'bg-muted/40' : undefined}
+                    className={clsx(selectedId === hook.id && styles.rowSelected)}
                   >
                     <TableCell>
                       <button
                         type="button"
-                        className="text-left font-medium hover:underline"
+                        className={clsx(styles.nameBtn)}
                         onClick={() => {
                           setSelectedId(hook.id)
                           setTestResult(null)
@@ -278,18 +280,14 @@ export function WebhooksPage() {
                       >
                         {hook.name}
                       </button>
-                      <div className="text-xs text-muted-foreground">
+                      <div className={clsx(styles.mutedXs)}>
                         {hook.resourceId == null
                           ? t('webhooks.allResources')
                           : (resourceLabel.get(hook.resourceId) ?? `#${hook.resourceId}`)}
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-[220px] truncate font-mono text-xs">
-                      {hook.url}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {hook.events.join(', ')}
-                    </TableCell>
+                    <TableCell className={clsx(styles.urlCell)}>{hook.url}</TableCell>
+                    <TableCell className={clsx(styles.mutedXs)}>{hook.events.join(', ')}</TableCell>
                     <TableCell>
                       {hook.status === 'active' ? (
                         <Badge>{t('webhooks.active')}</Badge>
@@ -297,8 +295,8 @@ export function WebhooksPage() {
                         <Badge variant="destructive">{t('webhooks.disabled')}</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-wrap justify-end gap-2">
+                    <TableCell className={clsx(styles.alignRight)}>
+                      <div className={clsx(styles.rowActions)}>
                         <Button
                           size="sm"
                           variant="outline"
@@ -341,7 +339,7 @@ export function WebhooksPage() {
               </TableBody>
             </Table>
           )}
-          {testResult ? <p className="mt-3 text-sm text-muted-foreground">{testResult}</p> : null}
+          {testResult ? <p className={clsx(styles.testResult)}>{testResult}</p> : null}
         </CardContent>
       </Card>
 
@@ -371,7 +369,7 @@ export function WebhooksPage() {
                 <TableBody>
                   {(deliveries.data ?? []).map((d) => (
                     <TableRow key={d.id}>
-                      <TableCell className="font-mono text-xs">{d.event}</TableCell>
+                      <TableCell className={clsx(styles.monoXs)}>{d.event}</TableCell>
                       <TableCell>
                         {d.status === 'success' ? (
                           <Badge>{d.status}</Badge>
@@ -384,7 +382,7 @@ export function WebhooksPage() {
                       <TableCell>{d.attempt}</TableCell>
                       <TableCell>{d.responseCode ?? '—'}</TableCell>
                       <TableCell>{d.durationMs != null ? `${d.durationMs}ms` : '—'}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{d.createdAt}</TableCell>
+                      <TableCell className={clsx(styles.mutedXs)}>{d.createdAt}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -401,7 +399,7 @@ export function WebhooksPage() {
           if (!next) resetForm()
         }}
       >
-        <DialogContent className="max-w-xl">
+        <DialogContent className={clsx(styles.dialogMd)}>
           <DialogHeader>
             <DialogTitle>
               {isEdit ? t('webhooks.editTitle') : t('webhooks.createTitle')}
@@ -411,8 +409,8 @@ export function WebhooksPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-1.5">
+          <div className={clsx(styles.stackMd)}>
+            <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-name">{t('common.name')}</Label>
               <Input
                 id="webhook-name"
@@ -421,7 +419,7 @@ export function WebhooksPage() {
                 placeholder={t('webhooks.placeholderName')}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-url">{t('webhooks.url')}</Label>
               <Input
                 id="webhook-url"
@@ -430,8 +428,8 @@ export function WebhooksPage() {
                 placeholder="https://example.com/hooks/hcms"
               />
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
+            <div className={clsx(styles.stackXs)}>
+              <div className={clsx(styles.fieldHeader)}>
                 <Label htmlFor="webhook-secret">{t('webhooks.secret')}</Label>
                 {!isEdit ? (
                   <Button
@@ -451,22 +449,22 @@ export function WebhooksPage() {
                 placeholder={isEdit ? t('webhooks.secretKeep') : undefined}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className={clsx(styles.stackXs)}>
               <Label>{t('webhooks.events')}</Label>
-              <div className="space-y-2 rounded-md border p-3">
+              <div className={clsx(styles.eventsBox)}>
                 {WEBHOOK_EVENTS.map((event) => (
-                  <label key={event} className="flex items-center gap-2 text-sm">
+                  <label key={event} className={clsx(styles.eventLabel)}>
                     <input
                       type="checkbox"
                       checked={events.includes(event)}
                       onChange={() => toggleEvent(event)}
                     />
-                    <span className="font-mono text-xs">{event}</span>
+                    <span className={clsx(styles.monoXs)}>{event}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-resource">{t('webhooks.resource')}</Label>
               <Select
                 id="webhook-resource"
@@ -484,7 +482,7 @@ export function WebhooksPage() {
                 ))}
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-status">{t('common.status')}</Label>
               <Select
                 id="webhook-status"
@@ -496,8 +494,8 @@ export function WebhooksPage() {
               </Select>
             </div>
 
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <div className="flex justify-end gap-2">
+            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
+            <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
               </Button>

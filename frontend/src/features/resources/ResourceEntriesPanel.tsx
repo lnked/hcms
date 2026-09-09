@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Columns3, History, Link2, Upload } from 'lucide-react'
+import { clsx } from 'clsx'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,9 +27,9 @@ import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useI18n } from '@/i18n'
 import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
-import { cn } from '@/lib/utils'
 import type { SchemaField } from '@/types/field'
 import type { Resource, ResourceListColumn } from '@/types/resource'
+import styles from './ResourceEntriesPanel.module.css'
 
 const SYSTEM_EXPORT_FIELDS = ['id', 'createdAt', 'updatedAt'] as const
 
@@ -409,12 +410,12 @@ export function ResourceEntriesPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+      <CardHeader className={styles.headerRow}>
         <div>
           <CardTitle>{t('resources.data')}</CardTitle>
           <CardDescription>{t('entries.hint')}</CardDescription>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.headerActions}>
           {selectedIds.length > 0 ? (
             <Button
               variant="destructive"
@@ -431,7 +432,7 @@ export function ResourceEntriesPanel({
             </Button>
           ) : null}
           <Button variant="outline" onClick={() => setColumnsOpen(true)}>
-            <Columns3 className="mr-1 h-4 w-4" />
+            <Columns3 className={styles.icon} />
             {t('entries.columns')}
           </Button>
           <Button variant="outline" onClick={openImport}>
@@ -443,9 +444,9 @@ export function ResourceEntriesPanel({
           <Button onClick={() => openEntry('new')}>{t('entries.new')}</Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={styles.stack}>
         <form
-          className="flex flex-wrap gap-2"
+          className={styles.searchForm}
           onSubmit={(e) => {
             e.preventDefault()
             setPage(1)
@@ -456,7 +457,7 @@ export function ResourceEntriesPanel({
             placeholder={t('entries.searchPlaceholder')}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="max-w-xs"
+            className={styles.searchInput}
           />
           <Button type="submit" variant="outline">
             {t('common.search')}
@@ -466,7 +467,7 @@ export function ResourceEntriesPanel({
         {list.isLoading ? (
           <TableSkeleton columns={Math.max(3, fields.length + 2)} rows={8} />
         ) : list.isError ? (
-          <p className="text-sm text-destructive">
+          <p className={styles.error}>
             {list.error instanceof Error ? list.error.message : t('entries.loadFailed')}
           </p>
         ) : (
@@ -496,7 +497,7 @@ export function ResourceEntriesPanel({
         )}
 
         {meta ? (
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className={styles.pagination}>
             <span>
               {t('common.pageOfTotal', {
                 page: meta.page,
@@ -504,7 +505,7 @@ export function ResourceEntriesPanel({
                 total: meta.total,
               })}
             </span>
-            <div className="flex gap-2">
+            <div className={styles.paginationActions}>
               <Button
                 size="sm"
                 variant="outline"
@@ -539,21 +540,21 @@ export function ResourceEntriesPanel({
         }}
       >
         <DialogContent>
-          <DialogHeader className="pr-6">
+          <DialogHeader className={styles.dialogHeader}>
             <DialogTitle>
               {editingId !== null ? t('entries.edit', { id: editingId }) : t('entries.new')}
             </DialogTitle>
             <DialogDescription>{t('entries.dialogHint')}</DialogDescription>
           </DialogHeader>
           {editingId !== null ? (
-            <div className="flex justify-end gap-2">
+            <div className={styles.entryToolbar}>
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => void copyEntryLink()}
               >
-                <Link2 className="mr-1 h-4 w-4" />
+                <Link2 className={styles.icon} />
                 {t('entries.copyLink')}
               </Button>
               <Button
@@ -563,15 +564,15 @@ export function ResourceEntriesPanel({
                 disabled={!editing}
                 onClick={() => setRevisionsOpen(true)}
               >
-                <History className="mr-1 h-4 w-4" />
+                <History className={styles.icon} />
                 {t('entries.history')}
               </Button>
             </div>
           ) : null}
           {entryQuery.isLoading ? (
-            <p className="py-6 text-sm text-muted-foreground">{t('common.loading')}</p>
+            <p className={styles.statusMessage}>{t('common.loading')}</p>
           ) : editingId !== null && !editing ? (
-            <p className="py-6 text-sm text-destructive">{t('entries.notFound')}</p>
+            <p className={styles.statusError}>{t('entries.notFound')}</p>
           ) : (
             <>
               <FormRenderer
@@ -582,8 +583,8 @@ export function ResourceEntriesPanel({
                 disabled={save.isPending}
                 entryId={editingId}
               />
-              {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-              <div className="mt-4 flex justify-end gap-2">
+              {error ? <p className={styles.formError}>{error}</p> : null}
+              <div className={styles.formActions}>
                 <Button variant="outline" onClick={closeEntry}>
                   {t('common.cancel')}
                 </Button>
@@ -598,12 +599,12 @@ export function ResourceEntriesPanel({
 
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>
-          <DialogHeader className="pr-6">
+          <DialogHeader className={styles.dialogHeader}>
             <DialogTitle>{t('entries.exportTitle')}</DialogTitle>
             <DialogDescription>{t('entries.exportHint')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className={styles.stack}>
+            <div className={styles.field}>
               <Label htmlFor="export-format">{t('entries.format')}</Label>
               <Select
                 id="export-format"
@@ -614,8 +615,8 @@ export function ResourceEntriesPanel({
                 <option value="csv">{t('entries.formatCsv')}</option>
               </Select>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
+            <div className={styles.field}>
+              <div className={styles.fieldsHeader}>
                 <Label>{t('entries.fields')}</Label>
                 <Button
                   type="button"
@@ -627,10 +628,10 @@ export function ResourceEntriesPanel({
                   {t('entries.selectAllFields')}
                 </Button>
               </div>
-              <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border p-3">
-                <p className="text-xs text-muted-foreground">{t('entries.systemFields')}</p>
+              <div className={styles.fieldsBox}>
+                <p className={styles.hint}>{t('entries.systemFields')}</p>
                 {SYSTEM_EXPORT_FIELDS.map((name) => (
-                  <label key={name} className="flex items-center gap-2 text-sm">
+                  <label key={name} className={styles.checkLabel}>
                     <input
                       type="checkbox"
                       checked={exportAll || exportFields.includes(name)}
@@ -641,9 +642,9 @@ export function ResourceEntriesPanel({
                 ))}
                 {schemaFieldNames.length > 0 ? (
                   <>
-                    <p className="pt-2 text-xs text-muted-foreground">{t('entries.fields')}</p>
+                    <p className={styles.hintSpaced}>{t('entries.fields')}</p>
                     {schemaFieldNames.map((name) => (
-                      <label key={name} className="flex items-center gap-2 text-sm">
+                      <label key={name} className={styles.checkLabel}>
                         <input
                           type="checkbox"
                           checked={exportAll || exportFields.includes(name)}
@@ -656,8 +657,8 @@ export function ResourceEntriesPanel({
                 ) : null}
               </div>
             </div>
-            {exportError ? <p className="text-sm text-destructive">{exportError}</p> : null}
-            <div className="flex justify-end gap-2">
+            {exportError ? <p className={styles.error}>{exportError}</p> : null}
+            <div className={styles.formActions}>
               <Button variant="outline" onClick={() => setExportOpen(false)}>
                 {t('common.cancel')}
               </Button>
@@ -674,12 +675,12 @@ export function ResourceEntriesPanel({
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent>
-          <DialogHeader className="pr-6">
+          <DialogHeader className={styles.dialogHeader}>
             <DialogTitle>{t('entries.importTitle')}</DialogTitle>
             <DialogDescription>{t('entries.importHint')}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className={styles.stack}>
+            <div className={styles.field}>
               <Label htmlFor="import-format">{t('entries.format')}</Label>
               <Select
                 id="import-format"
@@ -690,13 +691,13 @@ export function ResourceEntriesPanel({
                 <option value="csv">{t('entries.formatCsv')}</option>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label>{t('entries.importFile')}</Label>
               <input
                 ref={importFileInputRef}
                 id="import-file"
                 type="file"
-                className="hidden"
+                className={styles.hiddenInput}
                 accept={importFormat === 'csv' ? '.csv,text/csv' : '.json,application/json'}
                 onChange={(e) => {
                   assignImportFile(e.target.files?.[0] ?? null)
@@ -737,19 +738,14 @@ export function ResourceEntriesPanel({
                   setImportDragging(false)
                   assignImportFile(e.dataTransfer.files?.[0] ?? null)
                 }}
-                className={cn(
-                  'flex cursor-pointer items-center gap-3 rounded-lg border border-dashed px-4 py-3 transition-colors',
-                  importDragging
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50 hover:bg-muted/40',
-                )}
+                className={clsx(styles.dropzone, importDragging && styles.dropzoneActive)}
               >
-                <Upload className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <div className="min-w-0 space-y-0.5">
-                  <p className="truncate text-sm font-medium">
+                <Upload className={styles.uploadIcon} />
+                <div className={styles.dropzoneText}>
+                  <p className={styles.dropzoneTitle}>
                     {importFile ? importFile.name : t('entries.importDropzone')}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className={styles.dropzoneHint}>
                     {importFile
                       ? t('entries.importDropzoneChange')
                       : t('entries.importDropzoneHint')}
@@ -757,7 +753,7 @@ export function ResourceEntriesPanel({
                 </div>
               </div>
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="import-paste">{t('entries.importPaste')}</Label>
               <Textarea
                 id="import-paste"
@@ -770,7 +766,7 @@ export function ResourceEntriesPanel({
               />
             </div>
             {importResult ? (
-              <div className="space-y-2 text-sm">
+              <div className={styles.result}>
                 <p>
                   {t('entries.importResult', {
                     created: importResult.created,
@@ -778,7 +774,7 @@ export function ResourceEntriesPanel({
                   })}
                 </p>
                 {importResult.errors.length > 0 ? (
-                  <ul className="max-h-32 space-y-1 overflow-y-auto text-destructive">
+                  <ul className={styles.errorList}>
                     {importResult.errors.slice(0, 20).map((err) => (
                       <li key={`${err.row}-${err.message}`}>
                         {t('entries.importErrorRow', { row: err.row, message: err.message })}
@@ -788,8 +784,8 @@ export function ResourceEntriesPanel({
                 ) : null}
               </div>
             ) : null}
-            {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
-            <div className="flex justify-end gap-2">
+            {importError ? <p className={styles.error}>{importError}</p> : null}
+            <div className={styles.formActions}>
               <Button variant="outline" onClick={() => setImportOpen(false)}>
                 {t('common.cancel')}
               </Button>

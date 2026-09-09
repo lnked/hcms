@@ -1,7 +1,8 @@
 import { InfoIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { clsx } from 'clsx'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { cn } from '@/lib/utils'
+import styles from './EmptyState.module.css'
 
 interface EmptyStateProps {
   title: string
@@ -12,13 +13,13 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, action, className }: EmptyStateProps) {
   return (
-    <Alert variant="info" className={cn('items-center', className)}>
-      <InfoIcon className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-      <div className="flex-1 space-y-1">
+    <Alert variant="info" className={clsx(styles.root, className)}>
+      <InfoIcon className={styles.icon} aria-hidden />
+      <div className={styles.body}>
         <AlertTitle>{title}</AlertTitle>
         {description ? <AlertDescription>{description}</AlertDescription> : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className={styles.action}>{action}</div> : null}
     </Alert>
   )
 }

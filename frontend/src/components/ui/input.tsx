@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { controlFieldClass } from './control'
+import styles from './Input.module.css'
 
 export const Input = React.forwardRef<
   HTMLInputElement,
@@ -8,7 +9,7 @@ export const Input = React.forwardRef<
 >(({ className, type, ...props }, ref) => (
   <input
     type={type}
-    className={cn(controlFieldClass, 'placeholder:text-muted-foreground', className)}
+    className={cn(controlFieldClass, styles.input, className)}
     ref={ref}
     {...props}
   />

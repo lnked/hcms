@@ -1,6 +1,5 @@
 import path from 'node:path'
 import optimizeLocales from '@react-aria/optimize-locales-plugin'
-import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
@@ -10,11 +9,7 @@ const publicDir = process.env.CMS_PUBLIC_DIR || 'public'
 const reactAriaLocales = ['en-GB', 'en-US', 'en-CA', 'ru-RU']
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    { ...optimizeLocales.vite({ locales: reactAriaLocales }), enforce: 'pre' },
-  ],
+  plugins: [react(), { ...optimizeLocales.vite({ locales: reactAriaLocales }), enforce: 'pre' }],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

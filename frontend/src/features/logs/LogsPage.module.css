@@ -1,0 +1,89 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+.title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 600;
+}
+.subtitle {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.muted {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.tabs {
+  display: flex;
+  gap: var(--hcms-SPx2);
+  border-bottom: 1px solid var(--hcms-color-border);
+  padding-bottom: var(--hcms-SPx2);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx6);
+}
+.grid2 {
+  display: grid;
+  gap: var(--hcms-SPx4);
+}
+@media (min-width: 768px) {
+  .grid2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.stackMd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+.maxXs {
+  max-width: 20rem;
+}
+.maxSm {
+  max-width: 24rem;
+}
+.monoXs {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.mutedCell {
+  color: var(--hcms-color-muted-foreground);
+}
+.cellNowrap {
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}
+.pagerBtns {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}
+.filterRow {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}

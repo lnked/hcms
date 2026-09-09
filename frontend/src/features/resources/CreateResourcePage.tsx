@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import type { Resource } from '@/types/resource'
+import styles from './CreateResourcePage.module.css'
 
 function slugify(value: string): string {
   return value
@@ -79,10 +80,10 @@ export function CreateResourcePage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <div className={styles.root}>
       <div>
-        <h1 className="text-2xl font-semibold">{t('resources.createTitle')}</h1>
-        <p className="text-sm text-muted-foreground">{t('resources.createSubtitle')}</p>
+        <h1 className={styles.title}>{t('resources.createTitle')}</h1>
+        <p className={styles.subtitle}>{t('resources.createSubtitle')}</p>
       </div>
       <Card>
         <CardHeader>
@@ -90,8 +91,8 @@ export function CreateResourcePage() {
           <CardDescription>{t('resources.generalHint')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <div className="space-y-2">
+          <form className={styles.form} onSubmit={onSubmit}>
+            <div className={styles.field}>
               <Label htmlFor="label">{t('common.label')}</Label>
               <Input
                 id="label"
@@ -101,7 +102,7 @@ export function CreateResourcePage() {
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="name">{t('common.name')}</Label>
               <Input
                 id="name"
@@ -110,7 +111,7 @@ export function CreateResourcePage() {
                 placeholder="articles"
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="slug">{t('common.slug')}</Label>
               <Input
                 id="slug"
@@ -126,7 +127,7 @@ export function CreateResourcePage() {
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="endpoint">{t('common.endpoint')}</Label>
               <Input
                 id="endpoint"
@@ -139,7 +140,7 @@ export function CreateResourcePage() {
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className={styles.field}>
               <Label htmlFor="description">{t('common.description')}</Label>
               <Input
                 id="description"
@@ -147,8 +148,8 @@ export function CreateResourcePage() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <div className="flex gap-2">
+            {error ? <p className={styles.error}>{error}</p> : null}
+            <div className={styles.actions}>
               <Button type="submit" disabled={pending}>
                 {pending ? t('common.creating') : t('common.create')}
               </Button>
