@@ -47,6 +47,7 @@ export const en = {
   'common.copy': 'Copy',
   'common.copyFailed': 'Copy failed',
   'common.loadError': 'Failed to load',
+  'common.retry': 'Retry',
   'common.history': 'History',
 
   'locale.en': 'English',

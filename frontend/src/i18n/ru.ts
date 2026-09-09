@@ -51,6 +51,7 @@ export const ru: Record<MessageKey, string> = {
   'common.copy': 'Копировать',
   'common.copyFailed': 'Не удалось скопировать',
   'common.loadError': 'Не удалось загрузить',
+  'common.retry': 'Повторить',
   'common.history': 'История',
 
   'locale.en': 'English',

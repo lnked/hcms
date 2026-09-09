@@ -44,7 +44,7 @@ export function DialogContent({
             )}
           >
             <UNSAFE_PortalProvider getContainer={() => content}>{children}</UNSAFE_PortalProvider>
-            <DialogPrimitive.Close className="absolute right-4 top-4 opacity-70 hover:opacity-100">
+            <DialogPrimitive.Close className="absolute right-4 top-4 cursor-pointer opacity-70 hover:opacity-100">
               <X className="h-4 w-4" />
             </DialogPrimitive.Close>
           </div>
