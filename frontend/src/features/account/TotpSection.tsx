@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api, getToken } from '@/lib/api'
@@ -42,7 +41,7 @@ function TotpSetup({ onDone }: { onDone: () => void }) {
   return (
     <div className="space-y-3">
       {!secret ? (
-        <Button disabled={setup.isPending} onClick={() => setup.mutate()}>
+        <Button variant="outline" disabled={setup.isPending} onClick={() => setup.mutate()}>
           {t('users.totpSetup')}
         </Button>
       ) : (
@@ -117,7 +116,7 @@ function TotpDisable({ onDone }: { onDone: () => void }) {
   )
 }
 
-export function TotpCard() {
+export function TotpSection() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const me = useQuery({
@@ -127,21 +126,18 @@ export function TotpCard() {
   const refreshMe = () => void queryClient.invalidateQueries({ queryKey: ['auth-me'] })
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('users.totpTitle')}</CardTitle>
-        <CardDescription>{t('users.totpHint')}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-sm">
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <p className="text-sm font-medium">{t('users.totpTitle')}</p>
+        <p className="text-sm text-muted-foreground">
           {me.data?.totpEnabled ? t('users.totpEnabled') : t('users.totpDisabled')}
         </p>
-        {!me.data?.totpEnabled ? (
-          <TotpSetup onDone={refreshMe} />
-        ) : (
-          <TotpDisable onDone={refreshMe} />
-        )}
-      </CardContent>
-    </Card>
+      </div>
+      {!me.data?.totpEnabled ? (
+        <TotpSetup onDone={refreshMe} />
+      ) : (
+        <TotpDisable onDone={refreshMe} />
+      )}
+    </div>
   )
 }

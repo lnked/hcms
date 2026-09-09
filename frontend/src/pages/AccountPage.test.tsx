@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { AppToast } from '@/components/AppToast'
 import { I18nProvider } from '@/i18n'
 import { AccountPage } from './AccountPage'
 
@@ -66,17 +67,23 @@ describe('AccountPage', () => {
     expect(api).toHaveBeenCalledWith('/admin/api/auth/identities/google', { method: 'DELETE' })
   })
 
-  it('changes the password with the generated one', async () => {
+  it('changes the password in a dialog and closes it on success', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <I18nProvider initialLocale="en">
         <QueryClientProvider client={client}>
           <AccountPage />
+          <AppToast />
         </QueryClientProvider>
       </I18nProvider>,
     )
 
-    const submit = await screen.findByRole('button', { name: 'Change password' })
+    expect(await screen.findByRole('heading', { name: 'Security' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Change password' }))
+
+    const submit = screen.getByRole('button', { name: 'Save' })
     expect(submit).toBeDisabled()
 
     await userEvent.type(screen.getByLabelText('Current password'), 'old-secret1')
@@ -92,5 +99,10 @@ describe('AccountPage', () => {
       method: 'POST',
       body: JSON.stringify({ currentPassword: 'old-secret1', newPassword: generated }),
     })
+
+    const toast = await screen.findByRole('status')
+    expect(toast).toHaveClass('bg-success')
+    expect(toast.textContent).toContain('Password changed')
+    await waitFor(() => expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument())
   })
 })

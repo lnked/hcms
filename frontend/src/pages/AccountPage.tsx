@@ -6,8 +6,7 @@ import { FormBlockSkeleton } from '@/components/skeletons'
 import { api, ApiError } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
-import { PasswordCard } from '@/features/account/PasswordCard'
-import { TotpCard } from '@/features/account/TotpCard'
+import { SecurityCard } from '@/features/account/SecurityCard'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 
 interface AuthProviders {
@@ -172,8 +171,7 @@ export function AccountPage() {
         </div>
       )}
 
-      <PasswordCard />
-      <TotpCard />
+      <SecurityCard />
     </div>
   )
 }

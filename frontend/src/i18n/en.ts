@@ -193,6 +193,8 @@ export const en = {
   'account.identityTaken': 'This social account is already linked to another user.',
   'account.alreadyLinked': 'A different account is already linked.',
   'account.providerDisabled': 'This provider is not configured.',
+  'account.securityTitle': 'Security',
+  'account.securityHint': 'Password and two-factor authentication for your account.',
   'account.passwordTitle': 'Password',
   'account.passwordHint': 'Change your password. The current password is required.',
   'account.currentPassword': 'Current password',

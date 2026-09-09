@@ -197,6 +197,8 @@ export const ru: Record<MessageKey, string> = {
   'account.identityTaken': 'Этот соцаккаунт уже привязан к другому пользователю.',
   'account.alreadyLinked': 'Уже привязан другой аккаунт.',
   'account.providerDisabled': 'Провайдер не настроен.',
+  'account.securityTitle': 'Безопасность',
+  'account.securityHint': 'Пароль и двухфакторная аутентификация вашего аккаунта.',
   'account.passwordTitle': 'Пароль',
   'account.passwordHint': 'Смена пароля. Текущий пароль обязателен.',
   'account.currentPassword': 'Текущий пароль',
