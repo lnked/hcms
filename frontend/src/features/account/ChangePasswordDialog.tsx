@@ -51,6 +51,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [reveal, setReveal] = useState(false)
+  const [revealCurrent, setRevealCurrent] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
 
   const change = useMutation({
@@ -94,18 +95,32 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
     >
       <div className="space-y-2">
         <Label htmlFor="account-current-password">{t('account.currentPassword')}</Label>
-        <Input
-          id="account-current-password"
-          type="password"
-          autoComplete="current-password"
-          autoFocus
-          value={current}
-          onChange={(e) => {
-            setCurrent(e.target.value)
-            setFieldErrors({})
-          }}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="account-current-password"
+            type={revealCurrent ? 'text' : 'password'}
+            autoComplete="current-password"
+            autoFocus
+            className="pr-10"
+            value={current}
+            onChange={(e) => {
+              setCurrent(e.target.value)
+              setFieldErrors({})
+            }}
+            required
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2"
+            title={revealCurrent ? t('account.hidePassword') : t('account.showPassword')}
+            aria-label={revealCurrent ? t('account.hidePassword') : t('account.showPassword')}
+            onClick={() => setRevealCurrent((value) => !value)}
+          >
+            {revealCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </Button>
+        </div>
         <FieldError messages={fieldErrors.currentPassword} />
       </div>
 

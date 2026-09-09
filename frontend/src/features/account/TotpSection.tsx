@@ -148,9 +148,10 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
       <CodeBlock code={secret} label={t('users.totpManual')} language="http" />
 
       <div>
-        <Label htmlFor="totp-enable-code" className="mb-1 block">
+        <Label htmlFor="totp-enable-code" className="mb-2 block">
           {t('login.totp')}
         </Label>
+
         <Input
           id="totp-enable-code"
           autoFocus
