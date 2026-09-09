@@ -8,32 +8,47 @@ import { I18nProvider } from '@/i18n'
 import { ResourcesPage } from './ResourcesPage'
 
 vi.mock('@/lib/api', () => ({
-  api: vi.fn(async () => [
-    {
-      id: 1,
-      contentTypeId: 1,
-      slug: 'articles',
-      endpoint: '/api/articles',
-      apiVersion: 'v1',
-      status: 'draft',
-      schemaVersion: 0,
-      settings: {
-        apiEnabled: true,
-        public: { read: false, create: false, update: false, delete: false },
-        pagination: true,
-        search: true,
-        sorting: true,
-        filtering: true,
-        deleteStrategy: 'hard',
-        softDelete: false,
+  getToken: vi.fn(() => 'test-token'),
+  api: vi.fn(async (path: string) => {
+    if (path === '/admin/api/auth/me') {
+      return {
+        id: 1,
+        name: 'Admin',
+        email: 'admin@example.com',
+        role: 'owner',
+        changelogSeenVersion: null,
+        aclEnabled: false,
+        sections: [],
+        resourceGrants: [],
+      }
+    }
+    return [
+      {
+        id: 1,
+        contentTypeId: 1,
+        slug: 'articles',
+        endpoint: '/api/articles',
+        apiVersion: 'v1',
+        status: 'draft',
+        schemaVersion: 0,
+        settings: {
+          apiEnabled: true,
+          public: { read: false, create: false, update: false, delete: false },
+          pagination: true,
+          search: true,
+          sorting: true,
+          filtering: true,
+          deleteStrategy: 'hard',
+          softDelete: false,
+        },
+        label: 'Articles',
+        contentTypeSlug: 'articles',
+        isSystem: false,
+        createdAt: '2026-09-05 00:00:00',
+        updatedAt: '2026-09-05 00:00:00',
       },
-      label: 'Articles',
-      contentTypeSlug: 'articles',
-      isSystem: false,
-      createdAt: '2026-09-05 00:00:00',
-      updatedAt: '2026-09-05 00:00:00',
-    },
-  ]),
+    ]
+  }),
 }))
 
 const toastListeners = new Set<(toast: { kind: string; message: string }) => void>()
