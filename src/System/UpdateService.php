@@ -606,7 +606,7 @@ final class UpdateService
             return;
         }
 
-        $php = PHP_BINARY !== '' ? PHP_BINARY : 'php';
+        $php = is_file(PHP_BINARY) ? PHP_BINARY : 'php';
         $cmd = escapeshellarg($php) . ' ' . escapeshellarg($script) . ' ' . escapeshellarg($this->paths->root);
         $output = [];
         $code = 0;
