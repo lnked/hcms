@@ -172,8 +172,7 @@ export const ru: Record<MessageKey, string> = {
   'account.oauth.clientSecretHelp':
     'Секрет показывается в том же окне сразу после создания клиента (позже — кнопка «Add secret» в карточке клиента). Скопируйте значение целиком; в поле хранится только маска.',
   'account.oauth.redirectUri': 'Redirect URI',
-  'account.oauth.telegramHint':
-    'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
+  'account.oauth.telegramHint': 'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
   'account.oauth.telegramEnabled': 'Включить вход через Telegram',
   'account.oauth.botUsername': 'Username бота',
   'account.oauth.botUsernameHelp':
