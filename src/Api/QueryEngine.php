@@ -1094,12 +1094,8 @@ final class QueryEngine
             'id' => (int) $row['id'],
             'createdAt' => $row['created_at'] ?? null,
             'updatedAt' => $row['updated_at'] ?? null,
-            'createdById' => isset($row['created_by']) && $row['created_by'] !== null
-                ? (int) $row['created_by']
-                : null,
-            'updatedById' => isset($row['updated_by']) && $row['updated_by'] !== null
-                ? (int) $row['updated_by']
-                : null,
+            'createdById' => isset($row['created_by']) ? (int) $row['created_by'] : null,
+            'updatedById' => isset($row['updated_by']) ? (int) $row['updated_by'] : null,
         ];
         $mediaCache = [];
         foreach ($fieldMap as $name => $meta) {
