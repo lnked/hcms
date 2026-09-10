@@ -581,7 +581,7 @@ export const ru: Record<MessageKey, string> = {
   'media.noFilesSelected': 'Файлы не выбраны',
   'media.uploadPartial': 'Загружено {ok}, ошибок {failed}',
   'media.library': 'Библиотека',
-  'media.publicUrl': 'Публичный URL: /media/{id}/{filename} (+ fullUrl)',
+  'media.publicUrl': 'Публичный URL: /media/{id}/{filename} (статика после первого hit)',
   'media.empty': 'Медиа пока нет.',
   'media.deleteConfirm': 'Удалить {name}?',
   'media.bulkDelete': 'Удалить выбранные ({count})',

@@ -576,7 +576,7 @@ export const en = {
   'media.noFilesSelected': 'No files selected',
   'media.uploadPartial': 'Uploaded {ok}, failed {failed}',
   'media.library': 'Library',
-  'media.publicUrl': 'Public URL: /media/{id}/{filename} (+ fullUrl)',
+  'media.publicUrl': 'Public URL: /media/{id}/{filename} (static after first hit)',
   'media.empty': 'No media yet.',
   'media.deleteConfirm': 'Delete {name}?',
   'media.bulkDelete': 'Delete selected ({count})',
