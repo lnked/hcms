@@ -13,6 +13,7 @@ import type {
   MediaItemRef,
 } from '@/types/field'
 import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
+import { OptimizeImageDialog } from './OptimizeImageDialog'
 import styles from './MediaFieldPicker.module.css'
 
 type UploadResult = MediaFieldValue & { media?: MediaItemRef; warning?: string | null }
@@ -119,6 +120,7 @@ export function MediaFieldPicker({
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [optimizeIndex, setOptimizeIndex] = useState<number | null>(null)
   const items = parseValue(value, multiple)
   const resolvedAccept = acceptFromFormats(formats, accept)
 
@@ -322,6 +324,16 @@ export function MediaFieldPicker({
                     >
                       <Pencil className={clsx(styles.iconSm)} />
                     </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={disabled || busy}
+                      title={t('media.optimize')}
+                      onClick={() => setOptimizeIndex(index)}
+                    >
+                      {t('media.optimize')}
+                    </Button>
                     {/* Quick rotate stays for untouched uploads; once edited, the editor owns orientation. */}
                     {item.sourceId == null ? (
                       <>
@@ -453,6 +465,33 @@ export function MediaFieldPicker({
           overrides={editingItem.overrides ?? {}}
           busy={busy}
           onApply={(result) => void applyEdit(editingIndex as number, result)}
+        />
+      ) : null}
+
+      {optimizeIndex != null && items[optimizeIndex] ? (
+        <OptimizeImageDialog
+          open
+          mediaIds={[items[optimizeIndex]!.id]}
+          onOpenChange={(next) => {
+            if (!next) setOptimizeIndex(null)
+          }}
+          onDone={(result) => {
+            if (!('media' in result) || !result.media) return
+            const index = optimizeIndex
+            const current = items[index]
+            if (!current) return
+            const media = result.media as MediaItemRef & { size?: number; mime?: string }
+            const nextItem: MediaFieldValue = {
+              ...current,
+              media: {
+                ...current.media,
+                ...media,
+                id: media.id ?? current.id,
+              },
+            }
+            emit(items.map((it, i) => (i === index ? nextItem : it)))
+            setOptimizeIndex(null)
+          }}
         />
       ) : null}
     </div>

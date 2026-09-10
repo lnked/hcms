@@ -1,0 +1,51 @@
+.content {
+  max-width: 28rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--hcms-color-destructive);
+}
+
+.result {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--hcms-color-foreground);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}

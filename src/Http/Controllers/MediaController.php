@@ -184,6 +184,100 @@ final class MediaController
         }
     }
 
+    public function optimize(Request $request, AuthContext $auth, int $id): Response
+    {
+        try {
+            $body = $request->json();
+            $opts = $this->parseOptimizeOpts($body);
+            $result = $this->media->optimize($id, $opts, $this->scope($auth));
+            $this->audit->log(
+                $request,
+                'media.optimized',
+                $auth->userId(),
+                'media',
+                (string) $id,
+                [
+                    'quality' => $opts['quality'],
+                    'format' => $opts['format'] ?? 'keep',
+                    'savedBytes' => $result['savedBytes'],
+                ],
+            );
+
+            return Response::data($result);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (NotFoundException $e) {
+            return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        } catch (ForbiddenException $e) {
+            return Response::error('FORBIDDEN', $e->getMessage(), 403);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function bulkOptimize(Request $request, AuthContext $auth): Response
+    {
+        try {
+            $body = $request->json();
+            $ids = $body['ids'] ?? null;
+            if (!is_array($ids) || $ids === []) {
+                throw new InvalidArgumentException('ids array is required');
+            }
+            $opts = $this->parseOptimizeOpts($body);
+            $result = $this->media->bulkOptimize($ids, $opts, $this->scope($auth));
+            $this->audit->log(
+                $request,
+                'media.bulk_optimized',
+                $auth->userId(),
+                'media',
+                null,
+                [
+                    'ids' => $ids,
+                    'optimized' => $result['optimized'],
+                    'failed' => $result['failed'],
+                    'savedBytes' => $result['savedBytes'],
+                ],
+            );
+
+            return Response::data($result);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array{quality: int, format?: string, maxWidth?: int|null, maxHeight?: int|null, applyToVariants?: bool}
+     */
+    private function parseOptimizeOpts(array $body): array
+    {
+        if (!isset($body['quality']) || !is_numeric($body['quality'])) {
+            throw new InvalidArgumentException('quality is required (1-100)');
+        }
+
+        $opts = ['quality' => (int) $body['quality']];
+        if (isset($body['format']) && is_string($body['format'])) {
+            $opts['format'] = $body['format'];
+        }
+        if (array_key_exists('maxWidth', $body)) {
+            $opts['maxWidth'] = $body['maxWidth'] === null || $body['maxWidth'] === ''
+                ? null
+                : (int) $body['maxWidth'];
+        }
+        if (array_key_exists('maxHeight', $body)) {
+            $opts['maxHeight'] = $body['maxHeight'] === null || $body['maxHeight'] === ''
+                ? null
+                : (int) $body['maxHeight'];
+        }
+        if (array_key_exists('applyToVariants', $body)) {
+            $opts['applyToVariants'] = (bool) $body['applyToVariants'];
+        }
+
+        return $opts;
+    }
+
     public function delete(Request $request, AuthContext $auth, int $id): Response
     {
         try {

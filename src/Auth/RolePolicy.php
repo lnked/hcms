@@ -87,6 +87,9 @@ final class RolePolicy
             || str_starts_with($path, '/admin/api/tokens')
             || str_starts_with($path, '/admin/api/integrations')
             || str_starts_with($path, '/admin/api/webhooks')
+            || str_starts_with($path, '/admin/api/feature-flags')
+            || str_starts_with($path, '/admin/api/locales')
+            || str_starts_with($path, '/admin/api/translations')
             || str_starts_with($path, '/admin/api/logs/ip-blocks')
         ) {
             return 'settings.write';

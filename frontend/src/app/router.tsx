@@ -59,6 +59,12 @@ const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default:
 const WebhooksPage = lazy(() =>
   import('@/features/webhooks/WebhooksPage').then((m) => ({ default: m.WebhooksPage })),
 )
+const FeatureFlagsPage = lazy(() =>
+  import('@/pages/FeatureFlagsPage').then((m) => ({ default: m.FeatureFlagsPage })),
+)
+const TranslatesPage = lazy(() =>
+  import('@/pages/TranslatesPage').then((m) => ({ default: m.TranslatesPage })),
+)
 
 function withSection(section: AdminSection, minRole: AdminRole | undefined, page: ReactNode) {
   return (
@@ -114,6 +120,14 @@ export function AppRouter() {
             <Route
               path="settings/webhooks"
               element={withSection('webhooks', 'admin', <WebhooksPage />)}
+            />
+            <Route
+              path="settings/feature-flags"
+              element={withSection('feature-flags', 'admin', <FeatureFlagsPage />)}
+            />
+            <Route
+              path="settings/translates"
+              element={withSection('translates', 'admin', <TranslatesPage />)}
             />
             <Route path="settings/users" element={withSection('users', 'admin', <UsersPage />)} />
             <Route

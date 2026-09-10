@@ -19,7 +19,7 @@ deptrac:
     - name: Domain
       collectors:
         - type: directory
-          value: src/(Auth|Content|Fields|Resources|Media|Security|Webhooks|Integrations|Mail|Audit|OpenApi|System|Install)/.*
+          value: src/(Auth|Content|Fields|Resources|Media|Security|Webhooks|Integrations|Mail|Audit|OpenApi|System|Install|FeatureFlags|Translates)/.*
     - name: Database
       collectors:
         - type: directory

@@ -1,0 +1,135 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx5);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hcms-SPx3);
+  flex-wrap: wrap;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx2);
+}
+
+.search {
+  margin-bottom: var(--hcms-SPx4);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.keyCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.muted {
+  color: var(--hcms-color-muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.missing {
+  color: var(--hcms-color-destructive);
+  font-size: 0.8125rem;
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}
+
+.apiForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.dialog {
+  max-width: 32rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}
+
+.error {
+  margin: 0;
+  color: var(--hcms-color-destructive);
+  font-size: 0.875rem;
+}
+
+.importLabel {
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.importBtn {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 var(--hcms-SPx3);
+  border: 1px solid var(--hcms-color-border);
+  border-radius: var(--hcms-CRx2);
+  font-size: 0.875rem;
+  background: var(--hcms-color-background);
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}

@@ -201,6 +201,11 @@ final class OpenApiGenerator
             }
         }
 
+        $tags[] = ['name' => 'Features', 'description' => 'Feature flags'];
+        $tags[] = ['name' => 'Translates', 'description' => 'Translation keys'];
+        $paths['/features'] = $this->featuresPath();
+        $paths['/translates'] = $this->translatesPath();
+
         return [
             'openapi' => '3.0.3',
             'info' => [
@@ -261,6 +266,102 @@ final class OpenApiGenerator
                     '403' => ['description' => 'Forbidden — missing Email grant'],
                     '422' => ['description' => 'Validation error'],
                     '502' => ['description' => 'Provider error'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function featuresPath(): array
+    {
+        return [
+            'get' => [
+                'tags' => ['Features'],
+                'summary' => 'List feature flags',
+                'description' => 'Returns enabled flags as a key→value map. Filter with `keys` (comma-separated).',
+                'parameters' => [
+                    [
+                        'name' => 'keys',
+                        'in' => 'query',
+                        'required' => false,
+                        'schema' => ['type' => 'string'],
+                        'description' => 'Comma-separated flag keys',
+                    ],
+                ],
+                'security' => [],
+                'responses' => [
+                    '200' => [
+                        'description' => 'Flag map',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'data' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => true,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    '401' => ['description' => 'Unauthorized when requireToken is enabled'],
+                    '404' => ['description' => 'API disabled'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function translatesPath(): array
+    {
+        return [
+            'get' => [
+                'tags' => ['Translates'],
+                'summary' => 'List translations for a locale',
+                'description' => 'Returns key→string map for the given locale with fallback to default locale.',
+                'parameters' => [
+                    [
+                        'name' => 'locale',
+                        'in' => 'query',
+                        'required' => false,
+                        'schema' => ['type' => 'string'],
+                        'description' => 'Locale code (required when multiple locales are enabled)',
+                    ],
+                    [
+                        'name' => 'keys',
+                        'in' => 'query',
+                        'required' => false,
+                        'schema' => ['type' => 'string'],
+                        'description' => 'Comma-separated translation keys',
+                    ],
+                ],
+                'security' => [],
+                'responses' => [
+                    '200' => [
+                        'description' => 'Translation map',
+                        'content' => [
+                            'application/json' => [
+                                'schema' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'data' => [
+                                            'type' => 'object',
+                                            'additionalProperties' => ['type' => 'string'],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    '401' => ['description' => 'Unauthorized when requireToken is enabled'],
+                    '404' => ['description' => 'API disabled'],
+                    '422' => ['description' => 'Missing or unknown locale'],
                 ],
             ],
         ];

@@ -102,3 +102,44 @@ POST /api/integrations/email/{slug}
 
 Requires Bearer API token with Email `integrationGrant` (or admin token).  
 Full setup + examples: [integrations-email.md](./integrations-email.md).
+
+## Feature flags
+
+Admin (`settings.write` / section `feature-flags`):
+
+```http
+GET/POST   /admin/api/feature-flags
+GET/PATCH/DELETE /admin/api/feature-flags/{id}
+GET/PUT    /admin/api/feature-flags/settings
+```
+
+Public (path configurable, default `/api/features`):
+
+```http
+GET /api/features
+GET /api/features?keys=enabledNews,intMaxAmount
+```
+
+Returns `{ "data": { "enabledNews": true, ... } }` for **enabled** flags only. Supports `ETag` / `If-None-Match`.
+
+## Translates
+
+Admin (section `translates`):
+
+```http
+GET/POST/PATCH/DELETE /admin/api/locales[/{code}]
+PUT    /admin/api/locales/{code}/default
+GET/POST/PATCH/DELETE /admin/api/translations[/{id}]
+GET/PUT /admin/api/translations/settings
+GET    /admin/api/translations/export
+POST   /admin/api/translations/import
+```
+
+Public (default `/api/translates`):
+
+```http
+GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description
+```
+
+Missing values fall back to the default locale, then `""`.

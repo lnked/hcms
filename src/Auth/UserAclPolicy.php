@@ -20,6 +20,8 @@ final class UserAclPolicy
         'changelog',
         'tokens',
         'webhooks',
+        'feature-flags',
+        'translates',
         'users',
         'integrations',
         'system',
@@ -159,6 +161,15 @@ final class UserAclPolicy
         }
         if (str_starts_with($path, '/admin/api/webhooks')) {
             return 'webhooks';
+        }
+        if (str_starts_with($path, '/admin/api/feature-flags')) {
+            return 'feature-flags';
+        }
+        if (
+            str_starts_with($path, '/admin/api/locales')
+            || str_starts_with($path, '/admin/api/translations')
+        ) {
+            return 'translates';
         }
         if (str_starts_with($path, '/admin/api/integrations')) {
             return 'integrations';

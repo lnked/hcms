@@ -17,6 +17,7 @@ import {
 import { useI18n } from '@/i18n'
 import { api, apiPage, apiUpload } from '@/lib/api'
 import type { MediaItem } from '@/types/media'
+import { OptimizeImageDialog } from './OptimizeImageDialog'
 import styles from './MediaPage.module.css'
 
 type MediaView = 'list' | 'table'
@@ -48,6 +49,7 @@ export function MediaPage() {
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [view, setView] = useState<MediaView>(readView)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [optimizeIds, setOptimizeIds] = useState<number[] | null>(null)
 
   const list = useQuery({
     queryKey: ['media', page],
@@ -144,6 +146,9 @@ export function MediaPage() {
       remove.mutate(item.id)
     }
   }
+
+  const canOptimize = (item: MediaItem) =>
+    item.mime.startsWith('image/') && item.mime !== 'image/svg+xml' && item.mime !== 'image/gif'
 
   const items = list.data?.data ?? []
   const meta = list.data?.meta
@@ -275,20 +280,38 @@ export function MediaPage() {
           </div>
           <div className={clsx(styles.headerActions)}>
             {selectedIds.length > 0 ? (
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={bulkRemove.isPending}
-                onClick={() => {
-                  if (confirm(t('media.bulkDeleteConfirm', { count: selectedIds.length }))) {
-                    bulkRemove.mutate(selectedIds)
-                  }
-                }}
-              >
-                {bulkRemove.isPending
-                  ? t('media.bulkDeleting')
-                  : t('media.bulkDelete', { count: selectedIds.length })}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const ids = items
+                      .filter((i) => selectedIds.includes(i.id) && canOptimize(i))
+                      .map((i) => i.id)
+                    if (ids.length === 0) {
+                      setError(t('media.optimizeNoRaster'))
+                      return
+                    }
+                    setOptimizeIds(ids)
+                  }}
+                >
+                  {t('media.bulkOptimize', { count: selectedIds.length })}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkRemove.isPending}
+                  onClick={() => {
+                    if (confirm(t('media.bulkDeleteConfirm', { count: selectedIds.length }))) {
+                      bulkRemove.mutate(selectedIds)
+                    }
+                  }}
+                >
+                  {bulkRemove.isPending
+                    ? t('media.bulkDeleting')
+                    : t('media.bulkDelete', { count: selectedIds.length })}
+                </Button>
+              </>
             ) : null}
             <div className={clsx(styles.viewToggle)}>
               <Button
@@ -358,6 +381,11 @@ export function MediaPage() {
                       >
                         {t('common.open')}
                       </a>
+                      {canOptimize(item) ? (
+                        <Button size="sm" variant="outline" onClick={() => setOptimizeIds([item.id])}>
+                          {t('media.optimize')}
+                        </Button>
+                      ) : null}
                       <Button
                         size="sm"
                         variant="destructive"
@@ -435,6 +463,11 @@ export function MediaPage() {
                         >
                           {t('common.open')}
                         </a>
+                        {canOptimize(item) ? (
+                          <Button size="sm" variant="outline" onClick={() => setOptimizeIds([item.id])}>
+                            {t('media.optimize')}
+                          </Button>
+                        ) : null}
                         <Button size="sm" variant="destructive" onClick={() => confirmDelete(item)}>
                           {t('common.delete')}
                         </Button>
@@ -471,6 +504,19 @@ export function MediaPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {optimizeIds ? (
+        <OptimizeImageDialog
+          open
+          mediaIds={optimizeIds}
+          onOpenChange={(next) => {
+            if (!next) setOptimizeIds(null)
+          }}
+          onDone={() => {
+            void queryClient.invalidateQueries({ queryKey: ['media'] })
+          }}
+        />
+      ) : null}
     </div>
   )
 }

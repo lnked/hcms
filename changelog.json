@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.59.0",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Media optimize, feature flags, translates",
+      "changes": [
+        {
+          "type": "added",
+          "area": "media",
+          "text": "Оптимизация изображений: POST /admin/api/media/{id}/optimize и bulk-optimize (quality, WebP/JPEG/PNG, max side, variants); кнопка Optimize в медиатеке и у image-полей"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Feature flags: admin CRUD + настройки API, публичный GET /api/features (?keys=…), ETag; раздел Feature flags в админке"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Translates: ключи × языки (cms_locales/cms_translations), import/export JSON, публичный GET /api/translates (?locale=&keys=); раздел Translates в админке"
+        },
+        {
+          "type": "added",
+          "area": "core",
+          "text": "Миграции 015–017; settings features.api / translates.api; OpenAPI paths /features и /translates; ACL-секции feature-flags и translates"
+        }
+      ]
+    },
+    {
       "version": "0.58.4",
       "date": "2026-09-10",
       "channel": "stable",

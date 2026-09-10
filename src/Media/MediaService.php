@@ -439,6 +439,223 @@ HTACCESS;
     }
 
     /**
+     * Re-encode a master (and optionally its variants) to reduce file size.
+     *
+     * @param array{
+     *   quality: int,
+     *   format?: string,
+     *   maxWidth?: int|null,
+     *   maxHeight?: int|null,
+     *   applyToVariants?: bool
+     * } $opts
+     * @return array{
+     *   media: array<string, mixed>,
+     *   before: array{size: int, mime: string},
+     *   after: array{size: int, mime: string},
+     *   savedBytes: int,
+     *   savedPercent: float,
+     *   variantsOptimized: int
+     * }
+     */
+    public function optimize(int $mediaId, array $opts, ?MediaAclScope $scope = null): array
+    {
+        $this->assertMutable($mediaId, $scope);
+        $row = $this->findRow($mediaId);
+        if ($row === null) {
+            throw new NotFoundException('Media not found');
+        }
+        if ($row['parent_id'] !== null) {
+            throw new InvalidArgumentException('Cannot optimize a variant; pass the original media id');
+        }
+        $this->assertRaster($row);
+
+        $mime = strtolower(trim(explode(';', (string) $row['mime'])[0]));
+        if ($mime === 'image/gif' || $mime === 'image/svg+xml') {
+            throw new InvalidArgumentException('GIF and SVG cannot be optimized');
+        }
+
+        $quality = isset($opts['quality']) && is_numeric($opts['quality']) ? (int) $opts['quality'] : 0;
+        if ($quality < 1 || $quality > 100) {
+            throw new InvalidArgumentException('quality must be between 1 and 100');
+        }
+
+        $format = isset($opts['format']) && is_string($opts['format'])
+            ? strtolower(trim($opts['format']))
+            : 'keep';
+        if (!in_array($format, ['keep', 'webp', 'jpeg', 'png'], true)) {
+            throw new InvalidArgumentException('format must be keep, webp, jpeg, or png');
+        }
+
+        $outputMime = match ($format) {
+            'webp' => 'image/webp',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => $mime,
+        };
+        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+            throw new InvalidArgumentException('WebP encoding is not available on this server');
+        }
+
+        $maxWidth = isset($opts['maxWidth']) && is_numeric($opts['maxWidth']) && (int) $opts['maxWidth'] > 0
+            ? (int) $opts['maxWidth']
+            : null;
+        $maxHeight = isset($opts['maxHeight']) && is_numeric($opts['maxHeight']) && (int) $opts['maxHeight'] > 0
+            ? (int) $opts['maxHeight']
+            : null;
+        $applyToVariants = !array_key_exists('applyToVariants', $opts) || (bool) $opts['applyToVariants'];
+
+        @set_time_limit(0);
+
+        $beforeSize = (int) $row['size'];
+        $beforeMime = $mime;
+        $absolute = $this->absolutePath($row);
+        $optimized = $this->images->optimize($absolute, $quality, $outputMime, $maxWidth, $maxHeight);
+        $this->replaceFileContents($mediaId, $row, $optimized);
+
+        $variantsOptimized = 0;
+        if ($applyToVariants) {
+            $children = $this->db->select(
+                'SELECT * FROM cms_media WHERE parent_id = :parent_id',
+                ['parent_id' => $mediaId],
+            );
+            foreach ($children as $child) {
+                try {
+                    $this->assertRaster($child);
+                    $childPath = $this->absolutePath($child);
+                    $childOut = $this->images->optimize($childPath, $quality, $outputMime, null, null);
+                    $this->replaceFileContents((int) $child['id'], $child, $childOut);
+                    ++$variantsOptimized;
+                } catch (Throwable) {
+                    // Skip non-raster / missing children; master was already optimized.
+                }
+            }
+        }
+
+        $media = $this->get($mediaId);
+        $afterSize = (int) ($media['size'] ?? 0);
+        $savedBytes = $beforeSize - $afterSize;
+        $savedPercent = $beforeSize > 0
+            ? round(($savedBytes / $beforeSize) * 100, 1)
+            : 0.0;
+
+        return [
+            'media' => $media,
+            'before' => ['size' => $beforeSize, 'mime' => $beforeMime],
+            'after' => ['size' => $afterSize, 'mime' => (string) ($media['mime'] ?? $outputMime)],
+            'savedBytes' => $savedBytes,
+            'savedPercent' => $savedPercent,
+            'variantsOptimized' => $variantsOptimized,
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     * @param array{
+     *   quality: int,
+     *   format?: string,
+     *   maxWidth?: int|null,
+     *   maxHeight?: int|null,
+     *   applyToVariants?: bool
+     * } $opts
+     * @return array{
+     *   results: list<array{id: int, ok: bool, error?: string, data?: array<string, mixed>}>,
+     *   optimized: int,
+     *   failed: int,
+     *   savedBytes: int
+     * }
+     */
+    public function bulkOptimize(array $ids, array $opts, ?MediaAclScope $scope = null): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, $ids),
+            static fn (int $id): bool => $id > 0,
+        )));
+        if ($ids === []) {
+            throw new InvalidArgumentException('ids array is required');
+        }
+
+        $results = [];
+        $optimized = 0;
+        $failed = 0;
+        $savedBytes = 0;
+        foreach ($ids as $id) {
+            try {
+                $data = $this->optimize($id, $opts, $scope);
+                $results[] = ['id' => $id, 'ok' => true, 'data' => $data];
+                ++$optimized;
+                $savedBytes += (int) $data['savedBytes'];
+            } catch (NotFoundException | ForbiddenException | InvalidArgumentException | RuntimeException $e) {
+                $results[] = ['id' => $id, 'ok' => false, 'error' => $e->getMessage()];
+                ++$failed;
+            }
+        }
+
+        return [
+            'results' => $results,
+            'optimized' => $optimized,
+            'failed' => $failed,
+            'savedBytes' => $savedBytes,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array{bytes: string, mime: string, width: int, height: int, ext: string} $encoded
+     */
+    private function replaceFileContents(int $id, array $row, array $encoded): void
+    {
+        $size = strlen($encoded['bytes']);
+        if ($size <= 0 || $size > self::MAX_BYTES) {
+            throw new InvalidArgumentException('Optimized file too large (max 10MB)');
+        }
+
+        $oldAbsolute = $this->paths->media() . '/' . $row['disk_path'];
+        $oldExt = strtolower(pathinfo((string) $row['disk_path'], PATHINFO_EXTENSION));
+        $newExt = $encoded['ext'];
+        $relative = (string) $row['disk_path'];
+
+        if ($oldExt !== $newExt) {
+            $dir = dirname($relative);
+            $base = pathinfo($relative, PATHINFO_FILENAME);
+            $relative = ($dir !== '.' ? $dir . '/' : '') . $base . '.' . $newExt;
+        }
+
+        $absolute = $this->paths->media() . '/' . $relative;
+        $dirPath = dirname($absolute);
+        if (!is_dir($dirPath) && !mkdir($dirPath, 0755, true) && !is_dir($dirPath)) {
+            throw new RuntimeException('Cannot create media directory');
+        }
+        if (file_put_contents($absolute, $encoded['bytes']) === false) {
+            throw new RuntimeException('Failed to store optimized media file');
+        }
+        @chmod($absolute, 0644);
+
+        if ($relative !== (string) $row['disk_path'] && is_file($oldAbsolute) && $oldAbsolute !== $absolute) {
+            @unlink($oldAbsolute);
+        }
+
+        $originalName = (string) $row['original_name'];
+        if ($oldExt !== $newExt) {
+            $nameBase = pathinfo($this->basenameOnly($originalName), PATHINFO_FILENAME);
+            $originalName = ($nameBase !== '' ? $nameBase : 'file') . '.' . $newExt;
+        }
+
+        $this->db->execute(
+            'UPDATE cms_media SET disk_path = :disk_path, original_name = :original_name, mime = :mime,
+             size = :size, width = :width, height = :height WHERE id = :id',
+            [
+                'disk_path' => $relative,
+                'original_name' => substr($originalName, 0, 255),
+                'mime' => substr($encoded['mime'], 0, 128),
+                'size' => $size,
+                'width' => $encoded['width'],
+                'height' => $encoded['height'],
+                'id' => $id,
+            ],
+        );
+    }
+
+    /**
      * @param list<int> $ids
      * @return array<int, array<string, mixed>>
      */

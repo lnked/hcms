@@ -232,6 +232,16 @@ final class Installer
                 'unrestricted' => true,
                 'allowedOrigins' => [],
             ],
+            'features.api' => [
+                'enabled' => true,
+                'path' => '/api/features',
+                'requireToken' => false,
+            ],
+            'translates.api' => [
+                'enabled' => true,
+                'path' => '/api/translates',
+                'requireToken' => false,
+            ],
             'auth.admin_token_ttl_hours' => 12,
             'auth.remember_token_ttl_hours' => 720,
             'auth.google' => [

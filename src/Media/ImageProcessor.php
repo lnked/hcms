@@ -28,6 +28,7 @@ final class ImageProcessor
         string $position,
         ?string $outputMime = null,
         ?array $crop = null,
+        ?int $quality = null,
     ): array {
         $src = $this->edit($this->load($sourcePath), $rotation, false, false, $crop);
 
@@ -35,7 +36,11 @@ final class ImageProcessor
             ? $this->resizeFit($src, $targetWidth, $targetHeight)
             : $this->cropCover($src, $targetWidth, $targetHeight, $position);
 
-        return $this->finish($src, $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg');
+        return $this->finish(
+            $src,
+            $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg',
+            $quality,
+        );
     }
 
     /**
@@ -44,7 +49,7 @@ final class ImageProcessor
      * @param array{rotation?: int, flipH?: bool, flipV?: bool, crop?: array{x: float, y: float, w: float, h: float}|null} $edit
      * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
      */
-    public function bake(string $sourcePath, array $edit, ?string $outputMime = null): array
+    public function bake(string $sourcePath, array $edit, ?string $outputMime = null, ?int $quality = null): array
     {
         $src = $this->edit(
             $this->load($sourcePath),
@@ -54,7 +59,37 @@ final class ImageProcessor
             $edit['crop'] ?? null,
         );
 
-        return $this->finish($src, $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg');
+        return $this->finish(
+            $src,
+            $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg',
+            $quality,
+        );
+    }
+
+    /**
+     * Re-encode (and optionally downscale) an image for size reduction.
+     *
+     * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
+     */
+    public function optimize(
+        string $sourcePath,
+        int $quality,
+        ?string $outputMime = null,
+        ?int $maxWidth = null,
+        ?int $maxHeight = null,
+    ): array {
+        $quality = max(1, min(100, $quality));
+        $src = $this->load($sourcePath);
+        $sw = imagesx($src);
+        $sh = imagesy($src);
+        $tw = $maxWidth !== null && $maxWidth > 0 ? $maxWidth : $sw;
+        $th = $maxHeight !== null && $maxHeight > 0 ? $maxHeight : $sh;
+        if ($sw > $tw || $sh > $th) {
+            $src = $this->resizeFit($src, $tw, $th);
+        }
+        $mime = $outputMime ?? $this->detectMime($sourcePath) ?? 'image/jpeg';
+
+        return $this->finish($src, $mime, $quality);
     }
 
     /**
@@ -96,9 +131,9 @@ final class ImageProcessor
      * @param \GdImage $img
      * @return array{bytes: string, mime: string, width: int, height: int, ext: string}
      */
-    private function finish(\GdImage $img, string $mime): array
+    private function finish(\GdImage $img, string $mime, ?int $quality = null): array
     {
-        $encoded = $this->encode($img, $mime);
+        $encoded = $this->encode($img, $mime, $quality);
 
         return [
             'bytes' => $encoded['bytes'],
@@ -358,20 +393,27 @@ final class ImageProcessor
      * @param \GdImage $img
      * @return array{bytes: string, mime: string, ext: string}
      */
-    private function encode(\GdImage $img, string $mime): array
+    private function encode(\GdImage $img, string $mime, ?int $quality = null): array
     {
         $mime = strtolower(trim(explode(';', $mime)[0]));
+        $q = $quality !== null ? max(1, min(100, $quality)) : null;
+        $jpegQ = $q ?? 88;
+        $webpQ = $q ?? 85;
+        // PNG compression level 0 (none) … 9 (max); map quality so 100 → lightest file pressure.
+        $pngLevel = $q !== null ? (int) round((100 - $q) / 100 * 9) : 6;
+
         ob_start();
         $ok = match ($mime) {
-            'image/png' => imagepng($img, null, 6),
+            'image/png' => imagepng($img, null, $pngLevel),
             'image/gif' => imagegif($img),
             'image/webp' => function_exists('imagewebp')
-                ? imagewebp($img, null, 85)
+                ? imagewebp($img, null, $webpQ)
                 : false,
+            'image/jpeg', 'image/jpg' => imagejpeg($img, null, $jpegQ),
             default => false,
         };
         if ($ok === false) {
-            $ok = imagejpeg($img, null, 88);
+            $ok = imagejpeg($img, null, $jpegQ);
             $mime = 'image/jpeg';
         }
         $bytes = ob_get_clean();

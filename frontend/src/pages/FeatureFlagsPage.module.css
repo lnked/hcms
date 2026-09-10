@@ -1,0 +1,89 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx5);
+}
+
+.pageHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--hcms-SPx3);
+}
+
+.filters {
+  display: flex;
+  gap: var(--hcms-SPx3);
+  margin-bottom: var(--hcms-SPx4);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.rowActions {
+  display: flex;
+  gap: var(--hcms-SPx2);
+}
+
+.apiForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.switchRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.dialog {
+  max-width: 32rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx2);
+}
+
+.error {
+  margin: 0;
+  color: var(--hcms-color-destructive);
+  font-size: 0.875rem;
+}

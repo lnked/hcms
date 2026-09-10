@@ -46,6 +46,7 @@ use Cms\Fields\SqlTypeMapper;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
+use Cms\Http\Controllers\FeatureFlagsController;
 use Cms\Http\Controllers\FieldController;
 use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\LogsController;
@@ -59,11 +60,14 @@ use Cms\Http\Controllers\ResourcePackageController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
+use Cms\Http\Controllers\TranslatesController;
 use Cms\Http\Controllers\UsersController;
 use Cms\Http\Controllers\WebhooksController;
 use Cms\Install\Installer;
 use Cms\Integrations\IntegrationApiRepository;
 use Cms\Integrations\IntegrationApiService;
+use Cms\FeatureFlags\FeatureFlagRepository;
+use Cms\FeatureFlags\FeatureFlagService;
 use Cms\Mail\EmailIntegration;
 use Cms\Mail\Mailer;
 use Cms\Media\MediaRefService;
@@ -82,6 +86,9 @@ use Cms\System\AdminUiPublisher;
 use Cms\System\ChangelogRepository;
 use Cms\System\LatestRelease;
 use Cms\System\UpdateService;
+use Cms\Translates\LocaleRepository;
+use Cms\Translates\TranslationRepository;
+use Cms\Translates\TranslationService;
 use Cms\Webhooks\WebhookDispatcher;
 use Cms\Webhooks\WebhookRepository;
 use Cms\Webhooks\WebhookService;
@@ -659,6 +666,19 @@ final class Kernel
                 $this->config->appUrl,
             );
 
+            $featureFlags = new FeatureFlagsController(
+                new FeatureFlagService(new FeatureFlagRepository($this->db), $settings),
+                $audit,
+            );
+            $translatesApi = new TranslatesController(
+                new TranslationService(
+                    new LocaleRepository($this->db),
+                    new TranslationRepository($this->db),
+                    $settings,
+                ),
+                $audit,
+            );
+
             AdminResourceRoutes::register(
                 $this->router,
                 $resources,
@@ -675,6 +695,7 @@ final class Kernel
                 $settingsController,
                 $integrations,
             );
+            FeatureTranslatesRoutes::registerAdmin($this->router, $featureFlags, $translatesApi);
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -724,6 +745,33 @@ final class Kernel
                     return $publicIntegrations->sendEmailCustom($request, (string) $params['slug'], $context);
                 }, true, 'api');
             }
+
+            $settingsForFlags = new Settings($this->db);
+            $featureFlagsPublic = new FeatureFlagsController(
+                new FeatureFlagService(new FeatureFlagRepository($this->db), $settingsForFlags),
+                $this->audit ?? new AuditLogger($this->db),
+            );
+            $translatesPublic = new TranslatesController(
+                new TranslationService(
+                    new LocaleRepository($this->db),
+                    new TranslationRepository($this->db),
+                    $settingsForFlags,
+                ),
+                $this->audit ?? new AuditLogger($this->db),
+            );
+            $featuresPath = (new FeatureFlagService(new FeatureFlagRepository($this->db), $settingsForFlags))->getApiSettings()['path'];
+            $translatesPath = (new TranslationService(
+                new LocaleRepository($this->db),
+                new TranslationRepository($this->db),
+                $settingsForFlags,
+            ))->getApiSettings()['path'];
+            FeatureTranslatesRoutes::registerPublic(
+                $this->router,
+                $featureFlagsPublic,
+                $translatesPublic,
+                $featuresPath,
+                $translatesPath,
+            );
 
             $spamGuard = ($this->runtimeSettings !== null)
                 ? new SpamGuard(

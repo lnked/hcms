@@ -11,6 +11,8 @@ export type AdminSection =
   | 'changelog'
   | 'tokens'
   | 'webhooks'
+  | 'feature-flags'
+  | 'translates'
   | 'users'
   | 'integrations'
   | 'system'
@@ -27,6 +29,8 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'changelog',
   'tokens',
   'webhooks',
+  'feature-flags',
+  'translates',
   'users',
   'integrations',
   'system',
@@ -131,6 +135,8 @@ export function sectionForPath(pathname: string): AdminSection | null {
   if (path.startsWith('/changelog')) return 'changelog'
   if (path.startsWith('/settings/tokens')) return 'tokens'
   if (path.startsWith('/settings/webhooks')) return 'webhooks'
+  if (path.startsWith('/settings/feature-flags')) return 'feature-flags'
+  if (path.startsWith('/settings/translates')) return 'translates'
   if (path.startsWith('/settings/users')) return 'users'
   if (path.startsWith('/settings/integrations')) return 'integrations'
   if (path.startsWith('/settings/system')) return 'system'

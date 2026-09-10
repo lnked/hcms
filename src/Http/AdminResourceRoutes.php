@@ -451,6 +451,21 @@ final class AdminResourceRoutes
 
             return $media->edit($request, $context, (int) $params['id']);
         });
+        $router->add('POST', '/admin/api/media/{id}/optimize', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $media->optimize($request, $context, (int) $params['id']);
+        });
+        $router->add('POST', '/admin/api/media/bulk-optimize', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+            unset($params);
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $media->bulkOptimize($request, $context);
+        });
         $router->add('POST', '/admin/api/media/bulk-delete', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
             unset($params);
             if ($context === null) {
