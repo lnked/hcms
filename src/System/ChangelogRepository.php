@@ -65,4 +65,26 @@ final class ChangelogRepository
             static fn (array $r): bool => Version::isGreater((string) $r['version'], $since),
         ));
     }
+
+    /**
+     * @return array{data: list<array<string, mixed>>, meta: array{page: int, limit: int, total: int, totalPages: int}}
+     */
+    public function page(?string $since, ?string $channel, int $page = 1, int $limit = 20): array
+    {
+        $releases = $this->since($since, $channel);
+        $total = count($releases);
+        $limit = min(100, max(1, $limit));
+        $page = max(1, $page);
+        $offset = ($page - 1) * $limit;
+
+        return [
+            'data' => array_values(array_slice($releases, $offset, $limit)),
+            'meta' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => (int) max(1, (int) ceil($total / $limit)),
+            ],
+        ];
+    }
 }

@@ -7,12 +7,14 @@ namespace Cms\Http;
 use Cms\Auth\AuthContext;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\InboundEndpointsController;
 use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\ResourceApiController;
 use Cms\Http\Controllers\ResourceController;
+use Cms\Http\Controllers\ResourceHooksController;
 use Cms\Http\Controllers\ResourcePackageController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\TokensController;
@@ -39,6 +41,8 @@ final class AdminResourceRoutes
         LogsController $logs,
         SettingsController $settingsController,
         IntegrationsController $integrations,
+        ?ResourceHooksController $resourceHooks = null,
+        ?InboundEndpointsController $inboundEndpoints = null,
     ): void {
         $router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
             unset($params);
@@ -120,6 +124,58 @@ final class AdminResourceRoutes
 
             return $resourceApis->delete($request, $context, (int) $params['id'], (int) $params['apiId']);
         });
+
+        if ($resourceHooks !== null) {
+            $router->add('GET', '/admin/api/resources/{id}/hooks', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->index($request, $context, (int) $params['id']);
+            });
+            $router->add('POST', '/admin/api/resources/{id}/hooks', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->create($request, $context, (int) $params['id']);
+            });
+            $router->add('GET', '/admin/api/resources/{id}/hooks/{hookId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->show($request, $context, (int) $params['id'], (int) $params['hookId']);
+            });
+            $router->add('PATCH', '/admin/api/resources/{id}/hooks/{hookId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->update($request, $context, (int) $params['id'], (int) $params['hookId']);
+            });
+            $router->add('DELETE', '/admin/api/resources/{id}/hooks/{hookId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->delete($request, $context, (int) $params['id'], (int) $params['hookId']);
+            });
+            $router->add('GET', '/admin/api/resources/{id}/hooks/{hookId}/deliveries', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->deliveries($request, $context, (int) $params['id'], (int) $params['hookId']);
+            });
+            $router->add('POST', '/admin/api/resources/{id}/hooks/{hookId}/test', function (Request $request, array $params, ?AuthContext $context) use ($resourceHooks): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $resourceHooks->test($request, $context, (int) $params['id'], (int) $params['hookId']);
+            });
+        }
 
         $router->add('GET', '/admin/api/field-types', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
             unset($params);
@@ -360,6 +416,60 @@ final class AdminResourceRoutes
 
             return $webhooksApi->test($request, $context, (int) $params['id']);
         });
+
+        if ($inboundEndpoints !== null) {
+            $router->add('GET', '/admin/api/inbound-endpoints', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->index($request, $context);
+            });
+            $router->add('POST', '/admin/api/inbound-endpoints', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                unset($params);
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->create($request, $context);
+            });
+            $router->add('GET', '/admin/api/inbound-endpoints/{id}', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->show($request, $context, (int) $params['id']);
+            });
+            $router->add('PATCH', '/admin/api/inbound-endpoints/{id}', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->update($request, $context, (int) $params['id']);
+            });
+            $router->add('DELETE', '/admin/api/inbound-endpoints/{id}', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->delete($request, $context, (int) $params['id']);
+            });
+            $router->add('GET', '/admin/api/inbound-endpoints/{id}/deliveries', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->deliveries($request, $context, (int) $params['id']);
+            });
+            $router->add('POST', '/admin/api/inbound-endpoints/{id}/test', function (Request $request, array $params, ?AuthContext $context) use ($inboundEndpoints): Response {
+                if ($context === null) {
+                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+                }
+
+                return $inboundEndpoints->test($request, $context, (int) $params['id']);
+            });
+        }
 
         $router->add('GET', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
             unset($params);

@@ -6,6 +6,7 @@ namespace Cms\Http;
 
 use Cms\Auth\AuthContext;
 use Cms\Http\Controllers\PublicApiController;
+use Cms\Http\Controllers\PublicInboundController;
 
 /**
  * Route table of the public API (/api/*).
@@ -21,8 +22,19 @@ final class PublicApiRoutes
     /** The longer prefix registers first: /api/{slug}/{apiSlug} would otherwise swallow /api/v1/{slug}. */
     private const PREFIXES = ['/api/v1', '/api'];
 
-    public static function register(Router $router, PublicApiController $api): void
-    {
+    public static function register(
+        Router $router,
+        PublicApiController $api,
+        ?PublicInboundController $inbound = null,
+    ): void {
+        if ($inbound !== null) {
+            foreach (self::PREFIXES as $prefix) {
+                $router->add('POST', $prefix . '/inbound/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($inbound): Response {
+                    return $inbound->handle($request, (string) $params['slug'], $context);
+                }, true, 'api');
+            }
+        }
+
         foreach (self::PREFIXES as $prefix) {
             foreach (self::METHODS as $method) {
                 $router->add($method, $prefix . '/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($api): Response {

@@ -20,6 +20,7 @@ import {
   UserCircle,
   Users,
   Webhook,
+  Inbox,
   X,
 } from 'lucide-react'
 import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
@@ -311,6 +312,13 @@ export function AppShell() {
         label: t('nav.webhooks'),
         icon: Webhook,
         section: 'webhooks',
+        minRole: 'admin' as const,
+      },
+      {
+        to: '/settings/inbound',
+        label: t('nav.inbound'),
+        icon: Inbox,
+        section: 'inbound',
         minRole: 'admin' as const,
       },
       {

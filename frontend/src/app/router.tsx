@@ -59,6 +59,11 @@ const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default:
 const WebhooksPage = lazy(() =>
   import('@/features/webhooks/WebhooksPage').then((m) => ({ default: m.WebhooksPage })),
 )
+const InboundEndpointsPage = lazy(() =>
+  import('@/features/inbound/InboundEndpointsPage').then((m) => ({
+    default: m.InboundEndpointsPage,
+  })),
+)
 const FeatureFlagsPage = lazy(() =>
   import('@/pages/FeatureFlagsPage').then((m) => ({ default: m.FeatureFlagsPage })),
 )
@@ -120,6 +125,10 @@ export function AppRouter() {
             <Route
               path="settings/webhooks"
               element={withSection('webhooks', 'admin', <WebhooksPage />)}
+            />
+            <Route
+              path="settings/inbound"
+              element={withSection('inbound', 'admin', <InboundEndpointsPage />)}
             />
             <Route
               path="settings/feature-flags"

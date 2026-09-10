@@ -5,9 +5,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HCMS — готовая админка для вашего SPA</title>
-    <meta
+      <meta
       name="description"
-      content="Self-hosted headless CMS: визуальная схема, REST + OpenAPI, drop-in /admin с OAuth, ролями editor/viewer, антиспамом на формах и email-интеграциями. MIT, PHP 8.3+."
+      content="Self-hosted headless CMS: визуальная схема, REST + OpenAPI, drop-in /admin, feature flags с A/B, translates API, optimize медиа, OAuth, роли, антиспам. MIT, PHP 8.3+."
     />
     <link rel="canonical" href="https://2js.ru/ru/" />
     <link rel="alternate" hreflang="en" href="https://2js.ru/" />
@@ -22,7 +22,7 @@
     <meta property="og:title" content="HCMS — готовая админка для вашего SPA" />
     <meta
       property="og:description"
-      content="Опиши схему — получи REST, OpenAPI и CRUD. OAuth, роли editor/viewer, антиспам-формы. Фронт остаётся твоим."
+      content="Схема → REST, OpenAPI, CRUD. Feature flags + A/B, translates, медиа с warm-cache. OAuth, роли, антиспам. Фронт остаётся твоим."
     />
     <meta property="og:url" content="https://2js.ru/ru/" />
     <meta property="og:image" content="https://2js.ru/og.png" />
@@ -34,7 +34,7 @@
     <meta name="twitter:title" content="HCMS — готовая админка для вашего SPA" />
     <meta
       name="twitter:description"
-      content="Опиши схему — получи REST, OpenAPI и CRUD. OAuth, роли editor/viewer, антиспам-формы."
+      content="Схема → REST, OpenAPI, CRUD. Feature flags + A/B, translates, медиа warm-cache. OAuth, роли, антиспам."
     />
     <meta name="twitter:image" content="https://2js.ru/og.png" />
     <script type="application/ld+json">
@@ -46,7 +46,7 @@
         "operatingSystem": "PHP 8.3+, MySQL / MariaDB",
         "url": "https://2js.ru/ru/",
         "downloadUrl": "https://2js.ru/download",
-        "description": "Self-hosted headless CMS with a drop-in admin, schema builder, REST API, and OpenAPI. OAuth, roles, anti-spam forms, email integrations.",
+        "description": "Self-hosted headless CMS with drop-in admin, schema builder, REST, OpenAPI, feature flags with A/B rollout, translates API, and media optimize.",
         "license": "https://opensource.org/licenses/MIT",
         "offers": {
           "@type": "Offer",
@@ -95,7 +95,7 @@
         <div class="hero-copy">
           <h1 data-i18n="hero.title">A ready-made admin for your SPA</h1>
           <p class="sub" data-i18n="hero.sub">
-            Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.
+            Describe the schema. Get REST, OpenAPI, CRUD, feature flags, and translates. Your SPA stays the frontend.
           </p>
           <div class="hero-cta" id="hero-cta">
             <a
@@ -182,6 +182,8 @@
           <span>MySQL / MariaDB</span>
           <span data-i18n="pill.oauth">OAuth</span>
           <span data-i18n="pill.roles">Roles</span>
+          <span data-i18n="pill.flags">Feature flags</span>
+          <span data-i18n="pill.i18n">i18n API</span>
         </div>
       </section>
 
@@ -301,7 +303,8 @@
           <p class="eyebrow" data-i18n="s1.eyebrow">For your SPA</p>
           <h2 data-i18n="s1.title">Plug in an admin. Keep the frontend.</h2>
           <p class="lead" data-i18n="s1.lead">
-            HCMS is the backend your SPA is missing: visual schema, REST, and a real /admin — no custom CRUD.
+            HCMS is the backend your SPA is missing: visual schema, REST, feature flags, translates, and a real /admin —
+            no custom CRUD.
           </p>
           <div class="cards">
             <article class="card">
@@ -326,12 +329,42 @@
         </div>
       </section>
 
-      <section class="section alt" id="team">
+      <section class="section alt" id="runtime">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="rt.eyebrow">SPA runtime</p>
+          <h2 data-i18n="rt.title">Flags, A/B, and translates — without another SaaS</h2>
+          <p class="lead" data-i18n="rt.lead">
+            Ship kill-switches and copy from the same PHP host as your content API.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="rt.c1.title">Feature flags</h3>
+              <p data-i18n="rt.c1.body">
+                Boolean, integer, string, object. Admin CRUD plus public GET /api/features with ETag for the SPA.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="rt.c2.title">A/B percentage rollout</h3>
+              <p data-i18n="rt.c2.body">
+                Sticky buckets on boolean flags: abTest + rolloutPercent, subject via query or X-Flag-Subject.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="rt.c3.title">Translates API</h3>
+              <p data-i18n="rt.c3.body">
+                Locales and keys in admin. Public GET /api/translates for SPA dictionaries — import/export JSON.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="team">
         <div class="wrap">
           <p class="eyebrow" data-i18n="team.eyebrow">Built for teams</p>
           <h2 data-i18n="team.title">Sign-in, roles, and forms that ship</h2>
           <p class="lead" data-i18n="team.lead">
-            Recent admin work: OAuth, clear roles for editors and viewers, spam-safe public forms, email out of the box.
+            OAuth, clear roles for editors and viewers, spam-safe public forms, and email out of the box.
           </p>
           <div class="cards">
             <article class="card">
@@ -357,7 +390,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section alt">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s2.eyebrow">Build APIs fast</p>
           <h2 data-i18n="s2.title">From content type to live /api/{slug}</h2>
@@ -387,7 +420,7 @@
         </div>
       </section>
 
-      <section class="section alt">
+      <section class="section">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s3.eyebrow">Content tools</p>
           <h2 data-i18n="s3.title">Editors get a real admin, not a JSON dump</h2>
@@ -397,7 +430,10 @@
           <div class="cards">
             <article class="card">
               <h3 data-i18n="s3.c1.title">Media + variants</h3>
-              <p data-i18n="s3.c1.body">Library, crop editor, image variants. Public /media/{id} for the SPA.</p>
+              <p data-i18n="s3.c1.body">
+                Library, crop, optimize (WebP/JPEG/PNG), variants. Pretty /media/{id}/{file} with static warm-cache after
+                the first hit.
+              </p>
             </article>
             <article class="card">
               <h3 data-i18n="s3.c2.title">Rich text &amp; tables</h3>
@@ -413,7 +449,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section alt">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s4.eyebrow">Deploy anywhere</p>
           <h2 data-i18n="s4.title">One file. Any PHP host.</h2>
@@ -441,7 +477,7 @@
         </div>
       </section>
 
-      <section class="section alt">
+      <section class="section">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s5.eyebrow">Secure by default</p>
           <h2 data-i18n="s5.title">Tokens, roles, hooks — without a plugin zoo</h2>
@@ -469,7 +505,7 @@
         </div>
       </section>
 
-      <section class="section" id="faq">
+      <section class="section alt" id="faq">
         <div class="wrap">
           <p class="eyebrow" data-i18n="faq.eyebrow">FAQ</p>
           <h2 data-i18n="faq.title">Questions before you curl</h2>
@@ -506,6 +542,13 @@
               <p data-i18n="faq.a5">
                 Publish migrates for you. Destructive ops (drop field, change type) require confirmDestructive — or the
                 whole migration fails cleanly.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q6">Feature flags and translates — another product?</summary>
+              <p data-i18n="faq.a6">
+                No. Flags (with optional A/B) and translation keys live in the same admin and public API as your content
+                — /api/features and /api/translates.
               </p>
             </details>
           </div>
@@ -563,7 +606,9 @@
         <div class="footer-grid">
           <div>
             <div class="logo">HCMS</div>
-            <p data-i18n="footer.blurb">API-first headless CMS. Schema in, REST and admin out. MIT.</p>
+            <p data-i18n="footer.blurb">
+              API-first headless CMS. Schema, flags, translates, media — REST and admin out. MIT.
+            </p>
           </div>
           <div>
             <h4 data-i18n="footer.product">Product</h4>
@@ -571,6 +616,7 @@
               <li><a href="#why" data-i18n="nav.why">Why</a></li>
               <li><a href="#compare" data-i18n="nav.compare">Compare</a></li>
               <li><a href="#features" data-i18n="nav.features">Features</a></li>
+              <li><a href="#runtime" data-i18n="rt.eyebrow">SPA runtime</a></li>
               <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
               <li><a href="#install" data-i18n="nav.install">Install</a></li>
             </ul>

@@ -11,6 +11,7 @@ export type AdminSection =
   | 'changelog'
   | 'tokens'
   | 'webhooks'
+  | 'inbound'
   | 'feature-flags'
   | 'translates'
   | 'users'
@@ -18,7 +19,7 @@ export type AdminSection =
   | 'system'
   | 'account'
 
-export type ResourceTab = 'overview' | 'schema' | 'data' | 'settings' | 'api' | 'export'
+export type ResourceTab = 'overview' | 'schema' | 'data' | 'settings' | 'api' | 'hooks' | 'export'
 
 export const ADMIN_SECTIONS: AdminSection[] = [
   'dashboard',
@@ -29,6 +30,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'changelog',
   'tokens',
   'webhooks',
+  'inbound',
   'feature-flags',
   'translates',
   'users',
@@ -43,6 +45,7 @@ export const RESOURCE_TABS: ResourceTab[] = [
   'data',
   'settings',
   'api',
+  'hooks',
   'export',
 ]
 
@@ -135,6 +138,7 @@ export function sectionForPath(pathname: string): AdminSection | null {
   if (path.startsWith('/changelog')) return 'changelog'
   if (path.startsWith('/settings/tokens')) return 'tokens'
   if (path.startsWith('/settings/webhooks')) return 'webhooks'
+  if (path.startsWith('/settings/inbound')) return 'inbound'
   if (path.startsWith('/settings/feature-flags')) return 'feature-flags'
   if (path.startsWith('/settings/translates')) return 'translates'
   if (path.startsWith('/settings/users')) return 'users'

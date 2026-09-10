@@ -18,7 +18,8 @@ const I18N = {
     'nav.faq': 'FAQ',
     'nav.cta': 'Get install.php',
     'hero.title': 'A ready-made admin for your SPA',
-    'hero.sub': 'Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.',
+    'hero.sub':
+      'Describe the schema. Get REST, OpenAPI, CRUD, feature flags, and translates. Your SPA stays the frontend.',
     'hero.download': 'Download install.php',
     'hero.github': 'View on GitHub',
     'hero.copy': 'Copy',
@@ -28,6 +29,8 @@ const I18N = {
     'pill.admin': 'Admin panel',
     'pill.oauth': 'OAuth',
     'pill.roles': 'Roles',
+    'pill.flags': 'Feature flags',
+    'pill.i18n': 'i18n API',
     'pill.dark': 'Dark mode',
     'pill.host': 'Self-host',
     'trust.deps': 'Zero runtime deps',
@@ -51,17 +54,29 @@ const I18N = {
     's1.eyebrow': 'For your SPA',
     's1.title': 'Plug in an admin. Keep the frontend.',
     's1.lead':
-      'HCMS is the backend your SPA is missing: visual schema, REST, and a real /admin — no custom CRUD.',
+      'HCMS is the backend your SPA is missing: visual schema, REST, feature flags, translates, and a real /admin — no custom CRUD.',
     's1.c1.title': 'Drop-in /admin',
     's1.c1.body': 'Ship a full admin UI with your PHP host. Editors never touch the SPA repo.',
     's1.c2.title': 'REST for React / Vue / Next',
     's1.c2.body': 'Public /api/{slug} with pagination, search, sort, and filter. Bearer tokens, CORS included.',
     's1.c3.title': 'OpenAPI / Swagger',
     's1.c3.body': 'Spec at /api/openapi.json, UI at /api/docs — generated from the schema you publish.',
+    'rt.eyebrow': 'SPA runtime',
+    'rt.title': 'Flags, A/B, and translates — without another SaaS',
+    'rt.lead': 'Ship kill-switches and copy from the same PHP host as your content API.',
+    'rt.c1.title': 'Feature flags',
+    'rt.c1.body':
+      'Boolean, integer, string, object. Admin CRUD plus public GET /api/features with ETag for the SPA.',
+    'rt.c2.title': 'A/B percentage rollout',
+    'rt.c2.body':
+      'Sticky buckets on boolean flags: abTest + rolloutPercent, subject via query or X-Flag-Subject.',
+    'rt.c3.title': 'Translates API',
+    'rt.c3.body':
+      'Locales and keys in admin. Public GET /api/translates for SPA dictionaries — import/export JSON.',
     'team.eyebrow': 'Built for teams',
     'team.title': 'Sign-in, roles, and forms that ship',
     'team.lead':
-      'Recent admin work: OAuth, clear roles for editors and viewers, spam-safe public forms, email out of the box.',
+      'OAuth, clear roles for editors and viewers, spam-safe public forms, and email out of the box.',
     'team.c1.title': 'Sign-in that fits teams',
     'team.c1.body':
       'Google and Telegram login plus TOTP 2FA. Owners stay on password; editors can connect social accounts.',
@@ -86,7 +101,8 @@ const I18N = {
     's3.lead':
       'Media, rich text, relations, revisions, dashboard analytics — the usual CMS jobs, wired to your API.',
     's3.c1.title': 'Media + variants',
-    's3.c1.body': 'Library, crop editor, image variants. Public /media/{id} for the SPA.',
+    's3.c1.body':
+      'Library, crop, optimize (WebP/JPEG/PNG), variants. Pretty /media/{id}/{file} with static warm-cache after the first hit.',
     's3.c2.title': 'Rich text & tables',
     's3.c2.body': 'Markdown for editors. Typed column filters, bulk delete, and relation labels in the list view.',
     's3.c3.title': 'Relations & revisions',
@@ -152,9 +168,13 @@ const I18N = {
     'faq.q5': 'Are schema migrations safe?',
     'faq.a5':
       'Publish migrates for you. Destructive ops (drop field, change type) require confirmDestructive — or the whole migration fails cleanly.',
+    'faq.q6': 'Feature flags and translates — another product?',
+    'faq.a6':
+      'No. Flags (with optional A/B) and translation keys live in the same admin and public API as your content — /api/features and /api/translates.',
     'cta.title': 'Two commands. Admin on your PHP host.',
     'cta.body': 'Latest zip from GitHub. Admin at /admin, API at /api. MIT.',
-    'footer.blurb': 'API-first headless CMS. Schema in, REST and admin out. MIT.',
+    'footer.blurb':
+      'API-first headless CMS. Schema, flags, translates, media — REST and admin out. MIT.',
     'footer.product': 'Product',
     'footer.source': 'Source',
     'announce':
@@ -172,7 +192,8 @@ const I18N = {
     'nav.faq': 'FAQ',
     'nav.cta': 'Скачать install.php',
     'hero.title': 'Готовая админка для вашего SPA',
-    'hero.sub': 'Опиши схему — получи REST, OpenAPI и CRUD. Фронт остаётся фронтом.',
+    'hero.sub':
+      'Опиши схему — получи REST, OpenAPI, CRUD, feature flags и translates. Фронт остаётся фронтом.',
     'hero.download': 'Скачать install.php',
     'hero.github': 'Код на GitHub',
     'hero.copy': 'Копировать',
@@ -182,6 +203,8 @@ const I18N = {
     'pill.admin': 'Админка',
     'pill.oauth': 'OAuth',
     'pill.roles': 'Роли',
+    'pill.flags': 'Feature flags',
+    'pill.i18n': 'i18n API',
     'pill.dark': 'Тёмная тема',
     'pill.host': 'Self-host',
     'trust.deps': 'Без runtime-зависимостей',
@@ -205,17 +228,29 @@ const I18N = {
     's1.eyebrow': 'Для вашего SPA',
     's1.title': 'Админка подключается. Фронт остаётся твоим.',
     's1.lead':
-      'HCMS — бэкенд, которого не хватает SPA: визуальная схема, REST и нормальный /admin. Без самописного CRUD.',
+      'HCMS — бэкенд, которого не хватает SPA: визуальная схема, REST, feature flags, translates и нормальный /admin. Без самописного CRUD.',
     's1.c1.title': 'Drop-in /admin',
     's1.c1.body': 'Полная админка на PHP-хостинге. Редакторы не лезут в репозиторий фронта.',
     's1.c2.title': 'REST для React / Vue / Next',
     's1.c2.body': 'Публичный /api/{slug}: пагинация, поиск, сорт, фильтры. Bearer и CORS из коробки.',
     's1.c3.title': 'OpenAPI / Swagger',
     's1.c3.body': 'Спека /api/openapi.json, UI /api/docs — из опубликованной схемы.',
+    'rt.eyebrow': 'Runtime для SPA',
+    'rt.title': 'Флаги, A/B и translates — без ещё одного SaaS',
+    'rt.lead': 'Kill-switch и копирайт с того же PHP-хоста, что и content API.',
+    'rt.c1.title': 'Feature flags',
+    'rt.c1.body':
+      'Boolean, integer, string, object. CRUD в админке и публичный GET /api/features с ETag для SPA.',
+    'rt.c2.title': 'A/B по проценту',
+    'rt.c2.body':
+      'Sticky-бакеты на boolean: abTest + rolloutPercent, subject через query или X-Flag-Subject.',
+    'rt.c3.title': 'Translates API',
+    'rt.c3.body':
+      'Локали и ключи в админке. Публичный GET /api/translates для словарей SPA — import/export JSON.',
     'team.eyebrow': 'Для команды',
     'team.title': 'Вход, роли и формы без боли',
     'team.lead':
-      'Свежие доработки админки: OAuth, понятные роли editor/viewer, антиспам на публичных формах, email из коробки.',
+      'OAuth, понятные роли editor/viewer, антиспам на публичных формах и email из коробки.',
     'team.c1.title': 'Вход под команду',
     'team.c1.body':
       'Google и Telegram плюс TOTP 2FA. Владелец на пароле; редакторы могут подключить соцвход.',
@@ -240,7 +275,8 @@ const I18N = {
     's3.lead':
       'Медиа, rich text, связи, ревизии, аналитика на дашборде — обычные CMS-задачи, уже на API.',
     's3.c1.title': 'Медиа и варианты',
-    's3.c1.body': 'Библиотека, кроп, варианты картинок. Публичный /media/{id} для SPA.',
+    's3.c1.body':
+      'Библиотека, кроп, optimize (WebP/JPEG/PNG), варианты. Pretty /media/{id}/{file} со static warm-cache после первого hit.',
     's3.c2.title': 'Rich text и таблицы',
     's3.c2.body':
       'Markdown для редакторов. Типизированные фильтры колонок, bulk delete и подписи связей в списке.',
@@ -307,9 +343,13 @@ const I18N = {
     'faq.q5': 'Миграции схемы безопасны?',
     'faq.a5':
       'Publish мигрирует сам. Деструктивные операции (drop field, change type) требуют confirmDestructive — иначе миграция падает целиком.',
+    'faq.q6': 'Feature flags и translates — отдельный продукт?',
+    'faq.a6':
+      'Нет. Флаги (с опциональным A/B) и ключи переводов живут в той же админке и публичном API, что и контент — /api/features и /api/translates.',
     'cta.title': 'Две команды. Админка на твоём PHP-хосте.',
     'cta.body': 'Latest zip с GitHub. Админка /admin, API /api. MIT.',
-    'footer.blurb': 'API-first headless CMS. Схема на входе, REST и админка на выходе. MIT.',
+    'footer.blurb':
+      'API-first headless CMS. Схема, флаги, translates, медиа — REST и админка на выходе. MIT.',
     'footer.product': 'Продукт',
     'footer.source': 'Исходники',
     'announce':

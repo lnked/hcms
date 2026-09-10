@@ -11,6 +11,7 @@ import { ResourceCustomApisPanel } from '@/features/resources/ResourceCustomApis
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
 import { ResourceExportPanel } from '@/features/resources/ResourceExportPanel'
 import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
+import { ResourceHooksPanel } from '@/features/resources/ResourceHooksPanel'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
@@ -21,7 +22,7 @@ import type { Resource } from '@/types/resource'
 import type { ResourceTab } from '@/lib/rbac'
 import styles from './ResourceDetailPage.module.css'
 
-const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'] as const
+const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'hooks', 'export'] as const
 type Tab = (typeof TABS)[number]
 
 /** Stable identity so child effects don't re-run while fields are loading. */
@@ -33,6 +34,7 @@ const tabKeys = {
   data: 'resources.tab.data',
   settings: 'resources.tab.settings',
   api: 'resources.tab.api',
+  hooks: 'resources.tab.hooks',
   export: 'resources.tab.export',
 } as const
 
@@ -316,6 +318,8 @@ export function ResourceDetailPage() {
           />
         </div>
       ) : null}
+
+      {tab === 'hooks' ? <ResourceHooksPanel resourceId={resource.id} /> : null}
 
       {tab === 'export' ? <ResourceExportPanel resource={resource} /> : null}
     </div>

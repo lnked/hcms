@@ -106,6 +106,8 @@ Admin CRUD: `/admin/api/resources/{id}/apis`.
 
 Writes through a custom API dispatch the usual `entry.*` webhooks with an extra `apiSlug` in the payload.
 
+Sync request hooks and named inbound endpoints: [hooks.md](./hooks.md).
+
 ## Routing
 
 Entry ids and custom API slugs share the same path shape, so the segment after the slug is dispatched by its content: digits address an entry (`/api/posts/12`), anything else an apiSlug (`/api/posts/leads`). Every verb is registered on both shapes, and `/api/v1` registers before `/api` so the version prefix is never swallowed by `{apiSlug}`.

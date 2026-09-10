@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Webhooks;
 
+use Cms\Security\HmacSignature;
+
 final class WebhookDispatcher
 {
     private const TIMEOUT_SECONDS = 5;
@@ -24,7 +26,7 @@ final class WebhookDispatcher
 
     public static function signatureHeader(string $body, string $secret): string
     {
-        return 'sha256=' . hash_hmac('sha256', $body, $secret);
+        return HmacSignature::header($body, $secret);
     }
 
     /**

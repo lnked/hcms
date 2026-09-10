@@ -7,6 +7,9 @@ namespace Cms\Http\Controllers;
 use Cms\Api\QueryEngine;
 use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
+use Cms\Hooks\HookRejectedException;
+use Cms\Hooks\RequestMeta;
+use Cms\Hooks\ResourceHookService;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\ResourceApiRepository;
@@ -28,6 +31,7 @@ final class PublicApiController
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?SpamGuard $spamGuard = null,
         private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?ResourceHookService $hooks = null,
     ) {
     }
 
@@ -45,12 +49,14 @@ final class PublicApiController
                     : Response::error('BAD_REQUEST', 'Unexpected id', 400),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->update($slug, null, (int) $id, $request->json()),
+                    : $this->update($request, $slug, null, (int) $id, $request->json()),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->delete($slug, null, (int) $id),
+                    : $this->delete($request, $slug, null, (int) $id),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (HookRejectedException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), 422);
         } catch (RateLimitExceeded $e) {
             return Response::tooManyRequests($e->retryAfter, $e->limit);
         } catch (InvalidArgumentException $e) {
@@ -82,12 +88,14 @@ final class PublicApiController
                     : Response::error('BAD_REQUEST', 'Unexpected id', 400),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->update($slug, $apiSlug, (int) $id, $request->json()),
+                    : $this->update($request, $slug, $apiSlug, (int) $id, $request->json()),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->delete($slug, $apiSlug, (int) $id),
+                    : $this->delete($request, $slug, $apiSlug, (int) $id),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (HookRejectedException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), 422);
         } catch (RateLimitExceeded $e) {
             return Response::tooManyRequests($e->retryAfter, $e->limit);
         } catch (InvalidArgumentException $e) {
@@ -104,10 +112,26 @@ final class PublicApiController
             $this->guardAnonymousCreate($request, $slug, $payload);
         }
 
+        $meta = RequestMeta::fromRequest($request, 'public');
+        $resourceId = $this->resourceId($slug);
+        if ($this->hooks !== null && $resourceId !== null) {
+            $this->hooks->runBeforeCreate($resourceId, $slug, $payload, $meta);
+        }
+
         $entry = $apiSlug === null
             ? $this->query->create($slug, $payload, ['public' => true])
             : $this->query->createCustom($slug, $apiSlug, $payload, ['public' => true]);
-        $this->dispatchWebhook('entry.created', $slug, $apiSlug, ['entry' => $entry]);
+
+        $hookResponse = [];
+        if ($this->hooks !== null && $resourceId !== null) {
+            $hookResponse = $this->hooks->runAfterCreate($resourceId, $slug, $entry, $meta);
+        }
+
+        $this->dispatchWebhook('entry.created', $request, $slug, $apiSlug, ['entry' => $entry]);
+
+        if ($hookResponse !== []) {
+            return Response::json(['data' => $entry, 'hook' => $hookResponse], 201);
+        }
 
         return Response::data($entry, 201);
     }
@@ -115,24 +139,24 @@ final class PublicApiController
     /**
      * @param array<string, mixed> $payload
      */
-    private function update(string $slug, ?string $apiSlug, int $id, array $payload): Response
+    private function update(Request $request, string $slug, ?string $apiSlug, int $id, array $payload): Response
     {
         $entry = $apiSlug === null
             ? $this->query->patch($slug, $id, $payload, ['public' => true])
             : $this->query->patchCustom($slug, $apiSlug, $id, $payload, ['public' => true]);
-        $this->dispatchWebhook('entry.updated', $slug, $apiSlug, ['entry' => $entry]);
+        $this->dispatchWebhook('entry.updated', $request, $slug, $apiSlug, ['entry' => $entry]);
 
         return Response::data($entry);
     }
 
-    private function delete(string $slug, ?string $apiSlug, int $id): Response
+    private function delete(Request $request, string $slug, ?string $apiSlug, int $id): Response
     {
         if ($apiSlug === null) {
             $this->query->delete($slug, $id, ['public' => true]);
         } else {
             $this->query->deleteCustom($slug, $apiSlug, $id, ['public' => true]);
         }
-        $this->dispatchWebhook('entry.deleted', $slug, $apiSlug, ['entryId' => $id]);
+        $this->dispatchWebhook('entry.deleted', $request, $slug, $apiSlug, ['entryId' => $id]);
 
         return new Response(204, '');
     }
@@ -169,14 +193,19 @@ final class PublicApiController
     /**
      * @param array<string, mixed> $data
      */
-    private function dispatchWebhook(string $event, string $slug, ?string $apiSlug, array $data): void
+    private function dispatchWebhook(string $event, Request $request, string $slug, ?string $apiSlug, array $data): void
     {
         if ($this->webhooks === null) {
             return;
         }
 
         $resourceId = $this->resourceId($slug);
-        $payload = ['resourceId' => $resourceId, 'slug' => $slug, ...$data];
+        $payload = [
+            'resourceId' => $resourceId,
+            'slug' => $slug,
+            'meta' => RequestMeta::fromRequest($request, 'public'),
+            ...$data,
+        ];
         if ($apiSlug !== null) {
             $payload['apiSlug'] = $apiSlug;
         }

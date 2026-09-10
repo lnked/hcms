@@ -45,19 +45,28 @@ use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
 use Cms\Fields\FieldTypeRegistry;
 use Cms\Fields\SqlTypeMapper;
+use Cms\Hooks\HookClient;
+use Cms\Hooks\HookDeliveryRepository;
+use Cms\Hooks\InboundEndpointRepository;
+use Cms\Hooks\InboundEndpointService;
+use Cms\Hooks\ResourceHookRepository;
+use Cms\Hooks\ResourceHookService;
 use Cms\Http\Controllers\AuthController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FeatureFlagsController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\InboundEndpointsController;
 use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
 use Cms\Http\Controllers\PublicApiController;
+use Cms\Http\Controllers\PublicInboundController;
 use Cms\Http\Controllers\PublicIntegrationApiController;
 use Cms\Http\Controllers\ResourceApiController;
 use Cms\Http\Controllers\ResourceController;
+use Cms\Http\Controllers\ResourceHooksController;
 use Cms\Http\Controllers\ResourcePackageController;
 use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
@@ -619,6 +628,23 @@ final class Kernel
                 $audit,
             );
 
+            $hookClient = new HookClient();
+            $hookDeliveries = new HookDeliveryRepository($this->db);
+            $resourceHookService = new ResourceHookService(
+                new ResourceHookRepository($this->db),
+                $hookDeliveries,
+                new ResourceRepository($this->db),
+                $hookClient,
+            );
+            $resourceHooksApi = new ResourceHooksController($resourceHookService, $audit);
+            $inboundEndpointService = new InboundEndpointService(
+                new InboundEndpointRepository($this->db),
+                $hookDeliveries,
+                new ResourceRepository($this->db),
+                $hookClient,
+            );
+            $inboundEndpointsApi = new InboundEndpointsController($inboundEndpointService, $audit);
+
             $users = new UsersController(
                 $usersService ?? new UsersService(new UsersRepository($this->db), $this->tokens),
                 $audit,
@@ -701,6 +727,8 @@ final class Kernel
                 $logs,
                 $settingsController,
                 $integrations,
+                $resourceHooksApi,
+                $inboundEndpointsApi,
             );
             FeatureTranslatesRoutes::registerAdmin($this->router, $featureFlags, $translatesApi);
         }
@@ -786,22 +814,46 @@ final class Kernel
                     $this->rateLimitStore,
                 )
                 : null;
+            $hookClient = new HookClient();
+            $hookDeliveries = new HookDeliveryRepository($this->db);
+            $resourceHookService = new ResourceHookService(
+                new ResourceHookRepository($this->db),
+                $hookDeliveries,
+                new ResourceRepository($this->db),
+                $hookClient,
+            );
+            $inboundEndpointService = new InboundEndpointService(
+                new InboundEndpointRepository($this->db),
+                $hookDeliveries,
+                new ResourceRepository($this->db),
+                $hookClient,
+            );
+            $queryEnginePublic = new QueryEngine(
+                $this->db,
+                new ResourceRepository($this->db),
+                new FieldRepository($this->db),
+                $resourceApiRepo,
+                new MediaRefService($this->db),
+                $this->config->appUrl,
+            );
             $publicApi = new PublicApiController(
-                new QueryEngine(
-                    $this->db,
-                    new ResourceRepository($this->db),
-                    new FieldRepository($this->db),
-                    $resourceApiRepo,
-                    new MediaRefService($this->db),
-                    $this->config->appUrl,
-                ),
+                $queryEnginePublic,
                 new ResourceRepository($this->db),
                 $tokenGrants,
                 $resourceApiRepo,
                 $spamGuard,
                 $webhookDispatcher,
+                $resourceHookService,
             );
-            PublicApiRoutes::register($this->router, $publicApi);
+            $publicInbound = new PublicInboundController(
+                $inboundEndpointService,
+                new ResourceRepository($this->db),
+                $queryEnginePublic,
+                $resourceHookService,
+                $spamGuard,
+                $webhookDispatcher,
+            );
+            PublicApiRoutes::register($this->router, $publicApi, $publicInbound);
         }
 
         $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context): Response {

@@ -9,6 +9,7 @@ use Cms\Auth\AuthContext;
 use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryService;
 use Cms\Core\Exception\HttpException;
+use Cms\Hooks\RequestMeta;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\EntryImportExportService;
@@ -98,6 +99,7 @@ final class EntriesController
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
+                'meta' => RequestMeta::fromRequest($request, 'admin'),
             ], $resourceId);
 
             return Response::data($entry, 201);
@@ -129,6 +131,7 @@ final class EntriesController
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
+                'meta' => RequestMeta::fromRequest($request, 'admin'),
             ], $resourceId);
 
             return Response::data($entry);
@@ -160,6 +163,7 @@ final class EntriesController
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entryId' => $entryId,
+                'meta' => RequestMeta::fromRequest($request, 'admin'),
             ], $resourceId);
 
             return new Response(204, '');
@@ -198,6 +202,7 @@ final class EntriesController
                         'resourceId' => $resourceId,
                         'slug' => $slug,
                         'entryId' => $id,
+                        'meta' => RequestMeta::fromRequest($request, 'admin'),
                     ], $resourceId);
                 } catch (RuntimeException $e) {
                     if (!($e instanceof HttpException && $e->status() === 404) && $e->getCode() !== 404) {
@@ -265,6 +270,7 @@ final class EntriesController
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
+                'meta' => RequestMeta::fromRequest($request, 'admin'),
             ], $resourceId);
 
             return Response::data($entry);

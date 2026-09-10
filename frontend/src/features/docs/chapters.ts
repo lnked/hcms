@@ -8,6 +8,7 @@ export const CHAPTER_IDS = [
   'crud',
   'custom-apis',
   'webhooks',
+  'hooks',
   'feature-flags',
   'translates',
   'limits',
@@ -431,6 +432,43 @@ const expected =
 const ok =
   expected.length === got.length &&
   crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'hooks',
+    title: 'Hooks & Inbound',
+    sections: [
+      {
+        paragraphs: [
+          'Sync request hooks (Resource → Hooks) call your HTTP handler before/after create with the same HMAC signature as webhooks.',
+          'before_create can mutate or reject the payload. after_create can return a response bag exposed as hook on the API response.',
+          'Inbound endpoints (Settings → Inbound) are named public POSTs at /api/inbound/{slug} that forward to your targetUrl and optionally persist into a resource.',
+        ],
+        links: [
+          { label: 'Settings → Inbound', href: '/settings/inbound' },
+          { label: 'Full docs', href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md', external: true },
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Inbound',
+            code: `POST /api/inbound/contact
+Content-Type: application/json
+
+{"name":"Ann","email":"a@x.com"}`,
+          },
+          {
+            language: 'js',
+            label: 'Handler response',
+            code: `// before_create / inbound
+{ accept: true, payload: { email: 'a@x.com', score: 12 } }
+// reject
+{ accept: false, error: { code: 'DUPLICATE', message: 'Already submitted' } }
+// after_create
+{ accept: true, response: { ticketId: 'T-9001' } }`,
           },
         ],
       },
@@ -1032,6 +1070,43 @@ const expected =
 const ok =
   expected.length === got.length &&
   crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'hooks',
+    title: 'Hooks и Inbound',
+    sections: [
+      {
+        paragraphs: [
+          'Синхронные request hooks (Resource → Hooks) дергают ваш HTTP handler до/после create с той же HMAC-подписью, что и webhooks.',
+          'before_create может изменить или отклонить payload. after_create может вернуть response — поле hook в ответе API.',
+          'Inbound endpoints (Настройки → Inbound) — именованные публичные POST на /api/inbound/{slug}: forward на targetUrl и опциональный persist в ресурс.',
+        ],
+        links: [
+          { label: 'Настройки → Inbound', href: '/settings/inbound' },
+          { label: 'Полная документация', href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md', external: true },
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Inbound',
+            code: `POST /api/inbound/contact
+Content-Type: application/json
+
+{"name":"Ann","email":"a@x.com"}`,
+          },
+          {
+            language: 'js',
+            label: 'Ответ handler’а',
+            code: `// before_create / inbound
+{ accept: true, payload: { email: 'a@x.com', score: 12 } }
+// reject
+{ accept: false, error: { code: 'DUPLICATE', message: 'Already submitted' } }
+// after_create
+{ accept: true, response: { ticketId: 'T-9001' } }`,
           },
         ],
       },

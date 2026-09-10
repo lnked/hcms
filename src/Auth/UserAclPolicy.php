@@ -20,6 +20,7 @@ final class UserAclPolicy
         'changelog',
         'tokens',
         'webhooks',
+        'inbound',
         'feature-flags',
         'translates',
         'users',
@@ -29,7 +30,7 @@ final class UserAclPolicy
     ];
 
     /** @var list<string> */
-    public const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'export'];
+    public const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'hooks', 'export'];
 
     public static function isValidSection(string $section): bool
     {
@@ -162,6 +163,9 @@ final class UserAclPolicy
         if (str_starts_with($path, '/admin/api/webhooks')) {
             return 'webhooks';
         }
+        if (str_starts_with($path, '/admin/api/inbound-endpoints')) {
+            return 'inbound';
+        }
         if (str_starts_with($path, '/admin/api/feature-flags')) {
             return 'feature-flags';
         }
@@ -253,6 +257,11 @@ final class UserAclPolicy
             $action = in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
 
             return ['resourceId' => $resourceId, 'action' => $action, 'tab' => 'api', 'collectionWrite' => false];
+        }
+        if (str_starts_with($rest, '/hooks')) {
+            $action = in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
+
+            return ['resourceId' => $resourceId, 'action' => $action, 'tab' => 'hooks', 'collectionWrite' => false];
         }
         if (str_starts_with($rest, '/package/export')) {
             return ['resourceId' => $resourceId, 'action' => 'read', 'tab' => 'export', 'collectionWrite' => false];

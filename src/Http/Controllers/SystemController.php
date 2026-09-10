@@ -159,6 +159,14 @@ final class SystemController
         $since = $request->query('since');
         $channel = $request->query('channel');
 
+        // Paginate when the UI asks for page/limit (infinite scroll). WhatsNew keeps the full list.
+        if ($request->query('page') !== null || $request->query('limit') !== null) {
+            $page = max(1, (int) ($request->query['page'] ?? 1));
+            $limit = max(1, min(100, (int) ($request->query['limit'] ?? 20)));
+
+            return Response::json($this->changelog->page($since, $channel, $page, $limit));
+        }
+
         return Response::data($this->changelog->since($since, $channel));
     }
 

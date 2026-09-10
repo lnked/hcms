@@ -491,6 +491,7 @@ php scripts/verify-tree.php
 | [`docs/permissions.md`](docs/permissions.md) | роли и RBAC |
 | [`docs/anti-spam.md`](docs/anti-spam.md) | защита анонимной записи |
 | [`docs/webhooks.md`](docs/webhooks.md) | исходящие HMAC-хуки |
+| [`docs/hooks.md`](docs/hooks.md) | sync request hooks + inbound endpoints |
 | [`docs/integrations-email.md`](docs/integrations-email.md) | Resend / Postmark / Mailgun |
 | [`docs/openapi.md`](docs/openapi.md) | генерация OpenAPI |
 | [`docs/recovery.md`](docs/recovery.md) | обновление и восстановление |

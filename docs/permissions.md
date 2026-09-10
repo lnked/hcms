@@ -33,9 +33,9 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 - `acl_enabled = 0` → поведение только по роли (как раньше).
 - `acl_enabled = 1` → доступны только выданные секции админки и ресурсы.
 
-Секции: `dashboard`, `resources`, `media`, `logs`, `docs`, `changelog`, `tokens`, `webhooks`, `users`, `integrations`, `system`, `account` (`account` и `/admin/api/auth/*` всегда доступны).
+Секции: `dashboard`, `resources`, `media`, `logs`, `docs`, `changelog`, `tokens`, `webhooks`, `inbound`, `feature-flags`, `translates`, `users`, `integrations`, `system`, `account` (`account` и `/admin/api/auth/*` всегда доступны).
 
-На ресурс: `canRead` / `canCreate` / `canUpdate` / `canDelete` + список табов (`overview`, `schema`, `data`, `settings`, `api`, `export`). Создание новых ресурсов / package import при включённом ACL запрещены.
+На ресурс: `canRead` / `canCreate` / `canUpdate` / `canDelete` + список табов (`overview`, `schema`, `data`, `settings`, `api`, `hooks`, `export`). Создание новых ресурсов / package import при включённом ACL запрещены.
 
 ### Media library (ACL scope)
 

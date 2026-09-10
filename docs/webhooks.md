@@ -74,6 +74,19 @@ User-Agent: HCMS-Webhooks/1.0
 
 `entry` — полный объект записи из query layer (поля ресурса + системные).
 
+В payload также есть `meta`:
+
+```json
+{
+  "ip": "203.0.113.10",
+  "userAgent": "Mozilla/5.0 …",
+  "origin": "https://site.example",
+  "source": "public"
+}
+```
+
+`source`: `public` | `admin` | `inbound`.
+
 Если запись пришла через кастомный API ресурса (`/api/{slug}/{apiSlug}`), в payload добавляется `apiSlug` — и в `entry.created` / `entry.updated`, и в `entry.deleted`. Сам `entry` при этом ограничен проекцией полей этого API.
 
 ### `entry.deleted`

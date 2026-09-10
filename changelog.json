@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.60.0",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Inbound hooks + named inbound API",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Resource sync hooks: before_create / after_create → внешний HMAC HTTP handler (mutate/reject/response); вкладка Resource → Hooks; миграция 019"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Inbound endpoints: POST /api/inbound/{slug} → forward на targetUrl + опциональный persist/fieldMap; Settings → Inbound"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "Outbound webhooks entry.*: meta { ip, userAgent, origin, source: public|admin|inbound }"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Changelog page: пагинация (?page=&limit=) + infinite scroll; WhatsNew без пагинации"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "docs/hooks.md, webhooks/api/permissions; landing: feature flags / translates в hero и meta"
+        }
+      ]
+    },
+    {
       "version": "0.59.3",
       "date": "2026-09-10",
       "channel": "stable",
