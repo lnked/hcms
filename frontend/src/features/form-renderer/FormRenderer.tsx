@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { controlHugClass, controlHugContainerClass } from '@/components/ui/control'
+import { controlHugClass } from '@/components/ui/control'
 import { DatePickerField } from '@/components/ui/date-picker'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -187,8 +187,6 @@ function RelationControl({
     <div className={styles.relationSelect}>
       <Select
         id={id}
-        containerClassName={controlHugContainerClass}
-        className={controlHugClass}
         disabled={disabled || loading}
         value={value == null ? '' : String(value)}
         onChange={(e) =>
@@ -285,8 +283,6 @@ function renderControl(
     return (
       <Select
         id={id}
-        containerClassName={controlHugContainerClass}
-        className={controlHugClass}
         disabled={disabled}
         value={value == null ? '' : String(value)}
         onChange={(e) => set(field.name, e.target.value)}

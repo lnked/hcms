@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
 import { clsx } from 'clsx'
-import { Pencil, RotateCcw, RotateCw } from 'lucide-react'
-import { AnchorPicker, type AnchorPosition } from '@/components/AnchorPicker'
+import { Pencil, RotateCcw, RotateCw, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { api, apiUpload } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import type {
   CropRect,
   ImageSizeConfig,
@@ -97,10 +97,6 @@ function mediaUrl(item: MediaFieldValue): string {
 /** Edits are always authored against the untouched upload, never a baked master. */
 function sourceUrl(item: MediaFieldValue): string {
   return `/media/${item.sourceId ?? item.id}`
-}
-
-function variantId(v: number | MediaItemRef): number {
-  return typeof v === 'number' ? v : v.id
 }
 
 export function MediaFieldPicker({
@@ -254,6 +250,7 @@ export function MediaFieldPicker({
       }
       emit(next)
       setEditingIndex(null)
+      showSuccess(t('media.edited'))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.uploadFailed'))
     } finally {
@@ -330,9 +327,10 @@ export function MediaFieldPicker({
                       variant="outline"
                       disabled={disabled || busy}
                       title={t('media.optimize')}
+                      aria-label={t('media.optimize')}
                       onClick={() => setOptimizeIndex(index)}
                     >
-                      {t('media.optimize')}
+                      <Sparkles className={clsx(styles.iconSm)} aria-hidden />
                     </Button>
                     {/* Quick rotate stays for untouched uploads; once edited, the editor owns orientation. */}
                     {item.sourceId == null ? (
@@ -366,9 +364,7 @@ export function MediaFieldPicker({
                           <RotateCw className={clsx(styles.iconSm)} />
                         </Button>
                       </>
-                    ) : (
-                      <span className={clsx(styles.editedLabel)}>{t('media.edited')}</span>
-                    )}
+                    ) : null}
                   </>
                 ) : null}
                 <Button
@@ -376,52 +372,13 @@ export function MediaFieldPicker({
                   size="sm"
                   variant="ghost"
                   disabled={disabled || busy}
+                  title={t('media.clear')}
+                  aria-label={t('media.clear')}
                   onClick={() => removeAt(index)}
                 >
-                  {t('media.clear')}
+                  <X className={clsx(styles.iconSm)} aria-hidden />
                 </Button>
               </div>
-              {sizes.length > 0 ? (
-                <div className={clsx(styles.sizesRow)}>
-                  {sizes.map((size) => {
-                    const pos = item.positions[size.prefix] ?? size.position ?? 'c'
-                    const vid = item.variants[size.prefix]
-                    return (
-                      <div key={size.prefix} className={clsx(styles.sizeBlock)}>
-                        <div className={clsx(styles.sizeLabel)}>
-                          {size.prefix} ({size.width}×{size.height} {size.mode})
-                          {vid != null ? (
-                            <>
-                              {' '}
-                              <a
-                                href={`/media/${variantId(vid)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className={clsx(styles.variantLink)}
-                              >
-                                #{variantId(vid)}
-                              </a>
-                            </>
-                          ) : null}
-                        </div>
-                        <AnchorPicker
-                          value={pos}
-                          disabled={disabled || busy}
-                          title={t('media.variantAnchor', { prefix: size.prefix })}
-                          onChange={(position: AnchorPosition) => {
-                            void regenerate(index, {
-                              positions: {
-                                ...item.positions,
-                                [size.prefix]: position,
-                              },
-                            })
-                          }}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null}
             </div>
           </div>
         </div>

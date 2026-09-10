@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.60.1",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Entry form media/select UX polish",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Media field: Optimize/Clear → иконки; sizes/crop убраны из формы (только в редакторе); «Отредактировано» → toast после apply"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "FormRenderer: enum/relation Select снова на всю ширину, стрелка не съезжает"
+        }
+      ]
+    },
+    {
       "version": "0.60.0",
       "date": "2026-09-10",
       "channel": "stable",
