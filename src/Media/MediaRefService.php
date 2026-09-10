@@ -196,8 +196,8 @@ final class MediaRefService
 
             $table = MigrationService::tableName($slug);
             $tableExists = $this->db->selectOne(
-                "SELECT COUNT(*) AS c FROM information_schema.TABLES
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t",
+                'SELECT COUNT(*) AS c FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t',
                 ['t' => $table],
             );
             if ($tableExists === null || (int) $tableExists['c'] === 0) {
