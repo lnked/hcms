@@ -63,9 +63,10 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="page">
     <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
     <div class="announce" id="announce" hidden></div>
+    <div class="ambient" aria-hidden="true"></div>
     <header class="nav">
       <div class="wrap nav-inner">
         <a class="logo" href="./">HCMS</a>
@@ -96,7 +97,7 @@
           <p class="sub" data-i18n="hero.sub">
             Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.
           </p>
-          <div class="hero-cta">
+          <div class="hero-cta" id="hero-cta">
             <a
               class="btn btn-primary js-download"
               href="/download?source=hero"
@@ -113,37 +114,46 @@
               >View on GitHub</a
             >
           </div>
+          <p class="hero-proof" id="counter" hidden></p>
         </div>
 
         <div class="hero-stage" id="preview">
           <div class="hero-stage-glow" aria-hidden="true"></div>
-          <figure class="hero-frame" data-theme="light">
-            <img
-              class="hero-shot is-active"
-              data-shot="light"
-              src="./media/admin-dashboard-light.png"
-              width="1440"
-              height="900"
-              decoding="async"
-              fetchpriority="high"
-              alt="HCMS admin dashboard in light theme"
-            />
-            <img
-              class="hero-shot"
-              data-shot="dark"
-              src="./media/admin-dashboard-dark.png"
-              width="1440"
-              height="900"
-              decoding="async"
-              alt="HCMS admin dashboard in dark theme"
-            />
-            <div class="preview-toggle hero-theme" role="group" aria-label="Theme preview">
-              <button type="button" class="preview-btn is-active" data-preview="light" data-i18n="preview.light">
-                Light
-              </button>
-              <button type="button" class="preview-btn" data-preview="dark" data-i18n="preview.dark">Dark</button>
+          <div class="browser">
+            <div class="browser-bar" aria-hidden="true">
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-dot"></span>
+              <span class="browser-url">/admin</span>
             </div>
-          </figure>
+            <figure class="hero-frame" data-theme="light">
+              <img
+                class="hero-shot is-active"
+                data-shot="light"
+                src="./media/admin-dashboard-light.png"
+                width="1440"
+                height="700"
+                decoding="async"
+                fetchpriority="high"
+                alt="HCMS admin dashboard in light theme"
+              />
+              <img
+                class="hero-shot"
+                data-shot="dark"
+                src="./media/admin-dashboard-dark.png"
+                width="1440"
+                height="700"
+                decoding="async"
+                alt="HCMS admin dashboard in dark theme"
+              />
+              <div class="preview-toggle hero-theme" role="group" aria-label="Theme preview">
+                <button type="button" class="preview-btn is-active" data-preview="light" data-i18n="preview.light">
+                  Light
+                </button>
+                <button type="button" class="preview-btn" data-preview="dark" data-i18n="preview.dark">Dark</button>
+              </div>
+            </figure>
+          </div>
         </div>
 
         <div class="code" id="install">
@@ -165,7 +175,6 @@
           The second line boots the wizard on port 8080 and prints a one-time link: PHP check, latest release, DB and
           admin — all in the browser.
         </p>
-        <p class="counter" id="counter" hidden></p>
         <div class="trust">
           <span>MIT</span>
           <span>PHP 8.3+</span>
@@ -202,6 +211,88 @@
               your SPA.
             </p>
           </article>
+        </div>
+      </section>
+
+      <section class="section" id="why">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="why.eyebrow">Why HCMS</p>
+          <h2 data-i18n="why.title">You shipped the SPA. Then you rebuilt the CMS.</h2>
+          <p class="lead" data-i18n="why.lead">
+            CRUD, migrations, admin UI, OpenAPI — again. HCMS closes that gap on any PHP host.
+          </p>
+          <div class="split">
+            <article class="split-card split-pain">
+              <h3 data-i18n="why.pain.title">The usual path</h3>
+              <ul>
+                <li data-i18n="why.pain.1">Hand-rolled admin nobody wants to maintain</li>
+                <li data-i18n="why.pain.2">SQL and validation drift from the API</li>
+                <li data-i18n="why.pain.3">Swagger written by hand — or skipped</li>
+                <li data-i18n="why.pain.4">Editors poked into the SPA repo</li>
+              </ul>
+            </article>
+            <article class="split-card split-win">
+              <h3 data-i18n="why.win.title">With HCMS</h3>
+              <ul>
+                <li data-i18n="why.win.1">Schema → SQL, REST, admin, OpenAPI</li>
+                <li data-i18n="why.win.2">Publish runs the migration</li>
+                <li data-i18n="why.win.3">Editors work at /admin — SPA stays yours</li>
+                <li data-i18n="why.win.4">install.php on shared hosting or Docker</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="compare">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="cmp.eyebrow">Compare</p>
+          <h2 data-i18n="cmp.title">Built for PHP hosts, not another Node stack</h2>
+          <p class="lead" data-i18n="cmp.lead">When shared hosting and a two-line install matter more than a cloud dashboard.</p>
+          <div class="table-wrap">
+            <table class="cmp">
+              <thead>
+                <tr>
+                  <th data-i18n="cmp.col.feat">Capability</th>
+                  <th>HCMS</th>
+                  <th data-i18n="cmp.col.custom">Custom CRUD</th>
+                  <th data-i18n="cmp.col.node">Node headless</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-i18n="cmp.r1">Shared hosting / public_html</td>
+                  <td class="yes">✓</td>
+                  <td class="maybe">~</td>
+                  <td class="no">—</td>
+                </tr>
+                <tr>
+                  <td data-i18n="cmp.r2">Zero Node runtime</td>
+                  <td class="yes">✓</td>
+                  <td class="yes">✓</td>
+                  <td class="no">—</td>
+                </tr>
+                <tr>
+                  <td data-i18n="cmp.r3">install.php → latest zip</td>
+                  <td class="yes">✓</td>
+                  <td class="no">—</td>
+                  <td class="no">—</td>
+                </tr>
+                <tr>
+                  <td data-i18n="cmp.r4">Schema → OpenAPI + admin</td>
+                  <td class="yes">✓</td>
+                  <td class="no">—</td>
+                  <td class="maybe">~</td>
+                </tr>
+                <tr>
+                  <td data-i18n="cmp.r5">MIT, self-host, no cloud upsell</td>
+                  <td class="yes">✓</td>
+                  <td class="yes">✓</td>
+                  <td class="maybe">~</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -378,9 +469,52 @@
         </div>
       </section>
 
+      <section class="section" id="faq">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="faq.eyebrow">FAQ</p>
+          <h2 data-i18n="faq.title">Questions before you curl</h2>
+          <div class="faq">
+            <details>
+              <summary data-i18n="faq.q1">Does it run on shared hosting?</summary>
+              <p data-i18n="faq.a1">
+                Yes. public_html layout is first-class: web root in the docroot, src/ one level up. PHP 8.3+ and MySQL /
+                MariaDB.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q2">Do I need Node on the server?</summary>
+              <p data-i18n="faq.a2">
+                No. Runtime is PHP only. Node is only for building the admin UI when you develop from source.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q3">How is this different from Strapi / Directus?</summary>
+              <p data-i18n="faq.a3">
+                Those want a Node host. HCMS targets classic PHP hosting: one install.php, zip from GitHub, no Cloud
+                tier.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q4">Who can edit content vs only view the admin?</summary>
+              <p data-i18n="faq.a4">
+                Roles: owner → admin → editor → viewer. Give a content manager editor access, or viewer for read-only
+                admin. ACL can narrow resources further.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q5">Are schema migrations safe?</summary>
+              <p data-i18n="faq.a5">
+                Publish migrates for you. Destructive ops (drop field, change type) require confirmDestructive — or the
+                whole migration fails cleanly.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
       <section class="cta-band wrap">
-        <h2 data-i18n="cta.title">Put the admin next to your SPA</h2>
-        <p data-i18n="cta.body">One PHP file. Latest zip from GitHub. Admin at /admin, API at /api.</p>
+        <h2 data-i18n="cta.title">Two commands. Admin on your PHP host.</h2>
+        <p data-i18n="cta.body">Latest zip from GitHub. Admin at /admin, API at /api. MIT.</p>
         <div class="hero-cta">
           <a
             class="btn btn-primary js-download"
@@ -388,6 +522,14 @@
             download="install.php"
             data-i18n="hero.download"
             >Download install.php</a
+          >
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/lnked/hcms"
+            target="_blank"
+            rel="noopener"
+            data-i18n="hero.github"
+            >View on GitHub</a
           >
         </div>
         <div class="code">
@@ -406,6 +548,16 @@
       </section>
     </main>
 
+    <div class="sticky-cta" id="sticky-cta" hidden>
+      <a
+        class="btn btn-primary js-download"
+        href="/download?source=sticky"
+        download="install.php"
+        data-i18n="nav.cta"
+        >Get install.php</a
+      >
+    </div>
+
     <footer class="footer">
       <div class="wrap">
         <div class="footer-grid">
@@ -416,12 +568,11 @@
           <div>
             <h4 data-i18n="footer.product">Product</h4>
             <ul>
+              <li><a href="#why" data-i18n="nav.why">Why</a></li>
+              <li><a href="#compare" data-i18n="nav.compare">Compare</a></li>
               <li><a href="#features" data-i18n="nav.features">Features</a></li>
-              <li><a href="#preview" data-i18n="nav.preview">Admin preview</a></li>
+              <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
               <li><a href="#install" data-i18n="nav.install">Install</a></li>
-              <li>
-                <a href="https://github.com/lnked/hcms/releases" target="_blank" rel="noopener">Releases</a>
-              </li>
             </ul>
           </div>
           <div>

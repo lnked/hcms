@@ -13,6 +13,9 @@ const I18N = {
     'nav.features': 'Features',
     'nav.install': 'Install',
     'nav.preview': 'Admin preview',
+    'nav.why': 'Why',
+    'nav.compare': 'Compare',
+    'nav.faq': 'FAQ',
     'nav.cta': 'Get install.php',
     'hero.title': 'A ready-made admin for your SPA',
     'hero.sub': 'Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.',
@@ -109,8 +112,48 @@ const I18N = {
       'Google / Telegram and authenticator apps. Captcha, IP blocks, token origin/IP limits — no security plugin hunt.',
     's5.c3.title': 'HMAC webhooks',
     's5.c3.body': 'Ping your SPA or workers on content changes. Retries included.',
-    'cta.title': 'Put the admin next to your SPA',
-    'cta.body': 'One PHP file. Latest zip from GitHub. Admin at /admin, API at /api.',
+    'why.eyebrow': 'Why HCMS',
+    'why.title': 'You shipped the SPA. Then you rebuilt the CMS.',
+    'why.lead': 'CRUD, migrations, admin UI, OpenAPI — again. HCMS closes that gap on any PHP host.',
+    'why.pain.title': 'The usual path',
+    'why.pain.1': 'Hand-rolled admin nobody wants to maintain',
+    'why.pain.2': 'SQL and validation drift from the API',
+    'why.pain.3': 'Swagger written by hand — or skipped',
+    'why.pain.4': 'Editors poked into the SPA repo',
+    'why.win.title': 'With HCMS',
+    'why.win.1': 'Schema → SQL, REST, admin, OpenAPI',
+    'why.win.2': 'Publish runs the migration',
+    'why.win.3': 'Editors work at /admin — SPA stays yours',
+    'why.win.4': 'install.php on shared hosting or Docker',
+    'cmp.eyebrow': 'Compare',
+    'cmp.title': 'Built for PHP hosts, not another Node stack',
+    'cmp.lead': 'When shared hosting and a two-line install matter more than a cloud dashboard.',
+    'cmp.col.feat': 'Capability',
+    'cmp.col.custom': 'Custom CRUD',
+    'cmp.col.node': 'Node headless',
+    'cmp.r1': 'Shared hosting / public_html',
+    'cmp.r2': 'Zero Node runtime',
+    'cmp.r3': 'install.php → latest zip',
+    'cmp.r4': 'Schema → OpenAPI + admin',
+    'cmp.r5': 'MIT, self-host, no cloud upsell',
+    'faq.eyebrow': 'FAQ',
+    'faq.title': 'Questions before you curl',
+    'faq.q1': 'Does it run on shared hosting?',
+    'faq.a1':
+      'Yes. public_html layout is first-class: web root in the docroot, src/ one level up. PHP 8.3+ and MySQL / MariaDB.',
+    'faq.q2': 'Do I need Node on the server?',
+    'faq.a2': 'No. Runtime is PHP only. Node is only for building the admin UI when you develop from source.',
+    'faq.q3': 'How is this different from Strapi / Directus?',
+    'faq.a3':
+      'Those want a Node host. HCMS targets classic PHP hosting: one install.php, zip from GitHub, no Cloud tier.',
+    'faq.q4': 'Who can edit content vs only view the admin?',
+    'faq.a4':
+      'Roles: owner → admin → editor → viewer. Give a content manager editor access, or viewer for read-only admin. ACL can narrow resources further.',
+    'faq.q5': 'Are schema migrations safe?',
+    'faq.a5':
+      'Publish migrates for you. Destructive ops (drop field, change type) require confirmDestructive — or the whole migration fails cleanly.',
+    'cta.title': 'Two commands. Admin on your PHP host.',
+    'cta.body': 'Latest zip from GitHub. Admin at /admin, API at /api. MIT.',
     'footer.blurb': 'API-first headless CMS. Schema in, REST and admin out. MIT.',
     'footer.product': 'Product',
     'footer.source': 'Source',
@@ -124,6 +167,9 @@ const I18N = {
     'nav.features': 'Возможности',
     'nav.install': 'Установка',
     'nav.preview': 'Превью админки',
+    'nav.why': 'Зачем',
+    'nav.compare': 'Сравнение',
+    'nav.faq': 'FAQ',
     'nav.cta': 'Скачать install.php',
     'hero.title': 'Готовая админка для вашего SPA',
     'hero.sub': 'Опиши схему — получи REST, OpenAPI и CRUD. Фронт остаётся фронтом.',
@@ -221,8 +267,48 @@ const I18N = {
       'Google / Telegram и authenticator. Капча, IP-блоки, лимиты токена по origin/IP — без охоты за security-плагином.',
     's5.c3.title': 'HMAC webhooks',
     's5.c3.body': 'Пингуй SPA или воркеры при изменении контента. Ретраи в комплекте.',
-    'cta.title': 'Поставь админку рядом с SPA',
-    'cta.body': 'Один PHP-файл. Latest zip с GitHub. Админка /admin, API /api.',
+    'why.eyebrow': 'Зачем HCMS',
+    'why.title': 'SPA уже есть. CMS ты снова пишешь сам.',
+    'why.lead': 'CRUD, миграции, админка, OpenAPI — по кругу. HCMS закрывает дыру на любом PHP-хосте.',
+    'why.pain.title': 'Обычный путь',
+    'why.pain.1': 'Самописная админка, которую никто не хочет трогать',
+    'why.pain.2': 'SQL и валидация разъезжаются с API',
+    'why.pain.3': 'Swagger вручную — или его нет',
+    'why.pain.4': 'Редакторы лезут в репозиторий SPA',
+    'why.win.title': 'С HCMS',
+    'why.win.1': 'Схема → SQL, REST, админка, OpenAPI',
+    'why.win.2': 'Publish сам гоняет миграцию',
+    'why.win.3': 'Редакторы на /admin — SPA остаётся твоим',
+    'why.win.4': 'install.php на shared-хостинге или Docker',
+    'cmp.eyebrow': 'Сравнение',
+    'cmp.title': 'Под PHP-хостинг, не под ещё один Node-стек',
+    'cmp.lead': 'Когда shared-хостинг и две строки установки важнее облачного дашборда.',
+    'cmp.col.feat': 'Возможность',
+    'cmp.col.custom': 'Свой CRUD',
+    'cmp.col.node': 'Node headless',
+    'cmp.r1': 'Shared-хостинг / public_html',
+    'cmp.r2': 'Без Node runtime',
+    'cmp.r3': 'install.php → latest zip',
+    'cmp.r4': 'Схема → OpenAPI + админка',
+    'cmp.r5': 'MIT, self-host, без Cloud upsell',
+    'faq.eyebrow': 'FAQ',
+    'faq.title': 'Вопросы до curl',
+    'faq.q1': 'Заведётся на shared-хостинге?',
+    'faq.a1':
+      'Да. Раскладка public_html — first-class: web-корень в docroot, src/ уровнем выше. PHP 8.3+ и MySQL / MariaDB.',
+    'faq.q2': 'Нужен Node на сервере?',
+    'faq.a2': 'Нет. Runtime — только PHP. Node нужен лишь чтобы собрать админку из исходников.',
+    'faq.q3': 'Чем не Strapi / Directus?',
+    'faq.a3':
+      'Им нужен Node-хост. HCMS — классический PHP: один install.php, zip с GitHub, без Cloud-тарифа.',
+    'faq.q4': 'Кто правит контент, а кто только смотрит админку?',
+    'faq.a4':
+      'Роли: owner → admin → editor → viewer. Контент-менеджеру — editor, для read-only — viewer. ACL сужает ресурсы.',
+    'faq.q5': 'Миграции схемы безопасны?',
+    'faq.a5':
+      'Publish мигрирует сам. Деструктивные операции (drop field, change type) требуют confirmDestructive — иначе миграция падает целиком.',
+    'cta.title': 'Две команды. Админка на твоём PHP-хосте.',
+    'cta.body': 'Latest zip с GitHub. Админка /admin, API /api. MIT.',
     'footer.blurb': 'API-first headless CMS. Схема на входе, REST и админка на выходе. MIT.',
     'footer.product': 'Продукт',
     'footer.source': 'Исходники',
@@ -339,6 +425,30 @@ function renderCounter() {
   const formatted = new Intl.NumberFormat(lang === 'ru' ? 'ru-RU' : 'en-US').format(state.downloads);
   el.textContent = `${formatted} ${forms[pluralForm(state.downloads, lang)]}`;
   el.hidden = false;
+}
+
+function setupStickyCta() {
+  const sticky = document.getElementById('sticky-cta');
+  const heroCta = document.getElementById('hero-cta');
+  if (!sticky || !heroCta || !('IntersectionObserver' in window)) {
+    return;
+  }
+  const mq = window.matchMedia('(max-width: 860px)');
+  const sync = (visible) => {
+    sticky.hidden = !mq.matches || visible;
+  };
+  const io = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    sync(Boolean(entry && entry.isIntersecting));
+  });
+  io.observe(heroCta);
+  if (mq.addEventListener) {
+    mq.addEventListener('change', () => {
+      if (!mq.matches) {
+        sticky.hidden = true;
+      }
+    });
+  }
 }
 
 async function loadDownloads() {
@@ -464,5 +574,6 @@ document.querySelectorAll('.js-copy').forEach((btn) => {
 
 applyLang(currentLang());
 startPreviewTimer();
+setupStickyCta();
 loadRelease();
 loadDownloads();
