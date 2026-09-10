@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Keep in sync with landing/ru/index.html (structure + data-i18n keys). -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -6,19 +7,54 @@
     <title>HCMS — a ready-made admin for your SPA</title>
     <meta
       name="description"
-      content="Drop-in admin panel and REST API for your SPA. Describe a schema, get CRUD, OpenAPI, and /admin."
+      content="Self-hosted headless CMS: visual schema, REST + OpenAPI, drop-in /admin with OAuth, roles for editors and viewers, anti-spam forms, and email integrations. MIT, PHP 8.3+."
     />
     <link rel="canonical" href="https://2js.ru/" />
+    <link rel="alternate" hreflang="en" href="https://2js.ru/" />
+    <link rel="alternate" hreflang="ru" href="https://2js.ru/ru/" />
+    <link rel="alternate" hreflang="x-default" href="https://2js.ru/" />
     <link rel="icon" href="./favicon.ico" sizes="32x32" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="theme-color" content="#4945ff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HCMS" />
     <meta property="og:title" content="HCMS — a ready-made admin for your SPA" />
     <meta
       property="og:description"
-      content="Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend."
+      content="Describe the schema. Get REST, OpenAPI, and CRUD. OAuth, editor/viewer roles, anti-spam forms. Your SPA stays the frontend."
     />
     <meta property="og:url" content="https://2js.ru/" />
+    <meta property="og:image" content="https://2js.ru/og.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HCMS — a ready-made admin for your SPA" />
+    <meta
+      name="twitter:description"
+      content="Describe the schema. Get REST, OpenAPI, and CRUD. OAuth, editor/viewer roles, anti-spam forms."
+    />
+    <meta name="twitter:image" content="https://2js.ru/og.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "HCMS",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "PHP 8.3+, MySQL / MariaDB",
+        "url": "https://2js.ru/",
+        "downloadUrl": "https://2js.ru/download",
+        "description": "Self-hosted headless CMS with a drop-in admin, schema builder, REST API, and OpenAPI. OAuth, roles, anti-spam forms, email integrations.",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,15 +68,15 @@
     <div class="announce" id="announce" hidden></div>
     <header class="nav">
       <div class="wrap nav-inner">
-        <a class="logo" href="#">HCMS</a>
+        <a class="logo" href="./">HCMS</a>
         <nav class="nav-links" aria-label="Primary">
           <a href="#features" data-i18n="nav.features">Features</a>
           <a href="#install" data-i18n="nav.install">Install</a>
           <a href="https://github.com/lnked/hcms/tree/main/docs" target="_blank" rel="noopener">Docs</a>
           <a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">GitHub</a>
           <div class="lang" role="group" aria-label="Language">
-            <button type="button" data-lang="en" aria-pressed="true">EN</button>
-            <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+            <a class="lang-link" href="./" data-lang="en" aria-pressed="true">EN</a>
+            <a class="lang-link" href="./ru/" data-lang="ru" aria-pressed="false">RU</a>
           </div>
           <a
             class="btn btn-primary js-download"
@@ -55,27 +91,61 @@
 
     <main id="main">
       <section class="hero wrap">
-        <h1 data-i18n="hero.title">A ready-made admin for your SPA</h1>
-        <p class="sub" data-i18n="hero.sub">
-          Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.
-        </p>
-        <div class="hero-cta">
-          <a
-            class="btn btn-primary js-download"
-            href="/download?source=hero"
-            download="install.php"
-            data-i18n="hero.download"
-            >Download install.php</a
-          >
-          <a
-            class="btn btn-ghost"
-            href="https://github.com/lnked/hcms"
-            target="_blank"
-            rel="noopener"
-            data-i18n="hero.github"
-            >View on GitHub</a
-          >
+        <div class="hero-copy">
+          <h1 data-i18n="hero.title">A ready-made admin for your SPA</h1>
+          <p class="sub" data-i18n="hero.sub">
+            Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.
+          </p>
+          <div class="hero-cta">
+            <a
+              class="btn btn-primary js-download"
+              href="/download?source=hero"
+              download="install.php"
+              data-i18n="hero.download"
+              >Download install.php</a
+            >
+            <a
+              class="btn btn-ghost"
+              href="https://github.com/lnked/hcms"
+              target="_blank"
+              rel="noopener"
+              data-i18n="hero.github"
+              >View on GitHub</a
+            >
+          </div>
         </div>
+
+        <div class="hero-stage" id="preview">
+          <div class="hero-stage-glow" aria-hidden="true"></div>
+          <figure class="hero-frame" data-theme="light">
+            <img
+              class="hero-shot is-active"
+              data-shot="light"
+              src="./media/admin-dashboard-light.png"
+              width="1440"
+              height="900"
+              decoding="async"
+              fetchpriority="high"
+              alt="HCMS admin dashboard in light theme"
+            />
+            <img
+              class="hero-shot"
+              data-shot="dark"
+              src="./media/admin-dashboard-dark.png"
+              width="1440"
+              height="900"
+              decoding="async"
+              alt="HCMS admin dashboard in dark theme"
+            />
+            <div class="preview-toggle hero-theme" role="group" aria-label="Theme preview">
+              <button type="button" class="preview-btn is-active" data-preview="light" data-i18n="preview.light">
+                Light
+              </button>
+              <button type="button" class="preview-btn" data-preview="dark" data-i18n="preview.dark">Dark</button>
+            </div>
+          </figure>
+        </div>
+
         <div class="code" id="install">
           <code id="curl"
             >curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code
@@ -96,17 +166,13 @@
           admin — all in the browser.
         </p>
         <p class="counter" id="counter" hidden></p>
-        <div class="pills">
-          <span class="pill" data-i18n="pill.admin">Admin panel</span>
-          <span class="pill">REST + OpenAPI</span>
-          <span class="pill" data-i18n="pill.schema">Schema builder</span>
-          <span class="pill" data-i18n="pill.host">Self-host</span>
-        </div>
         <div class="trust">
           <span>MIT</span>
           <span>PHP 8.3+</span>
           <span data-i18n="trust.deps">Zero runtime deps</span>
           <span>MySQL / MariaDB</span>
+          <span data-i18n="pill.oauth">OAuth</span>
+          <span data-i18n="pill.roles">Roles</span>
         </div>
       </section>
 
@@ -169,7 +235,38 @@
         </div>
       </section>
 
-      <section class="section alt">
+      <section class="section alt" id="team">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="team.eyebrow">Built for teams</p>
+          <h2 data-i18n="team.title">Sign-in, roles, and forms that ship</h2>
+          <p class="lead" data-i18n="team.lead">
+            Recent admin work: OAuth, clear roles for editors and viewers, spam-safe public forms, email out of the box.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="team.c1.title">Sign-in that fits teams</h3>
+              <p data-i18n="team.c1.body">
+                Google and Telegram login plus TOTP 2FA. Owners stay on password; editors can connect social accounts.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="team.c2.title">Roles people understand</h3>
+              <p data-i18n="team.c2.body">
+                Invite a content manager to edit entries — or give view-only access to the admin. Owner keeps schema,
+                users, and system. Per-resource ACL on top.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="team.c3.title">Forms &amp; email ready</h3>
+              <p data-i18n="team.c3.body">
+                Anti-spam on public create: honeypot, timing, captcha, blocklist. Send via Resend, Postmark, or Mailgun.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s2.eyebrow">Build APIs fast</p>
           <h2 data-i18n="s2.title">From content type to live /api/{slug}</h2>
@@ -186,7 +283,7 @@
             <article class="card">
               <h3 data-i18n="s2.c2.title">Query the way you expect</h3>
               <p data-i18n="s2.c2.body">
-                Per-resource pagination, search, sort, and filter. Custom GET projections when you need them.
+                Per-resource pagination, search, sort, and filter. Custom resource APIs for read and write projections.
               </p>
             </article>
             <article class="card">
@@ -196,56 +293,26 @@
               </p>
             </article>
           </div>
-          <div class="mock" aria-hidden="true">
-            <div class="mock-panel">
-              <div class="mock-bar">
-                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
-                /admin · schema
-              </div>
-              <div class="mock-body">
-                <div class="mock-side">
-                  <span class="on">articles</span>
-                  <span>pages</span>
-                  <span>media</span>
-                </div>
-                <div class="mock-fields">
-                  <div class="field"><b>title</b><code>string</code></div>
-                  <div class="field"><b>slug</b><code>slug</code></div>
-                  <div class="field"><b>body</b><code>richtext</code></div>
-                </div>
-              </div>
-            </div>
-            <div class="mock-panel">
-              <div class="mock-bar">
-                <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
-                GET /api/articles
-              </div>
-              <pre class="mock-api">{
-  "data": [
-    {
-      "title": "Ship the SPA",
-      "slug": "ship-the-spa"
-    }
-  ]
-}</pre>
-            </div>
-          </div>
         </div>
       </section>
 
-      <section class="section">
+      <section class="section alt">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s3.eyebrow">Content tools</p>
           <h2 data-i18n="s3.title">Editors get a real admin, not a JSON dump</h2>
-          <p class="lead" data-i18n="s3.lead">Media, rich text, relations, revisions — the usual CMS jobs, wired to your API.</p>
+          <p class="lead" data-i18n="s3.lead">
+            Media, rich text, relations, revisions, dashboard analytics — the usual CMS jobs, wired to your API.
+          </p>
           <div class="cards">
             <article class="card">
               <h3 data-i18n="s3.c1.title">Media + variants</h3>
               <p data-i18n="s3.c1.body">Library, crop editor, image variants. Public /media/{id} for the SPA.</p>
             </article>
             <article class="card">
-              <h3 data-i18n="s3.c2.title">Rich text</h3>
-              <p data-i18n="s3.c2.body">Markdown for editors. Structured fields for everything else.</p>
+              <h3 data-i18n="s3.c2.title">Rich text &amp; tables</h3>
+              <p data-i18n="s3.c2.body">
+                Markdown for editors. Typed column filters, bulk delete, and relation labels in the list view.
+              </p>
             </article>
             <article class="card">
               <h3 data-i18n="s3.c3.title">Relations &amp; revisions</h3>
@@ -255,7 +322,7 @@
         </div>
       </section>
 
-      <section class="section alt">
+      <section class="section">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s4.eyebrow">Deploy anywhere</p>
           <h2 data-i18n="s4.title">One file. Any PHP host.</h2>
@@ -268,9 +335,9 @@
               </p>
             </article>
             <article class="card">
-              <h3 data-i18n="s4.c2.title">Shared hosting layout</h3>
-              <p data-i18n="s4.c2.body">
-                Installs into public_html correctly: public files in the web root, src/ one level up.
+              <h3 data-i18n="s4.c2.title">Shared hosting or Docker</h3>
+              <p data-i18n-html="s4.c2.body">
+                public_html layout done right — or <code>docker compose up</code> with MySQL and Adminer for local.
               </p>
             </article>
             <article class="card">
@@ -283,19 +350,25 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section alt">
         <div class="wrap">
           <p class="eyebrow" data-i18n="s5.eyebrow">Secure by default</p>
           <h2 data-i18n="s5.title">Tokens, roles, hooks — without a plugin zoo</h2>
           <p class="lead" data-i18n="s5.lead">Auth is Bearer-only. The rest ships in core.</p>
           <div class="cards">
             <article class="card">
-              <h3 data-i18n="s5.c1.title">RBAC</h3>
-              <p data-i18n="s5.c1.body">Owner, admin, editor, viewer. Per-resource public CRUD flags.</p>
+              <h3 data-i18n="s5.c1.title">Editor, viewer, owner</h3>
+              <p data-i18n="s5.c1.body">
+                Content managers edit entries; viewers only browse the admin. Owner → admin → editor → viewer, plus
+                per-resource ACL.
+              </p>
             </article>
             <article class="card">
-              <h3 data-i18n="s5.c2.title">TOTP 2FA</h3>
-              <p data-i18n="s5.c2.body">Plus captcha and IP blocks. No “install a security plugin” step.</p>
+              <h3 data-i18n="s5.c2.title">OAuth + TOTP</h3>
+              <p data-i18n="s5.c2.body">
+                Google / Telegram and authenticator apps. Captcha, IP blocks, token origin/IP limits — no security plugin
+                hunt.
+              </p>
             </article>
             <article class="card">
               <h3 data-i18n="s5.c3.title">HMAC webhooks</h3>
@@ -318,9 +391,7 @@
           >
         </div>
         <div class="code">
-          <code
-            >curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code
-          >
+          <code>curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code>
           <code>php install.php</code>
           <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Copy">
             <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
@@ -346,6 +417,7 @@
             <h4 data-i18n="footer.product">Product</h4>
             <ul>
               <li><a href="#features" data-i18n="nav.features">Features</a></li>
+              <li><a href="#preview" data-i18n="nav.preview">Admin preview</a></li>
               <li><a href="#install" data-i18n="nav.install">Install</a></li>
               <li>
                 <a href="https://github.com/lnked/hcms/releases" target="_blank" rel="noopener">Releases</a>
@@ -361,8 +433,8 @@
                 >
               </li>
               <li>
-                <a href="https://github.com/lnked/hcms/blob/main/docs/architecture.md" target="_blank" rel="noopener"
-                  >Architecture</a
+                <a href="https://github.com/lnked/hcms/blob/main/docs/permissions.md" target="_blank" rel="noopener"
+                  >Permissions</a
                 >
               </li>
               <li>

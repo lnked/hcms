@@ -1,0 +1,463 @@
+<!doctype html>
+<!-- Keep in sync with landing/index.html (structure + data-i18n keys). -->
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HCMS — готовая админка для вашего SPA</title>
+    <meta
+      name="description"
+      content="Self-hosted headless CMS: визуальная схема, REST + OpenAPI, drop-in /admin с OAuth, ролями editor/viewer, антиспамом на формах и email-интеграциями. MIT, PHP 8.3+."
+    />
+    <link rel="canonical" href="https://2js.ru/ru/" />
+    <link rel="alternate" hreflang="en" href="https://2js.ru/" />
+    <link rel="alternate" hreflang="ru" href="https://2js.ru/ru/" />
+    <link rel="alternate" hreflang="x-default" href="https://2js.ru/" />
+    <link rel="icon" href="../favicon.ico" sizes="32x32" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+    <meta name="theme-color" content="#4945ff" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="HCMS" />
+    <meta property="og:title" content="HCMS — готовая админка для вашего SPA" />
+    <meta
+      property="og:description"
+      content="Опиши схему — получи REST, OpenAPI и CRUD. OAuth, роли editor/viewer, антиспам-формы. Фронт остаётся твоим."
+    />
+    <meta property="og:url" content="https://2js.ru/ru/" />
+    <meta property="og:image" content="https://2js.ru/og.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HCMS — готовая админка для вашего SPA" />
+    <meta
+      name="twitter:description"
+      content="Опиши схему — получи REST, OpenAPI и CRUD. OAuth, роли editor/viewer, антиспам-формы."
+    />
+    <meta name="twitter:image" content="https://2js.ru/og.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "HCMS",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "PHP 8.3+, MySQL / MariaDB",
+        "url": "https://2js.ru/ru/",
+        "downloadUrl": "https://2js.ru/download",
+        "description": "Self-hosted headless CMS с drop-in админкой, конструктором схемы, REST API и OpenAPI. OAuth, роли, антиспам-формы, email-интеграции.",
+        "inLanguage": "ru",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main" data-i18n="skip">К содержимому</a>
+    <div class="announce" id="announce" hidden></div>
+    <header class="nav">
+      <div class="wrap nav-inner">
+        <a class="logo" href="../ru/">HCMS</a>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#features" data-i18n="nav.features">Возможности</a>
+          <a href="#install" data-i18n="nav.install">Установка</a>
+          <a href="https://github.com/lnked/hcms/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+          <a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">GitHub</a>
+          <div class="lang" role="group" aria-label="Language">
+            <a class="lang-link" href="../" data-lang="en" aria-pressed="false">EN</a>
+            <a class="lang-link" href="../ru/" data-lang="ru" aria-pressed="true">RU</a>
+          </div>
+          <a
+            class="btn btn-primary js-download"
+            href="/download?source=nav-ru"
+            download="install.php"
+            data-i18n="nav.cta"
+            >Скачать install.php</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <h1 data-i18n="hero.title">Готовая админка для вашего SPA</h1>
+          <p class="sub" data-i18n="hero.sub">
+            Опиши схему — получи REST, OpenAPI и CRUD. Фронт остаётся фронтом.
+          </p>
+          <div class="hero-cta">
+            <a
+              class="btn btn-primary js-download"
+              href="/download?source=hero-ru"
+              download="install.php"
+              data-i18n="hero.download"
+              >Скачать install.php</a
+            >
+            <a
+              class="btn btn-ghost"
+              href="https://github.com/lnked/hcms"
+              target="_blank"
+              rel="noopener"
+              data-i18n="hero.github"
+              >Код на GitHub</a
+            >
+          </div>
+        </div>
+
+        <div class="hero-stage" id="preview">
+          <div class="hero-stage-glow" aria-hidden="true"></div>
+          <figure class="hero-frame" data-theme="light">
+            <img
+              class="hero-shot is-active"
+              data-shot="light"
+              src="../media/admin-dashboard-light.png"
+              width="1440"
+              height="900"
+              decoding="async"
+              fetchpriority="high"
+              alt="Админка HCMS — светлая тема"
+            />
+            <img
+              class="hero-shot"
+              data-shot="dark"
+              src="../media/admin-dashboard-dark.png"
+              width="1440"
+              height="900"
+              decoding="async"
+              alt="Админка HCMS — тёмная тема"
+            />
+            <div class="preview-toggle hero-theme" role="group" aria-label="Превью темы">
+              <button type="button" class="preview-btn is-active" data-preview="light" data-i18n="preview.light">
+                Светлая
+              </button>
+              <button type="button" class="preview-btn" data-preview="dark" data-i18n="preview.dark">Тёмная</button>
+            </div>
+          </figure>
+        </div>
+
+        <div class="code" id="install">
+          <code id="curl"
+            >curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code
+          >
+          <code>php install.php</code>
+          <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Копировать">
+            <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2.5" />
+              <path d="M6.5 15h-.75A1.75 1.75 0 0 1 4 13.25v-7.5A1.75 1.75 0 0 1 5.75 4h7.5A1.75 1.75 0 0 1 15 5.75v.75" />
+            </svg>
+            <svg class="i-check" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7" />
+            </svg>
+          </button>
+        </div>
+        <p class="code-note" data-i18n="hero.note">
+          Вторая строка поднимает мастер на порту 8080 и печатает одноразовую ссылку: проверка PHP, свежий релиз, БД и
+          админ — в браузере.
+        </p>
+        <p class="counter" id="counter" hidden></p>
+        <div class="trust">
+          <span>MIT</span>
+          <span>PHP 8.3+</span>
+          <span data-i18n="trust.deps">Без runtime-зависимостей</span>
+          <span>MySQL / MariaDB</span>
+          <span data-i18n="pill.oauth">OAuth</span>
+          <span data-i18n="pill.roles">Роли</span>
+        </div>
+      </section>
+
+      <section class="wrap">
+        <div class="steps">
+          <article class="step">
+            <span class="n">1</span>
+            <h3 data-i18n="step1.title">Выполни две строки</h3>
+            <p data-i18n-html="step1.body">
+              По SSH, в папке будущей CMS. Нет шелла? Залей <code>install.php</code> в корень сайта и открой в браузере.
+            </p>
+          </article>
+          <article class="step">
+            <span class="n">2</span>
+            <h3 data-i18n="step2.title">Открой ссылку из терминала</h3>
+            <p data-i18n-html="step2.body">
+              <code>php install.php</code> поднимает мастер на порту 8080 под одноразовым ключом. Проверяет PHP 8.3+,
+              качает свежий релиз, сверяет sha256.
+            </p>
+          </article>
+          <article class="step">
+            <span class="n">3</span>
+            <h3 data-i18n="step3.title">Заполни БД и админа</h3>
+            <p data-i18n="step3.body">
+              Мастер пишет конфиг, гоняет миграции, создаёт владельца. После этого /admin и /api готовы для SPA.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s1.eyebrow">Для вашего SPA</p>
+          <h2 data-i18n="s1.title">Админка подключается. Фронт остаётся твоим.</h2>
+          <p class="lead" data-i18n="s1.lead">
+            HCMS — бэкенд, которого не хватает SPA: визуальная схема, REST и нормальный /admin. Без самописного CRUD.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s1.c1.title">Drop-in /admin</h3>
+              <p data-i18n="s1.c1.body">Полная админка на PHP-хостинге. Редакторы не лезут в репозиторий фронта.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s1.c2.title">REST для React / Vue / Next</h3>
+              <p data-i18n="s1.c2.body">
+                Публичный /api/{slug}: пагинация, поиск, сорт, фильтры. Bearer и CORS из коробки.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s1.c3.title">OpenAPI / Swagger</h3>
+              <p data-i18n="s1.c3.body">Спека /api/openapi.json, UI /api/docs — из опубликованной схемы.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="team">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="team.eyebrow">Для команды</p>
+          <h2 data-i18n="team.title">Вход, роли и формы без боли</h2>
+          <p class="lead" data-i18n="team.lead">
+            Свежие доработки админки: OAuth, понятные роли editor/viewer, антиспам на публичных формах, email из коробки.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="team.c1.title">Вход под команду</h3>
+              <p data-i18n="team.c1.body">
+                Google и Telegram плюс TOTP 2FA. Владелец на пароле; редакторы могут подключить соцвход.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="team.c2.title">Роли без жаргона</h3>
+              <p data-i18n="team.c2.body">
+                Выдай контент-менеджеру доступ к записям — или только просмотр админки. Схема, пользователи и система
+                остаются у владельца. Сверху — ACL на ресурсы.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="team.c3.title">Формы и email</h3>
+              <p data-i18n="team.c3.body">
+                Антиспам на public.create: honeypot, тайминг, капча, блоклист. Отправка через Resend, Postmark или
+                Mailgun.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s2.eyebrow">API за минуты</p>
+          <h2 data-i18n="s2.title">От типа контента до живого /api/{slug}</h2>
+          <p class="lead" data-i18n="s2.lead">Схема — source of truth для SQL, валидации, REST, админки и OpenAPI.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s2.c1.title">Типы полей под реальные приложения</h3>
+              <p data-i18n="s2.c1.body">
+                String, richtext, relation, media, slug, enum, json, даты — опубликовал и получил миграцию.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s2.c2.title">Запросы как ожидаешь</h3>
+              <p data-i18n="s2.c2.body">
+                Пагинация, поиск, сорт и фильтры на ресурс. Кастомные resource API — на чтение и на запись.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s2.c3.title">Swagger сразу после publish</h3>
+              <p data-i18n="s2.c3.body">Без ручной спеки. Открыл /api/docs после публикации типа.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s3.eyebrow">Контент</p>
+          <h2 data-i18n="s3.title">Редакторам — админка, не JSON</h2>
+          <p class="lead" data-i18n="s3.lead">
+            Медиа, rich text, связи, ревизии, аналитика на дашборде — обычные CMS-задачи, уже на API.
+          </p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s3.c1.title">Медиа и варианты</h3>
+              <p data-i18n="s3.c1.body">Библиотека, кроп, варианты картинок. Публичный /media/{id} для SPA.</p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s3.c2.title">Rich text и таблицы</h3>
+              <p data-i18n="s3.c2.body">
+                Markdown для редакторов. Типизированные фильтры колонок, bulk delete и подписи связей в списке.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s3.c3.title">Связи и ревизии</h3>
+              <p data-i18n="s3.c3.body">Связи записей, история, экспорт/импорт пакетов ресурсов.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s4.eyebrow">Куда угодно</p>
+          <h2 data-i18n="s4.title">Один файл. Любой PHP-хостинг.</h2>
+          <p class="lead" data-i18n="s4.lead">Без Cloud. Self-host, обновление из админки, откат если swap оборвался.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s4.c1.title">install.php → zip с GitHub</h3>
+              <p data-i18n="s4.c1.body">
+                Мастер качает latest, проверяет sha256, распаковывает. Если src/ уже есть — skip.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s4.c2.title">Shared-хостинг или Docker</h3>
+              <p data-i18n-html="s4.c2.body">
+                Правильная раскладка public_html — или <code>docker compose up</code> с MySQL и Adminer локально.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s4.c3.title">Атомарные обновления</h3>
+              <p data-i18n="s4.c3.body">
+                Settings → System. Оборванный swap откатывается. restore.php — если всё же надо пихнуть.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="s5.eyebrow">Безопасность в ядре</p>
+          <h2 data-i18n="s5.title">Токены, роли, хуки — без зоопарка плагинов</h2>
+          <p class="lead" data-i18n="s5.lead">Auth только Bearer. Остальное уже в core.</p>
+          <div class="cards">
+            <article class="card">
+              <h3 data-i18n="s5.c1.title">Editor, viewer, owner</h3>
+              <p data-i18n="s5.c1.body">
+                Контент-менеджер правит записи; viewer только смотрит админку. Owner → admin → editor → viewer, плюс ACL
+                на ресурс.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s5.c2.title">OAuth + TOTP</h3>
+              <p data-i18n="s5.c2.body">
+                Google / Telegram и authenticator. Капча, IP-блоки, лимиты токена по origin/IP — без охоты за
+                security-плагином.
+              </p>
+            </article>
+            <article class="card">
+              <h3 data-i18n="s5.c3.title">HMAC webhooks</h3>
+              <p data-i18n="s5.c3.body">Пингуй SPA или воркеры при изменении контента. Ретраи в комплекте.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-band wrap">
+        <h2 data-i18n="cta.title">Поставь админку рядом с SPA</h2>
+        <p data-i18n="cta.body">Один PHP-файл. Latest zip с GitHub. Админка /admin, API /api.</p>
+        <div class="hero-cta">
+          <a
+            class="btn btn-primary js-download"
+            href="/download?source=cta-ru"
+            download="install.php"
+            data-i18n="hero.download"
+            >Скачать install.php</a
+          >
+        </div>
+        <div class="code">
+          <code>curl -fsSL -o install.php 'https://2js.ru/download?source=curl'</code>
+          <code>php install.php</code>
+          <button type="button" class="code-copy js-copy" data-i18n-aria="hero.copy" aria-label="Копировать">
+            <svg class="i-copy" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2.5" />
+              <path d="M6.5 15h-.75A1.75 1.75 0 0 1 4 13.25v-7.5A1.75 1.75 0 0 1 5.75 4h7.5A1.75 1.75 0 0 1 15 5.75v.75" />
+            </svg>
+            <svg class="i-check" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m5 12.5 4.5 4.5L19 7" />
+            </svg>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <div class="logo">HCMS</div>
+            <p data-i18n="footer.blurb">API-first headless CMS. Схема на входе, REST и админка на выходе. MIT.</p>
+          </div>
+          <div>
+            <h4 data-i18n="footer.product">Продукт</h4>
+            <ul>
+              <li><a href="#features" data-i18n="nav.features">Возможности</a></li>
+              <li><a href="#preview" data-i18n="nav.preview">Превью админки</a></li>
+              <li><a href="#install" data-i18n="nav.install">Установка</a></li>
+              <li>
+                <a href="https://github.com/lnked/hcms/releases" target="_blank" rel="noopener">Releases</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>Docs</h4>
+            <ul>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/installation.md" target="_blank" rel="noopener"
+                  >Installation</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/permissions.md" target="_blank" rel="noopener"
+                  >Permissions</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/docs/openapi.md" target="_blank" rel="noopener"
+                  >OpenAPI</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 data-i18n="footer.source">Исходники</h4>
+            <ul>
+              <li><a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">GitHub</a></li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/composer.json" target="_blank" rel="noopener"
+                  >MIT license</a
+                >
+              </li>
+              <li>
+                <a href="https://github.com/lnked/hcms/blob/main/changelog.json" target="_blank" rel="noopener"
+                  >Changelog</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+        <p class="legal">
+          © HCMS · <a href="https://github.com/lnked/hcms" target="_blank" rel="noopener">lnked/hcms</a>
+        </p>
+      </div>
+    </footer>
+    <script src="../app.js"></script>
+  </body>
+</html>

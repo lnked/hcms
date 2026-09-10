@@ -131,7 +131,8 @@ img {
   overflow: hidden;
 }
 
-.lang button {
+.lang button,
+.lang-link {
   appearance: none;
   border: 0;
   background: transparent;
@@ -142,9 +143,36 @@ img {
   letter-spacing: 0.04em;
   padding: 6px 10px;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.lang button[aria-pressed='true'] {
+.lang button[aria-pressed='true'],
+.lang-link[aria-pressed='true'] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.preview-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.preview-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+.preview-btn.is-active {
   background: var(--primary);
   color: var(--primary-foreground);
 }
@@ -179,26 +207,32 @@ img {
 }
 
 .hero {
-  padding: 72px 0 40px;
+  padding: 48px 0 32px;
   text-align: center;
+}
+
+.hero-copy {
+  margin-bottom: 28px;
 }
 
 .hero h1 {
   font-family: var(--font-display);
-  font-size: clamp(36px, 6vw, 64px);
+  font-size: clamp(32px, 5.5vw, 56px);
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.08;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   max-width: 16ch;
   margin-inline: auto;
+  animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hero .sub {
-  margin: 0 auto 28px;
+  margin: 0 auto 20px;
   max-width: 42ch;
   color: var(--muted-foreground);
-  font-size: 19px;
+  font-size: 18px;
+  animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
 }
 
 .hero-cta {
@@ -206,7 +240,108 @@ img {
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-  margin-bottom: 16px;
+  animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.hero-stage {
+  position: relative;
+  margin: 0 auto 28px;
+  max-width: 960px;
+  animation: hero-fade-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+}
+
+.hero-stage-glow {
+  position: absolute;
+  inset: 12% 8% -4%;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--primary) 22%, transparent), transparent 70%);
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-frame {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+  box-shadow:
+    0 24px 60px rgb(50 50 77 / 0.14),
+    0 2px 0 rgb(255 255 255 / 0.6) inset;
+  aspect-ratio: 1440 / 900;
+  animation: hero-float 7s ease-in-out 1s infinite;
+}
+
+.hero-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  opacity: 0;
+  transform: scale(1.02);
+  transition:
+    opacity 0.85s ease,
+    transform 0.85s ease;
+  pointer-events: none;
+}
+
+.hero-shot.is-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.hero-theme {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgb(50 50 77 / 0.12);
+}
+
+.hero-theme .preview-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero h1,
+  .hero .sub,
+  .hero-cta,
+  .hero-stage,
+  .hero-frame,
+  .hero-shot {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 .code {
@@ -312,24 +447,6 @@ img {
   height: 7px;
   border-radius: 50%;
   background: var(--primary);
-}
-
-.pills {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 36px;
-}
-
-.pill {
-  border: 1px solid var(--border);
-  background: var(--card);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted-foreground);
 }
 
 .trust {
@@ -444,102 +561,13 @@ img {
   font-size: 15px;
 }
 
-.mock {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 16px;
-  margin-top: 32px;
-}
-
-.mock-panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  min-height: 240px;
-}
-
-.mock-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-}
-
-.mock-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--border);
-}
-
-.mock-body {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  min-height: 200px;
-}
-
-.mock-side {
-  border-right: 1px solid var(--border);
-  padding: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-}
-
-.mock-side span {
-  display: block;
-  padding: 6px 8px;
-  border-radius: 8px;
-}
-
-.mock-side span.on {
-  background: var(--accent);
-  color: var(--primary);
-}
-
-.mock-fields {
-  padding: 14px 16px;
-  display: grid;
-  gap: 10px;
-}
-
-.field {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
-}
-
-.field b {
-  font-family: var(--font-display);
-}
-
-.field code {
-  font-size: 11px;
-  background: var(--muted);
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-
-.mock-api {
-  padding: 14px 16px;
+.card code,
+.step code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  line-height: 1.55;
-  color: var(--foreground);
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  font-size: 0.9em;
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: 4px;
 }
 
 .cta-band {
@@ -617,13 +645,20 @@ img {
 
   .steps,
   .cards,
-  .mock,
-  .footer-grid,
-  .mock-body {
+  .footer-grid {
     grid-template-columns: 1fr;
   }
 
   .hero {
-    padding-top: 48px;
+    padding-top: 36px;
+  }
+
+  .hero-stage {
+    margin-bottom: 22px;
+  }
+
+  .hero-theme {
+    right: 8px;
+    bottom: 8px;
   }
 }

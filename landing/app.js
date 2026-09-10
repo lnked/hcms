@@ -5,13 +5,14 @@ const REPO = 'lnked/hcms';
 // bare { total } — the rows themselves never leave the API host.
 const DOWNLOADS_ENDPOINT = '/api/downloads';
 
-const state = { downloads: null };
+const state = { downloads: null, preview: 'light' };
 
 const I18N = {
   en: {
     'skip': 'Skip to content',
     'nav.features': 'Features',
     'nav.install': 'Install',
+    'nav.preview': 'Admin preview',
     'nav.cta': 'Get install.php',
     'hero.title': 'A ready-made admin for your SPA',
     'hero.sub': 'Describe the schema. Get REST, OpenAPI, and CRUD. Your SPA stays the frontend.',
@@ -22,7 +23,9 @@ const I18N = {
     'hero.note':
       'The second line boots the wizard on port 8080 and prints a one-time link: PHP check, latest release, DB and admin — all in the browser.',
     'pill.admin': 'Admin panel',
-    'pill.schema': 'Schema builder',
+    'pill.oauth': 'OAuth',
+    'pill.roles': 'Roles',
+    'pill.dark': 'Dark mode',
     'pill.host': 'Self-host',
     'trust.deps': 'Zero runtime deps',
     'step1.title': 'Run the two lines',
@@ -34,6 +37,14 @@ const I18N = {
     'step3.title': 'Fill DB and admin',
     'step3.body':
       'The wizard writes the config, runs migrations and creates the owner. Then /admin and /api are live for your SPA.',
+    'preview.eyebrow': 'See the admin',
+    'preview.title': 'Light or dark — same product',
+    'preview.lead':
+      'What editors open at /admin: sidebar, dashboard, schema, content. Toggle the theme preview.',
+    'preview.light': 'Light',
+    'preview.dark': 'Dark',
+    'preview.altLight': 'HCMS admin dashboard in light theme',
+    'preview.altDark': 'HCMS admin dashboard in dark theme',
     's1.eyebrow': 'For your SPA',
     's1.title': 'Plug in an admin. Keep the frontend.',
     's1.lead':
@@ -44,22 +55,37 @@ const I18N = {
     's1.c2.body': 'Public /api/{slug} with pagination, search, sort, and filter. Bearer tokens, CORS included.',
     's1.c3.title': 'OpenAPI / Swagger',
     's1.c3.body': 'Spec at /api/openapi.json, UI at /api/docs — generated from the schema you publish.',
+    'team.eyebrow': 'Built for teams',
+    'team.title': 'Sign-in, roles, and forms that ship',
+    'team.lead':
+      'Recent admin work: OAuth, clear roles for editors and viewers, spam-safe public forms, email out of the box.',
+    'team.c1.title': 'Sign-in that fits teams',
+    'team.c1.body':
+      'Google and Telegram login plus TOTP 2FA. Owners stay on password; editors can connect social accounts.',
+    'team.c2.title': 'Roles people understand',
+    'team.c2.body':
+      'Invite a content manager to edit entries — or give view-only access to the admin. Owner keeps schema, users, and system. Per-resource ACL on top.',
+    'team.c3.title': 'Forms & email ready',
+    'team.c3.body':
+      'Anti-spam on public create: honeypot, timing, captcha, blocklist. Send via Resend, Postmark, or Mailgun.',
     's2.eyebrow': 'Build APIs fast',
     's2.title': 'From content type to live /api/{slug}',
     's2.lead': 'Schema is the source of truth for SQL, validation, REST, Admin UI, and OpenAPI.',
     's2.c1.title': 'Field types that cover real apps',
     's2.c1.body': 'String, richtext, relation, media, slug, enum, json, dates — publish and get a migration.',
     's2.c2.title': 'Query the way you expect',
-    's2.c2.body': 'Per-resource pagination, search, sort, and filter. Custom GET projections when you need them.',
+    's2.c2.body':
+      'Per-resource pagination, search, sort, and filter. Custom resource APIs for read and write projections.',
     's2.c3.title': 'Swagger the moment you publish',
     's2.c3.body': 'No hand-written spec. Open /api/docs after you hit publish on a content type.',
     's3.eyebrow': 'Content tools',
     's3.title': 'Editors get a real admin, not a JSON dump',
-    's3.lead': 'Media, rich text, relations, revisions — the usual CMS jobs, wired to your API.',
+    's3.lead':
+      'Media, rich text, relations, revisions, dashboard analytics — the usual CMS jobs, wired to your API.',
     's3.c1.title': 'Media + variants',
     's3.c1.body': 'Library, crop editor, image variants. Public /media/{id} for the SPA.',
-    's3.c2.title': 'Rich text',
-    's3.c2.body': 'Markdown for editors. Structured fields for everything else.',
+    's3.c2.title': 'Rich text & tables',
+    's3.c2.body': 'Markdown for editors. Typed column filters, bulk delete, and relation labels in the list view.',
     's3.c3.title': 'Relations & revisions',
     's3.c3.body': 'Link entries, keep history, export/import resource packages.',
     's4.eyebrow': 'Deploy anywhere',
@@ -67,17 +93,20 @@ const I18N = {
     's4.lead': 'No Cloud upsell. Self-host, update in-app, roll back if a swap dies mid-flight.',
     's4.c1.title': 'install.php → GitHub zip',
     's4.c1.body': 'Wizard downloads the latest release, verifies sha256, unzip. If src/ is already there, skip.',
-    's4.c2.title': 'Shared hosting layout',
-    's4.c2.body': 'Installs into public_html correctly: public files in the web root, src/ one level up.',
+    's4.c2.title': 'Shared hosting or Docker',
+    's4.c2.body':
+      'public_html layout done right — or <code>docker compose up</code> with MySQL and Adminer for local.',
     's4.c3.title': 'Atomic updates',
     's4.c3.body': 'Settings → System. Interrupted swap rolls back. restore.php if the box still needs a shove.',
     's5.eyebrow': 'Secure by default',
     's5.title': 'Tokens, roles, hooks — without a plugin zoo',
     's5.lead': 'Auth is Bearer-only. The rest ships in core.',
-    's5.c1.title': 'RBAC',
-    's5.c1.body': 'Owner, admin, editor, viewer. Per-resource public CRUD flags.',
-    's5.c2.title': 'TOTP 2FA',
-    's5.c2.body': 'Plus captcha and IP blocks. No “install a security plugin” step.',
+    's5.c1.title': 'Editor, viewer, owner',
+    's5.c1.body':
+      'Content managers edit entries; viewers only browse the admin. Owner → admin → editor → viewer, plus per-resource ACL.',
+    's5.c2.title': 'OAuth + TOTP',
+    's5.c2.body':
+      'Google / Telegram and authenticator apps. Captcha, IP blocks, token origin/IP limits — no security plugin hunt.',
     's5.c3.title': 'HMAC webhooks',
     's5.c3.body': 'Ping your SPA or workers on content changes. Retries included.',
     'cta.title': 'Put the admin next to your SPA',
@@ -94,6 +123,7 @@ const I18N = {
     'skip': 'К содержимому',
     'nav.features': 'Возможности',
     'nav.install': 'Установка',
+    'nav.preview': 'Превью админки',
     'nav.cta': 'Скачать install.php',
     'hero.title': 'Готовая админка для вашего SPA',
     'hero.sub': 'Опиши схему — получи REST, OpenAPI и CRUD. Фронт остаётся фронтом.',
@@ -104,7 +134,9 @@ const I18N = {
     'hero.note':
       'Вторая строка поднимает мастер на порту 8080 и печатает одноразовую ссылку: проверка PHP, свежий релиз, БД и админ — в браузере.',
     'pill.admin': 'Админка',
-    'pill.schema': 'Конструктор схемы',
+    'pill.oauth': 'OAuth',
+    'pill.roles': 'Роли',
+    'pill.dark': 'Тёмная тема',
     'pill.host': 'Self-host',
     'trust.deps': 'Без runtime-зависимостей',
     'step1.title': 'Выполни две строки',
@@ -116,6 +148,14 @@ const I18N = {
     'step3.title': 'Заполни БД и админа',
     'step3.body':
       'Мастер пишет конфиг, гоняет миграции, создаёт владельца. После этого /admin и /api готовы для SPA.',
+    'preview.eyebrow': 'Смотри админку',
+    'preview.title': 'Светлая или тёмная — один продукт',
+    'preview.lead':
+      'То, что открывают редакторы на /admin: сайдбар, дашборд, схема, контент. Переключи превью темы.',
+    'preview.light': 'Светлая',
+    'preview.dark': 'Тёмная',
+    'preview.altLight': 'Админка HCMS — светлая тема',
+    'preview.altDark': 'Админка HCMS — тёмная тема',
     's1.eyebrow': 'Для вашего SPA',
     's1.title': 'Админка подключается. Фронт остаётся твоим.',
     's1.lead':
@@ -126,22 +166,38 @@ const I18N = {
     's1.c2.body': 'Публичный /api/{slug}: пагинация, поиск, сорт, фильтры. Bearer и CORS из коробки.',
     's1.c3.title': 'OpenAPI / Swagger',
     's1.c3.body': 'Спека /api/openapi.json, UI /api/docs — из опубликованной схемы.',
+    'team.eyebrow': 'Для команды',
+    'team.title': 'Вход, роли и формы без боли',
+    'team.lead':
+      'Свежие доработки админки: OAuth, понятные роли editor/viewer, антиспам на публичных формах, email из коробки.',
+    'team.c1.title': 'Вход под команду',
+    'team.c1.body':
+      'Google и Telegram плюс TOTP 2FA. Владелец на пароле; редакторы могут подключить соцвход.',
+    'team.c2.title': 'Роли без жаргона',
+    'team.c2.body':
+      'Выдай контент-менеджеру доступ к записям — или только просмотр админки. Схема, пользователи и система остаются у владельца. Сверху — ACL на ресурсы.',
+    'team.c3.title': 'Формы и email',
+    'team.c3.body':
+      'Антиспам на public.create: honeypot, тайминг, капча, блоклист. Отправка через Resend, Postmark или Mailgun.',
     's2.eyebrow': 'API за минуты',
     's2.title': 'От типа контента до живого /api/{slug}',
     's2.lead': 'Схема — source of truth для SQL, валидации, REST, админки и OpenAPI.',
     's2.c1.title': 'Типы полей под реальные приложения',
     's2.c1.body': 'String, richtext, relation, media, slug, enum, json, даты — опубликовал и получил миграцию.',
     's2.c2.title': 'Запросы как ожидаешь',
-    's2.c2.body': 'Пагинация, поиск, сорт и фильтры на ресурс. Кастомные GET-проекции — когда надо.',
+    's2.c2.body':
+      'Пагинация, поиск, сорт и фильтры на ресурс. Кастомные resource API — на чтение и на запись.',
     's2.c3.title': 'Swagger сразу после publish',
     's2.c3.body': 'Без ручной спеки. Открыл /api/docs после публикации типа.',
     's3.eyebrow': 'Контент',
     's3.title': 'Редакторам — админка, не JSON',
-    's3.lead': 'Медиа, rich text, связи, ревизии — обычные CMS-задачи, уже на API.',
+    's3.lead':
+      'Медиа, rich text, связи, ревизии, аналитика на дашборде — обычные CMS-задачи, уже на API.',
     's3.c1.title': 'Медиа и варианты',
     's3.c1.body': 'Библиотека, кроп, варианты картинок. Публичный /media/{id} для SPA.',
-    's3.c2.title': 'Rich text',
-    's3.c2.body': 'Markdown для редакторов. Структурные поля — для всего остального.',
+    's3.c2.title': 'Rich text и таблицы',
+    's3.c2.body':
+      'Markdown для редакторов. Типизированные фильтры колонок, bulk delete и подписи связей в списке.',
     's3.c3.title': 'Связи и ревизии',
     's3.c3.body': 'Связи записей, история, экспорт/импорт пакетов ресурсов.',
     's4.eyebrow': 'Куда угодно',
@@ -149,17 +205,20 @@ const I18N = {
     's4.lead': 'Без Cloud. Self-host, обновление из админки, откат если swap оборвался.',
     's4.c1.title': 'install.php → zip с GitHub',
     's4.c1.body': 'Мастер качает latest, проверяет sha256, распаковывает. Если src/ уже есть — skip.',
-    's4.c2.title': 'Раскладка shared-хостинга',
-    's4.c2.body': 'Корректная установка в public_html: публичные файлы в корне, src/ уровнем выше.',
+    's4.c2.title': 'Shared-хостинг или Docker',
+    's4.c2.body':
+      'Правильная раскладка public_html — или <code>docker compose up</code> с MySQL и Adminer локально.',
     's4.c3.title': 'Атомарные обновления',
     's4.c3.body': 'Settings → System. Оборванный swap откатывается. restore.php — если всё же надо пихнуть.',
     's5.eyebrow': 'Безопасность в ядре',
     's5.title': 'Токены, роли, хуки — без зоопарка плагинов',
     's5.lead': 'Auth только Bearer. Остальное уже в core.',
-    's5.c1.title': 'RBAC',
-    's5.c1.body': 'Owner, admin, editor, viewer. Публичные CRUD-флаги на ресурс.',
-    's5.c2.title': 'TOTP 2FA',
-    's5.c2.body': 'Плюс капча и IP-блоки. Без шага «поставь security-плагин».',
+    's5.c1.title': 'Editor, viewer, owner',
+    's5.c1.body':
+      'Контент-менеджер правит записи; viewer только смотрит админку. Owner → admin → editor → viewer, плюс ACL на ресурс.',
+    's5.c2.title': 'OAuth + TOTP',
+    's5.c2.body':
+      'Google / Telegram и authenticator. Капча, IP-блоки, лимиты токена по origin/IP — без охоты за security-плагином.',
     's5.c3.title': 'HMAC webhooks',
     's5.c3.body': 'Пингуй SPA или воркеры при изменении контента. Ретраи в комплекте.',
     'cta.title': 'Поставь админку рядом с SPA',
@@ -176,7 +235,9 @@ const I18N = {
 
 const dict = (lang) => I18N[lang] ?? I18N.en;
 
-const currentLang = () => (localStorage.getItem('hcms-lang') === 'ru' ? 'ru' : 'en');
+const pathLang = () => (/\/ru(?:\/|$)/.test(location.pathname || '/') ? 'ru' : 'en');
+
+const currentLang = () => pathLang();
 
 function applyLang(lang) {
   const t = dict(lang);
@@ -201,9 +262,10 @@ function applyLang(lang) {
       el.setAttribute('title', t[key]);
     }
   });
-  document.querySelectorAll('[data-lang]').forEach((btn) => {
-    btn.setAttribute('aria-pressed', String(btn.getAttribute('data-lang') === lang));
+  document.querySelectorAll('[data-lang]').forEach((el) => {
+    el.setAttribute('aria-pressed', String(el.getAttribute('data-lang') === lang));
   });
+  applyPreview(state.preview);
   localStorage.setItem('hcms-lang', lang);
 }
 
@@ -215,8 +277,6 @@ async function copyText(button) {
   } catch {
     return;
   }
-  // No optimistic bump here: the copied command points at /download?source=curl
-  // and gets counted when it actually runs.
   const t = dict(currentLang());
   button.classList.add('is-copied');
   button.setAttribute('aria-label', t['hero.copied']);
@@ -299,7 +359,6 @@ async function loadDownloads() {
   }
 }
 
-// Cosmetic only — /download does the real counting while the click navigates.
 function bumpCounter() {
   if (state.downloads !== null) {
     state.downloads += 1;
@@ -317,13 +376,83 @@ function refreshAnnounce() {
     .replace('{url}', bar.dataset.releaseUrl || `https://github.com/${REPO}/releases`);
 }
 
-document.querySelectorAll('[data-lang]').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    applyLang(btn.getAttribute('data-lang') || 'en');
-    refreshAnnounce();
-    renderCounter();
+function applyPreview(theme, opts) {
+  const user = Boolean(opts && opts.user);
+  state.preview = theme === 'dark' ? 'dark' : 'light';
+  const t = dict(currentLang());
+  const frame = document.querySelector('.hero-frame');
+  if (frame) {
+    frame.setAttribute('data-theme', state.preview);
+  }
+  document.querySelectorAll('.hero-shot').forEach((img) => {
+    const on = img.getAttribute('data-shot') === state.preview;
+    img.classList.toggle('is-active', on);
+    if (img.getAttribute('data-shot') === 'light') {
+      img.alt = t['preview.altLight'];
+    } else if (img.getAttribute('data-shot') === 'dark') {
+      img.alt = t['preview.altDark'];
+    }
   });
+  document.querySelectorAll('[data-preview]').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.getAttribute('data-preview') === state.preview);
+  });
+  if (user) {
+    pausePreview(12000);
+  }
+}
+
+let previewTimer = null;
+let previewResume = null;
+
+function stopPreviewTimer() {
+  if (previewTimer) {
+    window.clearInterval(previewTimer);
+    previewTimer = null;
+  }
+}
+
+function startPreviewTimer() {
+  stopPreviewTimer();
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return;
+  }
+  previewTimer = window.setInterval(() => {
+    applyPreview(state.preview === 'light' ? 'dark' : 'light');
+  }, 4800);
+}
+
+function pausePreview(ms) {
+  stopPreviewTimer();
+  if (previewResume) {
+    window.clearTimeout(previewResume);
+  }
+  previewResume = window.setTimeout(() => {
+    previewResume = null;
+    startPreviewTimer();
+  }, ms);
+}
+
+document.querySelectorAll('[data-preview]').forEach((btn) => {
+  btn.addEventListener('click', () => applyPreview(btn.getAttribute('data-preview') || 'light', { user: true }));
 });
+
+const stage = document.querySelector('.hero-stage');
+if (stage) {
+  stage.addEventListener('mouseenter', () => pausePreview(999999));
+  stage.addEventListener('mouseleave', () => {
+    if (previewResume) {
+      window.clearTimeout(previewResume);
+      previewResume = null;
+    }
+    startPreviewTimer();
+  });
+  stage.addEventListener('focusin', () => pausePreview(999999));
+  stage.addEventListener('focusout', (e) => {
+    if (!stage.contains(e.relatedTarget)) {
+      startPreviewTimer();
+    }
+  });
+}
 
 document.querySelectorAll('.js-download').forEach((link) => {
   link.addEventListener('click', bumpCounter);
@@ -334,5 +463,6 @@ document.querySelectorAll('.js-copy').forEach((btn) => {
 });
 
 applyLang(currentLang());
+startPreviewTimer();
 loadRelease();
 loadDownloads();

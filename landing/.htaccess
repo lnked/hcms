@@ -9,6 +9,15 @@
     # Read-only counter value. The rest of the API stays on its own vhost, so
     # the landing origin never exposes admin or auth endpoints.
     RewriteRule ^api/downloads$ api-proxy.php [QSA,L]
+
+    # Pretty /ru → /ru/ for the Russian crawlable mirror.
+    RewriteRule ^ru$ ru/ [R=301,L]
+</IfModule>
+
+# Explicit types for SEO files (some shared hosts default oddly).
+<IfModule mod_mime.c>
+    AddType text/plain .txt
+    AddType application/xml .xml
 </IfModule>
 
 # counter.php is an include and counter-config.php holds the API token.
