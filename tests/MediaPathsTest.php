@@ -13,6 +13,7 @@ final class MediaPathsTest extends TestCase
     {
         $paths = new Paths('/tmp/hcms');
         $this->assertSame('/tmp/hcms/storage/uploads', $paths->media());
+        $this->assertSame('/tmp/hcms/public/media', $paths->publicMedia());
         $this->assertSame('public', $paths->publicDir);
         $this->assertSame('/tmp/hcms/public', $paths->public());
     }

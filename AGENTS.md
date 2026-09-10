@@ -386,7 +386,7 @@ curl -s -X POST "$BASE/admin/api/media" -H "Authorization: Bearer $TOKEN" -F 'fi
 # → { data: { id: 12, ... } }   ← id кладётся в поля image/file
 ```
 
-Публичная отдача — `GET /media/{id}` или pretty `GET /media/{id}/{filename}` (свой rate-limit `security.rate_limit_media_per_minute`). В JSON: `url` (relative) + `fullUrl` (`APP_URL`).
+Публичная отдача — `GET /media/{id}` или pretty `GET /media/{id}/{filename}` (rate-limit на PHP-hit). После первого запроса безопасные типы прогреваются в `{publicDir}/media/` и дальше отдаются статикой. В JSON: `url` + `fullUrl`.
 
 ### 7.4 Публичный API
 

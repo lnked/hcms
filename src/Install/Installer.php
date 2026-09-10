@@ -706,6 +706,41 @@ HTACCESS;
         if (file_put_contents($uploads . '/.htaccess', $uploadsHtaccess) === false) {
             throw new RuntimeException('Unable to write storage/uploads/.htaccess');
         }
+
+        $this->writePublicMediaHtaccess();
+    }
+
+    private function writePublicMediaHtaccess(): void
+    {
+        $dir = $this->paths->publicMedia();
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            throw new RuntimeException('Unable to create public/media directory');
+        }
+
+        $htaccess = <<<'HTACCESS'
+# Static copies of /media/{id}/{filename}. Source of truth remains storage/uploads.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py .html .htm .shtml .js
+RemoveType .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable"
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+HTACCESS;
+
+        if (file_put_contents($dir . '/.htaccess', $htaccess) === false) {
+            throw new RuntimeException('Unable to write public/media/.htaccess');
+        }
     }
 
     private function writeLock(): void

@@ -70,13 +70,19 @@ Rate limits: sliding window over IP + per-token buckets (admin vs API limits fro
 
 ### Media URLs
 
-Public file delivery is always through PHP (`GET /media/{id}` or pretty `GET /media/{id}/{filename}`; filename is cosmetic, lookup is by id). Disk paths under `storage/uploads` are not exposed.
+Public file delivery:
+
+1. First request hits PHP (`GET /media/{id}` or pretty `GET /media/{id}/{filename}`).
+2. For raster images / PDF / video, PHP **warms** a static copy under `{publicDir}/media/{id}/{filename}`.
+3. Later requests are served by Apache/nginx as static files (`RewriteCond … -f` / `router.php`), without PHP.
+
+Source of truth remains `storage/uploads/` (never web-reachable). SVG and other non-inline-safe types stay PHP-only (attachment disposition). Cache is invalidated on delete / optimize / replace.
 
 Media objects in API responses include:
 
 | Field | Example | Notes |
 |---|---|---|
-| `url` | `/media/50/cover.jpg` | Relative pretty path |
+| `url` | `/media/50/cover.jpg` | Relative pretty path (prefer this for static warm-up) |
 | `fullUrl` | `https://api.example.com/media/50/cover.jpg` | Absolute (`APP_URL` + `url`) |
 
 Use `fullUrl` when the consumer is on another origin; `url` for same-host admin / reverse-proxy setups.
