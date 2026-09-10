@@ -223,8 +223,16 @@ final class MediaController
             if (!is_array($ids) || $ids === []) {
                 throw new InvalidArgumentException('ids array is required');
             }
+            $normalized = [];
+            foreach ($ids as $id) {
+                if (!is_numeric($id)) {
+                    throw new InvalidArgumentException('ids must be numbers');
+                }
+                $normalized[] = (int) $id;
+            }
+            $normalized = array_values(array_unique($normalized));
             $opts = $this->parseOptimizeOpts($body);
-            $result = $this->media->bulkOptimize($ids, $opts, $this->scope($auth));
+            $result = $this->media->bulkOptimize($normalized, $opts, $this->scope($auth));
             $this->audit->log(
                 $request,
                 'media.bulk_optimized',
@@ -232,7 +240,7 @@ final class MediaController
                 'media',
                 null,
                 [
-                    'ids' => $ids,
+                    'ids' => $normalized,
                     'optimized' => $result['optimized'],
                     'failed' => $result['failed'],
                     'savedBytes' => $result['savedBytes'],
