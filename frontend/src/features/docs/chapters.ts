@@ -10,6 +10,7 @@ export const CHAPTER_IDS = [
   'webhooks',
   'hooks',
   'feature-flags',
+  'key-values',
   'translates',
   'limits',
   'quickstart',
@@ -65,6 +66,7 @@ const en: Chapter[] = [
           'Admin API: /admin/api/* — requires an admin Bearer token from login.',
           'Content API: /api/{slug} or /api/v1/{slug} — requires an API token (or public flags on the resource).',
           'Feature flags: public GET (default /api/features) — remote config and A/B.',
+          'Key values: public GET (default /api/kv) — flat { key: value } map (no data wrapper).',
           'Translates: public GET (default /api/translates) — i18n key map for clients.',
           'Interactive OpenAPI lives at /api/docs; the machine-readable schema is /api/openapi.json.',
         ],
@@ -72,6 +74,7 @@ const en: Chapter[] = [
           { label: 'Open Swagger', href: '/api/docs', external: true },
           { label: 'OpenAPI JSON', href: '/api/openapi.json', external: true },
           { label: 'Feature flags', href: '/docs/feature-flags' },
+          { label: 'Key values', href: '/docs/key-values' },
           { label: 'Translates', href: '/docs/translates' },
         ],
       },
@@ -90,6 +93,23 @@ GET /api/features?keys=newCheckout&subject=user-42`,
         links: [
           { label: 'Full chapter', href: '/docs/feature-flags' },
           { label: 'Admin → Feature flags', href: '/settings/feature-flags' },
+        ],
+      },
+      {
+        heading: 'Key values',
+        paragraphs: [
+          'Simple key → JSON value store. Admin tracks created/updated timestamps and author; public GET returns a bare { key: value } object (no data wrapper). Default path /api/kv.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/kv
+GET /api/kv?keys=siteName,theme`,
+          },
+        ],
+        links: [
+          { label: 'Full chapter', href: '/docs/key-values' },
+          { label: 'Admin → Key values', href: '/settings/key-values' },
         ],
       },
       {
@@ -555,6 +575,48 @@ if (data.newCheckout) {
     ],
   },
   {
+    id: 'key-values',
+    title: 'Key values',
+    sections: [
+      {
+        paragraphs: [
+          'Simple key → value store for SPA / mobile. Entries live in cms_key_values, are edited under Key values in the admin (with created/updated timestamps and author), and are read via a public GET.',
+          'Public response is a bare map — { "siteName": "HCMS", "theme": "dark" } — no data wrapper. Default path /api/kv (settings: enabled, path, requireToken). Supports ETag / If-None-Match and ?keys= filter.',
+        ],
+        links: [{ label: 'Key values', href: '/settings/key-values' }],
+      },
+      {
+        heading: 'Endpoints',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST          /admin/api/key-values
+GET/PATCH/DELETE  /admin/api/key-values/{id}
+GET/PUT           /admin/api/key-values/settings`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/kv
+GET /api/kv?keys=siteName,theme`,
+          },
+        ],
+      },
+      {
+        heading: 'Create',
+        samples: [
+          {
+            language: 'bash',
+            code: `curl -s -X POST "$BASE/admin/api/key-values" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{"key":"siteName","value":"HCMS"}'`,
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'translates',
     title: 'Translates',
     sections: [
@@ -711,6 +773,7 @@ const ru: Chapter[] = [
           'Admin API: /admin/api/* — Bearer-токен администратора после логина.',
           'Content API: /api/{slug} или /api/v1/{slug} — API-токен (или публичные флаги ресурса).',
           'Feature flags: публичный GET (по умолчанию /api/features) — remote config и A/B.',
+          'Key values: публичный GET (по умолчанию /api/kv) — плоский объект { key: value } без обёртки data.',
           'Переводы: публичный GET (по умолчанию /api/translates) — i18n-карта ключей для клиентов.',
           'Интерактивный OpenAPI: /api/docs; схема: /api/openapi.json.',
         ],
@@ -718,6 +781,7 @@ const ru: Chapter[] = [
           { label: 'Открыть Swagger', href: '/api/docs', external: true },
           { label: 'OpenAPI JSON', href: '/api/openapi.json', external: true },
           { label: 'Feature flags', href: '/docs/feature-flags' },
+          { label: 'Key values', href: '/docs/key-values' },
           { label: 'Переводы', href: '/docs/translates' },
         ],
       },
@@ -736,6 +800,23 @@ GET /api/features?keys=newCheckout&subject=user-42`,
         links: [
           { label: 'Полная глава', href: '/docs/feature-flags' },
           { label: 'Админка → Feature flags', href: '/settings/feature-flags' },
+        ],
+      },
+      {
+        heading: 'Key values',
+        paragraphs: [
+          'Простой key → JSON value. В админке — даты создания/правки и автор; публичный GET отдаёт голый объект { key: value }. Путь по умолчанию /api/kv.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/kv
+GET /api/kv?keys=siteName,theme`,
+          },
+        ],
+        links: [
+          { label: 'Полная глава', href: '/docs/key-values' },
+          { label: 'Админка → Key values', href: '/settings/key-values' },
         ],
       },
       {
@@ -1191,6 +1272,48 @@ const { data } = await res.json()
 if (data.newCheckout) {
   // вариант B
 }`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'key-values',
+    title: 'Key values',
+    sections: [
+      {
+        paragraphs: [
+          'Простой key → value для SPA / мобилок. Записи в cms_key_values, правятся в админке Key values (даты создания/правки и автор), читаются публичным GET.',
+          'Публичный ответ — голая map: { "siteName": "HCMS", "theme": "dark" } — без обёртки data. Путь по умолчанию /api/kv (settings: enabled, path, requireToken). Есть ETag / If-None-Match и фильтр ?keys=.',
+        ],
+        links: [{ label: 'Key values', href: '/settings/key-values' }],
+      },
+      {
+        heading: 'Эндпоинты',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST          /admin/api/key-values
+GET/PATCH/DELETE  /admin/api/key-values/{id}
+GET/PUT           /admin/api/key-values/settings`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/kv
+GET /api/kv?keys=siteName,theme`,
+          },
+        ],
+      },
+      {
+        heading: 'Создание',
+        samples: [
+          {
+            language: 'bash',
+            code: `curl -s -X POST "$BASE/admin/api/key-values" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{"key":"siteName","value":"HCMS"}'`,
           },
         ],
       },

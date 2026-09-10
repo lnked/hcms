@@ -52,6 +52,27 @@
   gap: var(--hcms-SPx2);
 }
 
+.revMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  align-items: flex-start;
+}
+
+.revId {
+  font-weight: 600;
+}
+
+.revWhen {
+  color: var(--hcms-color-muted-foreground);
+  font-weight: 400;
+}
+
+.revActor {
+  color: var(--hcms-color-foreground);
+  font-weight: 500;
+}
+
 .selectBtn {
   text-align: left;
   font-weight: 500;

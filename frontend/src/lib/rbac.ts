@@ -13,6 +13,7 @@ export type AdminSection =
   | 'webhooks'
   | 'inbound'
   | 'feature-flags'
+  | 'key-values'
   | 'translates'
   | 'users'
   | 'integrations'
@@ -32,6 +33,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'webhooks',
   'inbound',
   'feature-flags',
+  'key-values',
   'translates',
   'users',
   'integrations',
@@ -140,6 +142,7 @@ export function sectionForPath(pathname: string): AdminSection | null {
   if (path.startsWith('/settings/webhooks')) return 'webhooks'
   if (path.startsWith('/settings/inbound')) return 'inbound'
   if (path.startsWith('/settings/feature-flags')) return 'feature-flags'
+  if (path.startsWith('/settings/key-values')) return 'key-values'
   if (path.startsWith('/settings/translates')) return 'translates'
   if (path.startsWith('/settings/users')) return 'users'
   if (path.startsWith('/settings/integrations')) return 'integrations'

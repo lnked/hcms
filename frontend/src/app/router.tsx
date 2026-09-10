@@ -67,6 +67,9 @@ const InboundEndpointsPage = lazy(() =>
 const FeatureFlagsPage = lazy(() =>
   import('@/pages/FeatureFlagsPage').then((m) => ({ default: m.FeatureFlagsPage })),
 )
+const KeyValuesPage = lazy(() =>
+  import('@/pages/KeyValuesPage').then((m) => ({ default: m.KeyValuesPage })),
+)
 const TranslatesPage = lazy(() =>
   import('@/pages/TranslatesPage').then((m) => ({ default: m.TranslatesPage })),
 )
@@ -133,6 +136,10 @@ export function AppRouter() {
             <Route
               path="settings/feature-flags"
               element={withSection('feature-flags', 'admin', <FeatureFlagsPage />)}
+            />
+            <Route
+              path="settings/key-values"
+              element={withSection('key-values', 'admin', <KeyValuesPage />)}
             />
             <Route
               path="settings/translates"

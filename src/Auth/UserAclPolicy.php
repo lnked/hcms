@@ -22,6 +22,7 @@ final class UserAclPolicy
         'webhooks',
         'inbound',
         'feature-flags',
+        'key-values',
         'translates',
         'users',
         'integrations',
@@ -168,6 +169,9 @@ final class UserAclPolicy
         }
         if (str_starts_with($path, '/admin/api/feature-flags')) {
             return 'feature-flags';
+        }
+        if (str_starts_with($path, '/admin/api/key-values')) {
+            return 'key-values';
         }
         if (
             str_starts_with($path, '/admin/api/locales')

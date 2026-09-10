@@ -64,6 +64,7 @@ describe('rbac', () => {
   it('sectionForPath', () => {
     expect(sectionForPath('/settings/users')).toBe('users')
     expect(sectionForPath('/settings/feature-flags')).toBe('feature-flags')
+    expect(sectionForPath('/settings/key-values')).toBe('key-values')
     expect(sectionForPath('/settings/translates')).toBe('translates')
     expect(sectionForPath('/resources/3/data')).toBe('resources')
     expect(sectionForPath('/')).toBe('dashboard')

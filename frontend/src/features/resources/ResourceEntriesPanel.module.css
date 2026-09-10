@@ -62,8 +62,26 @@
 
 .entryToolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: var(--hcms-SPx2);
+}
+
+.entryToolbarActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--hcms-SPx2);
+}
+
+.entryMeta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  min-width: 0;
+  color: var(--hcms-color-muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
 }
 
 .statusMessage {

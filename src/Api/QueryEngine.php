@@ -220,13 +220,20 @@ final class QueryEngine
 
     /**
      * @param array<string, mixed> $payload
-     * @param array{public?: bool} $options
+     * @param array{public?: bool, actorUserId?: int|null} $options
      * @return array<string, mixed>
      */
     public function create(string $slug, array $payload, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
-        $id = $this->insertRow($table, $this->validatePayload($payload, $fieldMap, false));
+        $this->ensureActorColumns($table);
+        $data = $this->validatePayload($payload, $fieldMap, false);
+        $actorId = $this->actorUserId($options);
+        if ($actorId !== null) {
+            $data['created_by'] = $actorId;
+            $data['updated_by'] = $actorId;
+        }
+        $id = $this->insertRow($table, $data);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -234,14 +241,20 @@ final class QueryEngine
 
     /**
      * @param array<string, mixed> $payload
-     * @param array{public?: bool} $options
+     * @param array{public?: bool, actorUserId?: int|null} $options
      * @return array<string, mixed>
      */
     public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $this->requireRow($table, $id);
-        $this->updateRow($table, $id, $this->validatePayload($payload, $fieldMap, true));
+        $this->ensureActorColumns($table);
+        $data = $this->validatePayload($payload, $fieldMap, true);
+        $actorId = $this->actorUserId($options);
+        if ($actorId !== null) {
+            $data['updated_by'] = $actorId;
+        }
+        $this->updateRow($table, $id, $data);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -821,6 +834,36 @@ final class QueryEngine
     }
 
     /**
+     * @param array{public?: bool, actorUserId?: int|null} $options
+     */
+    private function actorUserId(array $options): ?int
+    {
+        if (!array_key_exists('actorUserId', $options) || $options['actorUserId'] === null) {
+            return null;
+        }
+        $id = (int) $options['actorUserId'];
+
+        return $id > 0 ? $id : null;
+    }
+
+    private function ensureActorColumns(string $table): void
+    {
+        static $ready = [];
+        if (isset($ready[$table])) {
+            return;
+        }
+        foreach (['created_by', 'updated_by'] as $col) {
+            $rows = $this->db->select('SHOW COLUMNS FROM `' . $table . "` LIKE '" . $col . "'");
+            if ($rows === []) {
+                $this->db->execRaw(
+                    'ALTER TABLE `' . $table . '` ADD COLUMN `' . $col . '` BIGINT UNSIGNED NULL',
+                );
+            }
+        }
+        $ready[$table] = true;
+    }
+
+    /**
      * @param array<string, mixed> $data
      */
     private function insertRow(string $table, array $data): int
@@ -1051,6 +1094,12 @@ final class QueryEngine
             'id' => (int) $row['id'],
             'createdAt' => $row['created_at'] ?? null,
             'updatedAt' => $row['updated_at'] ?? null,
+            'createdById' => isset($row['created_by']) && $row['created_by'] !== null
+                ? (int) $row['created_by']
+                : null,
+            'updatedById' => isset($row['updated_by']) && $row['updated_by'] !== null
+                ? (int) $row['updated_by']
+                : null,
         ];
         $mediaCache = [];
         foreach ($fieldMap as $name => $meta) {

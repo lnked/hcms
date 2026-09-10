@@ -75,6 +75,9 @@ final class MigrationService
             if ($this->ensureDeletedAtColumn($table)) {
                 $ops[] = ['op' => 'add_system_column', 'name' => 'deleted_at'];
             }
+            foreach ($this->ensureActorColumns($table) as $col) {
+                $ops[] = ['op' => 'add_system_column', 'name' => $col];
+            }
             $current = $this->describeTable($table);
             $plan = $this->diff->plan($current, $desired);
             foreach ($plan as $step) {
@@ -135,7 +138,7 @@ final class MigrationService
         $cols = [];
         foreach ($rows as $row) {
             $name = (string) $row['Field'];
-            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'], true)) {
+            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'], true)) {
                 continue;
             }
             $cols[] = new ColumnDefinition(
@@ -160,6 +163,8 @@ final class MigrationService
             '`created_at` DATETIME NOT NULL',
             '`updated_at` DATETIME NOT NULL',
             '`deleted_at` DATETIME NULL',
+            '`created_by` BIGINT UNSIGNED NULL',
+            '`updated_by` BIGINT UNSIGNED NULL',
         ];
         foreach ($columns as $column) {
             $parts[] = $this->columnSql($column);
@@ -191,6 +196,25 @@ final class MigrationService
         $this->db->execRaw('ALTER TABLE ' . $t . ' ADD KEY `idx_deleted_at` (`deleted_at`)');
 
         return true;
+    }
+
+    /**
+     * @return list<string> names of columns that were added
+     */
+    public function ensureActorColumns(string $table): array
+    {
+        $added = [];
+        $t = $this->mapper->quoteIdent($table);
+        foreach (['created_by', 'updated_by'] as $col) {
+            $rows = $this->db->select('SHOW COLUMNS FROM ' . $t . " LIKE '" . $col . "'");
+            if ($rows !== []) {
+                continue;
+            }
+            $this->db->execRaw('ALTER TABLE ' . $t . ' ADD COLUMN `' . $col . '` BIGINT UNSIGNED NULL');
+            $added[] = $col;
+        }
+
+        return $added;
     }
 
     /**

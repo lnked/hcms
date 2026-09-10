@@ -4,6 +4,7 @@ import {
   BookOpen,
   FileText,
   Flag,
+  Braces,
   Image,
   KeyRound,
   Languages,
@@ -326,6 +327,13 @@ export function AppShell() {
         label: t('nav.featureFlags'),
         icon: Flag,
         section: 'feature-flags',
+        minRole: 'admin' as const,
+      },
+      {
+        to: '/settings/key-values',
+        label: t('nav.keyValues'),
+        icon: Braces,
+        section: 'key-values',
         minRole: 'admin' as const,
       },
       {

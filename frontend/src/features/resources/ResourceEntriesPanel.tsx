@@ -156,6 +156,12 @@ export function ResourceEntriesPanel({
   })
 
   const editing = editingId === null ? null : (entryQuery.data ?? null)
+  const editingUpdatedBy = editing ? formatEntryActor(editing.updatedBy) : null
+  const editingCreatedBy = editing ? formatEntryActor(editing.createdBy) : null
+  const editingUpdatedAt =
+    editing && typeof editing.updatedAt === 'string' && editing.updatedAt !== ''
+      ? editing.updatedAt
+      : null
 
   const loadedValues = useMemo(() => {
     const next = emptyValues(fields)
@@ -528,25 +534,44 @@ export function ResourceEntriesPanel({
           </DialogHeader>
           {editingId !== null ? (
             <div className={styles.entryToolbar}>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void copyEntryLink()}
-              >
-                <Link2 className={styles.icon} />
-                {t('entries.copyLink')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!editing}
-                onClick={() => setRevisionsOpen(true)}
-              >
-                <History className={styles.icon} />
-                {t('entries.history')}
-              </Button>
+              {editing ? (
+                <div className={styles.entryMeta}>
+                  {editingUpdatedBy ? (
+                    <span>
+                      {t('entries.updatedBy', { name: editingUpdatedBy })}
+                      {editingUpdatedAt ? ` · ${editingUpdatedAt}` : null}
+                    </span>
+                  ) : editingUpdatedAt ? (
+                    <span>{t('entries.updatedAt', { at: editingUpdatedAt })}</span>
+                  ) : null}
+                  {editingCreatedBy ? (
+                    <span>{t('entries.createdBy', { name: editingCreatedBy })}</span>
+                  ) : null}
+                </div>
+              ) : (
+                <div className={styles.entryMeta} />
+              )}
+              <div className={styles.entryToolbarActions}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void copyEntryLink()}
+                >
+                  <Link2 className={styles.icon} />
+                  {t('entries.copyLink')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!editing}
+                  onClick={() => setRevisionsOpen(true)}
+                >
+                  <History className={styles.icon} />
+                  {t('entries.history')}
+                </Button>
+              </div>
             </div>
           ) : null}
           {entryQuery.isLoading ? (
@@ -798,4 +823,19 @@ export function ResourceEntriesPanel({
       ) : null}
     </Card>
   )
+}
+
+interface ActorRef {
+  id: number
+  name: string
+  email: string
+}
+
+function formatEntryActor(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null
+  const actor = value as Partial<ActorRef>
+  const name = typeof actor.name === 'string' ? actor.name.trim() : ''
+  if (name !== '') return name
+  const email = typeof actor.email === 'string' ? actor.email.trim() : ''
+  return email !== '' ? email : null
 }

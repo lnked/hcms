@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\FeatureFlags\FeatureFlagService;
+use Cms\KeyValues\KeyValueService;
 use Cms\Translates\TranslationService;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,21 @@ final class FeatureTranslatesServiceTest extends TestCase
         FeatureFlagService::assertValidPath('/api/features');
         FeatureFlagService::assertValidPath('/api/v1/my-flags');
         $this->addToAssertionCount(1);
+    }
+
+    public function testKeyValuePathNormalization(): void
+    {
+        $this->assertSame('/api/kv', KeyValueService::normalizePath('kv'));
+        $this->assertSame('/api/kv', KeyValueService::normalizePath('/api/kv'));
+        $this->assertSame('/api/v1/config', KeyValueService::normalizePath('/api/v1/config'));
+    }
+
+    public function testKeyValueDefaultApiSettings(): void
+    {
+        $kv = KeyValueService::defaultApiSettings();
+        $this->assertTrue($kv['enabled']);
+        $this->assertSame('/api/kv', $kv['path']);
+        $this->assertFalse($kv['requireToken']);
     }
 
     public function testTranslatesPathNormalization(): void

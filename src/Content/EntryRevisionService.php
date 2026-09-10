@@ -56,10 +56,12 @@ final class EntryRevisionService
     {
         $limit = min(100, max(1, $limit));
         $rows = $this->db->select(
-            'SELECT id, resource_id, entry_id, data_json, diff_json, actor_user_id, created_at
-             FROM cms_entry_revisions
-             WHERE resource_id = :resource_id AND entry_id = :entry_id
-             ORDER BY id DESC
+            'SELECT r.id, r.resource_id, r.entry_id, r.data_json, r.diff_json, r.actor_user_id, r.created_at,
+                    u.name AS actor_name, u.email AS actor_email
+             FROM cms_entry_revisions r
+             LEFT JOIN cms_users u ON u.id = r.actor_user_id
+             WHERE r.resource_id = :resource_id AND r.entry_id = :entry_id
+             ORDER BY r.id DESC
              LIMIT ' . $limit,
             ['resource_id' => $resourceId, 'entry_id' => $entryId],
         );
@@ -73,9 +75,11 @@ final class EntryRevisionService
     public function find(int $resourceId, int $entryId, int $revisionId): array
     {
         $row = $this->db->selectOne(
-            'SELECT id, resource_id, entry_id, data_json, diff_json, actor_user_id, created_at
-             FROM cms_entry_revisions
-             WHERE id = :id AND resource_id = :resource_id AND entry_id = :entry_id',
+            'SELECT r.id, r.resource_id, r.entry_id, r.data_json, r.diff_json, r.actor_user_id, r.created_at,
+                    u.name AS actor_name, u.email AS actor_email
+             FROM cms_entry_revisions r
+             LEFT JOIN cms_users u ON u.id = r.actor_user_id
+             WHERE r.id = :id AND r.resource_id = :resource_id AND r.entry_id = :entry_id',
             ['id' => $revisionId, 'resource_id' => $resourceId, 'entry_id' => $entryId],
         );
         if ($row === null) {
@@ -152,7 +156,25 @@ final class EntryRevisionService
             'data' => is_array($data) ? $data : [],
             'diff' => is_array($diff) ? $diff : null,
             'actorUserId' => $row['actor_user_id'] === null ? null : (int) $row['actor_user_id'],
+            'actor' => $this->serializeActor($row),
             'createdAt' => (string) $row['created_at'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array{id: int, name: string, email: string}|null
+     */
+    private function serializeActor(array $row): ?array
+    {
+        if ($row['actor_user_id'] === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $row['actor_user_id'],
+            'name' => (string) ($row['actor_name'] ?? ''),
+            'email' => (string) ($row['actor_email'] ?? ''),
         ];
     }
 }

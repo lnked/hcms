@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.61.0",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Key values + entry authors",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Key values: раздел Settings → Key values (key→value, автор, даты); публичный GET /api/kv отдаёт голый { key: value }; миграция 020"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Записи ресурсов: created_by / updated_by на res_* таблицах; admin API отдаёт createdBy/updatedBy; UI показывает автора в форме записи"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Entry form / revisions: метаданные автора и даты в тулбаре редактирования"
+        }
+      ]
+    },
+    {
       "version": "0.60.2",
       "date": "2026-09-11",
       "channel": "stable",

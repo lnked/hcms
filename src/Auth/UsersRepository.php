@@ -26,6 +26,40 @@ final class UsersRepository
     }
 
     /**
+     * @param list<int> $ids
+     * @return array<int, array{id: int, name: string, email: string}>
+     */
+    public function actorsByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $i => $id) {
+            $key = 'id' . $i;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $rows = $this->db->select(
+            'SELECT id, name, email FROM cms_users WHERE id IN (' . implode(', ', $placeholders) . ')',
+            $params,
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            $out[$id] = [
+                'id' => $id,
+                'name' => (string) $row['name'],
+                'email' => (string) $row['email'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function find(int $id): ?array

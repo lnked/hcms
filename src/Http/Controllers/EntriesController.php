@@ -91,7 +91,7 @@ final class EntriesController
     {
         try {
             $slug = $this->entries->slug($resourceId);
-            $entry = $this->entries->create($resourceId, $request->json());
+            $entry = $this->entries->create($resourceId, $request->json(), $auth->userId());
             $this->audit->log(
                 $request,
                 'entry.created',
@@ -124,7 +124,7 @@ final class EntriesController
         try {
             $slug = $this->entries->slug($resourceId);
             $before = $this->entries->find($resourceId, $entryId);
-            $entry = $this->entries->patch($resourceId, $entryId, $request->json());
+            $entry = $this->entries->patch($resourceId, $entryId, $request->json(), $auth->userId());
             $this->revisions?->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
@@ -266,8 +266,19 @@ final class EntriesController
             $slug = $this->entries->slug($resourceId);
             $data = $this->revisions->dataForRestore($resourceId, $entryId, $revisionId);
             $before = $this->entries->find($resourceId, $entryId);
-            unset($data['id'], $data['createdAt'], $data['updatedAt'], $data['created_at'], $data['updated_at'], $data['deleted_at']);
-            $entry = $this->entries->patch($resourceId, $entryId, $data);
+            unset(
+                $data['id'],
+                $data['createdAt'],
+                $data['updatedAt'],
+                $data['created_at'],
+                $data['updated_at'],
+                $data['deleted_at'],
+                $data['createdById'],
+                $data['updatedById'],
+                $data['createdBy'],
+                $data['updatedBy'],
+            );
+            $entry = $this->entries->patch($resourceId, $entryId, $data, $auth->userId());
             $this->revisions->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,

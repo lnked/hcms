@@ -41,6 +41,8 @@ use Cms\Database\PendingMigrations;
 use Cms\Database\SchemaDiff;
 use Cms\FeatureFlags\FeatureFlagRepository;
 use Cms\FeatureFlags\FeatureFlagService;
+use Cms\KeyValues\KeyValueRepository;
+use Cms\KeyValues\KeyValueService;
 use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
 use Cms\Fields\FieldTypeRegistry;
@@ -57,6 +59,7 @@ use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FeatureFlagsController;
 use Cms\Http\Controllers\FieldController;
 use Cms\Http\Controllers\InboundEndpointsController;
+use Cms\Http\Controllers\KeyValuesController;
 use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
@@ -594,7 +597,11 @@ final class Kernel
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
             $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
-            $entryService = new EntryService($queryEngine, new ResourceRepository($this->db));
+            $entryService = new EntryService(
+                $queryEngine,
+                new ResourceRepository($this->db),
+                new UsersRepository($this->db),
+            );
             $entries = new EntriesController(
                 $entryService,
                 $audit,
@@ -711,6 +718,10 @@ final class Kernel
                 ),
                 $audit,
             );
+            $keyValuesApi = new KeyValuesController(
+                new KeyValueService(new KeyValueRepository($this->db), $settings),
+                $audit,
+            );
 
             AdminResourceRoutes::register(
                 $this->router,
@@ -731,6 +742,7 @@ final class Kernel
                 $inboundEndpointsApi,
             );
             FeatureTranslatesRoutes::registerAdmin($this->router, $featureFlags, $translatesApi);
+            KeyValuesRoutes::registerAdmin($this->router, $keyValuesApi);
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -800,6 +812,11 @@ final class Kernel
                 new TranslationRepository($this->db),
                 $settingsForFlags,
             ))->getApiSettings()['path'];
+            $keyValuesPublic = new KeyValuesController(
+                new KeyValueService(new KeyValueRepository($this->db), $settingsForFlags),
+                $this->audit ?? new AuditLogger($this->db),
+            );
+            $kvPath = (new KeyValueService(new KeyValueRepository($this->db), $settingsForFlags))->getApiSettings()['path'];
             FeatureTranslatesRoutes::registerPublic(
                 $this->router,
                 $featureFlagsPublic,
@@ -807,6 +824,7 @@ final class Kernel
                 $featuresPath,
                 $translatesPath,
             );
+            KeyValuesRoutes::registerPublic($this->router, $keyValuesPublic, $kvPath);
 
             $spamGuard = ($this->runtimeSettings !== null)
                 ? new SpamGuard(

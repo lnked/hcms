@@ -17,6 +17,12 @@ interface RevisionDiff {
   [key: string]: { from: unknown; to: unknown }
 }
 
+interface ActorRef {
+  id: number
+  name: string
+  email: string
+}
+
 interface Revision {
   id: number
   resourceId: number
@@ -24,6 +30,7 @@ interface Revision {
   data: Record<string, unknown>
   diff: RevisionDiff | null
   actorUserId: number | null
+  actor: ActorRef | null
   createdAt: string
 }
 
@@ -58,6 +65,7 @@ export function EntryRevisionsPanel({
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      await queryClient.invalidateQueries({ queryKey: ['resource-entry', resourceId, entryId] })
       await queryClient.invalidateQueries({ queryKey: ['entry-revisions', resourceId, entryId] })
       onOpenChange(false)
     },
@@ -92,7 +100,13 @@ export function EntryRevisionsPanel({
                     className={styles.selectBtn}
                     onClick={() => setSelected(selected?.id === rev.id ? null : rev)}
                   >
-                    #{rev.id} · {rev.createdAt}
+                    <span className={styles.revMeta}>
+                      <span className={styles.revId}>#{rev.id}</span>
+                      <span className={styles.revWhen}>{rev.createdAt}</span>
+                      <span className={styles.revActor}>
+                        {formatActor(rev.actor, t('entries.revisionsUnknownActor'))}
+                      </span>
+                    </span>
                   </button>
                   <Button
                     size="sm"
@@ -132,6 +146,14 @@ export function EntryRevisionsPanel({
       </DialogContent>
     </Dialog>
   )
+}
+
+function formatActor(actor: ActorRef | null, unknownLabel: string): string {
+  if (!actor) return unknownLabel
+  const name = actor.name.trim()
+  if (name !== '') return name
+  const email = actor.email.trim()
+  return email !== '' ? email : unknownLabel
 }
 
 function formatVal(value: unknown): string {
