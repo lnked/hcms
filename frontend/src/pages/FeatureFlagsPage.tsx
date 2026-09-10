@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { useSearchParams } from 'react-router-dom'
@@ -94,17 +94,11 @@ export function FeatureFlagsPage() {
     queryFn: () => api<ApiSettings>('/admin/api/feature-flags/settings'),
   })
 
-  const [apiEnabled, setApiEnabled] = useState(true)
-  const [apiPath, setApiPath] = useState('/api/features')
-  const [requireToken, setRequireToken] = useState(false)
-
-  useEffect(() => {
-    if (settings.data) {
-      setApiEnabled(settings.data.enabled)
-      setApiPath(settings.data.path)
-      setRequireToken(settings.data.requireToken)
-    }
-  }, [settings.data])
+  const [apiDraft, setApiDraft] = useState<Partial<ApiSettings> | null>(null)
+  const apiServer = settings.data ?? { enabled: true, path: '/api/features', requireToken: false }
+  const apiEnabled = apiDraft?.enabled ?? apiServer.enabled
+  const apiPath = apiDraft?.path ?? apiServer.path
+  const requireToken = apiDraft?.requireToken ?? apiServer.requireToken
 
   function openCreate() {
     setEditing(null)
@@ -214,11 +208,9 @@ export function FeatureFlagsPage() {
         method: 'PUT',
         body: JSON.stringify({ enabled: apiEnabled, path: apiPath, requireToken }),
       }),
-    onSuccess: (data) => {
+    onSuccess: () => {
+      setApiDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['feature-flags-settings'] })
-      setApiEnabled(data.enabled)
-      setApiPath(data.path)
-      setRequireToken(data.requireToken)
       setError(null)
     },
     onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
@@ -348,7 +340,11 @@ export function FeatureFlagsPage() {
           </CardHeader>
           <CardContent className={clsx(styles.apiForm)}>
             <div className={clsx(styles.switchRow)}>
-              <Switch checked={apiEnabled} onCheckedChange={setApiEnabled} id="flags-api-enabled" />
+              <Switch
+                checked={apiEnabled}
+                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
+                id="flags-api-enabled"
+              />
               <Label htmlFor="flags-api-enabled">{t('flags.apiEnabled')}</Label>
             </div>
             <div className={clsx(styles.field)}>
@@ -356,13 +352,13 @@ export function FeatureFlagsPage() {
               <Input
                 id="flags-api-path"
                 value={apiPath}
-                onChange={(e) => setApiPath(e.target.value)}
+                onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
               />
             </div>
             <div className={clsx(styles.switchRow)}>
               <Switch
                 checked={requireToken}
-                onCheckedChange={setRequireToken}
+                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
                 id="flags-require-token"
               />
               <Label htmlFor="flags-require-token">{t('flags.requireToken')}</Label>
@@ -423,7 +419,11 @@ export function FeatureFlagsPage() {
                 <Switch checked={boolValue} onCheckedChange={setBoolValue} />
               ) : null}
               {type === 'integer' ? (
-                <Input type="number" value={intValue} onChange={(e) => setIntValue(e.target.value)} />
+                <Input
+                  type="number"
+                  value={intValue}
+                  onChange={(e) => setIntValue(e.target.value)}
+                />
               ) : null}
               {type === 'string' ? (
                 <Input value={stringValue} onChange={(e) => setStringValue(e.target.value)} />

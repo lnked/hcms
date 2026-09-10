@@ -235,10 +235,19 @@ export function OptimizeImageDialog({
           ) : null}
 
           <div className={clsx(styles.actions)}>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => onOpenChange(false)}
+            >
               {t('common.cancel')}
             </Button>
-            <Button type="button" disabled={busy || mediaIds.length === 0} onClick={() => void submit()}>
+            <Button
+              type="button"
+              disabled={busy || mediaIds.length === 0}
+              onClick={() => void submit()}
+            >
               {busy ? t('media.optimizing') : t('media.optimize')}
             </Button>
           </div>

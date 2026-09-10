@@ -623,8 +623,7 @@ export const ru: Record<MessageKey, string> = {
   'media.optimize': 'Оптимизировать',
   'media.optimizeTitle': 'Оптимизация изображения',
   'media.optimizeBulkTitle': 'Оптимизировать {count} изображений',
-  'media.optimizeDescription':
-    'Перекодирование для уменьшения веса. EXIF удаляется автоматически.',
+  'media.optimizeDescription': 'Перекодирование для уменьшения веса. EXIF удаляется автоматически.',
   'media.optimizeQuality': 'Качество',
   'media.optimizeCustom': 'Своё',
   'media.optimizeFormat': 'Формат',

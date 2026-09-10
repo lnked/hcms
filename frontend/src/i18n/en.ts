@@ -951,7 +951,8 @@ export const en = {
   'translates.enabled': 'Enabled',
   'translates.default': 'Default',
   'translates.setDefault': 'Set default',
-  'translates.deleteLocaleConfirm': 'Delete locale {code}? Values for this language will be removed.',
+  'translates.deleteLocaleConfirm':
+    'Delete locale {code}? Values for this language will be removed.',
   'translates.apiTitle': 'API settings',
   'translates.apiHint': 'Public GET endpoint for translation maps.',
   'translates.apiEnabled': 'API enabled',

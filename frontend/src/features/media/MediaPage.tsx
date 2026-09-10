@@ -382,7 +382,11 @@ export function MediaPage() {
                         {t('common.open')}
                       </a>
                       {canOptimize(item) ? (
-                        <Button size="sm" variant="outline" onClick={() => setOptimizeIds([item.id])}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setOptimizeIds([item.id])}
+                        >
                           {t('media.optimize')}
                         </Button>
                       ) : null}
@@ -464,7 +468,11 @@ export function MediaPage() {
                           {t('common.open')}
                         </a>
                         {canOptimize(item) ? (
-                          <Button size="sm" variant="outline" onClick={() => setOptimizeIds([item.id])}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setOptimizeIds([item.id])}
+                          >
                             {t('media.optimize')}
                           </Button>
                         ) : null}

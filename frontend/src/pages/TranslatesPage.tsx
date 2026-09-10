@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { useSearchParams } from 'react-router-dom'
@@ -75,9 +75,7 @@ export function TranslatesPage() {
   const [localeCode, setLocaleCode] = useState('')
   const [localeLabel, setLocaleLabel] = useState('')
 
-  const [apiEnabled, setApiEnabled] = useState(true)
-  const [apiPath, setApiPath] = useState('/api/translates')
-  const [requireToken, setRequireToken] = useState(false)
+  const [apiDraft, setApiDraft] = useState<Partial<ApiSettings> | null>(null)
 
   const locales = useQuery({
     queryKey: ['locales'],
@@ -97,13 +95,14 @@ export function TranslatesPage() {
     queryFn: () => api<ApiSettings>('/admin/api/translations/settings'),
   })
 
-  useEffect(() => {
-    if (settings.data) {
-      setApiEnabled(settings.data.enabled)
-      setApiPath(settings.data.path)
-      setRequireToken(settings.data.requireToken)
-    }
-  }, [settings.data])
+  const apiServer = settings.data ?? {
+    enabled: true,
+    path: '/api/translates',
+    requireToken: false,
+  }
+  const apiEnabled = apiDraft?.enabled ?? apiServer.enabled
+  const apiPath = apiDraft?.path ?? apiServer.path
+  const requireToken = apiDraft?.requireToken ?? apiServer.requireToken
 
   const enabledLocales = (locales.data ?? []).filter((l) => l.enabled)
 
@@ -213,7 +212,10 @@ export function TranslatesPage() {
         method: 'PUT',
         body: JSON.stringify({ enabled: apiEnabled, path: apiPath, requireToken }),
       }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['translations-settings'] }),
+    onSuccess: () => {
+      setApiDraft(null)
+      void queryClient.invalidateQueries({ queryKey: ['translations-settings'] })
+    },
     onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
@@ -411,7 +413,11 @@ export function TranslatesPage() {
                         {loc.isDefault ? (
                           t('common.yes')
                         ) : (
-                          <Button size="sm" variant="outline" onClick={() => setDefault.mutate(loc.code)}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setDefault.mutate(loc.code)}
+                          >
                             {t('translates.setDefault')}
                           </Button>
                         )}
@@ -422,7 +428,9 @@ export function TranslatesPage() {
                             size="sm"
                             variant="destructive"
                             onClick={() => {
-                              if (confirm(t('translates.deleteLocaleConfirm', { code: loc.code }))) {
+                              if (
+                                confirm(t('translates.deleteLocaleConfirm', { code: loc.code }))
+                              ) {
                                 removeLocale.mutate(loc.code)
                               }
                             }}
@@ -448,23 +456,35 @@ export function TranslatesPage() {
           </CardHeader>
           <CardContent className={clsx(styles.apiForm)}>
             <div className={clsx(styles.switchRow)}>
-              <Switch checked={apiEnabled} onCheckedChange={setApiEnabled} id="tr-api-enabled" />
+              <Switch
+                checked={apiEnabled}
+                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
+                id="tr-api-enabled"
+              />
               <Label htmlFor="tr-api-enabled">{t('translates.apiEnabled')}</Label>
             </div>
             <div className={clsx(styles.field)}>
               <Label htmlFor="tr-api-path">{t('translates.apiPath')}</Label>
-              <Input id="tr-api-path" value={apiPath} onChange={(e) => setApiPath(e.target.value)} />
+              <Input
+                id="tr-api-path"
+                value={apiPath}
+                onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
+              />
             </div>
             <div className={clsx(styles.switchRow)}>
               <Switch
                 checked={requireToken}
-                onCheckedChange={setRequireToken}
+                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
                 id="tr-require-token"
               />
               <Label htmlFor="tr-require-token">{t('translates.requireToken')}</Label>
             </div>
             <CodeBlock code={curlExample} language="bash" label={t('translates.curlExample')} />
-            <Button size="sm" disabled={saveSettings.isPending} onClick={() => saveSettings.mutate()}>
+            <Button
+              size="sm"
+              disabled={saveSettings.isPending}
+              onClick={() => saveSettings.mutate()}
+            >
               {saveSettings.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </CardContent>
@@ -496,14 +516,11 @@ export function TranslatesPage() {
             {enabledLocales.map((loc) => (
               <div key={loc.code} className={clsx(styles.field)}>
                 <Label>
-                  {loc.label} ({loc.code})
-                  {loc.isDefault ? ` · ${t('translates.default')}` : ''}
+                  {loc.label} ({loc.code}){loc.isDefault ? ` · ${t('translates.default')}` : ''}
                 </Label>
                 <Input
                   value={trValues[loc.code] ?? ''}
-                  onChange={(e) =>
-                    setTrValues((prev) => ({ ...prev, [loc.code]: e.target.value }))
-                  }
+                  onChange={(e) => setTrValues((prev) => ({ ...prev, [loc.code]: e.target.value }))}
                 />
               </div>
             ))}
