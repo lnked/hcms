@@ -52,10 +52,12 @@
 .cardBody {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--hcms-SPx3);
 }
 
 .muted {
+  align-self: stretch;
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--hcms-color-muted-foreground);
