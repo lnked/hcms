@@ -24,6 +24,9 @@
 /public/admin/assets/
 /public/admin/animations/
 /public/admin/index.html
+/public/media/**
+!/public/media/.gitkeep
+!/public/media/.htaccess
 # AdminUiPublisher mirrors the built shell into every candidate docroot at runtime.
 /admin/
 /public_html/
