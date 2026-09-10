@@ -386,7 +386,7 @@ curl -s -X POST "$BASE/admin/api/media" -H "Authorization: Bearer $TOKEN" -F 'fi
 # → { data: { id: 12, ... } }   ← id кладётся в поля image/file
 ```
 
-Публичная отдача — `GET /media/{id}` (свой rate-limit `security.rate_limit_media_per_minute`).
+Публичная отдача — `GET /media/{id}` или pretty `GET /media/{id}/{filename}` (свой rate-limit `security.rate_limit_media_per_minute`). В JSON: `url` (relative) + `fullUrl` (`APP_URL`).
 
 ### 7.4 Публичный API
 

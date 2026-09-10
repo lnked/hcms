@@ -211,8 +211,8 @@ describe('DataTable', () => {
               id: 7,
               rotation: 0,
               positions: {},
-              variants: { thumb: { id: 8, url: '/media/8', width: 100 } },
-              media: { id: 7, url: '/media/7', mime: 'image/png', originalName: 'cover.png' },
+              variants: { thumb: { id: 8, url: '/media/8/thumb.png', width: 100 } },
+              media: { id: 7, url: '/media/7/cover.png', mime: 'image/png', originalName: 'cover.png' },
             },
           },
         ]}
@@ -220,8 +220,8 @@ describe('DataTable', () => {
         onDelete={vi.fn()}
       />,
     )
-    expect(screen.getByRole('link', { name: 'cover.png' })).toHaveAttribute('href', '/media/7')
-    expect(document.querySelector('img[src="/media/8"]')).not.toBeNull()
+    expect(screen.getByRole('link', { name: 'cover.png' })).toHaveAttribute('href', '/media/7/cover.png')
+    expect(document.querySelector('img[src="/media/8/thumb.png"]')).not.toBeNull()
     expect(screen.queryByText(/"variants"/)).not.toBeInTheDocument()
   })
 })

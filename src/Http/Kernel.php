@@ -581,6 +581,7 @@ final class Kernel
                 new FieldRepository($this->db),
                 null,
                 $mediaRefs,
+                $this->config->appUrl,
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
             $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
@@ -625,7 +626,13 @@ final class Kernel
 
             $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');
             $mimes = is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
-            $mediaService = new MediaService($this->db, $this->paths, $mimes, refs: $mediaRefs);
+            $mediaService = new MediaService(
+                $this->db,
+                $this->paths,
+                $mimes,
+                refs: $mediaRefs,
+                appUrl: $this->config->appUrl,
+            );
             $media = new MediaController(
                 $mediaService,
                 $audit,
@@ -786,6 +793,7 @@ final class Kernel
                     new FieldRepository($this->db),
                     $resourceApiRepo,
                     new MediaRefService($this->db),
+                    $this->config->appUrl,
                 ),
                 new ResourceRepository($this->db),
                 $tokenGrants,
@@ -834,12 +842,12 @@ final class Kernel
 
         return str_starts_with($path, '/admin/api')
             || str_starts_with($path, '/api/')
-            || preg_match('#^/media/\\d+$#', $path) === 1;
+            || preg_match('#^/media/\\d+(/[^/]+)?$#', $path) === 1;
     }
 
     private function rateLimit(Request $request, ?AuthContext $auth): ?Response
     {
-        if (preg_match('#^/media/\\d+$#', $request->path) === 1 && $this->mediaLimiter !== null) {
+        if (preg_match('#^/media/\\d+(/[^/]+)?$#', $request->path) === 1 && $this->mediaLimiter !== null) {
             $bucket = 'media:ip:' . $request->ip;
             if (!$this->mediaLimiter->hit($bucket)) {
                 return Response::tooManyRequests($this->mediaLimiter->retryAfter($bucket), $this->mediaLimiter->limit());

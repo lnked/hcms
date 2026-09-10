@@ -544,7 +544,15 @@ final class OpenApiGenerator
                         'type' => 'object',
                         'properties' => [
                             'id' => ['type' => 'integer'],
-                            'url' => ['type' => 'string'],
+                            'url' => [
+                                'type' => 'string',
+                                'description' => 'Relative public path /media/{id}/{filename}',
+                            ],
+                            'fullUrl' => [
+                                'type' => 'string',
+                                'format' => 'uri',
+                                'description' => 'Absolute public URL (APP_URL + url)',
+                            ],
                             'width' => ['type' => 'integer', 'nullable' => true],
                             'height' => ['type' => 'integer', 'nullable' => true],
                         ],
@@ -554,7 +562,15 @@ final class OpenApiGenerator
                     'type' => 'object',
                     'properties' => [
                         'id' => ['type' => 'integer'],
-                        'url' => ['type' => 'string'],
+                        'url' => [
+                            'type' => 'string',
+                            'description' => 'Relative public path /media/{id}/{filename}',
+                        ],
+                        'fullUrl' => [
+                            'type' => 'string',
+                            'format' => 'uri',
+                            'description' => 'Absolute public URL (APP_URL + url)',
+                        ],
                         'mime' => ['type' => 'string'],
                         'width' => ['type' => 'integer', 'nullable' => true],
                         'height' => ['type' => 'integer', 'nullable' => true],

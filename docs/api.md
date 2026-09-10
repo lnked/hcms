@@ -66,7 +66,20 @@ API tokens need matching grants; admin tokens bypass grants.
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.  
 `search` — splits into words (drops prepositions), matches any word via `LIKE`, ranks by how many words hit; `sort` is secondary.
 
-Rate limits: sliding window over IP + per-token buckets (admin vs API limits from settings); separate buckets for `/media/{id}` and anonymous writes. 429 includes `Retry-After` and `X-RateLimit-Limit`. Public create can use per-resource `settings.spam` (honeypot, captcha, duplicates, …) — see [anti-spam.md](anti-spam.md); its rate limit answers `429` too, the other checks `422`.
+Rate limits: sliding window over IP + per-token buckets (admin vs API limits from settings); separate buckets for `/media/{id}` (and `/media/{id}/{filename}`) and anonymous writes. 429 includes `Retry-After` and `X-RateLimit-Limit`. Public create can use per-resource `settings.spam` (honeypot, captcha, duplicates, …) — see [anti-spam.md](anti-spam.md); its rate limit answers `429` too, the other checks `422`.
+
+### Media URLs
+
+Public file delivery is always through PHP (`GET /media/{id}` or pretty `GET /media/{id}/{filename}`; filename is cosmetic, lookup is by id). Disk paths under `storage/uploads` are not exposed.
+
+Media objects in API responses include:
+
+| Field | Example | Notes |
+|---|---|---|
+| `url` | `/media/50/cover.jpg` | Relative pretty path |
+| `fullUrl` | `https://api.example.com/media/50/cover.jpg` | Absolute (`APP_URL` + `url`) |
+
+Use `fullUrl` when the consumer is on another origin; `url` for same-host admin / reverse-proxy setups.
 
 ## Custom resource APIs
 

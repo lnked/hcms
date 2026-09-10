@@ -144,6 +144,28 @@ RemoveType .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps
 
 HTACCESS;
 
+    /** Public warm-cache: allow GET, never execute scripts. */
+    private const PUBLIC_MEDIA_HTACCESS = <<<'HTACCESS'
+# Static copies of /media/{id}/{filename}. Source of truth remains storage/uploads.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps .cgi .pl .py .html .htm .shtml .js
+RemoveType .php .phtml .phar .php3 .php4 .php5 .php7 .php8 .phps
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "public, max-age=31536000, immutable"
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+HTACCESS;
+
     /** @var list<string>|null */
     private readonly ?array $allowedMimes;
 
@@ -158,9 +180,74 @@ HTACCESS;
         ?array $allowedMimes = null,
         private readonly ImageProcessor $images = new ImageProcessor(),
         ?MediaRefService $refs = null,
+        private readonly string $appUrl = 'http://localhost',
     ) {
         $this->allowedMimes = $allowedMimes;
         $this->mediaRefs = $refs ?? new MediaRefService($db);
+    }
+
+    /**
+     * Public relative path: /media/{id}/{safeName.ext}. Filename is cosmetic; lookup is by id.
+     */
+    public static function publicPath(int $id, ?string $originalName = null, ?string $mime = null): string
+    {
+        return '/media/' . $id . '/' . self::safePublicFilename($originalName, $mime);
+    }
+
+    public static function publicFullUrl(
+        string $appUrl,
+        int $id,
+        ?string $originalName = null,
+        ?string $mime = null,
+    ): string {
+        return rtrim($appUrl, '/') . self::publicPath($id, $originalName, $mime);
+    }
+
+    /**
+     * @return array{url: string, fullUrl: string}
+     */
+    public static function publicUrls(
+        string $appUrl,
+        int $id,
+        ?string $originalName = null,
+        ?string $mime = null,
+    ): array {
+        $url = self::publicPath($id, $originalName, $mime);
+
+        return [
+            'url' => $url,
+            'fullUrl' => rtrim($appUrl, '/') . $url,
+        ];
+    }
+
+    public static function safePublicFilename(?string $originalName, ?string $mime = null): string
+    {
+        $base = basename(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, (string) $originalName));
+        $base = str_replace("\0", '', $base);
+
+        $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+        $name = pathinfo($base, PATHINFO_FILENAME);
+
+        if ($ext === '' && is_string($mime) && $mime !== '') {
+            $mimeKey = strtolower(trim(explode(';', $mime)[0]));
+            $ext = self::MIME_EXTENSIONS[$mimeKey] ?? 'bin';
+        }
+        if ($ext === '') {
+            $ext = 'bin';
+        }
+
+        $name = preg_replace('/[^a-zA-Z0-9._-]+/', '-', $name) ?? '';
+        $name = trim($name, '.-_');
+        if ($name === '') {
+            $name = 'file';
+        }
+
+        $ext = preg_replace('/[^a-zA-Z0-9]+/', '', $ext) ?? 'bin';
+        if ($ext === '') {
+            $ext = 'bin';
+        }
+
+        return $name . '.' . $ext;
     }
 
     private function refs(): MediaRefService
@@ -653,6 +740,7 @@ HTACCESS;
                 'id' => $id,
             ],
         );
+        $this->invalidatePublicCache($id);
     }
 
     /**
@@ -802,6 +890,7 @@ HTACCESS;
         if (is_file($absolute)) {
             @unlink($absolute);
         }
+        $this->invalidatePublicCache($id);
     }
 
     private function deleteChildren(int $parentId): void
@@ -811,11 +900,13 @@ HTACCESS;
             ['parent_id' => $parentId],
         );
         foreach ($children as $child) {
+            $childId = (int) $child['id'];
             $absolute = $this->paths->media() . '/' . $child['disk_path'];
-            $this->db->execute('DELETE FROM cms_media WHERE id = :id', ['id' => (int) $child['id']]);
+            $this->db->execute('DELETE FROM cms_media WHERE id = :id', ['id' => $childId]);
             if (is_file($absolute)) {
                 @unlink($absolute);
             }
+            $this->invalidatePublicCache($childId);
         }
     }
 
@@ -961,6 +1052,102 @@ HTACCESS;
             'mime' => (string) $row['mime'],
             'name' => (string) $row['original_name'],
         ];
+    }
+
+    /**
+     * First PHP hit copies/hardlinks into public/media/{id}/{safeName} so Apache/nginx
+     * can serve subsequent requests as static files (see public/.htaccess -f shortcut).
+     * Skips SVG and other non-inline-safe types (must keep Content-Disposition via PHP).
+     */
+    public function warmPublicCache(int $id): void
+    {
+        $file = $this->absoluteFile($id);
+        if ($file === null) {
+            return;
+        }
+
+        $mime = strtolower(trim(explode(';', $file['mime'])[0]));
+        if (!self::isPublicCacheableMime($mime)) {
+            return;
+        }
+
+        $safeName = self::safePublicFilename($file['name'], $mime);
+        $destDir = $this->paths->publicMedia() . '/' . $id;
+        $dest = $destDir . '/' . $safeName;
+
+        if (is_file($dest)) {
+            return;
+        }
+
+        $this->ensurePublicMediaProtected();
+        if (!is_dir($destDir) && !mkdir($destDir, 0755, true) && !is_dir($destDir)) {
+            return;
+        }
+
+        $src = $file['path'];
+        if (@link($src, $dest) || @copy($src, $dest)) {
+            @chmod($dest, 0644);
+        }
+    }
+
+    public function invalidatePublicCache(int $id): void
+    {
+        if ($id <= 0) {
+            return;
+        }
+        $dir = $this->paths->publicMedia() . '/' . $id;
+        if (!is_dir($dir)) {
+            return;
+        }
+        $this->removeDirectory($dir);
+    }
+
+    public static function isPublicCacheableMime(string $mime): bool
+    {
+        $mime = strtolower(trim(explode(';', $mime)[0]));
+
+        return match (true) {
+            str_starts_with($mime, 'image/') && $mime !== 'image/svg+xml' => true,
+            $mime === 'application/pdf' => true,
+            str_starts_with($mime, 'video/') => true,
+            default => false,
+        };
+    }
+
+    private function ensurePublicMediaProtected(): void
+    {
+        $root = $this->paths->publicMedia();
+        if (!is_dir($root) && !mkdir($root, 0755, true) && !is_dir($root)) {
+            return;
+        }
+
+        $htaccess = $root . '/.htaccess';
+        if (!is_file($htaccess)) {
+            @file_put_contents($htaccess, self::PUBLIC_MEDIA_HTACCESS);
+        }
+    }
+
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $items = scandir($dir);
+        if ($items === false) {
+            return;
+        }
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 
     /**
@@ -1204,6 +1391,9 @@ HTACCESS;
     private function serialize(array $row): array
     {
         $id = (int) $row['id'];
+        $originalName = is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
+        $mime = is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
+        $urls = self::publicUrls($this->appUrl, $id, $originalName, $mime);
 
         return [
             'id' => $id,
@@ -1215,7 +1405,8 @@ HTACCESS;
             'size' => (int) $row['size'],
             'width' => $row['width'] === null ? null : (int) $row['width'],
             'height' => $row['height'] === null ? null : (int) $row['height'],
-            'url' => '/media/' . $id,
+            'url' => $urls['url'],
+            'fullUrl' => $urls['fullUrl'],
             'createdAt' => $row['created_at'],
             'uploadedBy' => ($row['uploaded_by'] ?? null) === null ? null : (int) $row['uploaded_by'],
         ];

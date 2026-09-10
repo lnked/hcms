@@ -581,7 +581,7 @@ export const ru: Record<MessageKey, string> = {
   'media.noFilesSelected': 'Файлы не выбраны',
   'media.uploadPartial': 'Загружено {ok}, ошибок {failed}',
   'media.library': 'Библиотека',
-  'media.publicUrl': 'Публичный URL: /media/{id}',
+  'media.publicUrl': 'Публичный URL: /media/{id}/{filename} (+ fullUrl)',
   'media.empty': 'Медиа пока нет.',
   'media.deleteConfirm': 'Удалить {name}?',
   'media.bulkDelete': 'Удалить выбранные ({count})',
@@ -919,6 +919,7 @@ export const ru: Record<MessageKey, string> = {
   'flags.enabled': 'Включён',
   'flags.abShort': 'A/B',
   'flags.abTest': 'A/B тест (процент раскатки)',
+  'flags.abDocs': 'Как это работает',
   'flags.rolloutPercent': 'Раскатка %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Передай ?subject=… или X-Flag-Subject. Без subject — случайно на каждый запрос.',

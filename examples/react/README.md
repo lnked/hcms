@@ -39,4 +39,4 @@ Open `http://127.0.0.1:5173`. Override API base / Bearer token in the header str
 | `/events` | `GET /api/demo_events` |
 | `/playground` | arbitrary method/path/query |
 
-Media covers: `{API_BASE}/media/{id}`.
+Media covers: prefer `media.fullUrl` / `media.url` from the API; fallback `{API_BASE}/media/{id}`.

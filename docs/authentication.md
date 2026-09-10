@@ -83,7 +83,7 @@ Disable user ревокает admin-токены; resolve отклоняет т�
 
 Дополнительно:
 
-- `/media/{id}` — `security.rate_limit_media_per_minute` (default 60)
+- `/media/{id}` and `/media/{id}/{filename}` — `security.rate_limit_media_per_minute` (default 60)
 - анонимные write на `/api/*` — `security.rate_limit_anon_write_per_minute` (default 20)
 
 429 includes `Retry-After` and `X-RateLimit-Limit`.

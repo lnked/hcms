@@ -164,6 +164,7 @@ export type MediaFieldValue = {
 export type MediaItemRef = {
   id: number
   url?: string
+  fullUrl?: string
   originalName?: string
   mime?: string
   width?: number | null

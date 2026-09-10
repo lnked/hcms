@@ -9,6 +9,7 @@ use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
 use Cms\Media\MediaRefService;
+use Cms\Media\MediaService;
 use Cms\Media\MediaValue;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
@@ -25,6 +26,7 @@ final class QueryEngine
         private readonly FieldRepository $fields,
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?MediaRefService $mediaRefs = null,
+        private readonly string $appUrl = 'http://localhost',
     ) {
     }
 
@@ -1096,18 +1098,27 @@ final class QueryEngine
         $expandItem = function (array $item) use (&$mediaCache): array {
             $variants = [];
             foreach ($item['variants'] as $key => $vid) {
-                $variants[$key] = $mediaCache[(int) $vid] ?? ['id' => (int) $vid, 'url' => '/media/' . (int) $vid];
+                $vid = (int) $vid;
+                $variants[$key] = $mediaCache[$vid] ?? array_merge(
+                    ['id' => $vid],
+                    MediaService::publicUrls($this->appUrl, $vid),
+                );
             }
 
+            $mediaId = (int) $item['id'];
+
             return [
-                'id' => (int) $item['id'],
+                'id' => $mediaId,
                 'sourceId' => $item['sourceId'] === null ? null : (int) $item['sourceId'],
                 'rotation' => (int) $item['rotation'],
                 'edit' => $item['edit'],
                 'positions' => $item['positions'],
                 'overrides' => $item['overrides'],
                 'variants' => $variants,
-                'media' => $mediaCache[(int) $item['id']] ?? ['id' => (int) $item['id'], 'url' => '/media/' . (int) $item['id']],
+                'media' => $mediaCache[$mediaId] ?? array_merge(
+                    ['id' => $mediaId],
+                    MediaService::publicUrls($this->appUrl, $mediaId),
+                ),
             ];
         };
 
@@ -1143,6 +1154,9 @@ final class QueryEngine
         $out = [];
         foreach ($rows as $row) {
             $id = (int) $row['id'];
+            $originalName = is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
+            $mime = is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
+            $urls = MediaService::publicUrls($this->appUrl, $id, $originalName, $mime);
             $out[$id] = [
                 'id' => $id,
                 'originalName' => $row['original_name'],
@@ -1150,7 +1164,8 @@ final class QueryEngine
                 'size' => (int) $row['size'],
                 'width' => $row['width'] === null ? null : (int) $row['width'],
                 'height' => $row['height'] === null ? null : (int) $row['height'],
-                'url' => '/media/' . $id,
+                'url' => $urls['url'],
+                'fullUrl' => $urls['fullUrl'],
                 'createdAt' => $row['created_at'],
             ];
         }

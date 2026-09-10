@@ -8,6 +8,8 @@ export const CHAPTER_IDS = [
   'crud',
   'custom-apis',
   'webhooks',
+  'feature-flags',
+  'translates',
   'limits',
   'quickstart',
 ] as const
@@ -61,11 +63,49 @@ const en: Chapter[] = [
         paragraphs: [
           'Admin API: /admin/api/* — requires an admin Bearer token from login.',
           'Content API: /api/{slug} or /api/v1/{slug} — requires an API token (or public flags on the resource).',
+          'Feature flags: public GET (default /api/features) — remote config and A/B.',
+          'Translates: public GET (default /api/translates) — i18n key map for clients.',
           'Interactive OpenAPI lives at /api/docs; the machine-readable schema is /api/openapi.json.',
         ],
         links: [
           { label: 'Open Swagger', href: '/api/docs', external: true },
           { label: 'OpenAPI JSON', href: '/api/openapi.json', external: true },
+          { label: 'Feature flags', href: '/docs/feature-flags' },
+          { label: 'Translates', href: '/docs/translates' },
+        ],
+      },
+      {
+        heading: 'Feature flags',
+        paragraphs: [
+          'Runtime flags for SPA / mobile (boolean, integer, string, object). Managed under Feature flags; only enabled flags are public. Optional A/B on boolean flags: abTest + rolloutPercent (0–100), sticky bucket via ?subject= / X-Flag-Subject.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/features
+GET /api/features?keys=newCheckout&subject=user-42`,
+          },
+        ],
+        links: [
+          { label: 'Full chapter', href: '/docs/feature-flags' },
+          { label: 'Admin → Feature flags', href: '/settings/feature-flags' },
+        ],
+      },
+      {
+        heading: 'Translates',
+        paragraphs: [
+          'Dotted i18n keys with per-locale string values. Manage locales and keys under Translates. Public map falls back to the default locale, then empty string. Path configurable (default /api/translates); settings: enabled, path, requireToken.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description`,
+          },
+        ],
+        links: [
+          { label: 'Full chapter', href: '/docs/translates' },
+          { label: 'Admin → Translates', href: '/settings/translates' },
         ],
       },
     ],
@@ -397,6 +437,154 @@ const ok =
     ],
   },
   {
+    id: 'feature-flags',
+    title: 'Feature flags',
+    sections: [
+      {
+        paragraphs: [
+          'Remote config for SPA / mobile apps. Flags live in cms_feature_flags, are edited under Feature flags in the admin, and are read via a public GET — not tied to content resources.',
+          'Types: boolean, integer, string, object. Only enabled flags appear in the public response. Default path /api/features (settings: enabled, path, requireToken).',
+        ],
+        links: [{ label: 'Feature flags', href: '/settings/feature-flags' }],
+      },
+      {
+        heading: 'Endpoints',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST          /admin/api/feature-flags
+GET/PATCH/DELETE  /admin/api/feature-flags/{id}
+GET/PUT           /admin/api/feature-flags/settings`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/features
+GET /api/features?keys=enabledNews,intMaxAmount
+GET /api/features?keys=newCheckout&subject=user-42`,
+          },
+        ],
+        paragraphs: [
+          'Response shape: { "data": { "enabledNews": true, ... } }. Supports ETag / If-None-Match.',
+        ],
+      },
+      {
+        heading: 'A/B rollout (boolean only)',
+        paragraphs: [
+          'Per-flag fields: abTest + rolloutPercent (0–100). When abTest is on, the public value is not the stored value — it is a sticky bucket:',
+          'crc32(flagKey + "\\0" + subject) % 100 < rolloutPercent → true.',
+          'Subject (max 128 chars): ?subject= / ?sid= or header X-Flag-Subject. Same subject always lands in the same bucket. Without subject, assignment is random per request (non-sticky).',
+          'Responses that include any A/B flag use Cache-Control: private, no-store and Vary: X-Flag-Subject.',
+        ],
+        samples: [
+          {
+            language: 'bash',
+            label: 'Create A/B flag (30% rollout)',
+            code: `curl -s -X POST "$BASE/admin/api/feature-flags" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{
+    "name":"New checkout","key":"newCheckout","type":"boolean","value":false,
+    "enabled":true,"abTest":true,"rolloutPercent":30
+  }'`,
+          },
+          {
+            language: 'bash',
+            label: 'Client (sticky by user id)',
+            code: `curl -s "$BASE/api/features?keys=newCheckout&subject=user-42"
+# or
+curl -s "$BASE/api/features?keys=newCheckout" -H 'X-Flag-Subject: user-42'`,
+          },
+          {
+            language: 'js',
+            label: 'SPA fetch',
+            code: `const subject = userId ?? localStorage.getItem('anonId')
+const res = await fetch(
+  \`\${BASE}/api/features?keys=newCheckout&subject=\${encodeURIComponent(subject)}\`,
+  { headers: { Accept: 'application/json' } },
+)
+const { data } = await res.json()
+if (data.newCheckout) {
+  // variant B
+}`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'translates',
+    title: 'Translates',
+    sections: [
+      {
+        paragraphs: [
+          'i18n key store for SPA / mobile. Locales and dotted keys live under Translates in the admin. Public GET returns a flat key → string map for one locale.',
+          'Missing / empty values fall back to the default locale, then "". Path default /api/translates (settings: enabled, path, requireToken). Supports ETag / If-None-Match.',
+        ],
+        links: [{ label: 'Translates', href: '/settings/translates' }],
+      },
+      {
+        heading: 'Endpoints',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST/PATCH/DELETE /admin/api/locales[/{code}]
+PUT    /admin/api/locales/{code}/default
+GET/POST/PATCH/DELETE /admin/api/translations[/{id}]
+GET/PUT /admin/api/translations/settings
+GET    /admin/api/translations/export
+POST   /admin/api/translations/import`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description`,
+          },
+        ],
+        paragraphs: [
+          'Response: { "data": { "amount.title": "Amount", ... } }. If several locales are enabled, locale is required; with a single locale it can be omitted.',
+        ],
+      },
+      {
+        heading: 'Examples',
+        samples: [
+          {
+            language: 'bash',
+            label: 'Create locale + key',
+            code: `curl -s -X POST "$BASE/admin/api/locales" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{"code":"ru","label":"Русский","enabled":true}'
+
+curl -s -X POST "$BASE/admin/api/translations" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{
+    "key":"amount.title",
+    "values":{"en":"Amount","ru":"Сумма"}
+  }'`,
+          },
+          {
+            language: 'bash',
+            label: 'Client',
+            code: `curl -s "$BASE/api/translates?locale=ru&keys=amount.title,amount.description"`,
+          },
+          {
+            language: 'js',
+            label: 'SPA fetch',
+            code: `const locale = navigator.language.startsWith('ru') ? 'ru' : 'en'
+const res = await fetch(
+  \`\${BASE}/api/translates?locale=\${locale}&keys=amount.title,amount.description\`,
+  { headers: { Accept: 'application/json' } },
+)
+const { data } = await res.json()
+// data['amount.title']`,
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: 'limits',
     title: 'Rate limits and errors',
     sections: [
@@ -480,11 +668,49 @@ const ru: Chapter[] = [
         paragraphs: [
           'Admin API: /admin/api/* — Bearer-токен администратора после логина.',
           'Content API: /api/{slug} или /api/v1/{slug} — API-токен (или публичные флаги ресурса).',
+          'Feature flags: публичный GET (по умолчанию /api/features) — remote config и A/B.',
+          'Переводы: публичный GET (по умолчанию /api/translates) — i18n-карта ключей для клиентов.',
           'Интерактивный OpenAPI: /api/docs; схема: /api/openapi.json.',
         ],
         links: [
           { label: 'Открыть Swagger', href: '/api/docs', external: true },
           { label: 'OpenAPI JSON', href: '/api/openapi.json', external: true },
+          { label: 'Feature flags', href: '/docs/feature-flags' },
+          { label: 'Переводы', href: '/docs/translates' },
+        ],
+      },
+      {
+        heading: 'Feature flags',
+        paragraphs: [
+          'Runtime-флаги для SPA / мобилок (boolean, integer, string, object). Управление в Feature flags; в публичный API только enabled. Опциональный A/B на boolean: abTest + rolloutPercent (0–100), sticky bucket через ?subject= / X-Flag-Subject.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/features
+GET /api/features?keys=newCheckout&subject=user-42`,
+          },
+        ],
+        links: [
+          { label: 'Полная глава', href: '/docs/feature-flags' },
+          { label: 'Админка → Feature flags', href: '/settings/feature-flags' },
+        ],
+      },
+      {
+        heading: 'Переводы',
+        paragraphs: [
+          'Dotted i18n-ключи со строками по локалям. Языки и ключи — в разделе Переводы. Публичная карта: fallback на язык по умолчанию, затем "". Путь настраивается (по умолчанию /api/translates); settings: enabled, path, requireToken.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            code: `GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description`,
+          },
+        ],
+        links: [
+          { label: 'Полная глава', href: '/docs/translates' },
+          { label: 'Админка → Переводы', href: '/settings/translates' },
         ],
       },
     ],
@@ -806,6 +1032,154 @@ const expected =
 const ok =
   expected.length === got.length &&
   crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(got))`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'feature-flags',
+    title: 'Feature flags',
+    sections: [
+      {
+        paragraphs: [
+          'Remote-конфиг для SPA / мобилок. Флаги в cms_feature_flags, правятся в админке (Feature flags), читаются публичным GET — без привязки к ресурсам контента.',
+          'Типы: boolean, integer, string, object. В публичный ответ попадают только enabled. Путь по умолчанию /api/features (настройки: enabled, path, requireToken).',
+        ],
+        links: [{ label: 'Feature flags', href: '/settings/feature-flags' }],
+      },
+      {
+        heading: 'Эндпоинты',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST          /admin/api/feature-flags
+GET/PATCH/DELETE  /admin/api/feature-flags/{id}
+GET/PUT           /admin/api/feature-flags/settings`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/features
+GET /api/features?keys=enabledNews,intMaxAmount
+GET /api/features?keys=newCheckout&subject=user-42`,
+          },
+        ],
+        paragraphs: [
+          'Формат ответа: { "data": { "enabledNews": true, ... } }. Есть ETag / If-None-Match.',
+        ],
+      },
+      {
+        heading: 'A/B rollout (только boolean)',
+        paragraphs: [
+          'Поля флага: abTest + rolloutPercent (0–100). При abTest публичное значение не берётся из value, а считается sticky-бакетом:',
+          'crc32(flagKey + "\\0" + subject) % 100 < rolloutPercent → true.',
+          'Subject (макс. 128 символов): ?subject= / ?sid= или заголовок X-Flag-Subject. Один subject всегда в одном бакете. Без subject — случайный бакет на каждый запрос (не sticky).',
+          'Ответы с A/B: Cache-Control: private, no-store и Vary: X-Flag-Subject.',
+        ],
+        samples: [
+          {
+            language: 'bash',
+            label: 'Создать A/B флаг (30% раскатки)',
+            code: `curl -s -X POST "$BASE/admin/api/feature-flags" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{
+    "name":"New checkout","key":"newCheckout","type":"boolean","value":false,
+    "enabled":true,"abTest":true,"rolloutPercent":30
+  }'`,
+          },
+          {
+            language: 'bash',
+            label: 'Клиент (sticky по user id)',
+            code: `curl -s "$BASE/api/features?keys=newCheckout&subject=user-42"
+# или
+curl -s "$BASE/api/features?keys=newCheckout" -H 'X-Flag-Subject: user-42'`,
+          },
+          {
+            language: 'js',
+            label: 'SPA fetch',
+            code: `const subject = userId ?? localStorage.getItem('anonId')
+const res = await fetch(
+  \`\${BASE}/api/features?keys=newCheckout&subject=\${encodeURIComponent(subject)}\`,
+  { headers: { Accept: 'application/json' } },
+)
+const { data } = await res.json()
+if (data.newCheckout) {
+  // вариант B
+}`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'translates',
+    title: 'Переводы',
+    sections: [
+      {
+        paragraphs: [
+          'i18n-хранилище ключей для SPA / мобилок. Локали и dotted-ключи — в разделе Переводы. Публичный GET отдаёт плоскую карту key → string для одной локали.',
+          'Пустые / отсутствующие значения берутся из языка по умолчанию, иначе "". Путь по умолчанию /api/translates (settings: enabled, path, requireToken). Есть ETag / If-None-Match.',
+        ],
+        links: [{ label: 'Переводы', href: '/settings/translates' }],
+      },
+      {
+        heading: 'Эндпоинты',
+        samples: [
+          {
+            language: 'http',
+            label: 'Admin',
+            code: `GET/POST/PATCH/DELETE /admin/api/locales[/{code}]
+PUT    /admin/api/locales/{code}/default
+GET/POST/PATCH/DELETE /admin/api/translations[/{id}]
+GET/PUT /admin/api/translations/settings
+GET    /admin/api/translations/export
+POST   /admin/api/translations/import`,
+          },
+          {
+            language: 'http',
+            label: 'Public',
+            code: `GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description`,
+          },
+        ],
+        paragraphs: [
+          'Ответ: { "data": { "amount.title": "Сумма", ... } }. Если включено несколько локалей — locale обязателен; при одной локали можно не передавать.',
+        ],
+      },
+      {
+        heading: 'Примеры',
+        samples: [
+          {
+            language: 'bash',
+            label: 'Создать локаль + ключ',
+            code: `curl -s -X POST "$BASE/admin/api/locales" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{"code":"ru","label":"Русский","enabled":true}'
+
+curl -s -X POST "$BASE/admin/api/translations" \\
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \\
+  -d '{
+    "key":"amount.title",
+    "values":{"en":"Amount","ru":"Сумма"}
+  }'`,
+          },
+          {
+            language: 'bash',
+            label: 'Клиент',
+            code: `curl -s "$BASE/api/translates?locale=ru&keys=amount.title,amount.description"`,
+          },
+          {
+            language: 'js',
+            label: 'SPA fetch',
+            code: `const locale = navigator.language.startsWith('ru') ? 'ru' : 'en'
+const res = await fetch(
+  \`\${BASE}/api/translates?locale=\${locale}&keys=amount.title,amount.description\`,
+  { headers: { Accept: 'application/json' } },
+)
+const { data } = await res.json()
+// data['amount.title']`,
           },
         ],
       },

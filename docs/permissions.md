@@ -46,7 +46,7 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 - delete / regenerate / edit запрещены, если файл referenced ресурсом вне allowlist (shared A+B → только если оба доступны);
 - чужие orphan без `uploaded_by` (legacy) ACL-юзеру не показываются.
 
-Owner и `acl_enabled = 0` — вся библиотека как раньше. Публичный `GET /media/{id}` без auth не менялся.
+Owner и `acl_enabled = 0` — вся библиотека как раньше. Публичный `GET /media/{id}` (и pretty `/media/{id}/{filename}`) без auth не менялся.
 
 Миграция `014_cms_media_acl`: `uploaded_by`, таблица `cms_media_refs`; backfill при первом `PendingMigrations` после апдейта.
 

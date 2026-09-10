@@ -8,5 +8,6 @@ export interface MediaItem {
   width: number | null
   height: number | null
   url: string
+  fullUrl: string
   createdAt: string
 }

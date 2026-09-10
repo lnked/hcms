@@ -85,7 +85,102 @@ Authorization: Bearer <token>
 - Swagger UI: `/api/docs`
 - React consumer demo: [`examples/react`](examples/react) (`npm run dev` после seed)
 
-В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter, анти-спам для анонимной записи — см. [docs/anti-spam.md](docs/anti-spam.md)) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
+В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); **Feature flags** — remote config / A/B (см. ниже); **Переводы** — i18n-ключи для клиентов (см. ниже); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter, анти-спам для анонимной записи — см. [docs/anti-spam.md](docs/anti-spam.md)) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
+
+## Feature flags
+
+Remote-конфиг для SPA/мобилок: флаги живут в `cms_feature_flags`, правятся в админке (**Feature flags**), читаются публичным `GET` без схемы ресурсов.
+
+Типы: `boolean`, `integer`, `string`, `object`. В публичный ответ попадают только **enabled**. Путь по умолчанию `/api/features` (настраивается в settings: `enabled`, `path`, `requireToken`).
+
+Admin:
+
+```http
+GET/POST          /admin/api/feature-flags
+GET/PATCH/DELETE  /admin/api/feature-flags/{id}
+GET/PUT           /admin/api/feature-flags/settings
+```
+
+Public:
+
+```http
+GET /api/features
+GET /api/features?keys=enabledNews,intMaxAmount
+GET /api/features?keys=newCheckout&subject=user-42
+```
+
+Ответ: `{ "data": { "enabledNews": true, ... } }`. Есть `ETag` / `If-None-Match`.
+
+### A/B rollout (только boolean)
+
+Поля флага: `abTest` + `rolloutPercent` (0–100). При `abTest: true` публичное значение **не** берётся из `value`, а считается sticky-бакетом:
+
+```text
+crc32(flagKey + "\0" + subject) % 100 < rolloutPercent  →  true
+```
+
+Subject (макс. 128 символов): `?subject=` / `?sid=` или заголовок `X-Flag-Subject`. Один и тот же subject всегда попадает в один бакет. Без subject — случайный бакет на каждый запрос (не sticky). Ответы с A/B: `Cache-Control: private, no-store`, `Vary: X-Flag-Subject`.
+
+Примеры:
+
+```bash
+# обычный флаг
+curl -s -X POST "$BASE/admin/api/feature-flags" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"name":"News banner","key":"enabledNews","type":"boolean","value":true,"enabled":true}'
+
+# A/B: 30% subject'ов получают true
+curl -s -X POST "$BASE/admin/api/feature-flags" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{
+    "name":"New checkout","key":"newCheckout","type":"boolean","value":false,
+    "enabled":true,"abTest":true,"rolloutPercent":30
+  }'
+
+# клиент: sticky по user id
+curl -s "$BASE/api/features?keys=newCheckout&subject=user-42"
+# или
+curl -s "$BASE/api/features?keys=newCheckout" -H 'X-Flag-Subject: user-42'
+```
+
+В SPA — один раз при старте (или на смене юзера) запросить карту флагов с `subject = userId` / анонимный id из localStorage и ветвить UI по `data.newCheckout`.
+
+Подробности API: [docs/api.md](docs/api.md#feature-flags).
+
+## Переводы (Translates)
+
+i18n-ключи для клиентов: локали + dotted-ключи со строками по языкам. Управление в админке (**Переводы**). Публичный `GET` отдаёт плоскую карту `key → string` для одной локали. Пустые значения — fallback на default locale, затем `""`.
+
+Путь по умолчанию `/api/translates` (`enabled`, `path`, `requireToken`).
+
+Admin:
+
+```http
+GET/POST/PATCH/DELETE /admin/api/locales[/{code}]
+PUT    /admin/api/locales/{code}/default
+GET/POST/PATCH/DELETE /admin/api/translations[/{id}]
+GET/PUT /admin/api/translations/settings
+GET    /admin/api/translations/export
+POST   /admin/api/translations/import
+```
+
+Public:
+
+```http
+GET /api/translates?locale=en
+GET /api/translates?locale=ru&keys=amount.title,amount.description
+```
+
+```bash
+curl -s -X POST "$BASE/admin/api/translations" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"key":"amount.title","values":{"en":"Amount","ru":"Сумма"}}'
+
+curl -s "$BASE/api/translates?locale=ru&keys=amount.title"
+# → { "data": { "amount.title": "Сумма" } }
+```
+
+Подробности: [docs/api.md](docs/api.md#translates). Админ-доки: `/admin/docs/translates`.
 
 ## Quality
 

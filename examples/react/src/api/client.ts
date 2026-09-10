@@ -39,9 +39,30 @@ export function setApiToken(value: string): void {
   else localStorage.removeItem(STORAGE_TOKEN)
 }
 
-export function mediaUrl(id: number | null | undefined): string | null {
-  if (id == null) return null
-  return `${getApiBase()}/media/${id}`
+export type MediaRef = {
+  id?: number
+  url?: string
+  fullUrl?: string
+}
+
+/** Prefer API fullUrl / url; fall back to id-based short path (still served). */
+export function mediaUrl(
+  value: number | MediaRef | null | undefined,
+): string | null {
+  if (value == null) return null
+  if (typeof value === 'number') {
+    return `${getApiBase()}/media/${value}`
+  }
+  if (typeof value.fullUrl === 'string' && value.fullUrl !== '') {
+    return value.fullUrl
+  }
+  if (typeof value.url === 'string' && value.url !== '') {
+    return value.url.startsWith('http') ? value.url : `${getApiBase()}${value.url}`
+  }
+  if (typeof value.id === 'number') {
+    return `${getApiBase()}/media/${value.id}`
+  }
+  return null
 }
 
 type RequestOptions = {

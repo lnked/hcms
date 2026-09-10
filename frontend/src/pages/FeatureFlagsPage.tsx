@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { useSearchParams } from 'react-router-dom'
+import { ExternalLink } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
 import { TableSkeleton } from '@/components/skeletons'
@@ -485,7 +486,18 @@ export function FeatureFlagsPage() {
               <>
                 <div className={clsx(styles.switchRow)}>
                   <Switch checked={abTest} onCheckedChange={setAbTest} id="flag-ab" />
-                  <Label htmlFor="flag-ab">{t('flags.abTest')}</Label>
+                  <div className={clsx(styles.abLabelBlock)}>
+                    <Label htmlFor="flag-ab">{t('flags.abTest')}</Label>
+                    <Link
+                      to="/docs/feature-flags"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={clsx(styles.abDocsLink)}
+                    >
+                      {t('flags.abDocs')}
+                      <ExternalLink className={clsx(styles.abDocsIcon)} aria-hidden />
+                    </Link>
+                  </div>
                 </div>
                 {abTest ? (
                   <div className={clsx(styles.field)}>

@@ -362,6 +362,8 @@ final class MediaController
             return Response::error('NOT_FOUND', 'Media not found', 404);
         }
 
+        $this->media->warmPublicCache($id);
+
         $contents = (string) file_get_contents($file['path']);
         $mime = strtolower(trim(explode(';', $file['mime'])[0]));
         $inline = $this->isInlineSafeMime($mime);

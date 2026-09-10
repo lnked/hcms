@@ -35,7 +35,7 @@
 | `security.rate_limit_ip_per_minute` | 120 | вообще все запросы с IP | `ip:<ip>` |
 | `security.rate_limit_token_per_minute` | 300 | админ-токен | `token:<tokenId>` |
 | `security.rate_limit_api_token_per_minute` | 120 | API-токен | `token:<tokenId>` |
-| `security.rate_limit_media_per_minute` | 60 | `GET /media/{id}` | `media:ip:<ip>` |
+| `security.rate_limit_media_per_minute` | 60 | `GET /media/{id}` (+ optional `/{filename}`) | `media:ip:<ip>` |
 
 Механика окна — **скользящее окно на двух счётчиках**: `RateLimiter` складывает попадания в `cms_rate_limits (bucket, window_start, hits)` по минутным окнам, но при проверке учитывает и предыдущее окно с весом той части, что ещё попадает в последние 60 секунд: `hits(текущее) + hits(предыдущее) × (60 − прошло) / 60`. Следствия:
 

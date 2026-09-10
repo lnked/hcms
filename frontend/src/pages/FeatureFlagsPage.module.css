@@ -98,3 +98,29 @@
   font-size: 0.8125rem;
   line-height: 1.4;
 }
+
+.abLabelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+}
+
+.abDocsLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hcms-SPx1);
+  width: fit-content;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-primary);
+  text-decoration: none;
+}
+
+.abDocsLink:hover {
+  text-decoration: underline;
+}
+
+.abDocsIcon {
+  height: calc(var(--hcms-SPx1) * 3.5);
+  width: calc(var(--hcms-SPx1) * 3.5);
+}

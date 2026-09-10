@@ -48,6 +48,12 @@ final class Paths
         return $this->root . '/storage/uploads';
     }
 
+    /** Web-reachable warm cache for pretty /media/{id}/{filename} (filled on first PHP hit). */
+    public function publicMedia(): string
+    {
+        return $this->public() . '/media';
+    }
+
     public function cache(): string
     {
         return $this->root . '/storage/cache';

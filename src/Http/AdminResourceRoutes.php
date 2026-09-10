@@ -488,6 +488,11 @@ final class AdminResourceRoutes
 
             return $media->delete($request, $context, (int) $params['id']);
         });
+        $router->add('GET', '/media/{id}/{filename}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+            unset($context);
+
+            return $media->file($request, (int) $params['id']);
+        }, true);
         $router->add('GET', '/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
             unset($context);
 

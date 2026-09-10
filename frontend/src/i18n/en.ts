@@ -576,7 +576,7 @@ export const en = {
   'media.noFilesSelected': 'No files selected',
   'media.uploadPartial': 'Uploaded {ok}, failed {failed}',
   'media.library': 'Library',
-  'media.publicUrl': 'Public URL: /media/{id}',
+  'media.publicUrl': 'Public URL: /media/{id}/{filename} (+ fullUrl)',
   'media.empty': 'No media yet.',
   'media.deleteConfirm': 'Delete {name}?',
   'media.bulkDelete': 'Delete selected ({count})',
@@ -917,6 +917,7 @@ export const en = {
   'flags.enabled': 'Enabled',
   'flags.abShort': 'A/B',
   'flags.abTest': 'A/B test (percentage rollout)',
+  'flags.abDocs': 'How it works',
   'flags.rolloutPercent': 'Rollout %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Pass ?subject=… or X-Flag-Subject. Without subject — random per request.',
