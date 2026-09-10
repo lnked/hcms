@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.tsx!", "src/**/*.{ts,tsx}!", "vite.config.ts!", "eslint.config.js!"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/**/*.test.{ts,tsx}", "src/test/**"],
+  "ignoreDependencies": [
+    "@react-aria/optimize-locales-plugin",
+    "@testing-library/dom",
+    "eslint-config-prettier",
+    "eslint-plugin-import-x",
+    "eslint-plugin-jsx-a11y",
+    "@vitest/coverage-v8"
+  ],
+  "exclude": [
+    "exports",
+    "types",
+    "nsExports",
+    "nsTypes",
+    "enumMembers",
+    "namespaceMembers",
+    "duplicates"
+  ]
+}

@@ -32,5 +32,17 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     // Avoid undici/jsdom clone errors in forks workers on CI Node.
     pool: 'threads',
+    testTimeout: 15_000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/lib/**/*.{ts,tsx}', 'src/hooks/**/*.{ts,tsx}'],
+      exclude: ['src/lib/**/*.test.*', 'src/hooks/**/*.test.*'],
+      thresholds: {
+        lines: 55,
+        functions: 70,
+        branches: 40,
+        statements: 55,
+      },
+    },
   },
 })

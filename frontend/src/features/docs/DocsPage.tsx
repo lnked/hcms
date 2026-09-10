@@ -2,7 +2,7 @@ import { Link, Navigate, NavLink, useParams } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useI18n } from '@/i18n'
-import { CodeBlock } from './CodeBlock'
+import { CodeBlock } from '@/components/CodeBlock'
 import { DEFAULT_CHAPTER, getChapter, getChapters, isChapterId, type DocLink } from './chapters'
 import styles from './DocsPage.module.css'
 

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { CodeBlock } from '@/features/docs/CodeBlock'
+import { CodeBlock } from '@/components/CodeBlock'
 import { useI18n } from '@/i18n'
 import type { Resource } from '@/types/resource'
 import { buildResourceFetchExample } from './buildResourceFetchExample'

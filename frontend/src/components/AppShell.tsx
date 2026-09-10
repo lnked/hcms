@@ -25,9 +25,11 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { PageSkeleton } from '@/components/skeletons'
-import { api, clearToken, getToken } from '@/lib/api'
+import { api, clearToken } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { useAuthMe } from '@/hooks/useAcl'
 import { isLocale, useI18n } from '@/i18n'
-import type { AuthUser, SystemVersion } from '@/types/system'
+import type { SystemVersion } from '@/types/system'
 import { canAccessNav, type AdminRole, type AdminSection } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
@@ -248,16 +250,12 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [mobileOpen, setMobileOpen] = useState(false)
   const version = useQuery({
-    queryKey: ['system-version'],
+    queryKey: queryKeys.system.version,
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
     staleTime: 0,
     refetchOnMount: 'always',
   })
-  const me = useQuery({
-    queryKey: ['auth-me', getToken()],
-    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
-    staleTime: 30_000,
-  })
+  const me = useAuthMe()
 
   useEffect(() => {
     void api<{ language: string }>('/admin/api/settings/locale')

@@ -1,21 +1,14 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api, clearToken, getToken } from '@/lib/api'
-import type { AuthUser } from '@/types/system'
+import { clearToken, getToken } from '@/lib/api'
+import { useAuthMe } from '@/hooks/useAcl'
 import styles from './RequireAuth.module.css'
 
 export function RequireAuth() {
   const location = useLocation()
   const token = getToken()
-  const me = useQuery({
-    queryKey: ['auth-me', token],
-    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
-    enabled: Boolean(token),
-    retry: false,
-    staleTime: 30_000,
-  })
+  const me = useAuthMe({ enabled: Boolean(token), retry: false })
 
   useEffect(() => {
     if (me.isError) {

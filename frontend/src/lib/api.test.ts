@@ -7,8 +7,8 @@ describe('auth session helpers', () => {
     sessionStorage.clear()
     vi.stubGlobal(
       'fetch',
-      vi.fn(
-        async () =>
+      vi.fn(() =>
+        Promise.resolve(
           new Response(
             JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Unauthorized' } }),
             {
@@ -16,6 +16,7 @@ describe('auth session helpers', () => {
               headers: { 'Content-Type': 'application/json' },
             },
           ),
+        ),
       ),
     )
   })

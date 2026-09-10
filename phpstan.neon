@@ -1,5 +1,5 @@
 parameters:
-    level: 6
+    level: 7
     treatPhpDocTypesAsCertain: false
     paths:
         - src
@@ -10,3 +10,5 @@ parameters:
         - vendor
         - frontend
     tmpDir: storage/cache/phpstan
+includes:
+    - phpstan-baseline.neon

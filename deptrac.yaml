@@ -1,0 +1,51 @@
+# deptrac — layer boundaries for HCMS
+# Controllers must not reach Database except via Domain/Api services.
+# Domain→Http is allowed for policy guards that still return Response (transitional).
+
+deptrac:
+  paths:
+    - ./src
+  exclude_files:
+    - '#.*test.*#'
+  layers:
+    - name: Http
+      collectors:
+        - type: directory
+          value: src/Http/.*
+    - name: Api
+      collectors:
+        - type: directory
+          value: src/Api/.*
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/(Auth|Content|Fields|Resources|Media|Security|Webhooks|Integrations|Mail|Audit|OpenApi|System|Install)/.*
+    - name: Database
+      collectors:
+        - type: directory
+          value: src/Database/.*
+    - name: Core
+      collectors:
+        - type: directory
+          value: src/Core/.*
+  ruleset:
+    Http:
+      - Api
+      - Domain
+      - Database
+      - Core
+    Api:
+      - Domain
+      - Database
+      - Core
+    Domain:
+      - Domain
+      - Database
+      - Core
+      - Api
+      - Http
+    Database:
+      - Core
+      - Domain
+    Core:
+      - Database

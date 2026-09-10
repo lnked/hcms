@@ -30,7 +30,9 @@
 .php-cs-fixer.cache
 .phpunit.cache
 .phpunit.result.cache
+.deptrac.cache
 /coverage/
+/frontend/coverage/
 /dist/
 .DS_Store
 *.log

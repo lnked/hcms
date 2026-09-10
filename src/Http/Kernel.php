@@ -28,6 +28,7 @@ use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
 use Cms\Content\ContentTypeRepository;
 use Cms\Content\EntryRevisionService;
+use Cms\Content\EntryService;
 use Cms\Core\Config;
 use Cms\Core\Env;
 use Cms\Core\FileCache;
@@ -505,157 +506,10 @@ final class Kernel
             ),
         );
 
-        $this->router->add('POST', '/admin/api/auth/login', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
+        AuthRoutes::register($this->router, $auth);
 
-            return $auth->login($request);
-        }, true);
-
-        $this->router->add('POST', '/admin/api/auth/logout', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->logout($request, $context);
-        });
-
-        $this->router->add('GET', '/admin/api/auth/me', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->me($request, $context);
-        });
-
-        $this->router->add('GET', '/admin/api/auth/captcha', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->captchaConfig($request);
-        }, true);
-
-        $this->router->add('POST', '/admin/api/auth/totp/setup', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->totpSetup($request, $context);
-        });
-
-        $this->router->add('POST', '/admin/api/auth/totp/enable', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->totpEnable($request, $context);
-        });
-
-        $this->router->add('POST', '/admin/api/auth/totp/disable', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->totpDisable($request, $context);
-        });
-
-        $this->router->add('POST', '/admin/api/auth/password', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->changePassword($request, $context);
-        });
-
-        $this->router->add('GET', '/admin/api/auth/providers', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->providers($request);
-        }, true);
-
-        $this->router->add('GET', '/admin/api/auth/google/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->googleStart($request);
-        }, true);
-
-        $this->router->add('GET', '/admin/api/auth/google/callback', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->googleCallback($request);
-        }, true);
-
-        $this->router->add('POST', '/admin/api/auth/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->telegramLogin($request);
-        }, true);
-
-        $this->router->add('POST', '/admin/api/auth/totp/complete', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params, $context);
-            if ($auth === null) {
-                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
-            }
-
-            return $auth->totpComplete($request);
-        }, true);
-
-        $this->router->add('GET', '/admin/api/auth/identities', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->listIdentities($request, $context);
-        });
-
-        $this->router->add('POST', '/admin/api/auth/identities/google/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->googleLinkStart($request, $context);
-        });
-
-        $this->router->add('POST', '/admin/api/auth/identities/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            unset($params);
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->telegramLink($request, $context);
-        });
-
-        $this->router->add('DELETE', '/admin/api/auth/identities/{provider}', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
-            if ($auth === null || $context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return $auth->unlinkIdentity($request, $context, (string) $params['provider']);
-        });
+        /** @var WebhookDispatcher|null $webhookDispatcher */
+        $webhookDispatcher = null;
 
         if ($this->db !== null) {
             $system = new SystemController(
@@ -671,75 +525,7 @@ final class Kernel
                     new Settings($this->db),
                 ),
             );
-            $this->router->add('GET', '/admin/api/system/version', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->version($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/system/stats', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->stats($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/system/stats/timeseries', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->timeseries($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/system/changelog', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params, $context);
-
-                return $system->changelog($request);
-            });
-            $this->router->add('POST', '/admin/api/system/changelog/seen', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->markSeen($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/system/update/check', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->updateCheck($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/system/update/preview', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->updatePreview($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/system/update/status', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->updateStatus($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/system/update/run', function (Request $request, array $params, ?AuthContext $context) use ($system): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $system->updateRun($request, $context);
-            });
+            SystemRoutes::register($this->router, $system);
 
             $audit = $this->audit;
             if ($audit === null) {
@@ -763,51 +549,6 @@ final class Kernel
             $webhookDispatcher = new WebhookDispatcher($webhookRepo);
             $resources = new ResourceController($resourceService, $audit, $migrationService, $webhookDispatcher, $this->userAcl);
 
-            $this->router->add('GET', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->index($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/resources', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->create($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->show($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->update($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/publish', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->publish($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/resources/{id}', function (Request $request, array $params, ?AuthContext $context) use ($resources): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resources->delete($request, $context, (int) $params['id']);
-            });
-
             $resourceApiService = new ResourceApiService(
                 new ResourceRepository($this->db),
                 new ResourceApiRepository($this->db),
@@ -815,42 +556,6 @@ final class Kernel
                 $metadata,
             );
             $resourceApis = new ResourceApiController($resourceApiService, $audit);
-
-            $this->router->add('GET', '/admin/api/resources/{id}/apis', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resourceApis->index($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/apis', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resourceApis->create($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resourceApis->show($request, $context, (int) $params['id'], (int) $params['apiId']);
-            });
-            $this->router->add('PATCH', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resourceApis->update($request, $context, (int) $params['id'], (int) $params['apiId']);
-            });
-            $this->router->add('DELETE', '/admin/api/resources/{id}/apis/{apiId}', function (Request $request, array $params, ?AuthContext $context) use ($resourceApis): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $resourceApis->delete($request, $context, (int) $params['id'], (int) $params['apiId']);
-            });
 
             $fieldService = new FieldService(
                 $this->db,
@@ -861,50 +566,6 @@ final class Kernel
             );
             $fields = new FieldController($fieldService, $audit);
 
-            $this->router->add('GET', '/admin/api/field-types', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->types($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->index($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PUT', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->replace($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/fields', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->create($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/fields/{id}', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->update($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/fields/{id}', function (Request $request, array $params, ?AuthContext $context) use ($fields): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $fields->delete($request, $context, (int) $params['id']);
-            });
-
             $queryEngine = new QueryEngine(
                 $this->db,
                 new ResourceRepository($this->db),
@@ -912,109 +573,19 @@ final class Kernel
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
             $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
+            $entryService = new EntryService($queryEngine, new ResourceRepository($this->db));
             $entries = new EntriesController(
-                $queryEngine,
-                new ResourceRepository($this->db),
+                $entryService,
                 $audit,
                 $entryImportExport,
                 $webhookDispatcher,
                 $entryRevisions,
             );
-            $this->router->add('GET', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->index($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/entries', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->create($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/entries/relation-labels', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->relationLabels($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/entries/export', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->export($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/entries/import', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->import($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/entries/bulk-delete', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->bulkDelete($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->show($request, $context, (int) $params['id'], (int) $params['entryId']);
-            });
-            $this->router->add('PATCH', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->update($request, $context, (int) $params['id'], (int) $params['entryId']);
-            });
-            $this->router->add('DELETE', '/admin/api/resources/{id}/entries/{entryId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->delete($request, $context, (int) $params['id'], (int) $params['entryId']);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/entries/{entryId}/revisions', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->revisions($request, $context, (int) $params['id'], (int) $params['entryId']);
-            });
-            $this->router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/revisions/{revId}/restore', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $entries->restoreRevision(
-                    $request,
-                    $context,
-                    (int) $params['id'],
-                    (int) $params['entryId'],
-                    (int) $params['revId'],
-                );
-            });
 
             $migrations = new MigrationController(
                 $migrationService,
                 $audit,
             );
-            $this->router->add('POST', '/admin/api/resources/{id}/migrate', function (Request $request, array $params, ?AuthContext $context) use ($migrations): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $migrations->apply($request, $context, (int) $params['id']);
-            });
 
             $apiTokens = new TokensController(
                 new ApiTokenService(
@@ -1026,57 +597,6 @@ final class Kernel
                 ),
                 $audit,
             );
-            $this->router->add('GET', '/admin/api/tokens', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->index($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/tokens', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->create($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->show($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PUT', '/admin/api/tokens/{id}/grants', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->updateGrants($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->update($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/tokens/{id}/restore', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->restore($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/tokens/{id}', function (Request $request, array $params, ?AuthContext $context) use ($apiTokens): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $apiTokens->delete($request, $context, (int) $params['id']);
-            });
 
             $webhooksApi = new WebhooksController(
                 new WebhookService(
@@ -1086,106 +606,11 @@ final class Kernel
                 ),
                 $audit,
             );
-            $this->router->add('GET', '/admin/api/webhooks', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->index($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/webhooks', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->create($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->show($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->update($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/webhooks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->delete($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/webhooks/{id}/deliveries', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->deliveries($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/webhooks/{id}/test', function (Request $request, array $params, ?AuthContext $context) use ($webhooksApi): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $webhooksApi->test($request, $context, (int) $params['id']);
-            });
 
             $users = new UsersController(
                 $usersService ?? new UsersService(new UsersRepository($this->db), $this->tokens),
                 $audit,
             );
-            $this->router->add('GET', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->index($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/users', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->create($request, $context);
-            });
-            $this->router->add('PATCH', '/admin/api/users/{id}', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->update($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/users/{id}', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->delete($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/users/{id}/acl', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->getAcl($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/users/{id}/acl', function (Request $request, array $params, ?AuthContext $context) use ($users): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $users->setAcl($request, $context, (int) $params['id']);
-            });
 
             $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');
             $mimes = is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
@@ -1206,78 +631,6 @@ final class Kernel
                 $migrationService,
             );
             $packages = new ResourcePackageController($packageService, $audit);
-            $this->router->add('POST', '/admin/api/resources/package/import', function (Request $request, array $params, ?AuthContext $context) use ($packages): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $packages->import($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/resources/{id}/package/export', function (Request $request, array $params, ?AuthContext $context) use ($packages): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $packages->export($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/admin/api/media', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->index($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/media', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->upload($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/media/{id}/regenerate', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->regenerate($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/media/{id}/edit', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->edit($request, $context, (int) $params['id']);
-            });
-            $this->router->add('POST', '/admin/api/media/bulk-delete', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->bulkDelete($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->show($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $media->delete($request, $context, (int) $params['id']);
-            });
-            $this->router->add('GET', '/media/{id}', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
-                unset($context);
-
-                return $media->file($request, (int) $params['id']);
-            }, true);
 
             $logs = new LogsController(
                 new AuditRepository($this->db),
@@ -1285,53 +638,38 @@ final class Kernel
                 $this->ipBlocks,
                 $audit,
             );
-            $this->router->add('GET', '/admin/api/logs/audit', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
 
-                return $logs->audit($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/logs/api', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
+            $settingsController = new SettingsController(new Settings($this->db));
+            $settings = new Settings($this->db);
+            $emailIntegration = new EmailIntegration($settings);
+            $integrations = new IntegrationsController(
+                $emailIntegration,
+                new Mailer($settings, $emailIntegration),
+                new IntegrationApiService(
+                    new IntegrationApiRepository($this->db),
+                    $metadata,
+                ),
+                $this->audit ?? new AuditLogger($this->db),
+                new OAuthSettings($settings),
+                $this->config->appUrl,
+            );
 
-                return $logs->api($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/logs/anomalies', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $logs->anomalies($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/logs/ip-blocks', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $logs->ipBlocks($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/logs/ip-blocks', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $logs->blockIp($request, $context);
-            });
-            $this->router->add('DELETE', '/admin/api/logs/ip-blocks/{id}', function (Request $request, array $params, ?AuthContext $context) use ($logs): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $logs->unblockIp($request, $context, (int) $params['id']);
-            });
+            AdminResourceRoutes::register(
+                $this->router,
+                $resources,
+                $resourceApis,
+                $fields,
+                $entries,
+                $migrations,
+                $apiTokens,
+                $webhooksApi,
+                $users,
+                $packages,
+                $media,
+                $logs,
+                $settingsController,
+                $integrations,
+            );
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -1409,123 +747,6 @@ final class Kernel
 
             return Response::data(['ok' => true, 'installed' => $this->installed]);
         }, true);
-
-        if ($this->db !== null) {
-            $settingsController = new SettingsController(new Settings($this->db));
-            $this->router->add('GET', '/admin/api/settings/locale', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
-                unset($request, $params, $context);
-
-                return $settingsController->locale();
-            }, true);
-            $this->router->add('GET', '/admin/api/settings/api-access', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
-                unset($request, $params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $settingsController->apiAccess();
-            });
-            $this->router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $settingsController->update($request);
-            });
-
-            $settings = new Settings($this->db);
-            $emailIntegration = new EmailIntegration($settings);
-            $integrationApiService = new IntegrationApiService(
-                new IntegrationApiRepository($this->db),
-                $metadata,
-            );
-            $integrations = new IntegrationsController(
-                $emailIntegration,
-                new Mailer($settings, $emailIntegration),
-                $integrationApiService,
-                $this->audit ?? new AuditLogger($this->db),
-                new OAuthSettings($settings),
-                $this->config->appUrl,
-            );
-            $this->router->add('GET', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->getEmail($request, $context);
-            });
-            $this->router->add('PUT', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->updateEmail($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/integrations/oauth', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->getOauth($request, $context);
-            });
-            $this->router->add('PUT', '/admin/api/integrations/oauth', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->updateOauth($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/integrations/email/test', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->testEmail($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/integrations/email/apis', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->listEmailApis($request, $context);
-            });
-            $this->router->add('POST', '/admin/api/integrations/email/apis', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                unset($params);
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->createEmailApi($request, $context);
-            });
-            $this->router->add('GET', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->getEmailApi($request, $context, (int) $params['id']);
-            });
-            $this->router->add('PATCH', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->updateEmailApi($request, $context, (int) $params['id']);
-            });
-            $this->router->add('DELETE', '/admin/api/integrations/email/apis/{id}', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {
-                if ($context === null) {
-                    return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-                }
-
-                return $integrations->deleteEmailApi($request, $context, (int) $params['id']);
-            });
-        }
     }
 
     private function withSecurityHeaders(Response $response): Response

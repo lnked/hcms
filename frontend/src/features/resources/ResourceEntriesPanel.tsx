@@ -20,12 +20,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { resolveColumns } from '@/features/data-table/columns'
 import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
-import { filterParam } from '@/features/data-table/filters'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
+import { useResourceEntriesList } from '@/features/resources/useResourceEntriesList'
 import { useI18n } from '@/i18n'
-import { ApiError, api, apiPage, getToken, handleUnauthorized } from '@/lib/api'
+import { ApiError, api, getToken, handleUnauthorized } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
 import { showError, showSuccess } from '@/lib/toast'
 import type { SchemaField } from '@/types/field'
 import type { Resource, ResourceListColumn } from '@/types/resource'
@@ -117,37 +118,14 @@ export function ResourceEntriesPanel({
     (allExportFieldNames.length > 0 &&
       allExportFieldNames.every((name) => exportFields.includes(name)))
 
-  const activeFilters = useMemo(() => {
-    const out: Record<string, string> = {}
-    for (const [key, value] of Object.entries(filters)) {
-      const trimmed = value.trim()
-      if (trimmed !== '') out[key] = trimmed
-    }
-    return out
-  }, [filters])
-
-  const queryKey = useMemo(
-    () => ['resource-entries', resourceId, page, search, sort, activeFilters] as const,
-    [resourceId, page, search, sort, activeFilters],
-  )
-
-  const list = useQuery({
-    queryKey,
-    enabled: published,
-    queryFn: () => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: '20',
-        sort,
-      })
-      if (search) params.set('search', search)
-      for (const [field, value] of Object.entries(activeFilters)) {
-        const fieldMeta = fields.find((f) => f.name === field)
-        if (!fieldMeta) continue
-        params.set(...filterParam(fieldMeta, value))
-      }
-      return apiPage<EntryRow>(`/admin/api/resources/${resourceId}/entries?${params}`)
-    },
+  const { list } = useResourceEntriesList({
+    resourceId,
+    published,
+    page,
+    search,
+    sort,
+    filters,
+    fields,
   })
 
   const rows = list.data?.data ?? []
@@ -232,7 +210,7 @@ export function ResourceEntriesPanel({
     },
     onSuccess: () => {
       setDraft(null)
-      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.resources.entries(resourceId) })
       void queryClient.invalidateQueries({ queryKey: ['resource-entry', resourceId, editingId] })
       closeEntry()
     },
@@ -248,7 +226,7 @@ export function ResourceEntriesPanel({
     mutationFn: (row: EntryRow) =>
       api<void>(`/admin/api/resources/${resourceId}/entries/${row.id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.resources.entries(resourceId) })
     },
   })
 
@@ -260,7 +238,7 @@ export function ResourceEntriesPanel({
       }),
     onSuccess: () => {
       setSelectedIds([])
-      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.resources.entries(resourceId) })
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : t('entries.bulkDeleteFailed')
@@ -342,7 +320,7 @@ export function ResourceEntriesPanel({
     onSuccess: (result) => {
       setImportResult(result)
       setImportError(null)
-      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.resources.entries(resourceId) })
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : t('entries.importFailed')

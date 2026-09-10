@@ -8,6 +8,7 @@
     "ext-curl": "*"
   },
   "require-dev": {
+    "deptrac/deptrac": "^4.7",
     "friendsofphp/php-cs-fixer": "^3.64",
     "phpstan/phpstan": "^2.0",
     "phpunit/phpunit": "^11.5"
@@ -26,10 +27,12 @@
     "lint": "php-cs-fixer fix --dry-run --diff",
     "lint:fix": "php-cs-fixer fix",
     "stan": "phpstan analyse",
+    "deptrac": "deptrac analyse --config-file=deptrac.yaml",
     "test": "phpunit",
     "qa": [
       "@lint",
       "@stan",
+      "@deptrac",
       "@test"
     ]
   },

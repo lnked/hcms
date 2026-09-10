@@ -8,8 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { api } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
-import type { AuthUser, SystemVersion } from '@/types/system'
+import type { SystemVersion } from '@/types/system'
 import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
 import styles from './SystemPage.module.css'
 
@@ -96,7 +98,7 @@ export function SystemPage() {
   }, [section, searchParams])
 
   const query = useQuery({
-    queryKey: ['system-version'],
+    queryKey: queryKeys.system.version,
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
     staleTime: 0,
     gcTime: 0,
@@ -104,7 +106,7 @@ export function SystemPage() {
   })
 
   const status = useQuery({
-    queryKey: ['update-status'],
+    queryKey: queryKeys.system.updateStatus,
     queryFn: () => api<UpdateStatus>('/admin/api/system/update/status'),
     staleTime: 0,
     refetchOnMount: 'always',
@@ -118,14 +120,10 @@ export function SystemPage() {
     },
   })
 
-  const me = useQuery({
-    queryKey: ['me'],
-    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
-    staleTime: 60_000,
-  })
+  const me = useAuthMe({ retry: false })
 
   const apiAccess = useQuery({
-    queryKey: ['settings-api-access'],
+    queryKey: queryKeys.settings.apiAccess,
     queryFn: () => api<ApiAccessSettings>('/admin/api/settings/api-access'),
   })
 
@@ -134,7 +132,7 @@ export function SystemPage() {
     live?.state === 'running' || (trackUpdate && live?.state !== 'done' && live?.state !== 'failed')
 
   const previewQuery = useQuery({
-    queryKey: ['update-preview'],
+    queryKey: queryKeys.system.updatePreview,
     queryFn: () =>
       api<UpdatePreview>('/admin/api/system/update/preview', { method: 'POST', body: '{}' }),
     enabled: section === 'update' && !isUpdating,
@@ -174,7 +172,7 @@ export function SystemPage() {
     onSuccess: (data) => {
       setTrackUpdate(true)
       setMessage(null)
-      void queryClient.setQueryData(['update-status'], data)
+      void queryClient.setQueryData(queryKeys.system.updateStatus, data)
     },
     onError: (err) => {
       setTrackUpdate(false)

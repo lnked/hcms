@@ -14,21 +14,19 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CodeBlock } from '@/features/docs/CodeBlock'
-import { api, getToken } from '@/lib/api'
+import { CodeBlock } from '@/components/CodeBlock'
+import { api } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
 import { showSuccess } from '@/lib/toast'
+import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
-import type { AuthUser } from '@/types/system'
 import styles from './TotpSection.module.css'
 
 export function TotpSection() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
-  const me = useQuery({
-    queryKey: ['auth-me', getToken()],
-    queryFn: () => api<AuthUser>('/admin/api/auth/me'),
-  })
-  const refreshMe = () => void queryClient.invalidateQueries({ queryKey: ['auth-me'] })
+  const me = useAuthMe()
+  const refreshMe = () => void queryClient.invalidateQueries({ queryKey: queryKeys.auth.root })
 
   return (
     <div className={clsx(styles.root)}>

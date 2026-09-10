@@ -34,7 +34,7 @@ final class Response
     }
 
     /**
-     * @param array<string, list<string>> $fields
+     * @param array<string, string|list<string>> $fields
      */
     public static function error(string $code, string $message, int $status, array $fields = []): self
     {

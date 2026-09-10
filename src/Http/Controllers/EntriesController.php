@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Cms\Http\Controllers;
 
-use Cms\Api\QueryEngine;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Content\EntryRevisionService;
+use Cms\Content\EntryService;
+use Cms\Core\Exception\HttpException;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Resources\EntryImportExportService;
-use Cms\Resources\ResourceRepository;
 use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
@@ -20,8 +20,7 @@ use Throwable;
 final class EntriesController
 {
     public function __construct(
-        private readonly QueryEngine $query,
-        private readonly ResourceRepository $resources,
+        private readonly EntryService $entries,
         private readonly AuditLogger $audit,
         private readonly EntryImportExportService $importExport,
         private readonly ?WebhookDispatcher $webhooks = null,
@@ -33,9 +32,7 @@ final class EntriesController
     {
         unset($auth);
         try {
-            $slug = $this->slug($resourceId);
-
-            return Response::json($this->query->list($slug, $request->query));
+            return Response::json($this->entries->list($resourceId, $request->query));
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -49,7 +46,7 @@ final class EntriesController
     {
         unset($request, $auth);
         try {
-            return Response::data($this->query->find($this->slug($resourceId), $entryId));
+            return Response::data($this->entries->find($resourceId, $entryId));
         } catch (RuntimeException $e) {
             return $this->runtimeError($e);
         }
@@ -74,7 +71,7 @@ final class EntriesController
                 $ids = array_slice($ids, 0, 100);
             }
 
-            return Response::data($this->query->relationLabels($this->slug($resourceId), $field, $ids));
+            return Response::data($this->entries->relationLabels($resourceId, $field, $ids));
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -87,8 +84,8 @@ final class EntriesController
     public function create(Request $request, AuthContext $auth, int $resourceId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
-            $entry = $this->query->create($slug, $request->json());
+            $slug = $this->entries->slug($resourceId);
+            $entry = $this->entries->create($resourceId, $request->json());
             $this->audit->log(
                 $request,
                 'entry.created',
@@ -116,9 +113,9 @@ final class EntriesController
     public function update(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
-            $before = $this->query->find($slug, $entryId);
-            $entry = $this->query->patch($slug, $entryId, $request->json());
+            $slug = $this->entries->slug($resourceId);
+            $before = $this->entries->find($resourceId, $entryId);
+            $entry = $this->entries->patch($resourceId, $entryId, $request->json());
             $this->revisions?->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
@@ -147,10 +144,10 @@ final class EntriesController
     public function delete(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
-            $before = $this->query->find($slug, $entryId);
+            $slug = $this->entries->slug($resourceId);
+            $before = $this->entries->find($resourceId, $entryId);
             $this->revisions?->snapshot($resourceId, $entryId, $before, null, $auth->userId());
-            $this->query->delete($slug, $entryId);
+            $this->entries->delete($resourceId, $entryId);
             $this->audit->log(
                 $request,
                 'entry.deleted',
@@ -176,7 +173,7 @@ final class EntriesController
     public function bulkDelete(Request $request, AuthContext $auth, int $resourceId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
+            $slug = $this->entries->slug($resourceId);
             $body = $request->json();
             $ids = $body['ids'] ?? null;
             if (!is_array($ids) || $ids === []) {
@@ -195,7 +192,7 @@ final class EntriesController
             $deleted = 0;
             foreach ($normalized as $id) {
                 try {
-                    $this->query->delete($slug, $id);
+                    $this->entries->delete($resourceId, $id);
                     ++$deleted;
                     $this->webhooks?->dispatchAfterResponse('entry.deleted', [
                         'resourceId' => $resourceId,
@@ -203,7 +200,7 @@ final class EntriesController
                         'entryId' => $id,
                     ], $resourceId);
                 } catch (RuntimeException $e) {
-                    if ($e->getCode() !== 404) {
+                    if (!($e instanceof HttpException && $e->status() === 404) && $e->getCode() !== 404) {
                         throw $e;
                     }
                 }
@@ -235,7 +232,7 @@ final class EntriesController
             return Response::error('SERVICE_UNAVAILABLE', 'Revisions unavailable', 503);
         }
         try {
-            $this->slug($resourceId);
+            $this->entries->slug($resourceId);
             $limit = max(1, min(100, (int) ($request->query['limit'] ?? 50)));
 
             return Response::data($this->revisions->list($resourceId, $entryId, $limit));
@@ -250,11 +247,11 @@ final class EntriesController
             return Response::error('SERVICE_UNAVAILABLE', 'Revisions unavailable', 503);
         }
         try {
-            $slug = $this->slug($resourceId);
+            $slug = $this->entries->slug($resourceId);
             $data = $this->revisions->dataForRestore($resourceId, $entryId, $revisionId);
-            $before = $this->query->find($slug, $entryId);
+            $before = $this->entries->find($resourceId, $entryId);
             unset($data['id'], $data['createdAt'], $data['updatedAt'], $data['created_at'], $data['updated_at'], $data['deleted_at']);
-            $entry = $this->query->patch($slug, $entryId, $data);
+            $entry = $this->entries->patch($resourceId, $entryId, $data);
             $this->revisions->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
@@ -283,7 +280,7 @@ final class EntriesController
     public function export(Request $request, AuthContext $auth, int $resourceId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
+            $slug = $this->entries->slug($resourceId);
             $format = (string) ($request->query['format'] ?? 'json');
             $fieldsParam = trim((string) ($request->query['fields'] ?? ''));
             $fields = $fieldsParam === ''
@@ -315,7 +312,7 @@ final class EntriesController
     public function import(Request $request, AuthContext $auth, int $resourceId): Response
     {
         try {
-            $slug = $this->slug($resourceId);
+            $slug = $this->entries->slug($resourceId);
             [$format, $content] = $this->resolveImportPayload($request);
             $result = $this->importExport->import($slug, $format, $content);
             $this->audit->log(
@@ -378,21 +375,12 @@ final class EntriesController
         return [$format, $content];
     }
 
-    private function slug(int $resourceId): string
-    {
-        $resource = $this->resources->find($resourceId);
-        if ($resource === null) {
-            throw new RuntimeException('Resource not found', 404);
-        }
-        if (($resource['status'] ?? '') !== 'published') {
-            throw new RuntimeException('Resource must be published before managing entries', 400);
-        }
-
-        return (string) $resource['slug'];
-    }
 
     private function runtimeError(RuntimeException $e): Response
     {
+        if ($e instanceof HttpException) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status());
+        }
         $code = $e->getCode();
         $status = in_array($code, [403, 404], true) ? $code : 400;
 

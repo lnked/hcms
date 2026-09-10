@@ -49,5 +49,8 @@ export async function fetchRelatedList(
 export function entryLabel(row: RelatedRow, labelField: string): string {
   const raw = row[labelField]
   if (raw == null || raw === '') return String(row.id)
-  return String(raw)
+  if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+    return String(raw)
+  }
+  return String(row.id)
 }

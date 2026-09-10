@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { api, getToken } from '@/lib/api'
+import { api } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
 import type { AuthUser } from '@/types/system'
 import {
   allowsResourceAction,
@@ -10,11 +11,13 @@ import {
   type ResourceTab,
 } from '@/lib/rbac'
 
-export function useAuthMe() {
+export function useAuthMe(options?: { enabled?: boolean; retry?: boolean | number }) {
   return useQuery({
-    queryKey: ['auth-me', getToken()],
+    queryKey: queryKeys.auth.me(),
     queryFn: () => api<AuthUser>('/admin/api/auth/me'),
     staleTime: 30_000,
+    enabled: options?.enabled,
+    retry: options?.retry,
   })
 }
 

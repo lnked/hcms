@@ -440,8 +440,8 @@ curl -s "$BASE/api/openapi.json" | grep {slug}   # ресурс в OpenAPI
 Изменил PHP-код — прогнать гейты:
 
 ```bash
-composer qa      # php-cs-fixer --dry-run + phpstan + phpunit
-npm run qa       # eslint + tsc + vitest
+composer qa      # php-cs-fixer + phpstan L7 + deptrac + phpunit
+npm run qa       # eslint + prettier + tsc + knip + vitest coverage
 php scripts/verify-tree.php
 ```
 

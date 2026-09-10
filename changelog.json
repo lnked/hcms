@@ -1,6 +1,39 @@
 {
   "releases": [
     {
+      "version": "0.57.0",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Architecture & QA tooling",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "core",
+          "text": "Маршруты админки вынесены в AuthRoutes / SystemRoutes / AdminResourceRoutes; Kernel остаётся composition root"
+        },
+        {
+          "type": "changed",
+          "area": "core",
+          "text": "Typed domain exceptions (NotFound / ValidationFailed / Conflict) и единый map в ExceptionHandler; PayloadValidator и EntryService вынесены из QueryEngine"
+        },
+        {
+          "type": "added",
+          "area": "tooling",
+          "text": "Deptrac, PHPStan level 7 + baseline, MySQL integration smoke в CI (CMS_TEST_DSN)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "knip, type-aware ESLint на lib/hooks, jsx-a11y, vitest coverage thresholds; queryKeys + useAuthMe; CodeBlock в components/"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "Backlog O (Architecture & QA tooling) в docs/improvements.md"
+        }
+      ]
+    },
+    {
       "version": "0.56.1",
       "date": "2026-09-10",
       "channel": "stable",
