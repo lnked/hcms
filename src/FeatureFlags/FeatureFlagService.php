@@ -140,7 +140,7 @@ final class FeatureFlagService
         if ($existing === null) {
             throw new RuntimeException('Feature flag not found', 404);
         }
-        $data = $this->normalizeUpdate($payload, (string) $existing['type']);
+        $data = $this->normalizeUpdate($payload, $existing);
 
         return $this->serialize($this->flags->update($id, $data));
     }
@@ -156,13 +156,17 @@ final class FeatureFlagService
     /**
      * Public map of enabled flags, optionally filtered by keys.
      *
+     * A/B boolean flags: sticky bucket from subject+key (crc32 % 100 < rollout%).
+     * Without subject, assignment is random per request (non-sticky).
+     *
      * @param list<string>|null $keys
-     * @return array<string, mixed>
+     * @return array{map: array<string, mixed>, hasAb: bool, subject: ?string}
      */
-    public function publicMap(?array $keys = null): array
+    public function publicMap(?array $keys = null, ?string $subject = null): array
     {
         $rows = $this->flags->listEnabled();
         $out = [];
+        $hasAb = false;
         $filter = null;
         if ($keys !== null && $keys !== []) {
             $filter = array_fill_keys($keys, true);
@@ -172,23 +176,65 @@ final class FeatureFlagService
             if ($filter !== null && !isset($filter[$key])) {
                 continue;
             }
-            $out[$key] = $this->decodeValue((string) $row['type'], $row['value_json']);
+            $type = (string) $row['type'];
+            $value = $this->decodeValue($type, $row['value_json']);
+            $ab = (bool) ($row['ab_test'] ?? false);
+            if ($ab && $type === 'boolean') {
+                $hasAb = true;
+                $percent = (int) ($row['rollout_percent'] ?? 100);
+                $sid = $subject;
+                if ($sid === null || $sid === '') {
+                    $sid = bin2hex(random_bytes(8));
+                }
+                $value = self::inRollout($sid, $key, $percent);
+            }
+            $out[$key] = $value;
         }
 
-        return $out;
+        return [
+            'map' => $out,
+            'hasAb' => $hasAb,
+            'subject' => $subject !== null && $subject !== '' ? $subject : null,
+        ];
     }
 
-    public function etag(): string
+    /**
+     * Deterministic bucket: same subject+flag always lands in the same 0..99 slot.
+     */
+    public static function inRollout(string $subject, string $flagKey, int $percent): bool
+    {
+        if ($percent <= 0) {
+            return false;
+        }
+        if ($percent >= 100) {
+            return true;
+        }
+        $hash = sprintf('%u', crc32($flagKey . "\0" . $subject));
+        $bucket = (int) $hash % 100;
+
+        return $bucket < $percent;
+    }
+
+    public function etag(?string $subject = null): string
     {
         $max = $this->flags->maxUpdatedAt() ?? '0';
         $settings = $this->getApiSettings();
 
-        return '"' . sha1($max . '|' . json_encode($settings)) . '"';
+        return '"' . sha1($max . '|' . json_encode($settings) . '|' . ($subject ?? '')) . '"';
     }
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{name: string, flag_key: string, type: string, value_json: string, description: ?string, enabled: int}
+     * @return array{
+     *   name: string,
+     *   flag_key: string,
+     *   type: string,
+     *   value_json: string,
+     *   description: ?string,
+     *   enabled: int,
+     *   ab_test: int,
+     *   rollout_percent: int
+     * }
      */
     private function normalizeCreate(array $payload): array
     {
@@ -219,6 +265,7 @@ final class FeatureFlagService
         if ($description === '') {
             $description = null;
         }
+        $ab = $this->normalizeAb($payload, $type);
 
         return [
             'name' => $name,
@@ -230,16 +277,28 @@ final class FeatureFlagService
             ) ?: 'null',
             'description' => $description,
             'enabled' => array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1,
+            'ab_test' => $ab['ab_test'],
+            'rollout_percent' => $ab['rollout_percent'],
         ];
     }
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{name?: string, type?: string, value_json?: string, description?: ?string, enabled?: int}
+     * @param array<string, mixed> $existing
+     * @return array{
+     *   name?: string,
+     *   type?: string,
+     *   value_json?: string,
+     *   description?: ?string,
+     *   enabled?: int,
+     *   ab_test?: int,
+     *   rollout_percent?: int
+     * }
      */
-    private function normalizeUpdate(array $payload, string $existingType): array
+    private function normalizeUpdate(array $payload, array $existing): array
     {
         $out = [];
+        $type = (string) $existing['type'];
         if (array_key_exists('name', $payload)) {
             $name = is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 191) {
@@ -248,7 +307,6 @@ final class FeatureFlagService
             $out['name'] = $name;
         }
 
-        $type = $existingType;
         if (array_key_exists('type', $payload)) {
             $type = is_string($payload['type']) ? trim($payload['type']) : '';
             if (!in_array($type, self::TYPES, true)) {
@@ -276,7 +334,54 @@ final class FeatureFlagService
             $out['enabled'] = (bool) $payload['enabled'] ? 1 : 0;
         }
 
+        if (
+            array_key_exists('abTest', $payload)
+            || array_key_exists('ab_test', $payload)
+            || array_key_exists('rolloutPercent', $payload)
+            || array_key_exists('rollout_percent', $payload)
+            || array_key_exists('type', $payload)
+        ) {
+            $merged = $payload;
+            if (!array_key_exists('abTest', $merged) && !array_key_exists('ab_test', $merged)) {
+                $merged['abTest'] = (bool) ($existing['ab_test'] ?? false);
+            }
+            if (!array_key_exists('rolloutPercent', $merged) && !array_key_exists('rollout_percent', $merged)) {
+                $merged['rolloutPercent'] = (int) ($existing['rollout_percent'] ?? 100);
+            }
+            $ab = $this->normalizeAb($merged, $type);
+            $out['ab_test'] = $ab['ab_test'];
+            $out['rollout_percent'] = $ab['rollout_percent'];
+        }
+
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{ab_test: int, rollout_percent: int}
+     */
+    private function normalizeAb(array $payload, string $type): array
+    {
+        $ab = (bool) ($payload['abTest'] ?? $payload['ab_test'] ?? false);
+        if ($ab && $type !== 'boolean') {
+            throw new InvalidArgumentException('A/B test is only supported for boolean flags');
+        }
+        if (!$ab) {
+            return ['ab_test' => 0, 'rollout_percent' => 100];
+        }
+        $percentRaw = $payload['rolloutPercent'] ?? $payload['rollout_percent'] ?? 50;
+        if (!is_numeric($percentRaw)) {
+            throw new InvalidArgumentException('rolloutPercent must be an integer 0-100');
+        }
+        $percent = (int) $percentRaw;
+        if ($percent < 0 || $percent > 100) {
+            throw new InvalidArgumentException('rolloutPercent must be an integer 0-100');
+        }
+
+        return [
+            'ab_test' => 1,
+            'rollout_percent' => $percent,
+        ];
     }
 
     private function normalizeValue(string $type, mixed $value): mixed
@@ -339,6 +444,8 @@ final class FeatureFlagService
             'value' => $this->decodeValue($type, $row['value_json']),
             'description' => $row['description'] !== null ? (string) $row['description'] : null,
             'enabled' => (bool) $row['enabled'],
+            'abTest' => (bool) ($row['ab_test'] ?? false),
+            'rolloutPercent' => (int) ($row['rollout_percent'] ?? 100),
             'createdAt' => (string) $row['created_at'],
             'updatedAt' => (string) $row['updated_at'],
         ];

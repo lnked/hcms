@@ -41,6 +41,8 @@ interface FeatureFlag {
   value: unknown
   description: string | null
   enabled: boolean
+  abTest: boolean
+  rolloutPercent: number
 }
 
 interface ApiSettings {
@@ -52,6 +54,9 @@ interface ApiSettings {
 const TYPES: FlagType[] = ['boolean', 'integer', 'string', 'object']
 
 function previewValue(flag: FeatureFlag): string {
+  if (flag.abTest && flag.type === 'boolean') {
+    return `A/B ${flag.rolloutPercent}%`
+  }
   if (flag.type === 'object') return JSON.stringify(flag.value)
   return String(flag.value)
 }
@@ -77,6 +82,8 @@ export function FeatureFlagsPage() {
   const [objectValue, setObjectValue] = useState('{\n  \n}')
   const [jsonError, setJsonError] = useState<string | null>(null)
   const [enabled, setEnabled] = useState(true)
+  const [abTest, setAbTest] = useState(false)
+  const [rolloutPercent, setRolloutPercent] = useState('50')
 
   const list = useQuery({
     queryKey: ['feature-flags', search, typeFilter],
@@ -112,6 +119,8 @@ export function FeatureFlagsPage() {
     setObjectValue('{\n  \n}')
     setJsonError(null)
     setEnabled(true)
+    setAbTest(false)
+    setRolloutPercent('50')
     setError(null)
     setDialogOpen(true)
   }
@@ -123,6 +132,8 @@ export function FeatureFlagsPage() {
     setType(flag.type)
     setDescription(flag.description ?? '')
     setEnabled(flag.enabled)
+    setAbTest(Boolean(flag.abTest))
+    setRolloutPercent(String(flag.rolloutPercent ?? 50))
     setJsonError(null)
     setError(null)
     if (flag.type === 'boolean') setBoolValue(Boolean(flag.value))
@@ -168,6 +179,11 @@ export function FeatureFlagsPage() {
         value,
         description: description.trim() || null,
         enabled,
+        abTest: type === 'boolean' ? abTest : false,
+        rolloutPercent:
+          type === 'boolean' && abTest
+            ? Math.min(100, Math.max(0, Number.parseInt(rolloutPercent, 10) || 0))
+            : 100,
       }
       if (!editing) body.key = key
       if (editing) {
@@ -223,7 +239,7 @@ export function FeatureFlagsPage() {
     setParams(p, { replace: true })
   }
 
-  const curlExample = `curl -s "${apiPath}?keys=enabledNews,intMaxAmount"`
+  const curlExample = `curl -s "${apiPath}?keys=enabledNews,newCheckout&subject=user-42"`
 
   return (
     <div className={clsx(styles.root)}>
@@ -279,17 +295,18 @@ export function FeatureFlagsPage() {
               </Select>
             </div>
             {list.isLoading ? (
-              <TableSkeleton columns={6} rows={5} />
+              <TableSkeleton columns={7} rows={5} />
             ) : (list.data ?? []).length === 0 ? (
               <EmptyState title={t('flags.empty')} />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('common.name')}</TableHead>
+                    <TableHead>{t('flags.name')}</TableHead>
                     <TableHead>{t('flags.key')}</TableHead>
                     <TableHead>{t('flags.type')}</TableHead>
                     <TableHead>{t('flags.value')}</TableHead>
+                    <TableHead>{t('flags.abShort')}</TableHead>
                     <TableHead>{t('flags.enabled')}</TableHead>
                     <TableHead>{t('common.actions')}</TableHead>
                   </TableRow>
@@ -301,6 +318,11 @@ export function FeatureFlagsPage() {
                       <TableCell className={clsx(styles.mono)}>{flag.key}</TableCell>
                       <TableCell>{flag.type}</TableCell>
                       <TableCell className={clsx(styles.mono)}>{previewValue(flag)}</TableCell>
+                      <TableCell className={clsx(styles.mono)}>
+                        {flag.abTest && flag.type === 'boolean'
+                          ? `${flag.rolloutPercent}%`
+                          : '—'}
+                      </TableCell>
                       <TableCell>
                         <Switch
                           checked={flag.enabled}
@@ -366,6 +388,7 @@ export function FeatureFlagsPage() {
             <CodeBlock code={curlExample} language="bash" label={t('flags.curlExample')} />
             <Button
               size="sm"
+              className={clsx(styles.saveBtn)}
               disabled={saveSettings.isPending}
               onClick={() => saveSettings.mutate()}
             >
@@ -382,8 +405,12 @@ export function FeatureFlagsPage() {
             <DialogDescription>{t('flags.formHint')}</DialogDescription>
           </DialogHeader>
           <div className={clsx(styles.form)}>
+            <div className={clsx(styles.switchRow)}>
+              <Switch checked={enabled} onCheckedChange={setEnabled} id="flag-enabled" />
+              <Label htmlFor="flag-enabled">{t('flags.enabled')}</Label>
+            </div>
             <div className={clsx(styles.field)}>
-              <Label>{t('common.name')}</Label>
+              <Label>{t('flags.name')}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className={clsx(styles.field)}>
@@ -400,7 +427,11 @@ export function FeatureFlagsPage() {
               <Select
                 value={type}
                 disabled={!!editing}
-                onChange={(e) => setType(e.target.value as FlagType)}
+                onChange={(e) => {
+                  const next = e.target.value as FlagType
+                  setType(next)
+                  if (next !== 'boolean') setAbTest(false)
+                }}
               >
                 {TYPES.map((tp) => (
                   <option key={tp} value={tp}>
@@ -416,7 +447,14 @@ export function FeatureFlagsPage() {
             <div className={clsx(styles.field)}>
               <Label>{t('flags.value')}</Label>
               {type === 'boolean' ? (
-                <Switch checked={boolValue} onCheckedChange={setBoolValue} />
+                <>
+                  <Switch
+                    checked={boolValue}
+                    onCheckedChange={setBoolValue}
+                    disabled={abTest}
+                  />
+                  {abTest ? <p className={clsx(styles.hint)}>{t('flags.abValueIgnored')}</p> : null}
+                </>
               ) : null}
               {type === 'integer' ? (
                 <Input
@@ -449,10 +487,28 @@ export function FeatureFlagsPage() {
                 </>
               ) : null}
             </div>
-            <div className={clsx(styles.switchRow)}>
-              <Switch checked={enabled} onCheckedChange={setEnabled} id="flag-enabled" />
-              <Label htmlFor="flag-enabled">{t('flags.enabled')}</Label>
-            </div>
+            {type === 'boolean' ? (
+              <>
+                <div className={clsx(styles.switchRow)}>
+                  <Switch checked={abTest} onCheckedChange={setAbTest} id="flag-ab" />
+                  <Label htmlFor="flag-ab">{t('flags.abTest')}</Label>
+                </div>
+                {abTest ? (
+                  <div className={clsx(styles.field)}>
+                    <Label htmlFor="flag-rollout">{t('flags.rolloutPercent')}</Label>
+                    <Input
+                      id="flag-rollout"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={rolloutPercent}
+                      onChange={(e) => setRolloutPercent(e.target.value)}
+                    />
+                    <p className={clsx(styles.hint)}>{t('flags.abHint')}</p>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
             {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>

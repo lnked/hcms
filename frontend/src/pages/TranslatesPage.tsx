@@ -482,6 +482,7 @@ export function TranslatesPage() {
             <CodeBlock code={curlExample} language="bash" label={t('translates.curlExample')} />
             <Button
               size="sm"
+              className={clsx(styles.saveBtn)}
               disabled={saveSettings.isPending}
               onClick={() => saveSettings.mutate()}
             >

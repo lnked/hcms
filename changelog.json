@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.59.1",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Feature flag A/B rollout",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Feature flags A/B: abTest + rolloutPercent (0–100), sticky bucket по subject (?subject=/X-Flag-Subject); миграция 018"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "UI feature flags: A/B-галка и %, лейбл «Название», «Включён» сверху; кнопки Save на API-вкладках — ширина по контенту"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Button: width fit-content по умолчанию; правило в .cursor/rules/frontend-css-modules.mdc"
+        }
+      ]
+    },
+    {
       "version": "0.59.0",
       "date": "2026-09-10",
       "channel": "stable",

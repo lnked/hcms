@@ -77,7 +77,9 @@ final class FeatureFlagRepository
      *   type: string,
      *   value_json: string,
      *   description: ?string,
-     *   enabled: int
+     *   enabled: int,
+     *   ab_test: int,
+     *   rollout_percent: int
      * } $data
      * @return array<string, mixed>
      */
@@ -86,8 +88,8 @@ final class FeatureFlagRepository
         $now = date('Y-m-d H:i:s');
         $this->db->execute(
             'INSERT INTO cms_feature_flags
-             (name, flag_key, type, value_json, description, enabled, created_at, updated_at)
-             VALUES (:name, :flag_key, :type, :value_json, :description, :enabled, :created_at, :updated_at)',
+             (name, flag_key, type, value_json, description, enabled, ab_test, rollout_percent, created_at, updated_at)
+             VALUES (:name, :flag_key, :type, :value_json, :description, :enabled, :ab_test, :rollout_percent, :created_at, :updated_at)',
             [
                 'name' => $data['name'],
                 'flag_key' => $data['flag_key'],
@@ -95,6 +97,8 @@ final class FeatureFlagRepository
                 'value_json' => $data['value_json'],
                 'description' => $data['description'],
                 'enabled' => $data['enabled'],
+                'ab_test' => $data['ab_test'],
+                'rollout_percent' => $data['rollout_percent'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
@@ -113,7 +117,9 @@ final class FeatureFlagRepository
      *   type?: string,
      *   value_json?: string,
      *   description?: ?string,
-     *   enabled?: int
+     *   enabled?: int,
+     *   ab_test?: int,
+     *   rollout_percent?: int
      * } $data
      * @return array<string, mixed>
      */
@@ -121,7 +127,7 @@ final class FeatureFlagRepository
     {
         $sets = [];
         $params = ['id' => $id, 'updated_at' => date('Y-m-d H:i:s')];
-        foreach (['name', 'type', 'value_json', 'description', 'enabled'] as $col) {
+        foreach (['name', 'type', 'value_json', 'description', 'enabled', 'ab_test', 'rollout_percent'] as $col) {
             if (array_key_exists($col, $data)) {
                 $sets[] = $col . ' = :' . $col;
                 $params[$col] = $data[$col];

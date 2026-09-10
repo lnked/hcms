@@ -146,23 +146,51 @@ final class FeatureFlagsController
         }
 
         $keys = $this->parseKeys($request);
-        $map = $this->flags->publicMap($keys);
-        $etag = $this->flags->etag();
+        $subject = $this->parseSubject($request);
+        $result = $this->flags->publicMap($keys, $subject);
+        $map = $result['map'];
+        $etag = $this->flags->etag($result['subject']);
+        $cacheControl = $result['hasAb'] ? 'private, no-store' : 'public, max-age=30';
         $ifNoneMatch = $request->header('If-None-Match');
         if (is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
             return new Response(304, '', [
                 'ETag' => $etag,
-                'Cache-Control' => 'public, max-age=30',
+                'Cache-Control' => $cacheControl,
             ]);
         }
 
         $body = json_encode(['data' => $map], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{"data":{}}';
-
-        return new Response(200, $body, [
+        $headers = [
             'Content-Type' => 'application/json; charset=utf-8',
             'ETag' => $etag,
-            'Cache-Control' => 'public, max-age=30',
-        ]);
+            'Cache-Control' => $cacheControl,
+        ];
+        if ($result['hasAb']) {
+            $headers['Vary'] = 'X-Flag-Subject';
+        }
+
+        return new Response(200, $body, $headers);
+    }
+
+    private function parseSubject(Request $request): ?string
+    {
+        foreach (['subject', 'sid'] as $q) {
+            if (isset($request->query[$q]) && is_string($request->query[$q])) {
+                $v = trim($request->query[$q]);
+                if ($v !== '') {
+                    return mb_substr($v, 0, 128);
+                }
+            }
+        }
+        $header = $request->header('X-Flag-Subject');
+        if (is_string($header)) {
+            $v = trim($header);
+            if ($v !== '') {
+                return mb_substr($v, 0, 128);
+            }
+        }
+
+        return null;
     }
 
     /**

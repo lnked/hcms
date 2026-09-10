@@ -1,0 +1,3 @@
+ALTER TABLE cms_feature_flags
+    ADD COLUMN ab_test TINYINT(1) NOT NULL DEFAULT 0 AFTER enabled,
+    ADD COLUMN rollout_percent TINYINT UNSIGNED NOT NULL DEFAULT 100 AFTER ab_test;

@@ -280,7 +280,8 @@ final class OpenApiGenerator
             'get' => [
                 'tags' => ['Features'],
                 'summary' => 'List feature flags',
-                'description' => 'Returns enabled flags as a key→value map. Filter with `keys` (comma-separated).',
+                'description' => 'Returns enabled flags as a key→value map. Filter with `keys`. '
+                    . 'Boolean A/B flags evaluate via sticky bucket from `subject` / `X-Flag-Subject`.',
                 'parameters' => [
                     [
                         'name' => 'keys',
@@ -288,6 +289,13 @@ final class OpenApiGenerator
                         'required' => false,
                         'schema' => ['type' => 'string'],
                         'description' => 'Comma-separated flag keys',
+                    ],
+                    [
+                        'name' => 'subject',
+                        'in' => 'query',
+                        'required' => false,
+                        'schema' => ['type' => 'string', 'maxLength' => 128],
+                        'description' => 'Stable subject id for A/B bucketing (alias: sid). Or header X-Flag-Subject.',
                     ],
                 ],
                 'security' => [],

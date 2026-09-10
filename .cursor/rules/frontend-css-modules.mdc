@@ -33,3 +33,8 @@ className={clsx(styles.root, isActive && styles.rootActive, className)}
 ```
 
 Variants = separate classes (`variantDefault`, `sizeSm`), composed with `clsx` / `cn`.
+
+## Buttons
+
+- Default width is content (`width: fit-content` on `Button`). Do not rely on flex column `align-items: stretch` to size buttons.
+- Full-width only when intentional: local `.fullWidth { width: 100%; }` (login / OAuth submit, etc.).

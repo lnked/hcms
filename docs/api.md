@@ -118,10 +118,20 @@ Public (path configurable, default `/api/features`):
 ```http
 GET /api/features
 GET /api/features?keys=enabledNews,intMaxAmount
+GET /api/features?keys=newCheckout&subject=user-42
 ```
 
 Returns `{ "data": { "enabledNews": true, ... } }` for **enabled** flags only. Supports `ETag` / `If-None-Match`.
 
+### A/B rollout (boolean only)
+
+Per-flag fields: `abTest` (bool), `rolloutPercent` (0–100). When `abTest` is on, the public value is **not** the stored `value` — it is:
+
+```text
+crc32(flagKey + "\0" + subject) % 100 < rolloutPercent  →  true
+```
+
+Stable subject via `?subject=` / `?sid=` or header `X-Flag-Subject` (max 128 chars). Without subject, assignment is random per request (non-sticky). Responses with any A/B flag use `Cache-Control: private, no-store` and `Vary: X-Flag-Subject`.
 ## Translates
 
 Admin (section `translates`):

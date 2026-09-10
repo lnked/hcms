@@ -54,6 +54,10 @@
   gap: var(--hcms-SPx4);
 }
 
+.saveBtn {
+  align-self: flex-start;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -86,4 +90,11 @@
   margin: 0;
   color: var(--hcms-color-destructive);
   font-size: 0.875rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--hcms-color-muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }

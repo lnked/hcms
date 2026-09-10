@@ -76,6 +76,10 @@
   gap: var(--hcms-SPx4);
 }
 
+.saveBtn {
+  align-self: flex-start;
+}
+
 .field {
   display: flex;
   flex-direction: column;
