@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.58.1",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Account security button width",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Кнопки «Сменить пароль» и «Настроить 2FA» на странице аккаунта больше не растягиваются на всю ширину — ширина по контенту"
+        },
+        {
+          "type": "fixed",
+          "area": "core",
+          "text": "Кавычки в MediaRefService приведены к стилю php-cs-fixer"
+        }
+      ]
+    },
+    {
       "version": "0.58.0",
       "date": "2026-09-10",
       "channel": "stable",
