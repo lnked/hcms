@@ -6,12 +6,15 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Auth\UserAclGuard;
+use Cms\Core\Exception\ForbiddenException;
+use Cms\Core\Exception\NotFoundException;
 use Cms\Fields\Types\MediaFieldConfig;
 use Cms\Http\Request;
 use Cms\Http\Response;
+use Cms\Media\MediaAclScope;
 use Cms\Media\MediaService;
 use InvalidArgumentException;
-use RuntimeException;
 use Throwable;
 
 final class MediaController
@@ -19,24 +22,24 @@ final class MediaController
     public function __construct(
         private readonly MediaService $media,
         private readonly AuditLogger $audit,
+        private readonly ?UserAclGuard $userAcl = null,
     ) {
     }
 
     public function index(Request $request, AuthContext $auth): Response
     {
-        unset($auth);
         $page = max(1, (int) ($request->query['page'] ?? 1));
         $limit = max(1, (int) ($request->query['limit'] ?? 40));
 
-        return Response::json($this->media->page($page, $limit));
+        return Response::json($this->media->page($page, $limit, $this->scope($auth)));
     }
 
     public function show(Request $request, AuthContext $auth, int $id): Response
     {
-        unset($request, $auth);
+        unset($request);
         try {
-            return Response::data($this->media->get($id));
-        } catch (RuntimeException $e) {
+            return Response::data($this->media->get($id, $this->scope($auth)));
+        } catch (NotFoundException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
         }
     }
@@ -54,9 +57,17 @@ final class MediaController
             $sizes = $this->parseSizes($_POST['sizes'] ?? null);
             $positions = MediaFieldConfig::normalizePositions($this->parseJsonObject($_POST['positions'] ?? null));
             $rotation = MediaFieldConfig::normalizeRotation($_POST['rotation'] ?? 0);
+            $uploadedBy = $auth->userId();
 
             if ($sizes !== []) {
-                $result = $this->media->uploadWithTransforms($file, $sizes, $rotation, $positions, $formats);
+                $result = $this->media->uploadWithTransforms(
+                    $file,
+                    $sizes,
+                    $rotation,
+                    $positions,
+                    $formats,
+                    $uploadedBy,
+                );
                 $this->audit->log(
                     $request,
                     'media.uploaded',
@@ -69,7 +80,7 @@ final class MediaController
                 return Response::data($result, 201);
             }
 
-            $item = $this->media->upload($file, $formats);
+            $item = $this->media->upload($file, $formats, $uploadedBy);
             $this->audit->log(
                 $request,
                 'media.uploaded',
@@ -102,7 +113,14 @@ final class MediaController
             $rotation = MediaFieldConfig::normalizeRotation($body['rotation'] ?? 0);
             $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
 
-            $result = $this->media->regenerateVariants($id, $sizes, $rotation, $positions, $overrides);
+            $result = $this->media->regenerateVariants(
+                $id,
+                $sizes,
+                $rotation,
+                $positions,
+                $overrides,
+                $this->scope($auth),
+            );
             $this->audit->log(
                 $request,
                 'media.regenerated',
@@ -115,9 +133,10 @@ final class MediaController
             return Response::data($result + ['overrides' => $overrides]);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
-        } catch (RuntimeException $e) {
-            $code = $e->getCode() === 404 ? 404 : 500;
-            return Response::error($code === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR', $e->getMessage(), $code);
+        } catch (NotFoundException $e) {
+            return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        } catch (ForbiddenException $e) {
+            return Response::error('FORBIDDEN', $e->getMessage(), 403);
         } catch (Throwable $e) {
             return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }
@@ -132,7 +151,14 @@ final class MediaController
             $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
             $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
 
-            $result = $this->media->applyEdit($id, $edit, $sizes, $positions, $overrides);
+            $result = $this->media->applyEdit(
+                $id,
+                $edit,
+                $sizes,
+                $positions,
+                $overrides,
+                $this->scope($auth),
+            );
             $this->audit->log(
                 $request,
                 'media.edited',
@@ -149,9 +175,10 @@ final class MediaController
             return Response::data($result);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
-        } catch (RuntimeException $e) {
-            $code = $e->getCode() === 404 ? 404 : 500;
-            return Response::error($code === 404 ? 'NOT_FOUND' : 'INTERNAL_ERROR', $e->getMessage(), $code);
+        } catch (NotFoundException $e) {
+            return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        } catch (ForbiddenException $e) {
+            return Response::error('FORBIDDEN', $e->getMessage(), 403);
         } catch (Throwable $e) {
             return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }
@@ -160,12 +187,14 @@ final class MediaController
     public function delete(Request $request, AuthContext $auth, int $id): Response
     {
         try {
-            $this->media->delete($id);
+            $this->media->delete($id, $this->scope($auth));
             $this->audit->log($request, 'media.deleted', $auth->userId(), 'media', (string) $id);
 
             return new Response(204, '');
-        } catch (RuntimeException $e) {
+        } catch (NotFoundException $e) {
             return Response::error('NOT_FOUND', $e->getMessage(), 404);
+        } catch (ForbiddenException $e) {
+            return Response::error('FORBIDDEN', $e->getMessage(), 403);
         }
     }
 
@@ -186,18 +215,24 @@ final class MediaController
                 $normalized[] = (int) $id;
             }
             $normalized = array_values(array_unique($normalized));
+            $scope = $this->scope($auth);
 
             $deleted = 0;
+            $forbidden = 0;
             foreach ($normalized as $id) {
                 try {
-                    $this->media->delete($id);
+                    $this->media->delete($id, $scope);
                     ++$deleted;
                     $this->audit->log($request, 'media.deleted', $auth->userId(), 'media', (string) $id);
-                } catch (RuntimeException $e) {
-                    if ($e->getCode() !== 404) {
-                        throw $e;
-                    }
+                } catch (NotFoundException) {
+                    // skip missing
+                } catch (ForbiddenException) {
+                    ++$forbidden;
                 }
+            }
+
+            if ($deleted === 0 && $forbidden > 0) {
+                return Response::error('FORBIDDEN', 'Media is used by a resource you cannot access', 403);
             }
 
             $this->audit->log(
@@ -206,10 +241,10 @@ final class MediaController
                 $auth->userId(),
                 'media',
                 null,
-                ['ids' => $normalized, 'deleted' => $deleted],
+                ['ids' => $normalized, 'deleted' => $deleted, 'forbidden' => $forbidden],
             );
 
-            return Response::data(['deleted' => $deleted]);
+            return Response::data(['deleted' => $deleted, 'forbidden' => $forbidden]);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -243,6 +278,11 @@ final class MediaController
                 'X-Content-Type-Options' => 'nosniff',
             ],
         );
+    }
+
+    private function scope(AuthContext $auth): MediaAclScope
+    {
+        return MediaAclScope::fromAuth($auth, $this->userAcl);
     }
 
     /**

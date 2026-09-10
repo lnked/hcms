@@ -66,6 +66,7 @@ use Cms\Integrations\IntegrationApiRepository;
 use Cms\Integrations\IntegrationApiService;
 use Cms\Mail\EmailIntegration;
 use Cms\Mail\Mailer;
+use Cms\Media\MediaRefService;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
 use Cms\Resources\EntryImportExportService;
@@ -566,10 +567,13 @@ final class Kernel
             );
             $fields = new FieldController($fieldService, $audit);
 
+            $mediaRefs = new MediaRefService($this->db);
             $queryEngine = new QueryEngine(
                 $this->db,
                 new ResourceRepository($this->db),
                 new FieldRepository($this->db),
+                null,
+                $mediaRefs,
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
             $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
@@ -614,10 +618,11 @@ final class Kernel
 
             $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');
             $mimes = is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
-            $mediaService = new MediaService($this->db, $this->paths, $mimes);
+            $mediaService = new MediaService($this->db, $this->paths, $mimes, refs: $mediaRefs);
             $media = new MediaController(
                 $mediaService,
                 $audit,
+                $this->userAcl,
             );
 
             $packageService = new ResourcePackageService(
@@ -732,6 +737,7 @@ final class Kernel
                     new ResourceRepository($this->db),
                     new FieldRepository($this->db),
                     $resourceApiRepo,
+                    new MediaRefService($this->db),
                 ),
                 new ResourceRepository($this->db),
                 $tokenGrants,

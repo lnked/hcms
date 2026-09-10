@@ -8,6 +8,7 @@ use Cms\Core\Exception\NotFoundException;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
+use Cms\Media\MediaRefService;
 use Cms\Media\MediaValue;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
@@ -23,6 +24,7 @@ final class QueryEngine
         private readonly ResourceRepository $resources,
         private readonly FieldRepository $fields,
         private readonly ?ResourceApiRepository $apis = null,
+        private readonly ?MediaRefService $mediaRefs = null,
     ) {
     }
 
@@ -221,8 +223,9 @@ final class QueryEngine
      */
     public function create(string $slug, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug, $options);
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $id = $this->insertRow($table, $this->validatePayload($payload, $fieldMap, false));
+        $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
     }
@@ -234,9 +237,10 @@ final class QueryEngine
      */
     public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug, $options);
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $this->requireRow($table, $id);
         $this->updateRow($table, $id, $this->validatePayload($payload, $fieldMap, true));
+        $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
     }
@@ -247,7 +251,12 @@ final class QueryEngine
     public function delete(string $slug, int $id, array $options = []): void
     {
         [$resource, $table] = $this->resolve($slug, $options);
-        $this->deleteRow($table, $id, $this->settingsOf($resource));
+        $settings = $this->settingsOf($resource);
+        $hard = !(($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft');
+        $this->deleteRow($table, $id, $settings);
+        if ($hard) {
+            $this->clearMediaRefs($resource, $id);
+        }
     }
 
     /**
@@ -338,9 +347,10 @@ final class QueryEngine
      */
     public function createCustom(string $slug, string $apiSlug, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'POST', $options);
+        [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'POST', $options);
         $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, false);
         $id = $this->insertRow($table, $data);
+        $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
     }
@@ -352,10 +362,11 @@ final class QueryEngine
      */
     public function patchCustom(string $slug, string $apiSlug, int $id, array $payload, array $options = []): array
     {
-        [, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'PATCH', $options);
+        [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'PATCH', $options);
         $this->requireRow($table, $id);
         $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, true);
         $this->updateRow($table, $id, $data);
+        $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
     }
@@ -366,7 +377,12 @@ final class QueryEngine
     public function deleteCustom(string $slug, string $apiSlug, int $id, array $options = []): void
     {
         [$resource, $table] = $this->resolveCustom($slug, $apiSlug, 'DELETE', $options);
-        $this->deleteRow($table, $id, $this->settingsOf($resource));
+        $settings = $this->settingsOf($resource);
+        $hard = !(($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft');
+        $this->deleteRow($table, $id, $settings);
+        if ($hard) {
+            $this->clearMediaRefs($resource, $id);
+        }
     }
 
     /**
@@ -752,6 +768,29 @@ final class QueryEngine
         }
 
         return ResourceService::normalizeSettings($settings);
+    }
+
+    /**
+     * @param array<string, mixed> $resource
+     * @param array<string, array<string, mixed>> $fieldMap
+     */
+    private function syncMediaRefs(array $resource, string $table, int $entryId, array $fieldMap): void
+    {
+        if ($this->mediaRefs === null) {
+            return;
+        }
+        $this->mediaRefs->syncEntry((int) $resource['id'], $entryId, $table, $fieldMap);
+    }
+
+    /**
+     * @param array<string, mixed> $resource
+     */
+    private function clearMediaRefs(array $resource, int $entryId): void
+    {
+        if ($this->mediaRefs === null) {
+            return;
+        }
+        $this->mediaRefs->clearEntry((int) $resource['id'], $entryId);
     }
 
     /**

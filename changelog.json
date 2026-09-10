@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.58.0",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "ACL-scoped media library",
+      "changes": [
+        {
+          "type": "added",
+          "area": "media",
+          "text": "Индекс cms_media_refs + uploaded_by: при acl_enabled медиатека показывает только файлы доступных ресурсов и собственные orphan-аплоады"
+        },
+        {
+          "type": "changed",
+          "area": "media",
+          "text": "Delete / regenerate / edit медиа блокируются, если файл referenced ресурсом вне allowlist (shared A+B — только если оба доступны)"
+        },
+        {
+          "type": "added",
+          "area": "core",
+          "text": "ForbiddenException; MediaAccess / MediaAclScope / MediaRefService; backfill refs в PendingMigrations"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "docs/permissions.md — семантика ACL для секции media"
+        }
+      ]
+    },
+    {
       "version": "0.57.0",
       "date": "2026-09-10",
       "channel": "stable",

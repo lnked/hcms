@@ -37,6 +37,19 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 
 На ресурс: `canRead` / `canCreate` / `canUpdate` / `canDelete` + список табов (`overview`, `schema`, `data`, `settings`, `api`, `export`). Создание новых ресурсов / package import при включённом ACL запрещены.
 
+### Media library (ACL scope)
+
+Секция `media` по-прежнему включает/выключает MediaPage и `/admin/api/media*`. При `acl_enabled = 1` содержимое библиотеки **сужается** по resource grants:
+
+- видны файлы, на которые есть ссылка из доступных ресурсов (индекс `cms_media_refs`);
+- плюс orphan-аплоады текущего пользователя (`cms_media.uploaded_by`, ещё не привязанные к entry);
+- delete / regenerate / edit запрещены, если файл referenced ресурсом вне allowlist (shared A+B → только если оба доступны);
+- чужие orphan без `uploaded_by` (legacy) ACL-юзеру не показываются.
+
+Owner и `acl_enabled = 0` — вся библиотека как раньше. Публичный `GET /media/{id}` без auth не менялся.
+
+Миграция `014_cms_media_acl`: `uploaded_by`, таблица `cms_media_refs`; backfill при первом `PendingMigrations` после апдейта.
+
 ### Управление (только owner)
 
 ```http

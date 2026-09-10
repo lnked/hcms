@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Media;
 
+use Cms\Core\Exception\ForbiddenException;
+use Cms\Core\Exception\NotFoundException;
 use Cms\Core\Paths;
 use Cms\Database\Connection;
 use InvalidArgumentException;
@@ -145,6 +147,8 @@ HTACCESS;
     /** @var list<string>|null */
     private readonly ?array $allowedMimes;
 
+    private readonly MediaRefService $mediaRefs;
+
     /**
      * @param list<string>|null $allowedMimes null = default allowlist
      */
@@ -153,8 +157,15 @@ HTACCESS;
         private readonly Paths $paths,
         ?array $allowedMimes = null,
         private readonly ImageProcessor $images = new ImageProcessor(),
+        ?MediaRefService $refs = null,
     ) {
         $this->allowedMimes = $allowedMimes;
+        $this->mediaRefs = $refs ?? new MediaRefService($db);
+    }
+
+    private function refs(): MediaRefService
+    {
+        return $this->mediaRefs;
     }
 
     /**
@@ -168,18 +179,22 @@ HTACCESS;
     /**
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function page(int $page = 1, int $limit = 40): array
+    public function page(int $page = 1, int $limit = 40, ?MediaAclScope $scope = null): array
     {
         $page = max(1, $page);
         $limit = min(100, max(1, $limit));
+        $scope ??= MediaAclScope::unrestricted();
+        [$where, $params] = $this->aclWhere($scope);
         $count = $this->db->selectOne(
-            'SELECT COUNT(*) AS c FROM cms_media WHERE parent_id IS NULL AND source_id IS NULL',
+            'SELECT COUNT(*) AS c FROM cms_media WHERE ' . $where,
+            $params,
         );
         $total = $count === null ? 0 : (int) $count['c'];
         $offset = ($page - 1) * $limit;
         $rows = $this->db->select(
-            'SELECT * FROM cms_media WHERE parent_id IS NULL AND source_id IS NULL'
+            'SELECT * FROM cms_media WHERE ' . $where
             . ' ORDER BY id DESC LIMIT ' . $limit . ' OFFSET ' . $offset,
+            $params,
         );
 
         return [
@@ -196,11 +211,15 @@ HTACCESS;
     /**
      * @return array<string, mixed>
      */
-    public function get(int $id): array
+    public function get(int $id, ?MediaAclScope $scope = null): array
     {
         $row = $this->findRow($id);
         if ($row === null) {
-            throw new RuntimeException('Media not found', 404);
+            throw new NotFoundException('Media not found');
+        }
+        $scope ??= MediaAclScope::unrestricted();
+        if (!$this->refs()->isVisible($id, $scope)) {
+            throw new NotFoundException('Media not found');
         }
 
         return $this->serialize($row);
@@ -211,7 +230,7 @@ HTACCESS;
      * @param list<string>|null $allowedFormats field-level extensions (empty/null = no extra filter)
      * @return array<string, mixed>
      */
-    public function upload(array $file, ?array $allowedFormats = null): array
+    public function upload(array $file, ?array $allowedFormats = null, ?int $uploadedBy = null): array
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($error !== UPLOAD_ERR_OK) {
@@ -236,7 +255,7 @@ HTACCESS;
 
         $this->assertFormatsAllowed($mime, $name, $allowedFormats);
 
-        return $this->storeFromBytes($bytes, $name, $mime);
+        return $this->storeFromBytes($bytes, $name, $mime, null, null, null, $uploadedBy);
     }
 
     /**
@@ -258,8 +277,9 @@ HTACCESS;
         int $rotation = 0,
         array $positions = [],
         ?array $allowedFormats = null,
+        ?int $uploadedBy = null,
     ): array {
-        $original = $this->upload($file, $allowedFormats);
+        $original = $this->upload($file, $allowedFormats, $uploadedBy);
         $id = (int) $original['id'];
         if ($sizes === []) {
             return [
@@ -308,10 +328,12 @@ HTACCESS;
         int $rotation = 0,
         array $positions = [],
         array $overrides = [],
+        ?MediaAclScope $scope = null,
     ): array {
+        $this->assertMutable($mediaId, $scope);
         $row = $this->findRow($mediaId);
         if ($row === null) {
-            throw new RuntimeException('Media not found', 404);
+            throw new NotFoundException('Media not found');
         }
         if ($row['parent_id'] !== null) {
             throw new InvalidArgumentException('Cannot regenerate a variant; pass the original media id');
@@ -348,10 +370,12 @@ HTACCESS;
         array $sizes,
         array $positions = [],
         array $overrides = [],
+        ?MediaAclScope $scope = null,
     ): array {
+        $this->assertMutable($mediaId, $scope);
         $row = $this->findRow($mediaId);
         if ($row === null) {
-            throw new RuntimeException('Media not found', 404);
+            throw new NotFoundException('Media not found');
         }
         if ($row['parent_id'] !== null) {
             throw new InvalidArgumentException('Cannot edit a variant; pass the original media id');
@@ -363,7 +387,7 @@ HTACCESS;
         if ($sourceId !== $mediaId) {
             $row = $this->findRow($sourceId);
             if ($row === null) {
-                throw new RuntimeException('Source media not found', 404);
+                throw new NotFoundException('Source media not found');
             }
             $this->assertRaster($row);
         }
@@ -373,7 +397,7 @@ HTACCESS;
 
         if ($edit === null) {
             $overrides = array_intersect_key($overrides, array_flip(array_column($sizes, 'prefix')));
-            $result = $this->regenerateVariants($sourceId, $sizes, 0, $positions, $overrides);
+            $result = $this->regenerateVariants($sourceId, $sizes, 0, $positions, $overrides, $scope);
 
             return [
                 'id' => $sourceId,
@@ -456,6 +480,7 @@ HTACCESS;
         ?int $parentId = null,
         ?string $variantKey = null,
         ?int $sourceId = null,
+        ?int $uploadedBy = null,
     ): array {
         $size = strlen($bytes);
         if ($size <= 0 || $size > self::MAX_BYTES) {
@@ -490,10 +515,11 @@ HTACCESS;
             }
         }
 
+        $isLibraryRoot = $parentId === null && $sourceId === null;
         $now = date('Y-m-d H:i:s');
         $this->db->execute(
-            'INSERT INTO cms_media (parent_id, source_id, variant_key, disk_path, original_name, mime, size, width, height, created_at)
-             VALUES (:parent_id, :source_id, :variant_key, :disk_path, :original_name, :mime, :size, :width, :height, :created_at)',
+            'INSERT INTO cms_media (parent_id, source_id, variant_key, disk_path, original_name, mime, size, width, height, created_at, uploaded_by)
+             VALUES (:parent_id, :source_id, :variant_key, :disk_path, :original_name, :mime, :size, :width, :height, :created_at, :uploaded_by)',
             [
                 'parent_id' => $parentId,
                 'source_id' => $sourceId,
@@ -505,10 +531,11 @@ HTACCESS;
                 'width' => $width,
                 'height' => $height,
                 'created_at' => $now,
+                'uploaded_by' => $isLibraryRoot ? $uploadedBy : null,
             ],
         );
 
-        return $this->get((int) $this->db->lastInsertId());
+        return $this->getUnscoped((int) $this->db->lastInsertId());
     }
 
     /**
@@ -539,11 +566,18 @@ HTACCESS;
         ];
     }
 
-    public function delete(int $id): void
+    public function delete(int $id, ?MediaAclScope $scope = null): void
     {
         $row = $this->findRow($id);
         if ($row === null) {
-            throw new RuntimeException('Media not found', 404);
+            throw new NotFoundException('Media not found');
+        }
+        $scope ??= MediaAclScope::unrestricted();
+        if (!$this->refs()->isVisible($id, $scope)) {
+            throw new NotFoundException('Media not found');
+        }
+        if (!$this->refs()->canMutate($id, $scope)) {
+            throw new ForbiddenException('Media is used by a resource you cannot access');
         }
         $this->deleteChildren($id);
         $absolute = $this->paths->media() . '/' . $row['disk_path'];
@@ -875,6 +909,78 @@ HTACCESS;
     }
 
     /**
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function aclWhere(MediaAclScope $scope): array
+    {
+        $base = 'parent_id IS NULL AND source_id IS NULL';
+        if (!$scope->isRestricted()) {
+            return [$base, []];
+        }
+
+        $allowed = $scope->allowedResourceIds ?? [];
+        $params = [];
+        $parts = [];
+
+        if ($allowed !== []) {
+            $placeholders = [];
+            foreach ($allowed as $i => $resourceId) {
+                $key = 'acl_r' . $i;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $resourceId;
+            }
+            $parts[] = 'EXISTS (
+                SELECT 1 FROM cms_media_refs r
+                WHERE r.media_id = cms_media.id
+                  AND r.resource_id IN (' . implode(', ', $placeholders) . ')
+            )';
+        }
+
+        if ($scope->userId !== null) {
+            $params['acl_uid'] = $scope->userId;
+            $parts[] = '(
+                uploaded_by = :acl_uid
+                AND NOT EXISTS (SELECT 1 FROM cms_media_refs r2 WHERE r2.media_id = cms_media.id)
+            )';
+        }
+
+        if ($parts === []) {
+            return [$base . ' AND 1 = 0', []];
+        }
+
+        return [$base . ' AND (' . implode(' OR ', $parts) . ')', $params];
+    }
+
+    private function assertMutable(int $mediaId, ?MediaAclScope $scope): void
+    {
+        $scope ??= MediaAclScope::unrestricted();
+        if ($this->findRow($mediaId) === null) {
+            throw new NotFoundException('Media not found');
+        }
+        if (!$this->refs()->isVisible($mediaId, $scope)) {
+            throw new NotFoundException('Media not found');
+        }
+        if (!$this->refs()->canMutate($mediaId, $scope)) {
+            throw new ForbiddenException('Media is used by a resource you cannot access');
+        }
+    }
+
+    /**
+     * Internal read without ACL (variants / post-insert).
+     *
+     * @return array<string, mixed>
+     */
+    private function getUnscoped(int $id): array
+    {
+        $row = $this->findRow($id);
+        if ($row === null) {
+            throw new NotFoundException('Media not found');
+        }
+
+        return $this->serialize($row);
+    }
+
+    /**
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
@@ -894,6 +1000,7 @@ HTACCESS;
             'height' => $row['height'] === null ? null : (int) $row['height'],
             'url' => '/media/' . $id,
             'createdAt' => $row['created_at'],
+            'uploadedBy' => ($row['uploaded_by'] ?? null) === null ? null : (int) $row['uploaded_by'],
         ];
     }
 }
