@@ -319,9 +319,7 @@ export function FeatureFlagsPage() {
                       <TableCell>{flag.type}</TableCell>
                       <TableCell className={clsx(styles.mono)}>{previewValue(flag)}</TableCell>
                       <TableCell className={clsx(styles.mono)}>
-                        {flag.abTest && flag.type === 'boolean'
-                          ? `${flag.rolloutPercent}%`
-                          : '—'}
+                        {flag.abTest && flag.type === 'boolean' ? `${flag.rolloutPercent}%` : '—'}
                       </TableCell>
                       <TableCell>
                         <Switch
@@ -448,11 +446,7 @@ export function FeatureFlagsPage() {
               <Label>{t('flags.value')}</Label>
               {type === 'boolean' ? (
                 <>
-                  <Switch
-                    checked={boolValue}
-                    onCheckedChange={setBoolValue}
-                    disabled={abTest}
-                  />
+                  <Switch checked={boolValue} onCheckedChange={setBoolValue} disabled={abTest} />
                   {abTest ? <p className={clsx(styles.hint)}>{t('flags.abValueIgnored')}</p> : null}
                 </>
               ) : null}

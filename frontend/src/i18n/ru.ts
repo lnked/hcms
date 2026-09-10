@@ -922,7 +922,8 @@ export const ru: Record<MessageKey, string> = {
   'flags.rolloutPercent': 'Раскатка %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Передай ?subject=… или X-Flag-Subject. Без subject — случайно на каждый запрос.',
-  'flags.abValueIgnored': 'Статическое value игнорируется при A/B; публичный API отдаёт true/false по бакету.',
+  'flags.abValueIgnored':
+    'Статическое value игнорируется при A/B; публичный API отдаёт true/false по бакету.',
   'flags.description': 'Описание',
   'flags.deleteConfirm': 'Удалить флаг {key}?',
   'flags.invalidInt': 'Значение должно быть целым числом',

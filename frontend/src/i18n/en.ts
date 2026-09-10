@@ -920,7 +920,8 @@ export const en = {
   'flags.rolloutPercent': 'Rollout %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Pass ?subject=… or X-Flag-Subject. Without subject — random per request.',
-  'flags.abValueIgnored': 'Static value is ignored while A/B is on; public API returns true/false by bucket.',
+  'flags.abValueIgnored':
+    'Static value is ignored while A/B is on; public API returns true/false by bucket.',
   'flags.description': 'Description',
   'flags.deleteConfirm': 'Delete flag {key}?',
   'flags.invalidInt': 'Value must be an integer',
