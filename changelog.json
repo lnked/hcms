@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.58.2",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "OAuth connect button width",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Кнопки привязки Google/Telegram (и отвязки) на странице аккаунта — ширина по контенту, не на всю карточку"
+        }
+      ]
+    },
+    {
       "version": "0.58.1",
       "date": "2026-09-10",
       "channel": "stable",
