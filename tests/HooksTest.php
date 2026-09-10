@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Cms\Tests;
 
+use Cms\Database\Connection;
 use Cms\Hooks\HookClient;
 use Cms\Hooks\HookDeliveryRepository;
 use Cms\Hooks\HookRejectedException;
 use Cms\Hooks\InboundEndpointService;
 use Cms\Hooks\ResourceHookRepository;
 use Cms\Hooks\ResourceHookService;
-use Cms\Database\Connection;
 use Cms\Resources\ResourceRepository;
 use Cms\Security\HmacSignature;
 use PDO;

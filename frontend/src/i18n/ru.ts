@@ -853,7 +853,8 @@ export const ru: Record<MessageKey, string> = {
   'hooks.subtitle': 'Синхронные HTTP-handlers до/после create (HMAC).',
   'hooks.create': 'Создать hook',
   'hooks.listTitle': 'Hooks',
-  'hooks.listHint': 'before_create может изменить или отклонить payload; after_create — вернуть данные клиенту.',
+  'hooks.listHint':
+    'before_create может изменить или отклонить payload; after_create — вернуть данные клиенту.',
   'hooks.empty': 'Hooks пока нет.',
   'hooks.phase': 'Фаза',
   'hooks.url': 'URL',

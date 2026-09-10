@@ -153,7 +153,8 @@ export function InboundEndpointsPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api<void>(`/admin/api/inbound-endpoints/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) =>
+      api<void>(`/admin/api/inbound-endpoints/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
 
@@ -294,10 +295,18 @@ export function InboundEndpointsPage() {
                         <Button variant="outline" size="sm" onClick={() => openEdit(ep)}>
                           {t('common.edit')}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => testMutation.mutate(ep.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => testMutation.mutate(ep.id)}
+                        >
                           {t('inbound.test')}
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => toggleMutation.mutate(ep)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleMutation.mutate(ep)}
+                        >
                           {ep.enabled ? t('inbound.disable') : t('inbound.enable')}
                         </Button>
                         <Button
@@ -388,7 +397,12 @@ export function InboundEndpointsPage() {
             <div className={clsx(styles.stackXs)}>
               <div className={clsx(styles.fieldHeader)}>
                 <Label htmlFor="inbound-secret">{t('inbound.secret')}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setSecret(randomSecret())}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSecret(randomSecret())}
+                >
                   {t('inbound.regenerateSecret')}
                 </Button>
               </div>

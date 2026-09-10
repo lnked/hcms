@@ -851,7 +851,8 @@ export const en = {
   'hooks.subtitle': 'Sync HTTP handlers before/after create (HMAC-signed).',
   'hooks.create': 'Create hook',
   'hooks.listTitle': 'Hooks',
-  'hooks.listHint': 'before_create can mutate or reject; after_create can return data to the client.',
+  'hooks.listHint':
+    'before_create can mutate or reject; after_create can return data to the client.',
   'hooks.empty': 'No hooks yet.',
   'hooks.phase': 'Phase',
   'hooks.url': 'URL',
@@ -882,7 +883,8 @@ export const en = {
   'hooks.createdAt': 'Created',
 
   'inbound.title': 'Inbound endpoints',
-  'inbound.subtitle': 'Named public POST endpoints that forward to your handler (optional persist).',
+  'inbound.subtitle':
+    'Named public POST endpoints that forward to your handler (optional persist).',
   'inbound.create': 'Create endpoint',
   'inbound.listTitle': 'Inbound',
   'inbound.listHint': 'POST /api/inbound/{slug} → your targetUrl (HMAC).',

@@ -374,7 +374,12 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
             <div className={clsx(styles.stackXs)}>
               <div className={clsx(styles.fieldHeader)}>
                 <Label htmlFor="hook-secret">{t('hooks.secret')}</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setSecret(randomSecret())}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSecret(randomSecret())}
+                >
                   {t('hooks.regenerateSecret')}
                 </Button>
               </div>

@@ -449,7 +449,11 @@ const ok =
         ],
         links: [
           { label: 'Settings → Inbound', href: '/settings/inbound' },
-          { label: 'Full docs', href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md', external: true },
+          {
+            label: 'Full docs',
+            href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md',
+            external: true,
+          },
         ],
         samples: [
           {
@@ -1087,7 +1091,11 @@ const ok =
         ],
         links: [
           { label: 'Настройки → Inbound', href: '/settings/inbound' },
-          { label: 'Полная документация', href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md', external: true },
+          {
+            label: 'Полная документация',
+            href: 'https://github.com/lnked/hcms/blob/main/docs/hooks.md',
+            external: true,
+          },
         ],
         samples: [
           {
