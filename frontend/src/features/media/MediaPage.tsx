@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { LayoutGrid, Table2, Upload } from 'lucide-react'
+import { LayoutGrid, Sparkles, Table2, Upload } from 'lucide-react'
 import { MediaGridSkeleton, TableSkeleton } from '@/components/skeletons'
 import { EmptyState } from '@/components/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -385,9 +385,12 @@ export function MediaPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className={clsx(styles.cardIconBtn)}
+                          title={t('media.optimize')}
+                          aria-label={t('media.optimize')}
                           onClick={() => setOptimizeIds([item.id])}
                         >
-                          {t('media.optimize')}
+                          <Sparkles className={clsx(styles.cardIcon)} aria-hidden />
                         </Button>
                       ) : null}
                       <Button

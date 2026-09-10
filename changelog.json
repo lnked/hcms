@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.59.3",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Feature flags A/B UI + media optimize icon",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Feature flags: блок A/B в модалке create/edit сразу после Type; подсказка для не-boolean; скролл диалога"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Медиатека (карточки): Optimize → иконка Sparkles с aria-label"
+        }
+      ]
+    },
+    {
       "version": "0.59.2",
       "date": "2026-09-10",
       "channel": "stable",

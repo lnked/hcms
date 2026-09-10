@@ -292,6 +292,18 @@
   font-size: 11px;
 }
 
+.cardIconBtn {
+  height: var(--hcms-SPx7);
+  width: var(--hcms-SPx7);
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.cardIcon {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+}
+
 .colSelect {
   width: var(--hcms-SPx10);
 }

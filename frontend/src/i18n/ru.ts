@@ -920,6 +920,7 @@ export const ru: Record<MessageKey, string> = {
   'flags.abShort': 'A/B',
   'flags.abTest': 'A/B тест (процент раскатки)',
   'flags.abDocs': 'Как это работает',
+  'flags.abBooleanOnly': 'A/B доступен только для флагов типа boolean.',
   'flags.rolloutPercent': 'Раскатка %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Передай ?subject=… или X-Flag-Subject. Без subject — случайно на каждый запрос.',

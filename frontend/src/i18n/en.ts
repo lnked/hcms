@@ -918,6 +918,7 @@ export const en = {
   'flags.abShort': 'A/B',
   'flags.abTest': 'A/B test (percentage rollout)',
   'flags.abDocs': 'How it works',
+  'flags.abBooleanOnly': 'A/B is only available for boolean flags.',
   'flags.rolloutPercent': 'Rollout %',
   'flags.abHint':
     'Sticky bucket: crc32(flagKey + subject) % 100 < percent. Pass ?subject=… or X-Flag-Subject. Without subject — random per request.',

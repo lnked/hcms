@@ -72,6 +72,19 @@
 
 .dialog {
   max-width: 32rem;
+  max-height: min(92dvh, 48rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.abSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  padding: var(--hcms-SPx3);
+  border: 1px solid var(--hcms-color-border);
+  border-radius: var(--hcms-CRx3);
+  background-color: var(--hcms-color-muted);
 }
 
 .form {

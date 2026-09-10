@@ -439,6 +439,45 @@ export function FeatureFlagsPage() {
                 ))}
               </Select>
             </div>
+            <div className={clsx(styles.abSection)}>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={abTest}
+                  onCheckedChange={setAbTest}
+                  id="flag-ab"
+                  disabled={type !== 'boolean'}
+                />
+                <div className={clsx(styles.abLabelBlock)}>
+                  <Label htmlFor="flag-ab">{t('flags.abTest')}</Label>
+                  <Link
+                    to="/docs/feature-flags"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={clsx(styles.abDocsLink)}
+                  >
+                    {t('flags.abDocs')}
+                    <ExternalLink className={clsx(styles.abDocsIcon)} aria-hidden />
+                  </Link>
+                </div>
+              </div>
+              {type !== 'boolean' ? (
+                <p className={clsx(styles.hint)}>{t('flags.abBooleanOnly')}</p>
+              ) : null}
+              {type === 'boolean' && abTest ? (
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="flag-rollout">{t('flags.rolloutPercent')}</Label>
+                  <Input
+                    id="flag-rollout"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={rolloutPercent}
+                    onChange={(e) => setRolloutPercent(e.target.value)}
+                  />
+                  <p className={clsx(styles.hint)}>{t('flags.abHint')}</p>
+                </div>
+              ) : null}
+            </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.description')}</Label>
               <Input value={description} onChange={(e) => setDescription(e.target.value)} />
@@ -482,39 +521,6 @@ export function FeatureFlagsPage() {
                 </>
               ) : null}
             </div>
-            {type === 'boolean' ? (
-              <>
-                <div className={clsx(styles.switchRow)}>
-                  <Switch checked={abTest} onCheckedChange={setAbTest} id="flag-ab" />
-                  <div className={clsx(styles.abLabelBlock)}>
-                    <Label htmlFor="flag-ab">{t('flags.abTest')}</Label>
-                    <Link
-                      to="/docs/feature-flags"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={clsx(styles.abDocsLink)}
-                    >
-                      {t('flags.abDocs')}
-                      <ExternalLink className={clsx(styles.abDocsIcon)} aria-hidden />
-                    </Link>
-                  </div>
-                </div>
-                {abTest ? (
-                  <div className={clsx(styles.field)}>
-                    <Label htmlFor="flag-rollout">{t('flags.rolloutPercent')}</Label>
-                    <Input
-                      id="flag-rollout"
-                      type="number"
-                      min={0}
-                      max={100}
-                      value={rolloutPercent}
-                      onChange={(e) => setRolloutPercent(e.target.value)}
-                    />
-                    <p className={clsx(styles.hint)}>{t('flags.abHint')}</p>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
             {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
