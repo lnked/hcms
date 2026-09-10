@@ -272,17 +272,7 @@ final class InboundEndpointService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{
-     *   slug?: string,
-     *   label?: string,
-     *   target_url?: string,
-     *   secret?: string,
-     *   persist_resource_id?: int|null,
-     *   field_map?: array<string, string>|null,
-     *   enabled?: bool,
-     *   timeout_ms?: int,
-     *   on_failure?: string
-     * }|array{
+     * @return ($creating is true ? array{
      *   slug: string,
      *   label: string,
      *   target_url: string,
@@ -292,7 +282,17 @@ final class InboundEndpointService
      *   enabled: bool,
      *   timeout_ms: int,
      *   on_failure: string
-     * }
+     * } : array{
+     *   slug?: string,
+     *   label?: string,
+     *   target_url?: string,
+     *   secret?: string,
+     *   persist_resource_id?: int|null,
+     *   field_map?: array<string, string>|null,
+     *   enabled?: bool,
+     *   timeout_ms?: int,
+     *   on_failure?: string
+     * })
      */
     private function normalizeWrite(array $payload, bool $creating): array
     {

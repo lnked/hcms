@@ -255,7 +255,9 @@ final class ResourceHookService
         ]);
 
         if ($phase === 'before_create' && isset($decoded['payload']) && is_array($decoded['payload'])) {
-            $payload = $decoded['payload'];
+            /** @var array<string, mixed> $mutated */
+            $mutated = $decoded['payload'];
+            $payload = $mutated;
         }
 
         if ($phase === 'after_create' && isset($decoded['response']) && is_array($decoded['response'])) {
@@ -267,15 +269,7 @@ final class ResourceHookService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{
-     *   name?: string,
-     *   phase?: string,
-     *   url?: string,
-     *   secret?: string,
-     *   timeout_ms?: int,
-     *   on_failure?: string,
-     *   status?: string
-     * }|array{
+     * @return ($creating is true ? array{
      *   name: string,
      *   phase: string,
      *   url: string,
@@ -283,7 +277,15 @@ final class ResourceHookService
      *   timeout_ms: int,
      *   on_failure: string,
      *   status: string
-     * }
+     * } : array{
+     *   name?: string,
+     *   phase?: string,
+     *   url?: string,
+     *   secret?: string,
+     *   timeout_ms?: int,
+     *   on_failure?: string,
+     *   status?: string
+     * })
      */
     private function normalizeWrite(array $payload, bool $creating): array
     {
