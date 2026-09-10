@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.59.2",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Pretty media URLs + static warm-cache",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Media JSON: url (/media/{id}/{filename}) + fullUrl (APP_URL); pretty GET /media/{id}/{filename}"
+        },
+        {
+          "type": "added",
+          "area": "media",
+          "text": "Warm-cache: первый PHP-hit копирует raster/PDF/video в public/media/; дальше отдача статикой; invalidate при delete/optimize"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "docs/api.md, AGENTS.md, OpenAPI: url/fullUrl и схема warm-cache"
+        }
+      ]
+    },
+    {
       "version": "0.59.1",
       "date": "2026-09-10",
       "channel": "stable",
