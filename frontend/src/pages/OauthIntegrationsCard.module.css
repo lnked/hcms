@@ -82,3 +82,7 @@
   line-height: 1.25rem;
   color: var(--hcms-color-muted-foreground);
 }
+
+.save {
+  align-self: flex-start;
+}

@@ -185,7 +185,7 @@ export const ru: Record<MessageKey, string> = {
   'account.oauth.saved': 'Настройки соцвхода сохранены',
   'account.googleHint': 'Вход по verified email Google или явная привязка.',
   'account.telegramHint': 'Telegram нужно привязать здесь, прежде чем входить с логина.',
-  'account.providerOff': 'Сначала включите провайдера в блоке «Вход через соцсети» выше.',
+  'account.providerOff': 'Сначала включите провайдера в блоке «Вход через соцсети» ниже.',
   'account.providerOffAskAdmin':
     'Провайдер выключен. Попросите администратора включить его в Аккаунт → Вход через соцсети.',
   'account.linkedStatus': 'Привязан',

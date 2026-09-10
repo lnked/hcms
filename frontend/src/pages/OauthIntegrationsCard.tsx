@@ -240,7 +240,12 @@ export function OauthIntegrationsCard() {
             </div>
 
             {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
-            <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+            <Button
+              type="button"
+              className={clsx(styles.save)}
+              disabled={save.isPending}
+              onClick={() => save.mutate()}
+            >
               {save.isPending ? t('common.saving') : t('common.save')}
             </Button>
           </>

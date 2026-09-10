@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.58.4",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Account social login layout",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Блок «Вход через соцсети» на странице Аккаунт перенесён вниз (после Безопасности); кнопка Сохранить — ширина по контенту"
+        }
+      ]
+    },
+    {
       "version": "0.58.3",
       "date": "2026-09-10",
       "channel": "stable",

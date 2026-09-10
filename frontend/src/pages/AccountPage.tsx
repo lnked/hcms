@@ -97,8 +97,6 @@ export function AccountPage() {
         <p className={clsx(styles.subtitle)}>{t('account.description')}</p>
       </div>
 
-      {canManageOauth ? <OauthIntegrationsCard /> : null}
-
       {identities.isLoading ? (
         <FormBlockSkeleton fields={4} />
       ) : identities.isError ? (
@@ -188,6 +186,8 @@ export function AccountPage() {
       )}
 
       <SecurityCard />
+
+      {canManageOauth ? <OauthIntegrationsCard /> : null}
     </div>
   )
 }

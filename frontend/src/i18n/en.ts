@@ -182,7 +182,7 @@ export const en = {
   'account.oauth.saved': 'Social login settings saved',
   'account.googleHint': 'Match by verified Google email, or connect explicitly.',
   'account.telegramHint': 'Telegram must be linked here before it can be used on the login page.',
-  'account.providerOff': 'Enable this provider in Social login above first.',
+  'account.providerOff': 'Enable this provider in Social login below first.',
   'account.providerOffAskAdmin':
     'This provider is off. Ask an admin to enable it in Account → Social login.',
   'account.linkedStatus': 'Linked',
