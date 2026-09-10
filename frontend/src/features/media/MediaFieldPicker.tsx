@@ -26,6 +26,8 @@ interface MediaFieldPickerProps {
   multiple?: boolean
   formats?: string[]
   sizes?: ImageSizeConfig[]
+  /** Optional storage re-encode: webp | jpeg | png */
+  encodeFormat?: string | null
   isImage?: boolean
   onChange: (value: MediaFieldValue | MediaFieldValue[] | null) => void
 }
@@ -107,6 +109,7 @@ export function MediaFieldPicker({
   multiple = false,
   formats = [],
   sizes = [],
+  encodeFormat = null,
   isImage = false,
   onChange,
 }: MediaFieldPickerProps) {
@@ -140,8 +143,13 @@ export function MediaFieldPicker({
       const rotation = replaceIndex != null ? (items[replaceIndex]?.rotation ?? 0) : 0
       const extra: Record<string, string> = {}
       if (formats.length > 0) extra.formats = JSON.stringify(formats)
+      if (encodeFormat) extra.encodeFormat = encodeFormat
       if (sizes.length > 0) {
         extra.sizes = JSON.stringify(sizes)
+        extra.positions = JSON.stringify(positions)
+        extra.rotation = String(rotation)
+      } else if (encodeFormat) {
+        // Still send rotation/positions so the upload path stays consistent when only converting.
         extra.positions = JSON.stringify(positions)
         extra.rotation = String(rotation)
       }
@@ -200,6 +208,7 @@ export function MediaFieldPicker({
           rotation: nextItem.rotation,
           positions: nextItem.positions,
           overrides: nextItem.overrides ?? {},
+          ...(encodeFormat ? { encodeFormat } : {}),
         }),
       })
       nextItem.variants = result.variants ?? {}
@@ -232,6 +241,7 @@ export function MediaFieldPicker({
             sizes,
             positions,
             overrides: result.overrides,
+            ...(encodeFormat ? { encodeFormat } : {}),
           }),
         },
       )

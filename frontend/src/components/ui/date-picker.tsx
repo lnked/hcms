@@ -36,6 +36,7 @@ export interface DatePickerFieldProps {
   /** Applied to the control shell. */
   className?: string
   'aria-label'?: string
+  'aria-invalid'?: boolean
 }
 
 /**
@@ -51,6 +52,7 @@ export function DatePickerField({
   disabled,
   className,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
 }: DatePickerFieldProps) {
   const { locale, t } = useI18n()
   const calendarValue = toCalendarValue(value, granularity)
@@ -64,6 +66,7 @@ export function DatePickerField({
         shouldForceLeadingZeros
         isDisabled={disabled}
         aria-label={ariaLabel}
+        aria-invalid={ariaInvalid}
         onChange={(next) => onChange(fromCalendarValue(next, granularity))}
       >
         <Group id={id} className={cn(controlFieldClass, controlHugClass, styles.group, className)}>

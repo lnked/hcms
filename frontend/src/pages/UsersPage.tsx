@@ -29,7 +29,10 @@ import {
 } from '@/components/ui/table'
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import styles from './UsersPage.module.css'
 
 interface AdminUser {
@@ -55,7 +58,7 @@ export function UsersPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<(typeof ROLES)[number]>('admin')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [aclUser, setAclUser] = useState<AdminUser | null>(null)
   const [passwordUser, setPasswordUser] = useState<AdminUser | null>(null)
 
@@ -71,11 +74,12 @@ export function UsersPage() {
         body: JSON.stringify({ name, email, password, status: 'active', role }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setOpen(false)
       resetForm()
       void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.createFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const changeRole = useMutation({
@@ -108,7 +112,7 @@ export function UsersPage() {
     setEmail('')
     setPassword('')
     setRole('admin')
-    setError(null)
+    setFieldErrors({})
   }
 
   function roleLabel(roleValue: (typeof ROLES)[number]): string {
@@ -287,6 +291,7 @@ export function UsersPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('users.placeholderName')}
               />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.field)}>
               <Label htmlFor="user-email">{t('users.email')}</Label>
@@ -297,6 +302,7 @@ export function UsersPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@example.com"
               />
+              <FieldError messages={fieldErrors.email} />
             </div>
             <PasswordField
               id="user-password"
@@ -307,6 +313,7 @@ export function UsersPage() {
               allowGenerate
               showCopy
             />
+            <FieldError messages={fieldErrors.password} />
             <div className={clsx(styles.field)}>
               <Label htmlFor="user-role">{t('users.role')}</Label>
               <Select
@@ -320,8 +327,8 @@ export function UsersPage() {
                   </option>
                 ))}
               </Select>
+              <FieldError messages={fieldErrors.role} />
             </div>
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <Button
               className={clsx(styles.fullWidth)}
               disabled={create.isPending || !name || !email || password.length < 8}

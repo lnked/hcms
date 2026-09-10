@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Webhooks;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Resources\ResourceRepository;
-use InvalidArgumentException;
 use RuntimeException;
 
 final class WebhookService
@@ -144,7 +144,7 @@ final class WebhookService
         if ($creating || array_key_exists('name', $payload)) {
             $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 120) {
-                throw new InvalidArgumentException('name is required (max 120)');
+                throw ValidationFailedException::field('name', 'name is required (max 120)');
             }
             $out['name'] = $name;
         }
@@ -152,11 +152,11 @@ final class WebhookService
         if ($creating || array_key_exists('url', $payload)) {
             $url = isset($payload['url']) && is_string($payload['url']) ? trim($payload['url']) : '';
             if ($url === '' || mb_strlen($url) > 2048 || !filter_var($url, FILTER_VALIDATE_URL)) {
-                throw new InvalidArgumentException('url must be a valid URL');
+                throw ValidationFailedException::field('url', 'url must be a valid URL');
             }
             $scheme = strtolower((string) (parse_url($url, PHP_URL_SCHEME) ?? ''));
             if (!in_array($scheme, ['http', 'https'], true)) {
-                throw new InvalidArgumentException('url must be http or https');
+                throw ValidationFailedException::field('url', 'url must be http or https');
             }
             $out['url'] = $url;
         }
@@ -167,7 +167,7 @@ final class WebhookService
                 $secret = bin2hex(random_bytes(32));
             }
             if (strlen($secret) > 128) {
-                throw new InvalidArgumentException('secret max length is 128');
+                throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
@@ -181,7 +181,7 @@ final class WebhookService
             if (array_key_exists('resourceId', $payload) && $payload['resourceId'] !== null && $payload['resourceId'] !== '') {
                 $resourceId = (int) $payload['resourceId'];
                 if ($this->resources->find($resourceId) === null) {
-                    throw new InvalidArgumentException('Unknown resourceId: ' . $resourceId);
+                    throw ValidationFailedException::field('resourceId', 'Unknown resourceId: ' . $resourceId);
                 }
             }
             $out['resource_id'] = $resourceId;
@@ -192,7 +192,7 @@ final class WebhookService
                 ? trim($payload['status'])
                 : 'active';
             if (!in_array($status, ['active', 'disabled'], true)) {
-                throw new InvalidArgumentException('status must be active or disabled');
+                throw ValidationFailedException::field('status', 'status must be active or disabled');
             }
             $out['status'] = $status;
         }
@@ -207,12 +207,12 @@ final class WebhookService
     private function normalizeEvents(mixed $input): array
     {
         if (!is_array($input) || $input === []) {
-            throw new InvalidArgumentException('events must be a non-empty array');
+            throw ValidationFailedException::field('events', 'events must be a non-empty array');
         }
         $out = [];
         foreach ($input as $event) {
             if (!is_string($event) || !in_array($event, self::EVENTS, true)) {
-                throw new InvalidArgumentException('Invalid event: ' . (is_string($event) ? $event : gettype($event)));
+                throw ValidationFailedException::field('events', 'Invalid event: ' . (is_string($event) ? $event : gettype($event)));
             }
             $out[] = $event;
         }

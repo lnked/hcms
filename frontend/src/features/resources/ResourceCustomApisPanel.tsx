@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import {
@@ -78,7 +79,6 @@ export function ResourceCustomApisPanel({
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState<number | 'new' | null>(null)
   const [draft, setDraft] = useState<ResourceCustomApiInput>(() => emptyDraft())
-  const [message, setMessage] = useState<string | null>(null)
   const [allFields, setAllFields] = useState(true)
 
   const apisQuery = useQuery({
@@ -142,22 +142,20 @@ export function ResourceCustomApisPanel({
       })
     },
     onSuccess: () => {
-      setMessage(t('resources.customApis.saved'))
+      showSuccess(t('resources.customApis.saved'))
       setEditingId(null)
       void queryClient.invalidateQueries({ queryKey: ['resource-apis', resource.id] })
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const remove = useMutation({
     mutationFn: (id: number) =>
       api<void>(`/admin/api/resources/${resource.id}/apis/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      setMessage(t('resources.customApis.deleted'))
+      showSuccess(t('resources.customApis.deleted'))
       if (editingId !== 'new' && editingId !== null) setEditingId(null)
       void queryClient.invalidateQueries({ queryKey: ['resource-apis', resource.id] })
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const selectable = useMemo(() => projectableFields(fields), [fields])
@@ -178,7 +176,6 @@ export function ResourceCustomApisPanel({
     setEditingId('new')
     setDraft(emptyDraft())
     setAllFields(true)
-    setMessage(null)
   }
 
   function startEdit(apiItem: ResourceCustomApi) {
@@ -193,7 +190,6 @@ export function ResourceCustomApisPanel({
       settings: apiItem.settings,
     })
     setAllFields(apiItem.fields === null)
-    setMessage(null)
   }
 
   function patchJoin(index: number, partial: Partial<ResourceApiJoin>) {
@@ -210,7 +206,6 @@ export function ResourceCustomApisPanel({
         ? prev.methods.filter((m) => m !== method)
         : [...prev.methods, method],
     }))
-    setMessage(null)
   }
 
   function patchPublic(action: keyof ResourceApiSettings['public'], value: boolean | null) {
@@ -218,7 +213,6 @@ export function ResourceCustomApisPanel({
       ...prev,
       settings: { ...prev.settings, public: { ...prev.settings.public, [action]: value } },
     }))
-    setMessage(null)
   }
 
   function toggleField(name: string) {
@@ -571,7 +565,6 @@ export function ResourceCustomApisPanel({
           </div>
         ) : null}
 
-        {message ? <p className={styles.message}>{message}</p> : null}
       </CardContent>
     </Card>
   )

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Hooks;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Resources\ResourceRepository;
-use InvalidArgumentException;
 use RuntimeException;
 
 final class ResourceHookService
@@ -294,7 +294,7 @@ final class ResourceHookService
         if ($creating || array_key_exists('name', $payload)) {
             $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 120) {
-                throw new InvalidArgumentException('name is required (max 120)');
+                throw ValidationFailedException::field('name', 'name is required (max 120)');
             }
             $out['name'] = $name;
         }
@@ -302,7 +302,7 @@ final class ResourceHookService
         if ($creating || array_key_exists('phase', $payload)) {
             $phase = isset($payload['phase']) && is_string($payload['phase']) ? trim($payload['phase']) : '';
             if (!in_array($phase, self::PHASES, true)) {
-                throw new InvalidArgumentException('phase must be before_create or after_create');
+                throw ValidationFailedException::field('phase', 'phase must be before_create or after_create');
             }
             $out['phase'] = $phase;
         }
@@ -317,7 +317,7 @@ final class ResourceHookService
                 $secret = bin2hex(random_bytes(32));
             }
             if (strlen($secret) > 128) {
-                throw new InvalidArgumentException('secret max length is 128');
+                throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
@@ -325,7 +325,7 @@ final class ResourceHookService
         if ($creating || array_key_exists('timeoutMs', $payload)) {
             $timeout = isset($payload['timeoutMs']) ? (int) $payload['timeoutMs'] : 3000;
             if ($timeout < 100 || $timeout > 30000) {
-                throw new InvalidArgumentException('timeoutMs must be between 100 and 30000');
+                throw ValidationFailedException::field('timeoutMs', 'timeoutMs must be between 100 and 30000');
             }
             $out['timeout_ms'] = $timeout;
         }
@@ -335,7 +335,7 @@ final class ResourceHookService
                 ? trim($payload['onFailure'])
                 : 'reject';
             if (!in_array($onFailure, ['reject', 'continue'], true)) {
-                throw new InvalidArgumentException('onFailure must be reject or continue');
+                throw ValidationFailedException::field('onFailure', 'onFailure must be reject or continue');
             }
             $out['on_failure'] = $onFailure;
         }
@@ -345,7 +345,7 @@ final class ResourceHookService
                 ? trim($payload['status'])
                 : 'active';
             if (!in_array($status, ['active', 'disabled'], true)) {
-                throw new InvalidArgumentException('status must be active or disabled');
+                throw ValidationFailedException::field('status', 'status must be active or disabled');
             }
             $out['status'] = $status;
         }
@@ -357,11 +357,11 @@ final class ResourceHookService
     {
         $value = is_string($url) ? trim($url) : '';
         if ($value === '' || mb_strlen($value) > 2048 || !filter_var($value, FILTER_VALIDATE_URL)) {
-            throw new InvalidArgumentException('url must be a valid URL');
+            throw ValidationFailedException::field('url', 'url must be a valid URL');
         }
         $scheme = strtolower((string) (parse_url($value, PHP_URL_SCHEME) ?? ''));
         if (!in_array($scheme, ['http', 'https'], true)) {
-            throw new InvalidArgumentException('url must be http or https');
+            throw ValidationFailedException::field('url', 'url must be http or https');
         }
 
         return $value;

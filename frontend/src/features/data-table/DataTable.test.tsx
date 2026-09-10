@@ -28,7 +28,10 @@ describe('DataTable', () => {
         onDelete={onDelete}
       />,
     )
-    expect(screen.getByText('Hello')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Hello' })).toHaveAttribute(
+      'href',
+      '/resources/1/data/1',
+    )
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
       'href',
       '/resources/1/data/1',

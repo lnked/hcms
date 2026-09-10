@@ -8,6 +8,7 @@ use Cms\Core\Exception\ForbiddenException;
 use Cms\Core\Exception\NotFoundException;
 use Cms\Core\Paths;
 use Cms\Database\Connection;
+use Cms\Fields\Types\MediaFieldConfig;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -356,6 +357,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions user overrides keyed by prefix
      * @param list<string>|null $allowedFormats
+     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, warning: string|null, media: array<string, mixed>}
      */
     public function uploadWithTransforms(
@@ -365,30 +367,49 @@ HTACCESS;
         array $positions = [],
         ?array $allowedFormats = null,
         ?int $uploadedBy = null,
+        ?string $encodeFormat = null,
     ): array {
         $original = $this->upload($file, $allowedFormats, $uploadedBy);
         $id = (int) $original['id'];
+
+        $warning = null;
+        try {
+            $this->maybeReencode($id, $encodeFormat);
+        } catch (Throwable $e) {
+            $warning = $e->getMessage();
+        }
+
         if ($sizes === []) {
             return [
                 'id' => $id,
                 'rotation' => $rotation,
                 'positions' => $positions,
                 'variants' => [],
-                'warning' => null,
-                'media' => $original,
+                'warning' => $warning,
+                'media' => $this->get($id),
             ];
         }
 
         // GD work grows with the number of sizes; a slow disk should not abort mid-run.
         @set_time_limit(0);
 
-        $warning = null;
         $variants = [];
         try {
-            $this->assertRaster($original);
-            $variants = $this->generateVariants($id, $sizes, $rotation, $positions);
+            $row = $this->findRow($id);
+            if ($row === null) {
+                throw new RuntimeException('Media not found');
+            }
+            $this->assertRaster($row);
+            $variants = $this->generateVariants(
+                $id,
+                $sizes,
+                $rotation,
+                $positions,
+                [],
+                MediaFieldConfig::encodeFormatToMime($encodeFormat),
+            );
         } catch (Throwable $e) {
-            $warning = $e->getMessage();
+            $warning = $warning ?? $e->getMessage();
         }
 
         return [
@@ -407,6 +428,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
      * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
+     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
      */
     public function regenerateVariants(
@@ -416,6 +438,7 @@ HTACCESS;
         array $positions = [],
         array $overrides = [],
         ?MediaAclScope $scope = null,
+        ?string $encodeFormat = null,
     ): array {
         $this->assertMutable($mediaId, $scope);
         $row = $this->findRow($mediaId);
@@ -426,9 +449,19 @@ HTACCESS;
             throw new InvalidArgumentException('Cannot regenerate a variant; pass the original media id');
         }
         $this->assertRaster($row);
+        $this->maybeReencode($mediaId, $encodeFormat);
 
         $this->deleteChildren($mediaId);
-        $variants = $sizes === [] ? [] : $this->generateVariants($mediaId, $sizes, $rotation, $positions, $overrides);
+        $variants = $sizes === []
+            ? []
+            : $this->generateVariants(
+                $mediaId,
+                $sizes,
+                $rotation,
+                $positions,
+                $overrides,
+                MediaFieldConfig::encodeFormatToMime($encodeFormat),
+            );
 
         return [
             'id' => $mediaId,
@@ -449,6 +482,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
      * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
+     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, sourceId: int|null, edit: array<string, mixed>|null, rotation: int, positions: array<string, string>, overrides: array<string, mixed>, variants: array<string, int>, media: array<string, mixed>}
      */
     public function applyEdit(
@@ -458,6 +492,7 @@ HTACCESS;
         array $positions = [],
         array $overrides = [],
         ?MediaAclScope $scope = null,
+        ?string $encodeFormat = null,
     ): array {
         $this->assertMutable($mediaId, $scope);
         $row = $this->findRow($mediaId);
@@ -484,7 +519,15 @@ HTACCESS;
 
         if ($edit === null) {
             $overrides = array_intersect_key($overrides, array_flip(array_column($sizes, 'prefix')));
-            $result = $this->regenerateVariants($sourceId, $sizes, 0, $positions, $overrides, $scope);
+            $result = $this->regenerateVariants(
+                $sourceId,
+                $sizes,
+                0,
+                $positions,
+                $overrides,
+                $scope,
+                $encodeFormat,
+            );
 
             return [
                 'id' => $sourceId,
@@ -498,8 +541,13 @@ HTACCESS;
             ];
         }
 
+        $outputMime = MediaFieldConfig::encodeFormatToMime($encodeFormat) ?? (string) $row['mime'];
+        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+            throw new InvalidArgumentException('WebP encoding is not available on this server');
+        }
+
         $absolute = $this->absolutePath($row);
-        $baked = $this->images->bake($absolute, $edit, (string) $row['mime']);
+        $baked = $this->images->bake($absolute, $edit, $outputMime);
         $master = $this->storeFromBytes(
             $baked['bytes'],
             $this->editedName((string) $row['original_name']),
@@ -511,7 +559,9 @@ HTACCESS;
         $masterId = (int) $master['id'];
 
         $overrides = array_intersect_key($overrides, array_flip(array_column($sizes, 'prefix')));
-        $variants = $sizes === [] ? [] : $this->generateVariants($masterId, $sizes, 0, $positions, $overrides);
+        $variants = $sizes === []
+            ? []
+            : $this->generateVariants($masterId, $sizes, 0, $positions, $overrides, $outputMime);
 
         return [
             'id' => $masterId,
@@ -922,12 +972,14 @@ HTACCESS;
         int $rotation,
         array $positions,
         array $overrides = [],
+        ?string $outputMime = null,
     ): array {
         $row = $this->findRow($parentId);
         if ($row === null) {
             throw new RuntimeException('Media not found', 404);
         }
         $absolute = $this->absolutePath($row);
+        $mime = $outputMime ?? (string) $row['mime'];
 
         $variants = [];
         foreach ($sizes as $size) {
@@ -940,7 +992,7 @@ HTACCESS;
                 $size['width'],
                 $size['height'],
                 $position,
-                (string) $row['mime'],
+                $mime,
                 $overrides[$prefix]['crop'] ?? null,
             );
             $variantName = $prefix . '_' . (string) $row['original_name'];
@@ -955,6 +1007,39 @@ HTACCESS;
         }
 
         return $variants;
+    }
+
+    /**
+     * Re-encode the master in place when the field asks for a storage format.
+     *
+     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
+     */
+    private function maybeReencode(int $mediaId, ?string $encodeFormat): void
+    {
+        $outputMime = MediaFieldConfig::encodeFormatToMime($encodeFormat);
+        if ($outputMime === null) {
+            return;
+        }
+        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+            throw new InvalidArgumentException('WebP encoding is not available on this server');
+        }
+
+        $row = $this->findRow($mediaId);
+        if ($row === null) {
+            throw new NotFoundException('Media not found');
+        }
+        $this->assertRaster($row);
+
+        $currentMime = strtolower(trim(explode(';', (string) $row['mime'])[0]));
+        if ($currentMime === 'image/gif' || $currentMime === 'image/svg+xml') {
+            throw new InvalidArgumentException('GIF and SVG cannot be converted');
+        }
+        if ($currentMime === $outputMime) {
+            return;
+        }
+
+        $optimized = $this->images->optimize($this->absolutePath($row), 85, $outputMime);
+        $this->replaceFileContents($mediaId, $row, $optimized);
     }
 
     /**

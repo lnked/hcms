@@ -295,7 +295,7 @@ php scripts/seed-demo.php --url=http://127.0.0.1:8080 \
 | `slug` | `associatedWith` (имя исходного поля), `maxLength` (255) |
 | `enum` | `options: string[]` — **обязателен и непустой** |
 | `date`, `datetime` | `format` |
-| `image`, `file` | `multiple: bool`, `formats: string[]`, `sizes` (только image) |
+| `image`, `file` | `multiple: bool`, `formats: string[]` (accept), `encodeFormat: webp\|jpeg\|png\|null` (storage, только image), `sizes` (только image) |
 | `relation` | `cardinality: manyToOne\|oneToMany`, `relatedSlug`, `labelField` (`id`), `foreignKey` (обязателен для `oneToMany`) |
 | остальные | нет |
 

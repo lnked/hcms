@@ -55,11 +55,12 @@ final class MediaController
 
             $formats = $this->parseFormats($_POST['formats'] ?? null);
             $sizes = $this->parseSizes($_POST['sizes'] ?? null);
+            $encodeFormat = MediaFieldConfig::normalizeEncodeFormat($_POST['encodeFormat'] ?? null);
             $positions = MediaFieldConfig::normalizePositions($this->parseJsonObject($_POST['positions'] ?? null));
             $rotation = MediaFieldConfig::normalizeRotation($_POST['rotation'] ?? 0);
             $uploadedBy = $auth->userId();
 
-            if ($sizes !== []) {
+            if ($sizes !== [] || $encodeFormat !== null) {
                 $result = $this->media->uploadWithTransforms(
                     $file,
                     $sizes,
@@ -67,6 +68,7 @@ final class MediaController
                     $positions,
                     $formats,
                     $uploadedBy,
+                    $encodeFormat,
                 );
                 $this->audit->log(
                     $request,
@@ -112,6 +114,7 @@ final class MediaController
             $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
             $rotation = MediaFieldConfig::normalizeRotation($body['rotation'] ?? 0);
             $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
+            $encodeFormat = MediaFieldConfig::normalizeEncodeFormat($body['encodeFormat'] ?? null);
 
             $result = $this->media->regenerateVariants(
                 $id,
@@ -120,6 +123,7 @@ final class MediaController
                 $positions,
                 $overrides,
                 $this->scope($auth),
+                $encodeFormat,
             );
             $this->audit->log(
                 $request,
@@ -150,6 +154,7 @@ final class MediaController
             $sizes = MediaFieldConfig::normalizeSizes($body['sizes'] ?? []);
             $positions = MediaFieldConfig::normalizePositions($body['positions'] ?? []);
             $overrides = MediaFieldConfig::normalizeOverrides($body['overrides'] ?? []);
+            $encodeFormat = MediaFieldConfig::normalizeEncodeFormat($body['encodeFormat'] ?? null);
 
             $result = $this->media->applyEdit(
                 $id,
@@ -158,6 +163,7 @@ final class MediaController
                 $positions,
                 $overrides,
                 $this->scope($auth),
+                $encodeFormat,
             );
             $this->audit->log(
                 $request,

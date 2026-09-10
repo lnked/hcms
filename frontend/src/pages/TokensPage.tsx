@@ -27,7 +27,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import { copyToClipboard } from '@/lib/clipboard'
 import type { Resource } from '@/types/resource'
 import {
@@ -103,7 +106,7 @@ export function TokensPage() {
   const [createdToken, setCreatedToken] = useState<string | null>(null)
   const [tokenCopied, setTokenCopied] = useState(false)
   const tokenCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const isEdit = editingId !== null
 
@@ -154,11 +157,12 @@ export function TokensPage() {
         body: tokenPayload(),
       }),
     onSuccess: (data) => {
+      showSuccess(t('common.saved'))
       setCreatedToken(data.token)
-      setError(null)
+      setFieldErrors({})
       void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.createFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const update = useMutation({
@@ -168,12 +172,13 @@ export function TokensPage() {
         body: tokenPayload(),
       }),
     onSuccess: () => {
-      setError(null)
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       resetForm()
       void queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const revoke = useMutation({
@@ -199,7 +204,7 @@ export function TokensPage() {
     setCreatedToken(null)
     setTokenCopied(false)
     if (tokenCopyTimer.current) clearTimeout(tokenCopyTimer.current)
-    setError(null)
+    setFieldErrors({})
   }
 
   function openCreate() {
@@ -220,7 +225,7 @@ export function TokensPage() {
     setRequireOrigin(token.requireOrigin ?? false)
     setCreatedToken(null)
     setTokenCopied(false)
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -408,6 +413,7 @@ export function TokensPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('tokens.placeholderName')}
                 />
+                <FieldError messages={fieldErrors.name} />
               </div>
               <div className={clsx(styles.stackXs)}>
                 <Label htmlFor="token-expires">{t('tokens.expires')}</Label>
@@ -418,6 +424,7 @@ export function TokensPage() {
                   format="DD.MM.YYYY HH:mm"
                   onChange={(next) => setExpiresAt(next ?? '')}
                 />
+                <FieldError messages={fieldErrors.expiresAt} />
               </div>
 
               <div className={clsx(styles.stackSm)}>
@@ -499,8 +506,6 @@ export function TokensPage() {
                 onIpsTextChange={setIpsText}
                 onRequireOriginChange={setRequireOrigin}
               />
-
-              {error ? <p className={clsx(styles.error)}>{error}</p> : null}
               <div className={clsx(styles.actions)}>
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   {t('common.cancel')}

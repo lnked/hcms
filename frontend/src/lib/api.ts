@@ -94,8 +94,6 @@ function shouldToastApiError(path: string, status: number, code: string): boolea
   if (isAuthChallengePath(path)) return false
   if (path.includes('/admin/api/auth/me')) return false
   if (status === 401) return false
-  // Password form renders per-field errors inline.
-  if (status === 422 && path.includes('/admin/api/auth/password')) return false
   if (code === 'TOTP_REQUIRED' || code === 'CAPTCHA_REQUIRED') return false
   return true
 }

@@ -48,6 +48,15 @@
   white-space: nowrap;
 }
 
+.titleLink {
+  color: var(--hcms-color-primary);
+  text-decoration: none;
+}
+
+.titleLink:hover {
+  text-decoration: underline;
+}
+
 .alignRight {
   text-align: right;
 }

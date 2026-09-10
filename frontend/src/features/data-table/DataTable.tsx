@@ -15,7 +15,7 @@ import { useI18n, type MessageKey } from '@/i18n'
 import { formatDateValue } from '@/lib/dateFormat'
 import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
-import { resolveColumns } from './columns'
+import { resolveColumns, type TableColumn } from './columns'
 import { FilterControl } from './FilterControl'
 import { isFilterable } from './filters'
 import { MediaCell } from './MediaCell'
@@ -59,6 +59,7 @@ export function DataTable({
 }: DataTableProps) {
   const { t } = useI18n()
   const columns = resolveColumns(fields, layout)
+  const titleFieldName = primaryTitleField(columns)
 
   const selectionEnabled = typeof onSelectionChange === 'function'
   const selected = selectedIds ?? []
@@ -191,7 +192,13 @@ export function DataTable({
                     className={clsx(styles.truncate)}
                     style={{ maxWidth: col.width ?? '12rem' }}
                   >
-                    {formatCell(row[col.field.name], col.field, t)}
+                    {col.field.name === titleFieldName ? (
+                      <Link to={editHref(row)} className={clsx(styles.titleLink)}>
+                        {formatCell(row[col.field.name], col.field, t)}
+                      </Link>
+                    ) : (
+                      formatCell(row[col.field.name], col.field, t)
+                    )}
                   </TableCell>
                 ),
               )}
@@ -226,6 +233,20 @@ export function DataTable({
 
 function isMediaField(type: string): boolean {
   return type === 'image' || type === 'file'
+}
+
+const TITLE_FIELD_NAMES = ['title', 'name', 'label'] as const
+const TITLE_FIELD_TYPES = new Set(['string', 'slug', 'text', 'email', 'url'])
+
+/** Prefer title/name/label, else first visible text-like column. */
+function primaryTitleField(columns: TableColumn[]): string | null {
+  for (const preferred of TITLE_FIELD_NAMES) {
+    if (columns.some((col) => col.field.name === preferred)) return preferred
+  }
+  const first = columns.find(
+    (col) => TITLE_FIELD_TYPES.has(col.field.type) && !isManyToOneRelation(col.field),
+  )
+  return first?.field.name ?? null
 }
 
 function formatCell(

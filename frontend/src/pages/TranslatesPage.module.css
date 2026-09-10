@@ -34,9 +34,27 @@
   flex-wrap: wrap;
 }
 
+.keysCardHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--hcms-SPx3);
+  width: 100%;
+}
+
 .headerActions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+  width: 100%;
+}
+
+.headerActionsRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--hcms-SPx2);
 }
 
@@ -65,8 +83,16 @@
   font-size: 0.8125rem;
 }
 
+.alignRight {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
 .rowActions {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--hcms-SPx2);
 }
 

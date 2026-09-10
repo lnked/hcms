@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
 import styles from './CreateResourcePage.module.css'
 
@@ -29,7 +32,7 @@ export function CreateResourcePage() {
   const [description, setDescription] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
   const [endpointTouched, setEndpointTouched] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [pending, setPending] = useState(false)
 
   const autoSlug = useMemo(() => slugify(name || label), [name, label])
@@ -59,7 +62,7 @@ export function CreateResourcePage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
     setPending(true)
-    setError(null)
+    setFieldErrors({})
     try {
       const resource = await api<Resource>('/admin/api/resources', {
         method: 'POST',
@@ -71,9 +74,10 @@ export function CreateResourcePage() {
           description: description || undefined,
         }),
       })
+      showSuccess(t('common.saved'))
       navigate(`/resources/${resource.id}/overview`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('common.createFailed'))
+      setFieldErrors(apiFieldErrors(err))
     } finally {
       setPending(false)
     }
@@ -101,6 +105,7 @@ export function CreateResourcePage() {
                 placeholder="Articles"
                 required
               />
+              <FieldError messages={fieldErrors.label} />
             </div>
             <div className={styles.field}>
               <Label htmlFor="name">{t('common.name')}</Label>
@@ -110,6 +115,7 @@ export function CreateResourcePage() {
                 onChange={(e) => onNameChange(e.target.value)}
                 placeholder="articles"
               />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={styles.field}>
               <Label htmlFor="slug">{t('common.slug')}</Label>
@@ -126,6 +132,7 @@ export function CreateResourcePage() {
                 placeholder={autoSlug || 'articles'}
                 required
               />
+              <FieldError messages={fieldErrors.slug} />
             </div>
             <div className={styles.field}>
               <Label htmlFor="endpoint">{t('common.endpoint')}</Label>
@@ -139,6 +146,7 @@ export function CreateResourcePage() {
                 placeholder="/api/articles"
                 required
               />
+              <FieldError messages={fieldErrors.endpoint} />
             </div>
             <div className={styles.field}>
               <Label htmlFor="description">{t('common.description')}</Label>
@@ -147,8 +155,8 @@ export function CreateResourcePage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+              <FieldError messages={fieldErrors.description} />
             </div>
-            {error ? <p className={styles.error}>{error}</p> : null}
             <div className={styles.actions}>
               <Button type="submit" disabled={pending}>
                 {pending ? t('common.creating') : t('common.create')}

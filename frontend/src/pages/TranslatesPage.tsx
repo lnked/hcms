@@ -26,7 +26,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showError, showSuccess } from '@/lib/toast'
 import styles from './TranslatesPage.module.css'
 
 type Section = 'keys' | 'languages' | 'api'
@@ -63,7 +66,7 @@ export function TranslatesPage() {
     sectionParam === 'languages' || sectionParam === 'api' ? sectionParam : 'keys'
 
   const [search, setSearch] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [keyDialog, setKeyDialog] = useState(false)
   const [editingKey, setEditingKey] = useState<Translation | null>(null)
@@ -120,7 +123,7 @@ export function TranslatesPage() {
     const vals: Record<string, string> = {}
     for (const loc of enabledLocales) vals[loc.code] = ''
     setTrValues(vals)
-    setError(null)
+    setFieldErrors({})
     setKeyDialog(true)
   }
 
@@ -131,7 +134,7 @@ export function TranslatesPage() {
     const vals: Record<string, string> = {}
     for (const loc of enabledLocales) vals[loc.code] = row.values[loc.code] ?? ''
     setTrValues(vals)
-    setError(null)
+    setFieldErrors({})
     setKeyDialog(true)
   }
 
@@ -156,10 +159,11 @@ export function TranslatesPage() {
       })
     },
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setKeyDialog(false)
       void queryClient.invalidateQueries({ queryKey: ['translations'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const removeKey = useMutation({
@@ -174,12 +178,13 @@ export function TranslatesPage() {
         body: JSON.stringify({ code: localeCode, label: localeLabel }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setLocaleDialog(false)
       setLocaleCode('')
       setLocaleLabel('')
       void queryClient.invalidateQueries({ queryKey: ['locales'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const patchLocale = useMutation({
@@ -203,7 +208,7 @@ export function TranslatesPage() {
       void queryClient.invalidateQueries({ queryKey: ['locales'] })
       void queryClient.invalidateQueries({ queryKey: ['translations'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const saveSettings = useMutation({
@@ -213,10 +218,11 @@ export function TranslatesPage() {
         body: JSON.stringify({ enabled: apiEnabled, path: apiPath, requireToken }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setApiDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['translations-settings'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   async function exportJson() {
@@ -240,9 +246,11 @@ export function TranslatesPage() {
         body: JSON.stringify(parsed),
       })
       void queryClient.invalidateQueries({ queryKey: ['translations'] })
-      setError(null)
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('translates.invalidImport'))
+      const msg = err instanceof Error ? err.message : t('translates.invalidImport')
+      showError(msg)
     }
   }
 
@@ -272,35 +280,35 @@ export function TranslatesPage() {
         ))}
       </div>
 
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
-
       {section === 'keys' ? (
         <Card>
-          <CardHeader className={clsx(styles.cardHeader)}>
+          <CardHeader className={clsx(styles.keysCardHeader)}>
             <div>
               <CardTitle>{t('translates.keysTitle')}</CardTitle>
               <CardDescription>{t('translates.keysHint')}</CardDescription>
             </div>
             <div className={clsx(styles.headerActions)}>
-              <Button size="sm" variant="outline" onClick={() => void exportJson()}>
-                {t('translates.export')}
-              </Button>
-              <label className={clsx(styles.importLabel)}>
-                <input
-                  type="file"
-                  accept="application/json,.json"
-                  className={clsx(styles.hiddenInput)}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    e.target.value = ''
-                    if (f) void importJson(f)
-                  }}
-                />
-                <span className={clsx(styles.importBtn)}>{t('translates.import')}</span>
-              </label>
               <Button size="sm" onClick={openCreateKey}>
                 {t('translates.createKey')}
               </Button>
+              <div className={clsx(styles.headerActionsRight)}>
+                <label className={clsx(styles.importLabel)}>
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    className={clsx(styles.hiddenInput)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0]
+                      e.target.value = ''
+                      if (f) void importJson(f)
+                    }}
+                  />
+                  <span className={clsx(styles.importBtn)}>{t('translates.import')}</span>
+                </label>
+                <Button size="sm" variant="outline" onClick={() => void exportJson()}>
+                  {t('translates.export')}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -321,7 +329,7 @@ export function TranslatesPage() {
                     <TableHead>{t('translates.key')}</TableHead>
                     <TableHead>{t('translates.missing')}</TableHead>
                     <TableHead>{t('translates.updated')}</TableHead>
-                    <TableHead>{t('common.actions')}</TableHead>
+                    <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -343,7 +351,7 @@ export function TranslatesPage() {
                         )}
                       </TableCell>
                       <TableCell>{row.updatedAt}</TableCell>
-                      <TableCell>
+                      <TableCell className={clsx(styles.alignRight)}>
                         <div className={clsx(styles.rowActions)}>
                           <Button size="sm" variant="outline" onClick={() => openEditKey(row)}>
                             {t('common.edit')}
@@ -392,7 +400,7 @@ export function TranslatesPage() {
                     <TableHead>{t('common.name')}</TableHead>
                     <TableHead>{t('translates.enabled')}</TableHead>
                     <TableHead>{t('translates.default')}</TableHead>
-                    <TableHead>{t('common.actions')}</TableHead>
+                    <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -422,21 +430,23 @@ export function TranslatesPage() {
                           </Button>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={clsx(styles.alignRight)}>
                         {!loc.isDefault ? (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              if (
-                                confirm(t('translates.deleteLocaleConfirm', { code: loc.code }))
-                              ) {
-                                removeLocale.mutate(loc.code)
-                              }
-                            }}
-                          >
-                            {t('common.delete')}
-                          </Button>
+                          <div className={clsx(styles.rowActions)}>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                if (
+                                  confirm(t('translates.deleteLocaleConfirm', { code: loc.code }))
+                                ) {
+                                  removeLocale.mutate(loc.code)
+                                }
+                              }}
+                            >
+                              {t('common.delete')}
+                            </Button>
+                          </div>
                         ) : null}
                       </TableCell>
                     </TableRow>
@@ -470,6 +480,7 @@ export function TranslatesPage() {
                 value={apiPath}
                 onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
               />
+              <FieldError messages={fieldErrors.path} />
             </div>
             <div className={clsx(styles.switchRow)}>
               <Switch
@@ -509,10 +520,12 @@ export function TranslatesPage() {
                 onChange={(e) => setTrKey(e.target.value)}
                 placeholder="amount.title"
               />
+              <FieldError messages={fieldErrors.key} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.description')}</Label>
               <Input value={trDesc} onChange={(e) => setTrDesc(e.target.value)} />
+              <FieldError messages={fieldErrors.description} />
             </div>
             {enabledLocales.map((loc) => (
               <div key={loc.code} className={clsx(styles.field)}>
@@ -525,7 +538,6 @@ export function TranslatesPage() {
                 />
               </div>
             ))}
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setKeyDialog(false)}>
                 {t('common.cancel')}
@@ -551,6 +563,7 @@ export function TranslatesPage() {
                 onChange={(e) => setLocaleCode(e.target.value)}
                 placeholder="de"
               />
+              <FieldError messages={fieldErrors.code} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('common.name')}</Label>
@@ -559,6 +572,7 @@ export function TranslatesPage() {
                 onChange={(e) => setLocaleLabel(e.target.value)}
                 placeholder="Deutsch"
               />
+              <FieldError messages={fieldErrors.label} />
             </div>
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setLocaleDialog(false)}>

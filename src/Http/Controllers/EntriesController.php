@@ -9,6 +9,7 @@ use Cms\Auth\AuthContext;
 use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryService;
 use Cms\Core\Exception\HttpException;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Hooks\RequestMeta;
 use Cms\Http\Request;
 use Cms\Http\Response;
@@ -34,6 +35,8 @@ final class EntriesController
         unset($auth);
         try {
             return Response::json($this->entries->list($resourceId, $request->query));
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -73,6 +76,8 @@ final class EntriesController
             }
 
             return Response::data($this->entries->relationLabels($resourceId, $field, $ids));
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -103,6 +108,8 @@ final class EntriesController
             ], $resourceId);
 
             return Response::data($entry, 201);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -135,6 +142,8 @@ final class EntriesController
             ], $resourceId);
 
             return Response::data($entry);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -221,6 +230,8 @@ final class EntriesController
             );
 
             return Response::data(['deleted' => $deleted]);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -274,6 +285,8 @@ final class EntriesController
             ], $resourceId);
 
             return Response::data($entry);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -306,6 +319,8 @@ final class EntriesController
             return Response::text($result['body'], 200, $result['contentType'])->withHeaders([
                 'Content-Disposition' => 'attachment; filename="' . $result['filename'] . '"',
             ]);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -336,6 +351,8 @@ final class EntriesController
             );
 
             return Response::data($result);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {

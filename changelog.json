@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.60.2",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Form field errors + image encodeFormat",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Save-формы: ошибки полей под инпутом (не в футере); success/error через toast; shared FieldError + FormRenderer.errors"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "ValidationFailedException / PayloadValidator / inbound·webhooks·hooks: 422 с error.fields по ключам полей"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "image.encodeFormat (webp|jpeg|png): конвертация при сохранении медиа; Schema Builder UI"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "DataTable: title/name/label (или первая text-колонка) — кликабельная ссылка на редактирование записи"
+        }
+      ]
+    },
+    {
       "version": "0.60.1",
       "date": "2026-09-11",
       "channel": "stable",

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Hooks;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Resources\ResourceRepository;
-use InvalidArgumentException;
 use RuntimeException;
 
 final class InboundEndpointService
@@ -301,7 +301,7 @@ final class InboundEndpointService
         if ($creating || array_key_exists('slug', $payload)) {
             $slug = isset($payload['slug']) && is_string($payload['slug']) ? trim($payload['slug']) : '';
             if ($slug === '' || preg_match(self::SLUG_PATTERN, $slug) !== 1) {
-                throw new InvalidArgumentException('slug must match ^[a-z][a-z0-9_-]{0,62}$');
+                throw ValidationFailedException::field('slug', 'slug must match ^[a-z][a-z0-9_-]{0,62}$');
             }
             $out['slug'] = $slug;
         }
@@ -309,7 +309,7 @@ final class InboundEndpointService
         if ($creating || array_key_exists('label', $payload)) {
             $label = isset($payload['label']) && is_string($payload['label']) ? trim($payload['label']) : '';
             if ($label === '' || mb_strlen($label) > 120) {
-                throw new InvalidArgumentException('label is required (max 120)');
+                throw ValidationFailedException::field('label', 'label is required (max 120)');
             }
             $out['label'] = $label;
         }
@@ -324,7 +324,7 @@ final class InboundEndpointService
                 $secret = bin2hex(random_bytes(32));
             }
             if (strlen($secret) > 128) {
-                throw new InvalidArgumentException('secret max length is 128');
+                throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
@@ -334,7 +334,10 @@ final class InboundEndpointService
             if ($payload['persistResourceId'] !== null && $payload['persistResourceId'] !== '') {
                 $persistId = (int) $payload['persistResourceId'];
                 if ($this->resources->find($persistId) === null) {
-                    throw new InvalidArgumentException('Unknown persistResourceId: ' . $persistId);
+                    throw ValidationFailedException::field(
+                        'persistResourceId',
+                        'Unknown persistResourceId: ' . $persistId,
+                    );
                 }
             }
             $out['persist_resource_id'] = $persistId;
@@ -351,7 +354,7 @@ final class InboundEndpointService
         if ($creating || array_key_exists('timeoutMs', $payload)) {
             $timeout = isset($payload['timeoutMs']) ? (int) $payload['timeoutMs'] : 5000;
             if ($timeout < 100 || $timeout > 30000) {
-                throw new InvalidArgumentException('timeoutMs must be between 100 and 30000');
+                throw ValidationFailedException::field('timeoutMs', 'timeoutMs must be between 100 and 30000');
             }
             $out['timeout_ms'] = $timeout;
         }
@@ -361,7 +364,7 @@ final class InboundEndpointService
                 ? trim($payload['onFailure'])
                 : 'reject';
             if (!in_array($onFailure, ['reject', 'continue'], true)) {
-                throw new InvalidArgumentException('onFailure must be reject or continue');
+                throw ValidationFailedException::field('onFailure', 'onFailure must be reject or continue');
             }
             $out['on_failure'] = $onFailure;
         }
@@ -373,7 +376,7 @@ final class InboundEndpointService
     {
         $existing = $this->endpoints->findBySlug($slug);
         if ($existing !== null && ($exceptId === null || (int) $existing['id'] !== $exceptId)) {
-            throw new InvalidArgumentException('slug already taken');
+            throw ValidationFailedException::field('slug', 'slug already taken');
         }
     }
 
@@ -381,11 +384,11 @@ final class InboundEndpointService
     {
         $value = is_string($url) ? trim($url) : '';
         if ($value === '' || mb_strlen($value) > 2048 || !filter_var($value, FILTER_VALIDATE_URL)) {
-            throw new InvalidArgumentException('targetUrl must be a valid URL');
+            throw ValidationFailedException::field('targetUrl', 'targetUrl must be a valid URL');
         }
         $scheme = strtolower((string) (parse_url($value, PHP_URL_SCHEME) ?? ''));
         if (!in_array($scheme, ['http', 'https'], true)) {
-            throw new InvalidArgumentException('targetUrl must be http or https');
+            throw ValidationFailedException::field('targetUrl', 'targetUrl must be http or https');
         }
 
         return $value;
@@ -400,12 +403,15 @@ final class InboundEndpointService
             return null;
         }
         if (!is_array($input)) {
-            throw new InvalidArgumentException('fieldMap must be an object of string→string');
+            throw ValidationFailedException::field('fieldMap', 'fieldMap must be an object of string→string');
         }
         $out = [];
         foreach ($input as $from => $to) {
             if (!is_string($from) || !is_string($to) || $from === '' || $to === '') {
-                throw new InvalidArgumentException('fieldMap keys and values must be non-empty strings');
+                throw ValidationFailedException::field(
+                    'fieldMap',
+                    'fieldMap keys and values must be non-empty strings',
+                );
             }
             $out[$from] = $to;
         }

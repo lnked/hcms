@@ -82,7 +82,7 @@ function defaultConfig(type: FieldTypeName): Record<string, unknown> {
     case 'string':
       return { maxLength: 255 }
     case 'image':
-      return { multiple: false, formats: [], sizes: [] }
+      return { multiple: false, formats: [], encodeFormat: null, sizes: [] }
     case 'file':
       return { multiple: false, formats: [] }
     case 'date':

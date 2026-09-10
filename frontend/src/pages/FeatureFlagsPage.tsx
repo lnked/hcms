@@ -28,7 +28,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import styles from './FeatureFlagsPage.module.css'
 
 type FlagType = 'boolean' | 'integer' | 'string' | 'object'
@@ -71,7 +74,7 @@ export function FeatureFlagsPage() {
   const [typeFilter, setTypeFilter] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<FeatureFlag | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState('')
   const [key, setKey] = useState('')
@@ -122,7 +125,7 @@ export function FeatureFlagsPage() {
     setEnabled(true)
     setAbTest(false)
     setRolloutPercent('50')
-    setError(null)
+    setFieldErrors({})
     setDialogOpen(true)
   }
 
@@ -136,7 +139,7 @@ export function FeatureFlagsPage() {
     setAbTest(Boolean(flag.abTest))
     setRolloutPercent(String(flag.rolloutPercent ?? 50))
     setJsonError(null)
-    setError(null)
+    setFieldErrors({})
     if (flag.type === 'boolean') setBoolValue(Boolean(flag.value))
     if (flag.type === 'integer') setIntValue(String(flag.value))
     if (flag.type === 'string') setStringValue(String(flag.value ?? ''))
@@ -199,10 +202,11 @@ export function FeatureFlagsPage() {
       })
     },
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setDialogOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['feature-flags'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const toggleEnabled = useMutation({
@@ -226,11 +230,12 @@ export function FeatureFlagsPage() {
         body: JSON.stringify({ enabled: apiEnabled, path: apiPath, requireToken }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setApiDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['feature-flags-settings'] })
-      setError(null)
+      setFieldErrors({})
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const setSection = (next: Section) => {
@@ -265,8 +270,6 @@ export function FeatureFlagsPage() {
           {t('flags.tabApi')}
         </Button>
       </div>
-
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
       {section === 'flags' ? (
         <Card>
@@ -309,7 +312,7 @@ export function FeatureFlagsPage() {
                     <TableHead>{t('flags.value')}</TableHead>
                     <TableHead>{t('flags.abShort')}</TableHead>
                     <TableHead>{t('flags.enabled')}</TableHead>
-                    <TableHead>{t('common.actions')}</TableHead>
+                    <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -328,7 +331,7 @@ export function FeatureFlagsPage() {
                           onCheckedChange={() => toggleEnabled.mutate(flag)}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className={clsx(styles.alignRight)}>
                         <div className={clsx(styles.rowActions)}>
                           <Button size="sm" variant="outline" onClick={() => openEdit(flag)}>
                             {t('common.edit')}
@@ -375,6 +378,7 @@ export function FeatureFlagsPage() {
                 value={apiPath}
                 onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
               />
+              <FieldError messages={fieldErrors.path} />
             </div>
             <div className={clsx(styles.switchRow)}>
               <Switch
@@ -411,6 +415,7 @@ export function FeatureFlagsPage() {
             <div className={clsx(styles.field)}>
               <Label>{t('flags.name')}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.key')}</Label>
@@ -420,6 +425,7 @@ export function FeatureFlagsPage() {
                 onChange={(e) => setKey(e.target.value)}
                 placeholder="enabledNews"
               />
+              <FieldError messages={fieldErrors.key} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.type')}</Label>
@@ -521,7 +527,6 @@ export function FeatureFlagsPage() {
                 </>
               ) : null}
             </div>
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 {t('common.cancel')}

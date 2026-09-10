@@ -25,7 +25,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
 import styles from './WebhooksPage.module.css'
 
@@ -81,7 +84,7 @@ export function WebhooksPage() {
   const [events, setEvents] = useState<WebhookEvent[]>(['entry.created'])
   const [resourceId, setResourceId] = useState<number | null>(null)
   const [status, setStatus] = useState<'active' | 'disabled'>('active')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [testResult, setTestResult] = useState<string | null>(null)
 
   const isEdit = editingId !== null
@@ -122,13 +125,14 @@ export function WebhooksPage() {
         }),
       }),
     onSuccess: (data) => {
-      setError(null)
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       resetForm()
       setSelectedId(data.id)
       void queryClient.invalidateQueries({ queryKey: ['webhooks'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.createFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const update = useMutation({
@@ -145,12 +149,13 @@ export function WebhooksPage() {
         }),
       }),
     onSuccess: () => {
-      setError(null)
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       resetForm()
       void queryClient.invalidateQueries({ queryKey: ['webhooks'] })
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const remove = useMutation({
@@ -201,7 +206,7 @@ export function WebhooksPage() {
     setEvents(['entry.created'])
     setResourceId(null)
     setStatus('active')
-    setError(null)
+    setFieldErrors({})
   }
 
   function openCreate() {
@@ -222,7 +227,7 @@ export function WebhooksPage() {
     )
     setResourceId(hook.resourceId)
     setStatus(hook.status)
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -418,6 +423,7 @@ export function WebhooksPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('webhooks.placeholderName')}
               />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-url">{t('webhooks.url')}</Label>
@@ -427,6 +433,7 @@ export function WebhooksPage() {
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com/hooks/hcms"
               />
+              <FieldError messages={fieldErrors.url} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <div className={clsx(styles.fieldHeader)}>
@@ -448,6 +455,7 @@ export function WebhooksPage() {
                 onChange={(e) => setSecret(e.target.value)}
                 placeholder={isEdit ? t('webhooks.secretKeep') : undefined}
               />
+              <FieldError messages={fieldErrors.secret} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label>{t('webhooks.events')}</Label>
@@ -463,6 +471,7 @@ export function WebhooksPage() {
                   </label>
                 ))}
               </div>
+              <FieldError messages={fieldErrors.events} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-resource">{t('webhooks.resource')}</Label>
@@ -481,6 +490,7 @@ export function WebhooksPage() {
                   </option>
                 ))}
               </Select>
+              <FieldError messages={fieldErrors.resourceId} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-status">{t('common.status')}</Label>
@@ -492,9 +502,8 @@ export function WebhooksPage() {
                 <option value="active">{t('webhooks.active')}</option>
                 <option value="disabled">{t('webhooks.disabled')}</option>
               </Select>
+              <FieldError messages={fieldErrors.status} />
             </div>
-
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}

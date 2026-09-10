@@ -27,6 +27,9 @@ final class MediaFieldConfig
     /** @var list<string> */
     public const IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
+    /** Optional storage re-encode targets (not the upload accept-list). */
+    public const ENCODE_FORMATS = ['webp', 'jpeg', 'png'];
+
     /**
      * @param list<mixed> $formats
      * @param list<string> $allowed
@@ -53,6 +56,43 @@ final class MediaFieldConfig
         }
 
         return array_keys($out);
+    }
+
+    /**
+     * Optional convert-on-store format. Empty / null / "keep" = leave source encoding.
+     *
+     * @return 'webp'|'jpeg'|'png'|null
+     */
+    public static function normalizeEncodeFormat(mixed $format): ?string
+    {
+        if ($format === null || $format === '') {
+            return null;
+        }
+        if (!is_string($format)) {
+            throw new InvalidArgumentException('encodeFormat must be a string');
+        }
+        $normalized = strtolower(trim($format));
+        if ($normalized === '' || $normalized === 'keep') {
+            return null;
+        }
+        if ($normalized === 'jpg') {
+            $normalized = 'jpeg';
+        }
+        if (!in_array($normalized, self::ENCODE_FORMATS, true)) {
+            throw new InvalidArgumentException('encodeFormat must be webp, jpeg, png, or empty');
+        }
+
+        return $normalized;
+    }
+
+    public static function encodeFormatToMime(?string $format): ?string
+    {
+        return match ($format) {
+            'webp' => 'image/webp',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            default => null,
+        };
     }
 
     /**

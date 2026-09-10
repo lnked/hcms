@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { useI18n, type Locale } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { ApiError, clearToken, installApi } from '@/lib/api'
+import { normalizeFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import type { InstallStatus } from '@/types/system'
 import styles from './InstallPage.module.css'
 
@@ -16,18 +18,6 @@ const stepKeys = [
   'install.step.application',
   'install.step.administrator',
 ] as const
-
-type FieldErrors = Partial<Record<string, string>>
-
-function firstMessage(value: string[] | undefined): string | undefined {
-  return value?.[0]
-}
-
-function FieldError({ errors, id }: { errors: FieldErrors; id: string }) {
-  const msg = errors[id]
-  if (!msg) return null
-  return <p className={styles.fieldError}>{msg}</p>
-}
 
 export function InstallPage() {
   const { t, locale, setLocale } = useI18n()
@@ -86,55 +76,55 @@ export function InstallPage() {
 
   function validateDatabase(): boolean {
     const errors: FieldErrors = {}
-    if (!db.host.trim()) errors.host = t('install.validation.hostRequired')
+    if (!db.host.trim()) errors.host = [t('install.validation.hostRequired')]
     if (!Number.isFinite(db.port) || db.port < 1 || db.port > 65535) {
-      errors.port = t('install.validation.portInvalid')
+      errors.port = [t('install.validation.portInvalid')]
     }
-    if (!db.name.trim()) errors.name = t('install.validation.dbNameRequired')
-    if (!db.user.trim()) errors.user = t('install.validation.userRequired')
+    if (!db.name.trim()) errors.name = [t('install.validation.dbNameRequired')]
+    if (!db.user.trim()) errors.user = [t('install.validation.userRequired')]
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   function validateApplication(): boolean {
     const errors: FieldErrors = {}
-    if (!app.name.trim()) errors.name = t('install.validation.appNameRequired')
+    if (!app.name.trim()) errors.name = [t('install.validation.appNameRequired')]
     const url = app.url.trim()
     if (!url) {
-      errors.url = t('install.validation.urlRequired')
+      errors.url = [t('install.validation.urlRequired')]
     } else {
       try {
         const parsed = new URL(url)
         if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-          errors.url = t('install.validation.urlInvalid')
+          errors.url = [t('install.validation.urlInvalid')]
         }
       } catch {
-        errors.url = t('install.validation.urlInvalid')
+        errors.url = [t('install.validation.urlInvalid')]
       }
     }
-    if (!app.timezone.trim()) errors.timezone = t('install.validation.timezoneRequired')
-    if (!app.publicDir.trim()) errors.publicDir = t('install.validation.publicDirRequired')
+    if (!app.timezone.trim()) errors.timezone = [t('install.validation.timezoneRequired')]
+    if (!app.publicDir.trim()) errors.publicDir = [t('install.validation.publicDirRequired')]
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
 
   function validateAdministrator(): boolean {
     const errors: FieldErrors = {}
-    if (!admin.name.trim()) errors.name = t('install.validation.nameRequired')
+    if (!admin.name.trim()) errors.name = [t('install.validation.nameRequired')]
     if (!admin.email.trim()) {
-      errors.email = t('install.validation.emailRequired')
+      errors.email = [t('install.validation.emailRequired')]
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(admin.email.trim())) {
-      errors.email = t('install.validation.emailInvalid')
+      errors.email = [t('install.validation.emailInvalid')]
     }
     if (!admin.password) {
-      errors.password = t('install.validation.passwordRequired')
+      errors.password = [t('install.validation.passwordRequired')]
     } else if (admin.password.length < 8) {
-      errors.password = t('install.validation.passwordMin')
+      errors.password = [t('install.validation.passwordMin')]
     }
     if (!admin.passwordConfirm) {
-      errors.passwordConfirm = t('install.validation.passwordConfirmRequired')
+      errors.passwordConfirm = [t('install.validation.passwordConfirmRequired')]
     } else if (admin.password !== admin.passwordConfirm) {
-      errors.passwordConfirm = t('install.validation.passwordMismatch')
+      errors.passwordConfirm = [t('install.validation.passwordMismatch')]
     }
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -187,12 +177,7 @@ export function InstallPage() {
       setDone(true)
     } catch (err) {
       if (err instanceof ApiError && Object.keys(err.fields).length > 0) {
-        const next: FieldErrors = {}
-        for (const [key, messages] of Object.entries(err.fields)) {
-          const msg = firstMessage(messages)
-          if (msg) next[key] = msg
-        }
-        setFieldErrors(next)
+        setFieldErrors(normalizeFieldErrors(err.fields))
         setMessage(null)
         return
       }
@@ -280,7 +265,7 @@ export function InstallPage() {
                   <Input
                     type={key === 'password' ? 'password' : 'text'}
                     value={String(db[key])}
-                    aria-invalid={Boolean(fieldErrors[key])}
+                    aria-invalid={Boolean(fieldErrors[key]?.length)}
                     onChange={(e) => {
                       clearError(key)
                       setDb((prev) => ({
@@ -289,7 +274,7 @@ export function InstallPage() {
                       }))
                     }}
                   />
-                  <FieldError errors={fieldErrors} id={key} />
+                  <FieldError messages={fieldErrors[key]} />
                 </div>
               ))}
               <div className={styles.actions}>
@@ -316,37 +301,37 @@ export function InstallPage() {
                 <Label>{t('install.appName')}</Label>
                 <Input
                   value={app.name}
-                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-invalid={Boolean(fieldErrors.name?.length)}
                   onChange={(e) => {
                     clearError('name')
                     setApp({ ...app, name: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="name" />
+                <FieldError messages={fieldErrors.name} />
               </div>
               <div className={styles.field}>
                 <Label>{t('install.url')}</Label>
                 <Input
                   value={app.url}
-                  aria-invalid={Boolean(fieldErrors.url)}
+                  aria-invalid={Boolean(fieldErrors.url?.length)}
                   onChange={(e) => {
                     clearError('url')
                     setApp({ ...app, url: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="url" />
+                <FieldError messages={fieldErrors.url} />
               </div>
               <div className={styles.field}>
                 <Label>{t('install.timezone')}</Label>
                 <Input
                   value={app.timezone}
-                  aria-invalid={Boolean(fieldErrors.timezone)}
+                  aria-invalid={Boolean(fieldErrors.timezone?.length)}
                   onChange={(e) => {
                     clearError('timezone')
                     setApp({ ...app, timezone: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="timezone" />
+                <FieldError messages={fieldErrors.timezone} />
               </div>
               <div className={styles.field}>
                 <Label htmlFor="app-language">{t('common.language')}</Label>
@@ -356,7 +341,7 @@ export function InstallPage() {
                 <Label>{t('install.publicDir')}</Label>
                 <Input
                   value={app.publicDir}
-                  aria-invalid={Boolean(fieldErrors.publicDir)}
+                  aria-invalid={Boolean(fieldErrors.publicDir?.length)}
                   onChange={(e) => {
                     clearError('publicDir')
                     setApp({ ...app, publicDir: e.target.value })
@@ -370,7 +355,7 @@ export function InstallPage() {
                   <option value="www" />
                   <option value="htdocs" />
                 </datalist>
-                <FieldError errors={fieldErrors} id="publicDir" />
+                <FieldError messages={fieldErrors.publicDir} />
                 <p className={styles.hint}>
                   {status?.insideWebRoot
                     ? t('install.publicDirHintInside', { folder: app.publicDir })
@@ -398,52 +383,52 @@ export function InstallPage() {
                 <Label>{t('install.adminName')}</Label>
                 <Input
                   value={admin.name}
-                  aria-invalid={Boolean(fieldErrors.name)}
+                  aria-invalid={Boolean(fieldErrors.name?.length)}
                   onChange={(e) => {
                     clearError('name')
                     setAdmin({ ...admin, name: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="name" />
+                <FieldError messages={fieldErrors.name} />
               </div>
               <div className={styles.field}>
                 <Label>{t('common.email')}</Label>
                 <Input
                   type="email"
                   value={admin.email}
-                  aria-invalid={Boolean(fieldErrors.email)}
+                  aria-invalid={Boolean(fieldErrors.email?.length)}
                   onChange={(e) => {
                     clearError('email')
                     setAdmin({ ...admin, email: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="email" />
+                <FieldError messages={fieldErrors.email} />
               </div>
               <div className={styles.field}>
                 <Label>{t('common.password')}</Label>
                 <Input
                   type="password"
                   value={admin.password}
-                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-invalid={Boolean(fieldErrors.password?.length)}
                   onChange={(e) => {
                     clearError('password')
                     setAdmin({ ...admin, password: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="password" />
+                <FieldError messages={fieldErrors.password} />
               </div>
               <div className={styles.field}>
                 <Label>{t('common.confirm')}</Label>
                 <Input
                   type="password"
                   value={admin.passwordConfirm}
-                  aria-invalid={Boolean(fieldErrors.passwordConfirm)}
+                  aria-invalid={Boolean(fieldErrors.passwordConfirm?.length)}
                   onChange={(e) => {
                     clearError('passwordConfirm')
                     setAdmin({ ...admin, passwordConfirm: e.target.value })
                   }}
                 />
-                <FieldError errors={fieldErrors} id="passwordConfirm" />
+                <FieldError messages={fieldErrors.passwordConfirm} />
               </div>
               <Button onClick={() => void complete()}>{t('install.install')}</Button>
             </>

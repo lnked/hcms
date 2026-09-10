@@ -25,7 +25,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
 import styles from '@/features/webhooks/WebhooksPage.module.css'
 
 type HookPhase = 'before_create' | 'after_create'
@@ -74,7 +77,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
   const [timeoutMs, setTimeoutMs] = useState(3000)
   const [onFailure, setOnFailure] = useState<'reject' | 'continue'>('reject')
   const [status, setStatus] = useState<'active' | 'disabled'>('active')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [testResult, setTestResult] = useState<string | null>(null)
 
   const isEdit = editingId !== null
@@ -110,10 +113,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
         }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setOpen(false)
       invalidate()
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const updateMutation = useMutation({
@@ -131,10 +135,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
         }),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       setOpen(false)
       invalidate()
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const deleteMutation = useMutation({
@@ -181,7 +186,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
     setTimeoutMs(3000)
     setOnFailure('reject')
     setStatus('active')
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -194,7 +199,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
     setTimeoutMs(hook.timeoutMs)
     setOnFailure(hook.onFailure)
     setStatus(hook.status)
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -355,6 +360,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('hooks.placeholderName')}
               />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-phase">{t('hooks.phase')}</Label>
@@ -366,10 +372,12 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 <option value="before_create">before_create</option>
                 <option value="after_create">after_create</option>
               </Select>
+              <FieldError messages={fieldErrors.phase} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-url">{t('hooks.url')}</Label>
               <Input id="hook-url" value={url} onChange={(e) => setUrl(e.target.value)} />
+              <FieldError messages={fieldErrors.url} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <div className={clsx(styles.fieldHeader)}>
@@ -389,6 +397,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 onChange={(e) => setSecret(e.target.value)}
                 placeholder={isEdit ? t('hooks.secretKeep') : undefined}
               />
+              <FieldError messages={fieldErrors.secret} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-timeout">{t('hooks.timeoutMs')}</Label>
@@ -398,6 +407,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 value={timeoutMs}
                 onChange={(e) => setTimeoutMs(Number(e.target.value) || 3000)}
               />
+              <FieldError messages={fieldErrors.timeoutMs} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-on-failure">{t('hooks.onFailure')}</Label>
@@ -409,6 +419,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 <option value="reject">reject</option>
                 <option value="continue">continue</option>
               </Select>
+              <FieldError messages={fieldErrors.onFailure} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-status">{t('common.status')}</Label>
@@ -420,8 +431,8 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 <option value="active">{t('hooks.active')}</option>
                 <option value="disabled">{t('hooks.disabled')}</option>
               </Select>
+              <FieldError messages={fieldErrors.status} />
             </div>
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}

@@ -18,6 +18,7 @@ final class ImageType extends AbstractFieldType
         return [
             'multiple' => false,
             'formats' => [],
+            'encodeFormat' => null,
             'sizes' => [],
         ];
     }
@@ -32,6 +33,7 @@ final class ImageType extends AbstractFieldType
             throw new InvalidArgumentException('image.formats must be an array');
         }
         MediaFieldConfig::normalizeFormats($formats, MediaFieldConfig::IMAGE_FORMATS);
+        MediaFieldConfig::normalizeEncodeFormat($config['encodeFormat'] ?? null);
         MediaFieldConfig::normalizeSizes($config['sizes'] ?? []);
     }
 }

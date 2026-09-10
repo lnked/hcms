@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { api, ApiError, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
+import { showSuccess, showError } from '@/lib/toast'
 import { useI18n, type MessageKey } from '@/i18n'
 import { CodeBlock } from '@/components/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
@@ -108,11 +109,9 @@ export function IntegrationsPage() {
   const [mailgunDomain, setMailgunDomain] = useState('')
   const [mailgunRegion, setMailgunRegion] = useState<MailgunRegion>('us')
   const [testTo, setTestTo] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
 
   const [editingId, setEditingId] = useState<number | 'new' | null>(null)
   const [draft, setDraft] = useState<EmailApiDraft>(() => emptyApiDraft())
-  const [apiMessage, setApiMessage] = useState<string | null>(null)
 
   const [playgroundPath, setPlaygroundPath] = useState(SEND_PATH)
   const [playgroundToken, setPlaygroundToken] = useState(() => getToken() ?? '')
@@ -180,9 +179,9 @@ export function IntegrationsPage() {
       setMailgunDomain(data.mailgunDomain)
       setMailgunRegion(data.mailgunRegion === 'eu' ? 'eu' : 'us')
       void queryClient.invalidateQueries({ queryKey: ['integrations-email'] })
-      setMessage(t('integrations.email.saved'))
+      showSuccess(t('integrations.email.saved'))
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+    
   })
 
   const test = useMutation({
@@ -191,9 +190,8 @@ export function IntegrationsPage() {
         method: 'POST',
         body: JSON.stringify({ to: testTo.trim() }),
       }),
-    onSuccess: (data) => setMessage(t('integrations.email.testSent', { to: data.to })),
-    onError: (err) =>
-      setMessage(err instanceof Error ? err.message : t('integrations.email.testFailed')),
+    onSuccess: (data) => showSuccess(t('integrations.email.testSent', { to: data.to })),
+    
   })
 
   const saveApi = useMutation({
@@ -212,20 +210,20 @@ export function IntegrationsPage() {
     onSuccess: () => {
       setEditingId(null)
       setDraft(emptyApiDraft())
-      setApiMessage(t('integrations.email.apis.saved'))
+      showSuccess(t('integrations.email.apis.saved'))
       void queryClient.invalidateQueries({ queryKey: ['integrations-email-apis'] })
     },
-    onError: (err) => setApiMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+    
   })
 
   const deleteApi = useMutation({
     mutationFn: (id: number) =>
       api<void>(`/admin/api/integrations/email/apis/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      setApiMessage(t('integrations.email.apis.deleted'))
+      showSuccess(t('integrations.email.apis.deleted'))
       void queryClient.invalidateQueries({ queryKey: ['integrations-email-apis'] })
     },
-    onError: (err) => setApiMessage(err instanceof Error ? err.message : t('common.requestFailed')),
+    
   })
 
   const runPlayground = useMutation({
@@ -298,7 +296,6 @@ export function IntegrationsPage() {
       defaults: { ...item.defaults },
       settings: { ...item.settings },
     })
-    setApiMessage(null)
   }
 
   return (
@@ -308,7 +305,6 @@ export function IntegrationsPage() {
         <p className={clsx(styles.subtitle)}>{t('integrations.description')}</p>
       </div>
 
-      {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
 
       <Card>
         <CardHeader className={clsx(styles.cardHeader)}>
@@ -339,7 +335,6 @@ export function IntegrationsPage() {
                       onClick={() => {
                         setProvider(item.id)
                         setApiKey('')
-                        setMessage(null)
                       }}
                       className={clsx(
                         provider === item.id ? styles.providerBtnActive : styles.providerBtn,
@@ -519,15 +514,13 @@ export function IntegrationsPage() {
             onClick={() => {
               setEditingId('new')
               setDraft(emptyApiDraft())
-              setApiMessage(null)
-            }}
+                      }}
           >
             <Plus className={clsx(styles.iconSm)} />
             {t('integrations.email.apis.create')}
           </Button>
         </CardHeader>
         <CardContent className={clsx(styles.stackMd)}>
-          {apiMessage ? <p className={clsx(styles.muted)}>{apiMessage}</p> : null}
 
           {apisQuery.isLoading ? (
             <TableSkeleton columns={3} rows={4} />

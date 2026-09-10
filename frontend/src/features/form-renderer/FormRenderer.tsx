@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { FieldError } from '@/components/FieldError'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { controlHugClass } from '@/components/ui/control'
@@ -10,6 +11,8 @@ import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
 import { useI18n } from '@/i18n'
 import { dateGranularity } from '@/lib/dateFormat'
+import type { FieldErrors } from '@/lib/formErrors'
+import { hasFieldError } from '@/lib/formErrors'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
 import { slugifyUrl } from '@/lib/slugify'
 import type { SchemaField } from '@/types/field'
@@ -23,6 +26,7 @@ interface FormRendererProps {
   onChange: (values: EntryValues) => void
   disabled?: boolean
   entryId?: number | null
+  errors?: FieldErrors
 }
 
 function relationCardinality(field: SchemaField): 'manyToOne' | 'oneToMany' {
@@ -59,7 +63,14 @@ function applySlugUpdates(
   return next
 }
 
-export function FormRenderer({ fields, values, onChange, disabled, entryId }: FormRendererProps) {
+export function FormRenderer({
+  fields,
+  values,
+  onChange,
+  disabled,
+  entryId,
+  errors = {},
+}: FormRendererProps) {
   const { t } = useI18n()
   const [touchedSlugs, setTouchedSlugs] = useState<Set<string>>(() => new Set())
   const visible = fields
@@ -85,6 +96,7 @@ export function FormRenderer({ fields, values, onChange, disabled, entryId }: Fo
       {visible.map((field) => {
         const id = `field-${field.name}`
         const value = values[field.name]
+        const invalid = hasFieldError(errors, field.name)
         return (
           <div key={field.name} className={styles.field}>
             <Label htmlFor={id}>
@@ -101,11 +113,13 @@ export function FormRenderer({ fields, values, onChange, disabled, entryId }: Fo
                 value={value}
                 disabled={disabled}
                 entryId={resolvedEntryId}
+                invalid={invalid}
                 onChange={(next) => set(field.name, next)}
               />
             ) : (
-              renderControl(field, id, value, disabled, set)
+              renderControl(field, id, value, disabled, set, invalid)
             )}
+            <FieldError messages={errors[field.name]} />
           </div>
         )
       })}
@@ -120,6 +134,7 @@ function RelationControl({
   value,
   disabled,
   entryId,
+  invalid,
   onChange,
 }: {
   field: SchemaField
@@ -127,6 +142,7 @@ function RelationControl({
   value: unknown
   disabled?: boolean
   entryId?: number | null
+  invalid?: boolean
   onChange: (value: unknown) => void
 }) {
   const { t } = useI18n()
@@ -188,6 +204,7 @@ function RelationControl({
       <Select
         id={id}
         disabled={disabled || loading}
+        aria-invalid={invalid || undefined}
         value={value == null ? '' : String(value)}
         onChange={(e) =>
           onChange(e.target.value === '' ? null : Number.parseInt(e.target.value, 10))
@@ -212,6 +229,7 @@ function renderControl(
   value: unknown,
   disabled: boolean | undefined,
   set: (name: string, value: unknown) => void,
+  invalid: boolean,
 ) {
   if (field.type === 'boolean') {
     return (
@@ -222,6 +240,7 @@ function renderControl(
           className={styles.checkbox}
           checked={Boolean(value)}
           disabled={disabled}
+          aria-invalid={invalid || undefined}
           onChange={(e) => set(field.name, e.target.checked)}
         />
         {value ? 'Yes' : 'No'}
@@ -249,6 +268,11 @@ function renderControl(
         multiple={Boolean(field.config.multiple)}
         formats={formats}
         sizes={field.type === 'image' ? sizes : []}
+        encodeFormat={
+          field.type === 'image' && typeof field.config.encodeFormat === 'string'
+            ? field.config.encodeFormat
+            : null
+        }
         isImage={field.type === 'image'}
         onChange={(next) => set(field.name, next)}
       />
@@ -272,6 +296,7 @@ function renderControl(
         id={id}
         className={styles.textArea}
         disabled={disabled}
+        aria-invalid={invalid || undefined}
         value={typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value)}
         onChange={(e) => set(field.name, e.target.value)}
       />
@@ -284,6 +309,7 @@ function renderControl(
       <Select
         id={id}
         disabled={disabled}
+        aria-invalid={invalid || undefined}
         value={value == null ? '' : String(value)}
         onChange={(e) => set(field.name, e.target.value)}
       >
@@ -307,6 +333,7 @@ function renderControl(
         format={format}
         granularity={dateGranularity(format, field.type === 'datetime' ? 'minute' : 'day')}
         aria-label={field.label || field.name}
+        aria-invalid={invalid || undefined}
         onChange={(next) => set(field.name, next)}
       />
     )
@@ -330,6 +357,7 @@ function renderControl(
       className={hugsContent ? controlHugClass : undefined}
       step={field.type === 'float' ? 'any' : undefined}
       disabled={disabled}
+      aria-invalid={invalid || undefined}
       value={value == null ? '' : String(value)}
       onChange={(e) => {
         const raw = e.target.value

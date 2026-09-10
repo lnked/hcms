@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import styles from './ApiAccessForm.module.css'
 
@@ -15,10 +16,8 @@ export interface ApiAccessSettings {
 
 export function ApiAccessForm({
   initial,
-  onMessage,
 }: {
   initial: ApiAccessSettings
-  onMessage: (message: string) => void
 }) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
@@ -51,9 +50,8 @@ export function ApiAccessForm({
         setOriginsText(data.apiAccess.allowedOrigins.join('\n'))
       }
       void queryClient.invalidateQueries({ queryKey: ['settings-api-access'] })
-      onMessage(t('system.apiAccessSaved'))
+      showSuccess(t('system.apiAccessSaved'))
     },
-    onError: (err) => onMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   return (

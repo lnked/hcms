@@ -32,4 +32,24 @@ final class FieldTypeRegistryTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         (new FieldTypeRegistry())->get('slug')->validateConfig(['associatedWith' => '']);
     }
+
+    public function testImageEncodeFormatOptional(): void
+    {
+        $image = (new FieldTypeRegistry())->get('image');
+        $image->validateConfig(['formats' => [], 'encodeFormat' => null, 'sizes' => []]);
+        $image->validateConfig(['formats' => [], 'encodeFormat' => 'webp', 'sizes' => []]);
+        $image->validateConfig(['formats' => [], 'encodeFormat' => 'jpeg', 'sizes' => []]);
+        $this->assertSame('image', $image->name());
+        $this->assertArrayHasKey('encodeFormat', $image->defaultConfig());
+    }
+
+    public function testImageEncodeFormatRejectsUnknown(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new FieldTypeRegistry())->get('image')->validateConfig([
+            'formats' => [],
+            'encodeFormat' => 'gif',
+            'sizes' => [],
+        ]);
+    }
 }

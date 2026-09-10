@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { FormBlockSkeleton } from '@/components/skeletons'
 import { api } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
-import { showError } from '@/lib/toast'
+import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import styles from './OauthIntegrationsCard.module.css'
 
@@ -38,7 +38,6 @@ export function OauthIntegrationsCard() {
   const [telegramEnabled, setTelegramEnabled] = useState(false)
   const [botUsername, setBotUsername] = useState('')
   const [botToken, setBotToken] = useState('')
-  const [message, setMessage] = useState<string | null>(null)
   const [hydratedAt, setHydratedAt] = useState(0)
 
   const query = useQuery({
@@ -76,13 +75,9 @@ export function OauthIntegrationsCard() {
     onSuccess: () => {
       setGoogleSecret('')
       setBotToken('')
-      setMessage(t('account.oauth.saved'))
+      showSuccess(t('account.oauth.saved'))
       void query.refetch()
       void queryClient.invalidateQueries({ queryKey: ['auth-providers'] })
-    },
-    onError: (err) => {
-      setMessage(null)
-      showError(err instanceof Error ? err.message : t('common.saveFailed'))
     },
   })
 
@@ -239,7 +234,6 @@ export function OauthIntegrationsCard() {
               </div>
             </div>
 
-            {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
             <Button
               type="button"
               className={clsx(styles.save)}

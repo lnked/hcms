@@ -1,0 +1,6 @@
+.root {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-destructive);
+  margin: 0;
+}

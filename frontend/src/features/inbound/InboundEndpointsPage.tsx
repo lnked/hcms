@@ -26,6 +26,9 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { FieldError } from '@/components/FieldError'
+import { apiFieldErrors, hasFieldError, type FieldErrors } from '@/lib/formErrors'
+import { showError, showSuccess } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
 import styles from '@/features/webhooks/WebhooksPage.module.css'
 
@@ -76,7 +79,7 @@ export function InboundEndpointsPage() {
   const [timeoutMs, setTimeoutMs] = useState(5000)
   const [onFailure, setOnFailure] = useState<'reject' | 'continue'>('reject')
   const [enabled, setEnabled] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [testResult, setTestResult] = useState<string | null>(null)
 
   const isEdit = editingId !== null
@@ -133,10 +136,12 @@ export function InboundEndpointsPage() {
         body: JSON.stringify(bodyPayload()),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       invalidate()
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const updateMutation = useMutation({
@@ -146,10 +151,12 @@ export function InboundEndpointsPage() {
         body: JSON.stringify(bodyPayload()),
       }),
     onSuccess: () => {
+      showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       invalidate()
     },
-    onError: (err: Error) => setError(err.message),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const deleteMutation = useMutation({
@@ -195,7 +202,7 @@ export function InboundEndpointsPage() {
     setTimeoutMs(5000)
     setOnFailure('reject')
     setEnabled(true)
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -210,7 +217,7 @@ export function InboundEndpointsPage() {
     setTimeoutMs(ep.timeoutMs)
     setOnFailure(ep.onFailure)
     setEnabled(ep.enabled)
-    setError(null)
+    setFieldErrors({})
     setOpen(true)
   }
 
@@ -223,11 +230,17 @@ export function InboundEndpointsPage() {
 
   const save = () => {
     try {
-      if (isEdit && editingId !== null) updateMutation.mutate(editingId)
-      else createMutation.mutate()
+      // validate fieldMap before mutate so JSON errors land under the field
+      parseFieldMap()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('inbound.fieldMapInvalid'))
+      const msg = err instanceof Error ? err.message : t('inbound.fieldMapInvalid')
+      setFieldErrors({ fieldMap: [msg] })
+      showError(msg)
+      return
     }
+    setFieldErrors({})
+    if (isEdit && editingId !== null) updateMutation.mutate(editingId)
+    else createMutation.mutate()
   }
 
   return (
@@ -379,20 +392,52 @@ export function InboundEndpointsPage() {
           <div className={clsx(styles.stackMd)}>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-label">{t('common.name')}</Label>
-              <Input id="inbound-label" value={label} onChange={(e) => setLabel(e.target.value)} />
+              <Input
+                id="inbound-label"
+                value={label}
+                aria-invalid={hasFieldError(fieldErrors, 'label') || undefined}
+                onChange={(e) => {
+                  setLabel(e.target.value)
+                  setFieldErrors((prev) => {
+                    const { label: _, ...rest } = prev
+                    return rest
+                  })
+                }}
+              />
+              <FieldError messages={fieldErrors.label} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-slug">{t('inbound.slug')}</Label>
-              <Input id="inbound-slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
+              <Input
+                id="inbound-slug"
+                value={slug}
+                aria-invalid={hasFieldError(fieldErrors, 'slug') || undefined}
+                onChange={(e) => {
+                  setSlug(e.target.value)
+                  setFieldErrors((prev) => {
+                    const { slug: _, ...rest } = prev
+                    return rest
+                  })
+                }}
+              />
+              <FieldError messages={fieldErrors.slug} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-url">{t('inbound.targetUrl')}</Label>
               <Input
                 id="inbound-url"
                 value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'targetUrl') || undefined}
+                onChange={(e) => {
+                  setTargetUrl(e.target.value)
+                  setFieldErrors((prev) => {
+                    const { targetUrl: _, ...rest } = prev
+                    return rest
+                  })
+                }}
                 placeholder="https://hooks.example.com/contact"
               />
+              <FieldError messages={fieldErrors.targetUrl} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <div className={clsx(styles.fieldHeader)}>
@@ -409,18 +454,31 @@ export function InboundEndpointsPage() {
               <Input
                 id="inbound-secret"
                 value={secret}
-                onChange={(e) => setSecret(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'secret') || undefined}
+                onChange={(e) => {
+                  setSecret(e.target.value)
+                  setFieldErrors((prev) => {
+                    const { secret: _, ...rest } = prev
+                    return rest
+                  })
+                }}
                 placeholder={isEdit ? t('inbound.secretKeep') : undefined}
               />
+              <FieldError messages={fieldErrors.secret} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-persist">{t('inbound.persist')}</Label>
               <Select
                 id="inbound-persist"
                 value={persistResourceId ?? ''}
+                aria-invalid={hasFieldError(fieldErrors, 'persistResourceId') || undefined}
                 onChange={(e) => {
                   const value = e.target.value
                   setPersistResourceId(value === '' ? null : Number(value))
+                  setFieldErrors((prev) => {
+                    const { persistResourceId: _, ...rest } = prev
+                    return rest
+                  })
                 }}
               >
                 <option value="">{t('inbound.noPersist')}</option>
@@ -430,15 +488,24 @@ export function InboundEndpointsPage() {
                   </option>
                 ))}
               </Select>
+              <FieldError messages={fieldErrors.persistResourceId} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-fieldmap">{t('inbound.fieldMap')}</Label>
               <Input
                 id="inbound-fieldmap"
                 value={fieldMapText}
-                onChange={(e) => setFieldMapText(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'fieldMap') || undefined}
+                onChange={(e) => {
+                  setFieldMapText(e.target.value)
+                  setFieldErrors((prev) => {
+                    const { fieldMap: _, ...rest } = prev
+                    return rest
+                  })
+                }}
                 placeholder='{"email":"email","name":"full_name"}'
               />
+              <FieldError messages={fieldErrors.fieldMap} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-timeout">{t('inbound.timeoutMs')}</Label>
@@ -446,19 +513,35 @@ export function InboundEndpointsPage() {
                 id="inbound-timeout"
                 type="number"
                 value={timeoutMs}
-                onChange={(e) => setTimeoutMs(Number(e.target.value) || 5000)}
+                aria-invalid={hasFieldError(fieldErrors, 'timeoutMs') || undefined}
+                onChange={(e) => {
+                  setTimeoutMs(Number(e.target.value) || 5000)
+                  setFieldErrors((prev) => {
+                    const { timeoutMs: _, ...rest } = prev
+                    return rest
+                  })
+                }}
               />
+              <FieldError messages={fieldErrors.timeoutMs} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-on-failure">{t('inbound.onFailure')}</Label>
               <Select
                 id="inbound-on-failure"
                 value={onFailure}
-                onChange={(e) => setOnFailure(e.target.value as 'reject' | 'continue')}
+                aria-invalid={hasFieldError(fieldErrors, 'onFailure') || undefined}
+                onChange={(e) => {
+                  setOnFailure(e.target.value as 'reject' | 'continue')
+                  setFieldErrors((prev) => {
+                    const { onFailure: _, ...rest } = prev
+                    return rest
+                  })
+                }}
               >
                 <option value="reject">reject</option>
                 <option value="continue">continue</option>
               </Select>
+              <FieldError messages={fieldErrors.onFailure} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-enabled">{t('common.status')}</Label>
@@ -471,7 +554,6 @@ export function InboundEndpointsPage() {
                 <option value="disabled">{t('inbound.disabled')}</option>
               </Select>
             </div>
-            {error ? <p className={clsx(styles.error)}>{error}</p> : null}
             <div className={clsx(styles.actions)}>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}

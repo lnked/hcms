@@ -17,6 +17,7 @@ import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
 import { useI18n } from '@/i18n'
 import { useAcl } from '@/hooks/useAcl'
 import { api } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceTab } from '@/lib/rbac'
@@ -51,7 +52,6 @@ export function ResourceDetailPage() {
   const resourceId = Number(id)
   const tab: Tab = isTab(tabParam) ? tabParam : 'overview'
   const [draftSchema, setDraftSchema] = useState<SchemaField[] | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
   const [playgroundPath, setPlaygroundPath] = useState<string | null>(null)
 
   const visibleTabs = useMemo(
@@ -111,10 +111,9 @@ export function ResourceDetailPage() {
     },
     onSuccess: (data) => {
       setDraftSchema(null)
-      setMessage(t('resources.schemaSaved'))
+      showSuccess(t('resources.schemaSaved'))
       queryClient.setQueryData(['resource-fields', resourceId], data)
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const resource = query.data
@@ -271,10 +270,8 @@ export function ResourceDetailPage() {
               schema={schema}
               onChange={(next) => {
                 setDraftSchema(next)
-                setMessage(null)
               }}
             />
-            {message ? <p className={styles.muted}>{message}</p> : null}
           </CardContent>
         </Card>
       ) : null}

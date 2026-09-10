@@ -519,6 +519,30 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           )}
                         </p>
                       </div>
+                      {field.type === 'image' ? (
+                        <div className={clsx(styles.field, styles.span2)}>
+                          <Label>{t('schema.image.encodeFormat')}</Label>
+                          <Select
+                            value={
+                              typeof field.config.encodeFormat === 'string' &&
+                              field.config.encodeFormat !== ''
+                                ? field.config.encodeFormat
+                                : ''
+                            }
+                            onChange={(e) =>
+                              patchConfig(index, {
+                                encodeFormat: e.target.value === '' ? null : e.target.value,
+                              })
+                            }
+                          >
+                            <option value="">{t('schema.image.encodeFormatKeep')}</option>
+                            <option value="webp">WebP</option>
+                            <option value="jpeg">JPEG</option>
+                            <option value="png">PNG</option>
+                          </Select>
+                          <p className={styles.hint}>{t('schema.image.encodeFormatHint')}</p>
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                   {field.type === 'image' ? (

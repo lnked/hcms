@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import type { Resource, ResourceSettings } from '@/types/resource'
 import styles from './ResourceSettingsPanel.module.css'
 
@@ -48,7 +49,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [settings, setSettings] = useState(() => cloneSettings(resource.settings))
-  const [message, setMessage] = useState<string | null>(null)
 
   const save = useMutation({
     mutationFn: () =>
@@ -58,17 +58,15 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
       }),
     onSuccess: (data) => {
       setSettings(cloneSettings(data.settings))
-      setMessage(t('resources.settings.saved'))
+      showSuccess(t('resources.settings.saved'))
       queryClient.setQueryData(['resource', resource.id], data)
       void queryClient.invalidateQueries({ queryKey: ['resources'] })
       onSaved?.()
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   function patch(partial: Partial<ResourceSettings>) {
     setSettings((prev) => ({ ...prev, ...partial }))
-    setMessage(null)
   }
 
   function patchPublic(key: keyof ResourceSettings['public'], value: boolean) {
@@ -76,7 +74,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
       ...prev,
       public: { ...prev.public, [key]: value },
     }))
-    setMessage(null)
   }
 
   function patchSpam(partial: Partial<NonNullable<ResourceSettings['spam']>>) {
@@ -84,7 +81,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
       ...prev,
       spam: { ...(prev.spam ?? DEFAULT_SPAM), ...partial },
     }))
-    setMessage(null)
   }
 
   function setDeleteStrategy(strategy: 'hard' | 'soft') {
@@ -93,7 +89,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
       deleteStrategy: strategy,
       softDelete: strategy === 'soft',
     }))
-    setMessage(null)
   }
 
   return (
@@ -281,7 +276,6 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
           <Button disabled={save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? t('common.saving') : t('common.save')}
           </Button>
-          {message ? <p className={styles.message}>{message}</p> : null}
         </div>
       </CardContent>
     </Card>

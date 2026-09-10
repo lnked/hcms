@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
+import { showSuccess, showError } from '@/lib/toast'
 import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
 import type { SystemVersion } from '@/types/system'
@@ -176,7 +177,7 @@ export function SystemPage() {
     },
     onError: (err) => {
       setTrackUpdate(false)
-      setMessage(err instanceof Error ? err.message : t('system.updateFailed'))
+      showError(err instanceof Error ? err.message : t('system.updateFailed'))
     },
   })
 
@@ -190,9 +191,9 @@ export function SystemPage() {
       if (data.language === 'en' || data.language === 'ru') {
         setLocale(data.language)
       }
-      setMessage(t('system.languageSaved'))
+      showSuccess(t('system.languageSaved'))
     },
-    onError: (err) => setMessage(err instanceof Error ? err.message : t('common.saveFailed')),
+    
   })
 
   function onLanguageChange(next: Locale) {
@@ -270,7 +271,7 @@ export function SystemPage() {
           {apiAccess.isLoading || !apiAccess.data ? (
             <FormBlockSkeleton fields={3} />
           ) : (
-            <ApiAccessForm key={accessKey} initial={apiAccess.data} onMessage={setMessage} />
+            <ApiAccessForm key={accessKey} initial={apiAccess.data} />
           )}
         </CardContent>
       </Card>

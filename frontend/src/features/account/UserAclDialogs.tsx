@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { showSuccess } from '@/lib/toast'
 import { ADMIN_SECTIONS, RESOURCE_TABS, type AdminSection, type ResourceTab } from '@/lib/rbac'
 import type { Resource } from '@/types/resource'
 import styles from './UserAclDialogs.module.css'
@@ -110,7 +111,6 @@ function UserPermissionsForm({
   const [aclEnabled, setAclEnabled] = useState(parsed.aclEnabled)
   const [sections, setSections] = useState<AdminSection[]>(parsed.sections)
   const [grants, setGrants] = useState<GrantDraft[]>(parsed.grants)
-  const [error, setError] = useState<string | null>(null)
 
   const save = useMutation({
     mutationFn: () => {
@@ -134,10 +134,10 @@ function UserPermissionsForm({
       })
     },
     onSuccess: () => {
+      showSuccess(t('common.saved'))
       onSaved()
       onClose()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
   })
 
   const selectableSections = ADMIN_SECTIONS.filter((s) => s !== 'account')
@@ -327,8 +327,6 @@ function UserPermissionsForm({
           </div>
         </>
       ) : null}
-
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
       <div className={clsx(styles.actions)}>
         <Button variant="outline" onClick={onClose}>
           {t('common.cancel')}
@@ -398,7 +396,6 @@ export function UserPermissionsDialog({
 function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () => void }) {
   const { t } = useI18n()
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
 
   const save = useMutation({
     mutationFn: () =>
@@ -406,8 +403,10 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
         method: 'PATCH',
         body: JSON.stringify({ password }),
       }),
-    onSuccess: () => onClose(),
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onSuccess: () => {
+      showSuccess(t('common.saved'))
+      onClose()
+    },
   })
 
   return (
@@ -421,7 +420,6 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
         allowGenerate
         showCopy
       />
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
       <Button
         className={clsx(styles.fullWidth)}
         disabled={save.isPending || password.length < 8}

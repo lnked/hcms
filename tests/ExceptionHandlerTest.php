@@ -48,11 +48,11 @@ final class ExceptionHandlerTest extends TestCase
 
     public function testMapsValidationFailed(): void
     {
-        $response = $this->handler->handle(new ValidationFailedException('bad', ['title' => 'required']));
+        $response = $this->handler->handle(new ValidationFailedException('bad', ['title' => ['required']]));
         self::assertSame(422, $response->status);
         $body = json_decode($response->body, true);
         self::assertSame('VALIDATION_ERROR', $body['error']['code']);
-        self::assertSame(['title' => 'required'], $body['error']['fields']);
+        self::assertSame(['title' => ['required']], $body['error']['fields']);
     }
 
     public function testMapsInvalidArgument(): void

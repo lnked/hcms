@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { PasswordField } from '@/components/PasswordField'
+import { FieldError } from '@/components/FieldError'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,7 +13,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { api, ApiError } from '@/lib/api'
+import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { meetsPasswordPolicy } from '@/lib/password'
 import { showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
@@ -50,7 +52,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
   const [reveal, setReveal] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({})
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const change = useMutation({
     mutationFn: () =>
@@ -66,9 +68,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       )
       onDone()
     },
-    onError: (err) => {
-      setFieldErrors(err instanceof ApiError && err.status === 422 ? err.fields : {})
-    },
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const mismatch = confirm !== '' && next !== confirm
@@ -143,12 +143,4 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
       </div>
     </form>
   )
-}
-
-function FieldError({ messages }: { messages?: string[] }) {
-  if (!messages || messages.length === 0) {
-    return null
-  }
-
-  return <p className={clsx(styles.error)}>{messages.join(' ')}</p>
 }

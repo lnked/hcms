@@ -22,6 +22,7 @@ import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useResourceEntriesList } from '@/features/resources/useResourceEntriesList'
 import { useI18n } from '@/i18n'
@@ -49,7 +50,7 @@ type EntryParam = string | 'new' | null
 interface EntryDraft {
   key: string
   values: EntryValues
-  error: string | null
+  fieldErrors: FieldErrors
 }
 
 interface ResourceEntriesPanelProps {
@@ -168,7 +169,7 @@ export function ResourceEntriesPanel({
   // without an effect, while the loaded record stays the source of truth until typing.
   const activeDraft = draft?.key === entryParam ? draft : null
   const values = activeDraft?.values ?? loadedValues
-  const error = activeDraft?.error ?? null
+  const fieldErrors = activeDraft?.fieldErrors ?? {}
 
   function openEntry(entry: Exclude<EntryParam, null>) {
     navigate(entryPath(entry))
@@ -212,13 +213,14 @@ export function ResourceEntriesPanel({
       setDraft(null)
       void queryClient.invalidateQueries({ queryKey: queryKeys.resources.entries(resourceId) })
       void queryClient.invalidateQueries({ queryKey: ['resource-entry', resourceId, editingId] })
+      showSuccess(t('entries.saved'))
       closeEntry()
     },
     onError: (err) =>
       setDraft({
         key: entryParam ?? '',
         values,
-        error: err instanceof Error ? err.message : t('common.saveFailed'),
+        fieldErrors: apiFieldErrors(err),
       }),
   })
 
@@ -557,11 +559,13 @@ export function ResourceEntriesPanel({
                 key={editingId ?? 'new'}
                 fields={fields}
                 values={values}
-                onChange={(next) => setDraft({ key: entryParam ?? '', values: next, error: null })}
+                onChange={(next) =>
+                  setDraft({ key: entryParam ?? '', values: next, fieldErrors: {} })
+                }
                 disabled={save.isPending}
                 entryId={editingId}
+                errors={fieldErrors}
               />
-              {error ? <p className={styles.formError}>{error}</p> : null}
               <div className={styles.formActions}>
                 <Button variant="outline" onClick={closeEntry}>
                   {t('common.cancel')}

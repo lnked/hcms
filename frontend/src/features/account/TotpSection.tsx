@@ -15,7 +15,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CodeBlock } from '@/components/CodeBlock'
+import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { queryKeys } from '@/lib/queryKeys'
 import { showSuccess } from '@/lib/toast'
 import { useAuthMe } from '@/hooks/useAcl'
@@ -74,7 +76,7 @@ function TotpSetupDialog({ onDone }: { onDone: () => void }) {
 function TotpSetupForm({ onDone }: { onDone: () => void }) {
   const { t } = useI18n()
   const [code, setCode] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const setup = useQuery({
     queryKey: ['totp-setup'],
@@ -95,7 +97,7 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
       showSuccess(t('users.totpEnabledOk'))
       onDone()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   const secret = setup.data?.secret
@@ -134,7 +136,7 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
       className={clsx(styles.stack)}
       onSubmit={(event) => {
         event.preventDefault()
-        setError(null)
+        setFieldErrors({})
         enable.mutate()
       }}
     >
@@ -158,16 +160,15 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
           value={code}
           onChange={(e) => {
             setCode(e.target.value)
-            setError(null)
+            setFieldErrors({})
           }}
           placeholder={t('login.totp')}
           inputMode="numeric"
           autoComplete="one-time-code"
           required
         />
+        <FieldError messages={fieldErrors.totpCode ?? fieldErrors.code} />
       </div>
-
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
       <div className={clsx(styles.actions)}>
         <DialogClose asChild>
@@ -211,7 +212,7 @@ function TotpDisableDialog({ onDone }: { onDone: () => void }) {
 function TotpDisableForm({ onDone }: { onDone: () => void }) {
   const { t } = useI18n()
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const disable = useMutation({
     mutationFn: () =>
@@ -223,7 +224,7 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
       showSuccess(t('users.totpDisabledOk'))
       onDone()
     },
-    onError: (err) => setError(err instanceof Error ? err.message : t('common.saveFailed')),
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
   return (
@@ -231,7 +232,7 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
       className={clsx(styles.stack)}
       onSubmit={(event) => {
         event.preventDefault()
-        setError(null)
+        setFieldErrors({})
         disable.mutate()
       }}
     >
@@ -245,13 +246,12 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
           value={password}
           onChange={(e) => {
             setPassword(e.target.value)
-            setError(null)
+            setFieldErrors({})
           }}
           required
         />
+        <FieldError messages={fieldErrors.password} />
       </div>
-
-      {error ? <p className={clsx(styles.error)}>{error}</p> : null}
 
       <div className={clsx(styles.actions)}>
         <DialogClose asChild>

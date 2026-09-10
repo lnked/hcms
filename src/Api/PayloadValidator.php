@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Api;
 
 use Cms\Content\UrlSlug;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Media\MediaValue;
 use InvalidArgumentException;
 
@@ -37,14 +38,14 @@ final class PayloadValidator
                     continue;
                 }
                 if (!$partial && ($spec['required'] ?? false)) {
-                    throw new InvalidArgumentException('Field required: ' . $name);
+                    throw ValidationFailedException::field($name, 'Field required: ' . $name);
                 }
                 continue;
             }
             $value = $payload[$name];
             if ($value === null) {
                 if (!($spec['nullable'] ?? true)) {
-                    throw new InvalidArgumentException('Field not nullable: ' . $name);
+                    throw ValidationFailedException::field($name, 'Field not nullable: ' . $name);
                 }
                 $out[$name] = null;
                 continue;
@@ -78,7 +79,7 @@ final class PayloadValidator
                 && ($spec['required'] ?? false)
                 && (!array_key_exists($name, $out) || $out[$name] === null || $out[$name] === '')
             ) {
-                throw new InvalidArgumentException('Field required: ' . $name);
+                throw ValidationFailedException::field($name, 'Field required: ' . $name);
             }
         }
 
@@ -93,19 +94,23 @@ final class PayloadValidator
         return match ($type) {
             'integer', 'relation' => is_numeric($value)
                 ? (int) $value
-                : throw new InvalidArgumentException('Invalid integer: ' . $name),
+                : throw ValidationFailedException::field($name, 'Invalid integer: ' . $name),
             'image', 'file' => $this->castMediaValue($value, $name, (bool) ($config['multiple'] ?? false)),
-            'float' => is_numeric($value) ? (float) $value : throw new InvalidArgumentException('Invalid float: ' . $name),
+            'float' => is_numeric($value)
+                ? (float) $value
+                : throw ValidationFailedException::field($name, 'Invalid float: ' . $name),
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
-                ?? throw new InvalidArgumentException('Invalid boolean: ' . $name),
+                ?? throw ValidationFailedException::field($name, 'Invalid boolean: ' . $name),
             'email' => is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)
                 ? $value
-                : throw new InvalidArgumentException('Invalid email: ' . $name),
+                : throw ValidationFailedException::field($name, 'Invalid email: ' . $name),
             'json' => is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_SLASHES),
             'slug' => is_scalar($value)
                 ? UrlSlug::from((string) $value)
-                : throw new InvalidArgumentException('Invalid value: ' . $name),
-            default => is_scalar($value) ? (string) $value : throw new InvalidArgumentException('Invalid value: ' . $name),
+                : throw ValidationFailedException::field($name, 'Invalid value: ' . $name),
+            default => is_scalar($value)
+                ? (string) $value
+                : throw ValidationFailedException::field($name, 'Invalid value: ' . $name),
         };
     }
 
@@ -114,13 +119,16 @@ final class PayloadValidator
         try {
             $normalized = MediaValue::normalize($value, $multiple);
         } catch (InvalidArgumentException $e) {
-            throw new InvalidArgumentException('Invalid media value for ' . $name . ': ' . $e->getMessage());
+            throw ValidationFailedException::field(
+                $name,
+                'Invalid media value for ' . $name . ': ' . $e->getMessage(),
+            );
         }
         if ($normalized === null) {
-            throw new InvalidArgumentException('Invalid media value: ' . $name);
+            throw ValidationFailedException::field($name, 'Invalid media value: ' . $name);
         }
         if ($multiple && $normalized === []) {
-            throw new InvalidArgumentException('Invalid media value: ' . $name);
+            throw ValidationFailedException::field($name, 'Invalid media value: ' . $name);
         }
 
         return MediaValue::encode($normalized) ?? 'null';

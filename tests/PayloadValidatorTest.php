@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\Api\PayloadValidator;
-use InvalidArgumentException;
+use Cms\Core\Exception\ValidationFailedException;
 use PHPUnit\Framework\TestCase;
 
 final class PayloadValidatorTest extends TestCase
@@ -20,9 +20,13 @@ final class PayloadValidatorTest extends TestCase
             ],
         ];
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Field required: title');
-        $validator->validate([], $fieldMap, false);
+        try {
+            $validator->validate([], $fieldMap, false);
+            self::fail('Expected ValidationFailedException');
+        } catch (ValidationFailedException $e) {
+            self::assertSame('Validation failed', $e->getMessage());
+            self::assertSame(['title' => ['Field required: title']], $e->fields());
+        }
     }
 
     public function testCastsIntegerAndSkipsReadonly(): void
