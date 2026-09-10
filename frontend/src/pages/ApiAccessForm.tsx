@@ -14,11 +14,7 @@ export interface ApiAccessSettings {
   allowedOrigins: string[]
 }
 
-export function ApiAccessForm({
-  initial,
-}: {
-  initial: ApiAccessSettings
-}) {
+export function ApiAccessForm({ initial }: { initial: ApiAccessSettings }) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [unrestricted, setUnrestricted] = useState(initial.unrestricted)

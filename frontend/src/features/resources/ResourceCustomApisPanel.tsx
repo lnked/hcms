@@ -564,7 +564,6 @@ export function ResourceCustomApisPanel({
             </div>
           </div>
         ) : null}
-
       </CardContent>
     </Card>
   )

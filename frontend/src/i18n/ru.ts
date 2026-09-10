@@ -566,7 +566,8 @@ export const ru: Record<MessageKey, string> = {
   'schema.image.formatsHint': 'напр. jpg, png, webp — пусто = любые картинки',
   'schema.image.encodeFormat': 'Конвертировать загруженные в',
   'schema.image.encodeFormatKeep': 'Оставить исходный формат',
-  'schema.image.encodeFormatHint': 'Опционально — перекодирует оригинал и варианты при загрузке/правке',
+  'schema.image.encodeFormatHint':
+    'Опционально — перекодирует оригинал и варианты при загрузке/правке',
   'schema.image.sizes': 'Размеры изображений',
   'schema.image.addSize': 'Добавить размер',
   'schema.image.prefix': 'Префикс',

@@ -181,7 +181,6 @@ export function IntegrationsPage() {
       void queryClient.invalidateQueries({ queryKey: ['integrations-email'] })
       showSuccess(t('integrations.email.saved'))
     },
-    
   })
 
   const test = useMutation({
@@ -191,7 +190,6 @@ export function IntegrationsPage() {
         body: JSON.stringify({ to: testTo.trim() }),
       }),
     onSuccess: (data) => showSuccess(t('integrations.email.testSent', { to: data.to })),
-    
   })
 
   const saveApi = useMutation({
@@ -213,7 +211,6 @@ export function IntegrationsPage() {
       showSuccess(t('integrations.email.apis.saved'))
       void queryClient.invalidateQueries({ queryKey: ['integrations-email-apis'] })
     },
-    
   })
 
   const deleteApi = useMutation({
@@ -223,7 +220,6 @@ export function IntegrationsPage() {
       showSuccess(t('integrations.email.apis.deleted'))
       void queryClient.invalidateQueries({ queryKey: ['integrations-email-apis'] })
     },
-    
   })
 
   const runPlayground = useMutation({
@@ -304,7 +300,6 @@ export function IntegrationsPage() {
         <h1 className={clsx(styles.title)}>{t('integrations.title')}</h1>
         <p className={clsx(styles.subtitle)}>{t('integrations.description')}</p>
       </div>
-
 
       <Card>
         <CardHeader className={clsx(styles.cardHeader)}>
@@ -514,14 +509,13 @@ export function IntegrationsPage() {
             onClick={() => {
               setEditingId('new')
               setDraft(emptyApiDraft())
-                      }}
+            }}
           >
             <Plus className={clsx(styles.iconSm)} />
             {t('integrations.email.apis.create')}
           </Button>
         </CardHeader>
         <CardContent className={clsx(styles.stackMd)}>
-
           {apisQuery.isLoading ? (
             <TableSkeleton columns={3} rows={4} />
           ) : (apisQuery.data ?? []).length === 0 && editingId === null ? (

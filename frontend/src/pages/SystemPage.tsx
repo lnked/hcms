@@ -193,7 +193,6 @@ export function SystemPage() {
       }
       showSuccess(t('system.languageSaved'))
     },
-    
   })
 
   function onLanguageChange(next: Locale) {
