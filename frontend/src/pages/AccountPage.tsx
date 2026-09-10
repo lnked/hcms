@@ -4,11 +4,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FormBlockSkeleton } from '@/components/skeletons'
+import { useAcl } from '@/hooks/useAcl'
 import { api, ApiError } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
 import { useI18n } from '@/i18n'
 import { SecurityCard } from '@/features/account/SecurityCard'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
+import { OauthIntegrationsCard } from './OauthIntegrationsCard'
 import styles from './AccountPage.module.css'
 
 interface AuthProviders {
@@ -24,6 +26,8 @@ interface IdentityRow {
 
 export function AccountPage() {
   const { t } = useI18n()
+  const { canSection } = useAcl()
+  const canManageOauth = canSection('integrations', 'admin')
   const queryClient = useQueryClient()
   const providers = useQuery({
     queryKey: ['auth-providers'],
@@ -93,6 +97,8 @@ export function AccountPage() {
         <p className={clsx(styles.subtitle)}>{t('account.description')}</p>
       </div>
 
+      {canManageOauth ? <OauthIntegrationsCard /> : null}
+
       {identities.isLoading ? (
         <FormBlockSkeleton fields={4} />
       ) : identities.isError ? (
@@ -106,7 +112,11 @@ export function AccountPage() {
               <div className={clsx(styles.cardIntro)}>
                 <CardTitle>Google</CardTitle>
                 <CardDescription>
-                  {googleReady ? t('account.googleHint') : t('account.providerOff')}
+                  {googleReady
+                    ? t('account.googleHint')
+                    : canManageOauth
+                      ? t('account.providerOff')
+                      : t('account.providerOffAskAdmin')}
                 </CardDescription>
               </div>
               <Badge variant={google?.linked ? 'default' : 'secondary'}>
@@ -141,7 +151,11 @@ export function AccountPage() {
               <div className={clsx(styles.cardIntro)}>
                 <CardTitle>Telegram</CardTitle>
                 <CardDescription>
-                  {telegramReady ? t('account.telegramHint') : t('account.providerOff')}
+                  {telegramReady
+                    ? t('account.telegramHint')
+                    : canManageOauth
+                      ? t('account.providerOff')
+                      : t('account.providerOffAskAdmin')}
                 </CardDescription>
               </div>
               <Badge variant={telegram?.linked ? 'default' : 'secondary'}>

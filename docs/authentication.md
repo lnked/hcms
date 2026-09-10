@@ -30,7 +30,7 @@ POST /admin/api/auth/login
 - **Google**: вход, если verified email совпадает с `cms_users.email` (identity создаётся автоматически) или Google id уже привязан в Аккаунте.
 - **Telegram**: вход только после ручной привязки в `/admin/settings/account`.
 
-Настройки провайдеров: Интеграции → Social login (`auth.google`, `auth.telegram` в `cms_settings`). Redirect URI: `{APP_URL}/admin/api/auth/google/callback`.
+Настройки провайдеров: Аккаунт → Вход через соцсети (`auth.google`, `auth.telegram` в `cms_settings`). Redirect URI: `{APP_URL}/admin/api/auth/google/callback`.
 
 ```http
 GET  /admin/api/auth/providers

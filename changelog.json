@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.58.3",
+      "date": "2026-09-10",
+      "channel": "stable",
+      "title": "Social login on Account page",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Блок «Вход через соцсети» (Google/Telegram OAuth) перенесён из Интеграций на страницу Аккаунт; подсказки при выключенном провайдере обновлены"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "docs/authentication.md — настройки провайдеров теперь в Аккаунт → Вход через соцсети"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Playground email: кнопка Run не на всю ширину; CodeBlock textarea — pre-wrap и line-height"
+        }
+      ]
+    },
+    {
       "version": "0.58.2",
       "date": "2026-09-10",
       "channel": "stable",

@@ -272,3 +272,7 @@
   min-height: 4.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
+
+.playgroundRun {
+  align-self: flex-start;
+}

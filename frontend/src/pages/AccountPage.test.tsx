@@ -13,6 +13,23 @@ const api = vi.fn(async (path: string, init?: RequestInit) => {
       telegram: { enabled: false, botUsername: '' },
     }
   }
+  if (path === '/admin/api/integrations/oauth') {
+    return {
+      google: {
+        enabled: true,
+        clientId: 'cid',
+        clientSecretConfigured: true,
+        clientSecretMasked: '****cid',
+        redirectUri: 'http://localhost/admin/api/auth/google/callback',
+      },
+      telegram: {
+        enabled: false,
+        botUsername: '',
+        botTokenConfigured: false,
+        botTokenMasked: null,
+      },
+    }
+  }
   if (path === '/admin/api/auth/identities' && init?.method === 'DELETE') {
     return [
       { provider: 'google', linked: false, label: null },

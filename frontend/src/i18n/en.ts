@@ -131,30 +131,6 @@ export const en = {
   'integrations.email.playground.running': 'Sending…',
   'integrations.email.playground.invalidJson': 'Body must be valid JSON',
 
-  'integrations.oauth.cardTitle': 'Social login',
-  'integrations.oauth.description': 'Google OAuth and Telegram Login Widget for the admin panel.',
-  'integrations.oauth.googleHint':
-    'Create an OAuth client in Google Cloud. Authorized redirect URI must match exactly.',
-  'integrations.oauth.googleEnabled': 'Enable Google sign-in',
-  'integrations.oauth.clientId': 'Client ID',
-  'integrations.oauth.clientIdHelp':
-    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → “Web application”. Paste the Redirect URI from the field below into “Authorized redirect URIs”, then copy the Client ID here.',
-  'integrations.oauth.clientSecret': 'Client secret',
-  'integrations.oauth.clientSecretHelp':
-    'The secret is shown right after the client is created (later use “Add secret” on the client page). Copy the full value; this field only stores a masked preview.',
-  'integrations.oauth.redirectUri': 'Redirect URI',
-  'integrations.oauth.telegramHint': 'Create a bot with BotFather, then /setdomain to this site.',
-  'integrations.oauth.telegramEnabled': 'Enable Telegram sign-in',
-  'integrations.oauth.botUsername': 'Bot username',
-  'integrations.oauth.botUsernameHelp':
-    'Open BotFather → /newbot → set a name and a username (must end with “bot”). Enter that username here without the “@”.',
-  'integrations.oauth.botToken': 'Bot token',
-  'integrations.oauth.botTokenHelp':
-    'BotFather returns a token like 123456:ABC… right after /newbot (later use /token). Then run /setdomain and set this admin panel domain, otherwise the login button will not render.',
-  'integrations.oauth.secretKeep': 'Configured ({masked}) — leave blank to keep',
-  'integrations.oauth.secretPlaceholder': 'Leave blank to keep the current secret',
-  'integrations.oauth.saved': 'Social login settings saved',
-
   'login.title': 'Sign in',
   'login.description': 'Admin access with a Bearer token.',
   'login.submit': 'Sign in',
@@ -181,9 +157,34 @@ export const en = {
 
   'account.title': 'Account',
   'account.description': 'Link Google or Telegram to sign in without a password.',
+  'account.oauth.cardTitle': 'Social login',
+  'account.oauth.description': 'Google OAuth and Telegram Login Widget for the admin panel.',
+  'account.oauth.googleHint':
+    'Create an OAuth client in Google Cloud. Authorized redirect URI must match exactly.',
+  'account.oauth.googleEnabled': 'Enable Google sign-in',
+  'account.oauth.clientId': 'Client ID',
+  'account.oauth.clientIdHelp':
+    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → “Web application”. Paste the Redirect URI from the field below into “Authorized redirect URIs”, then copy the Client ID here.',
+  'account.oauth.clientSecret': 'Client secret',
+  'account.oauth.clientSecretHelp':
+    'The secret is shown right after the client is created (later use “Add secret” on the client page). Copy the full value; this field only stores a masked preview.',
+  'account.oauth.redirectUri': 'Redirect URI',
+  'account.oauth.telegramHint': 'Create a bot with BotFather, then /setdomain to this site.',
+  'account.oauth.telegramEnabled': 'Enable Telegram sign-in',
+  'account.oauth.botUsername': 'Bot username',
+  'account.oauth.botUsernameHelp':
+    'Open BotFather → /newbot → set a name and a username (must end with “bot”). Enter that username here without the “@”.',
+  'account.oauth.botToken': 'Bot token',
+  'account.oauth.botTokenHelp':
+    'BotFather returns a token like 123456:ABC… right after /newbot (later use /token). Then run /setdomain and set this admin panel domain, otherwise the login button will not render.',
+  'account.oauth.secretKeep': 'Configured ({masked}) — leave blank to keep',
+  'account.oauth.secretPlaceholder': 'Leave blank to keep the current secret',
+  'account.oauth.saved': 'Social login settings saved',
   'account.googleHint': 'Match by verified Google email, or connect explicitly.',
   'account.telegramHint': 'Telegram must be linked here before it can be used on the login page.',
-  'account.providerOff': 'Enable this provider in Integrations first.',
+  'account.providerOff': 'Enable this provider in Social login above first.',
+  'account.providerOffAskAdmin':
+    'This provider is off. Ask an admin to enable it in Account → Social login.',
   'account.linkedStatus': 'Linked',
   'account.notLinked': 'Not linked',
   'account.connectGoogle': 'Connect Google',

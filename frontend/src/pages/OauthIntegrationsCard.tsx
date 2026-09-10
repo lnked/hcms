@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,7 @@ interface OauthConfig {
 
 export function OauthIntegrationsCard() {
   const { t } = useI18n()
+  const queryClient = useQueryClient()
   const [googleEnabled, setGoogleEnabled] = useState(false)
   const [googleClientId, setGoogleClientId] = useState('')
   const [googleSecret, setGoogleSecret] = useState('')
@@ -75,8 +76,9 @@ export function OauthIntegrationsCard() {
     onSuccess: () => {
       setGoogleSecret('')
       setBotToken('')
-      setMessage(t('integrations.oauth.saved'))
+      setMessage(t('account.oauth.saved'))
       void query.refetch()
+      void queryClient.invalidateQueries({ queryKey: ['auth-providers'] })
     },
     onError: (err) => {
       setMessage(null)
@@ -87,8 +89,8 @@ export function OauthIntegrationsCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('integrations.oauth.cardTitle')}</CardTitle>
-        <CardDescription>{t('integrations.oauth.description')}</CardDescription>
+        <CardTitle>{t('account.oauth.cardTitle')}</CardTitle>
+        <CardDescription>{t('account.oauth.description')}</CardDescription>
       </CardHeader>
       <CardContent className={clsx(styles.content)}>
         {query.isLoading ? (
@@ -103,7 +105,7 @@ export function OauthIntegrationsCard() {
               <div className={clsx(styles.panelHeader)}>
                 <div>
                   <h3 className={clsx(styles.panelTitle)}>Google</h3>
-                  <p className={clsx(styles.hint)}>{t('integrations.oauth.googleHint')}</p>
+                  <p className={clsx(styles.hint)}>{t('account.oauth.googleHint')}</p>
                 </div>
                 <Badge variant={googleEnabled ? 'default' : 'secondary'}>
                   {googleEnabled ? t('common.enabled') : t('common.disabled')}
@@ -116,11 +118,11 @@ export function OauthIntegrationsCard() {
                   checked={googleEnabled}
                   onChange={(e) => setGoogleEnabled(e.target.checked)}
                 />
-                <span>{t('integrations.oauth.googleEnabled')}</span>
+                <span>{t('account.oauth.googleEnabled')}</span>
               </label>
               <div className={clsx(styles.grid)}>
                 <div className={clsx(styles.field)}>
-                  <Label htmlFor="google-client-id">{t('integrations.oauth.clientId')}</Label>
+                  <Label htmlFor="google-client-id">{t('account.oauth.clientId')}</Label>
                   <Input
                     id="google-client-id"
                     value={googleClientId}
@@ -128,7 +130,7 @@ export function OauthIntegrationsCard() {
                     autoComplete="off"
                   />
                   <p className={clsx(styles.hint)}>
-                    {t('integrations.oauth.clientIdHelp')}{' '}
+                    {t('account.oauth.clientIdHelp')}{' '}
                     <a
                       className={clsx(styles.link)}
                       href="https://console.cloud.google.com/apis/credentials"
@@ -140,9 +142,7 @@ export function OauthIntegrationsCard() {
                   </p>
                 </div>
                 <div className={clsx(styles.field)}>
-                  <Label htmlFor="google-client-secret">
-                    {t('integrations.oauth.clientSecret')}
-                  </Label>
+                  <Label htmlFor="google-client-secret">{t('account.oauth.clientSecret')}</Label>
                   <Input
                     id="google-client-secret"
                     type="password"
@@ -150,19 +150,19 @@ export function OauthIntegrationsCard() {
                     onChange={(e) => setGoogleSecret(e.target.value)}
                     placeholder={
                       query.data?.google.clientSecretMasked
-                        ? t('integrations.oauth.secretKeep', {
+                        ? t('account.oauth.secretKeep', {
                             masked: query.data.google.clientSecretMasked,
                           })
-                        : t('integrations.oauth.secretPlaceholder')
+                        : t('account.oauth.secretPlaceholder')
                     }
                     autoComplete="off"
                   />
-                  <p className={clsx(styles.hint)}>{t('integrations.oauth.clientSecretHelp')}</p>
+                  <p className={clsx(styles.hint)}>{t('account.oauth.clientSecretHelp')}</p>
                 </div>
               </div>
               {query.data?.google.redirectUri ? (
                 <div className={clsx(styles.field)}>
-                  <Label>{t('integrations.oauth.redirectUri')}</Label>
+                  <Label>{t('account.oauth.redirectUri')}</Label>
                   <div className={clsx(styles.row)}>
                     <Input readOnly value={query.data.google.redirectUri} />
                     <Button
@@ -181,7 +181,7 @@ export function OauthIntegrationsCard() {
               <div className={clsx(styles.panelHeader)}>
                 <div>
                   <h3 className={clsx(styles.panelTitle)}>Telegram</h3>
-                  <p className={clsx(styles.hint)}>{t('integrations.oauth.telegramHint')}</p>
+                  <p className={clsx(styles.hint)}>{t('account.oauth.telegramHint')}</p>
                 </div>
                 <Badge variant={telegramEnabled ? 'default' : 'secondary'}>
                   {telegramEnabled ? t('common.enabled') : t('common.disabled')}
@@ -194,11 +194,11 @@ export function OauthIntegrationsCard() {
                   checked={telegramEnabled}
                   onChange={(e) => setTelegramEnabled(e.target.checked)}
                 />
-                <span>{t('integrations.oauth.telegramEnabled')}</span>
+                <span>{t('account.oauth.telegramEnabled')}</span>
               </label>
               <div className={clsx(styles.grid)}>
                 <div className={clsx(styles.field)}>
-                  <Label htmlFor="tg-bot">{t('integrations.oauth.botUsername')}</Label>
+                  <Label htmlFor="tg-bot">{t('account.oauth.botUsername')}</Label>
                   <Input
                     id="tg-bot"
                     value={botUsername}
@@ -207,7 +207,7 @@ export function OauthIntegrationsCard() {
                     autoComplete="off"
                   />
                   <p className={clsx(styles.hint)}>
-                    {t('integrations.oauth.botUsernameHelp')}{' '}
+                    {t('account.oauth.botUsernameHelp')}{' '}
                     <a
                       className={clsx(styles.link)}
                       href="https://t.me/BotFather"
@@ -219,7 +219,7 @@ export function OauthIntegrationsCard() {
                   </p>
                 </div>
                 <div className={clsx(styles.field)}>
-                  <Label htmlFor="tg-token">{t('integrations.oauth.botToken')}</Label>
+                  <Label htmlFor="tg-token">{t('account.oauth.botToken')}</Label>
                   <Input
                     id="tg-token"
                     type="password"
@@ -227,14 +227,14 @@ export function OauthIntegrationsCard() {
                     onChange={(e) => setBotToken(e.target.value)}
                     placeholder={
                       query.data?.telegram.botTokenMasked
-                        ? t('integrations.oauth.secretKeep', {
+                        ? t('account.oauth.secretKeep', {
                             masked: query.data.telegram.botTokenMasked,
                           })
-                        : t('integrations.oauth.secretPlaceholder')
+                        : t('account.oauth.secretPlaceholder')
                     }
                     autoComplete="off"
                   />
-                  <p className={clsx(styles.hint)}>{t('integrations.oauth.botTokenHelp')}</p>
+                  <p className={clsx(styles.hint)}>{t('account.oauth.botTokenHelp')}</p>
                 </div>
               </div>
             </div>

@@ -17,7 +17,6 @@ import { showError } from '@/lib/toast'
 import { useI18n, type MessageKey } from '@/i18n'
 import { CodeBlock } from '@/components/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
-import { OauthIntegrationsCard } from './OauthIntegrationsCard'
 import styles from './IntegrationsPage.module.css'
 
 type EmailProvider = 'resend' | 'postmark' | 'mailgun'
@@ -310,8 +309,6 @@ export function IntegrationsPage() {
       </div>
 
       {message ? <p className={clsx(styles.muted)}>{message}</p> : null}
-
-      <OauthIntegrationsCard />
 
       <Card>
         <CardHeader className={clsx(styles.cardHeader)}>
@@ -749,7 +746,11 @@ export function IntegrationsPage() {
               onChange={setPlaygroundBody}
             />
           </div>
-          <Button disabled={runPlayground.isPending} onClick={() => runPlayground.mutate()}>
+          <Button
+            className={clsx(styles.playgroundRun)}
+            disabled={runPlayground.isPending}
+            onClick={() => runPlayground.mutate()}
+          >
             {runPlayground.isPending
               ? t('integrations.email.playground.running')
               : t('integrations.email.playground.run')}

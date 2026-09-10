@@ -134,31 +134,6 @@ export const ru: Record<MessageKey, string> = {
   'integrations.email.playground.running': 'Отправка…',
   'integrations.email.playground.invalidJson': 'Body должен быть валидным JSON',
 
-  'integrations.oauth.cardTitle': 'Вход через соцсети',
-  'integrations.oauth.description': 'Google OAuth и Telegram Login Widget для админки.',
-  'integrations.oauth.googleHint':
-    'Создайте OAuth-клиент в Google Cloud. Redirect URI должен совпадать один в один.',
-  'integrations.oauth.googleEnabled': 'Включить вход через Google',
-  'integrations.oauth.clientId': 'Client ID',
-  'integrations.oauth.clientIdHelp':
-    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → тип «Web application». Вставьте Redirect URI из поля ниже в «Authorized redirect URIs» и скопируйте сюда Client ID.',
-  'integrations.oauth.clientSecret': 'Client secret',
-  'integrations.oauth.clientSecretHelp':
-    'Секрет показывается в том же окне сразу после создания клиента (позже — кнопка «Add secret» в карточке клиента). Скопируйте значение целиком; в поле хранится только маска.',
-  'integrations.oauth.redirectUri': 'Redirect URI',
-  'integrations.oauth.telegramHint':
-    'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
-  'integrations.oauth.telegramEnabled': 'Включить вход через Telegram',
-  'integrations.oauth.botUsername': 'Username бота',
-  'integrations.oauth.botUsernameHelp':
-    'Откройте BotFather → /newbot → задайте имя и username (обязан заканчиваться на «bot»). Впишите сюда username без «@».',
-  'integrations.oauth.botToken': 'Токен бота',
-  'integrations.oauth.botTokenHelp':
-    'BotFather пришлёт токен вида 123456:ABC… сразу после /newbot (позже — /token). Затем выполните /setdomain и укажите домен этой админки, иначе кнопка входа не появится.',
-  'integrations.oauth.secretKeep': 'Задан ({masked}) — оставьте пустым, чтобы сохранить',
-  'integrations.oauth.secretPlaceholder': 'Оставьте пустым, чтобы не менять секрет',
-  'integrations.oauth.saved': 'Настройки соцвхода сохранены',
-
   'login.title': 'Вход',
   'login.description': 'Доступ в админку по Bearer-токену.',
   'login.submit': 'Войти',
@@ -185,9 +160,35 @@ export const ru: Record<MessageKey, string> = {
 
   'account.title': 'Аккаунт',
   'account.description': 'Привяжите Google или Telegram, чтобы входить без пароля.',
+  'account.oauth.cardTitle': 'Вход через соцсети',
+  'account.oauth.description': 'Google OAuth и Telegram Login Widget для админки.',
+  'account.oauth.googleHint':
+    'Создайте OAuth-клиент в Google Cloud. Redirect URI должен совпадать один в один.',
+  'account.oauth.googleEnabled': 'Включить вход через Google',
+  'account.oauth.clientId': 'Client ID',
+  'account.oauth.clientIdHelp':
+    'Google Cloud Console → APIs & Services → Credentials → Create credentials → OAuth client ID → тип «Web application». Вставьте Redirect URI из поля ниже в «Authorized redirect URIs» и скопируйте сюда Client ID.',
+  'account.oauth.clientSecret': 'Client secret',
+  'account.oauth.clientSecretHelp':
+    'Секрет показывается в том же окне сразу после создания клиента (позже — кнопка «Add secret» в карточке клиента). Скопируйте значение целиком; в поле хранится только маска.',
+  'account.oauth.redirectUri': 'Redirect URI',
+  'account.oauth.telegramHint':
+    'Создайте бота в BotFather и выполните /setdomain на этот сайт.',
+  'account.oauth.telegramEnabled': 'Включить вход через Telegram',
+  'account.oauth.botUsername': 'Username бота',
+  'account.oauth.botUsernameHelp':
+    'Откройте BotFather → /newbot → задайте имя и username (обязан заканчиваться на «bot»). Впишите сюда username без «@».',
+  'account.oauth.botToken': 'Токен бота',
+  'account.oauth.botTokenHelp':
+    'BotFather пришлёт токен вида 123456:ABC… сразу после /newbot (позже — /token). Затем выполните /setdomain и укажите домен этой админки, иначе кнопка входа не появится.',
+  'account.oauth.secretKeep': 'Задан ({masked}) — оставьте пустым, чтобы сохранить',
+  'account.oauth.secretPlaceholder': 'Оставьте пустым, чтобы не менять секрет',
+  'account.oauth.saved': 'Настройки соцвхода сохранены',
   'account.googleHint': 'Вход по verified email Google или явная привязка.',
   'account.telegramHint': 'Telegram нужно привязать здесь, прежде чем входить с логина.',
-  'account.providerOff': 'Сначала включите провайдера в Интеграциях.',
+  'account.providerOff': 'Сначала включите провайдера в блоке «Вход через соцсети» выше.',
+  'account.providerOffAskAdmin':
+    'Провайдер выключен. Попросите администратора включить его в Аккаунт → Вход через соцсети.',
   'account.linkedStatus': 'Привязан',
   'account.notLinked': 'Не привязан',
   'account.connectGoogle': 'Привязать Google',
