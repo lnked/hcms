@@ -1038,7 +1038,8 @@ export const ru: Record<MessageKey, string> = {
   'kv.empty': 'Записей пока нет.',
   'kv.key': 'Ключ',
   'kv.value': 'Значение',
-  'kv.valueHint': 'Обычный текст сохраняется как строка. Валидный JSON (число, bool, объект, массив) парсится.',
+  'kv.valueHint':
+    'Обычный текст сохраняется как строка. Валидный JSON (число, bool, объект, массив) парсится.',
   'kv.author': 'Автор',
   'kv.createdAt': 'Создано',
   'kv.updatedAt': 'Изменено',

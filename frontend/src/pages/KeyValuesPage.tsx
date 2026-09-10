@@ -258,8 +258,12 @@ export function KeyValuesPage() {
                         {previewValue(entry.value)}
                       </TableCell>
                       <TableCell>{authorLabel(entry.updatedBy ?? entry.createdBy)}</TableCell>
-                      <TableCell className={clsx(styles.muted)}>{formatDt(entry.createdAt)}</TableCell>
-                      <TableCell className={clsx(styles.muted)}>{formatDt(entry.updatedAt)}</TableCell>
+                      <TableCell className={clsx(styles.muted)}>
+                        {formatDt(entry.createdAt)}
+                      </TableCell>
+                      <TableCell className={clsx(styles.muted)}>
+                        {formatDt(entry.updatedAt)}
+                      </TableCell>
                       <TableCell className={clsx(styles.alignRight)}>
                         <div className={clsx(styles.rowActions)}>
                           <Button size="sm" variant="outline" onClick={() => openEdit(entry)}>
@@ -350,23 +354,19 @@ export function KeyValuesPage() {
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('kv.value')}</Label>
-              <CodeBlock
-                code={valueText}
-                editable
-                language="js"
-                rows={8}
-                onChange={setValueText}
-              />
+              <CodeBlock code={valueText} editable language="js" rows={8} onChange={setValueText} />
               <p className={clsx(styles.hint)}>{t('kv.valueHint')}</p>
               <FieldError messages={fieldErrors.value} />
             </div>
             {editing ? (
               <div className={clsx(styles.meta)}>
                 <p>
-                  {t('kv.createdAt')}: {formatDt(editing.createdAt)} · {authorLabel(editing.createdBy)}
+                  {t('kv.createdAt')}: {formatDt(editing.createdAt)} ·{' '}
+                  {authorLabel(editing.createdBy)}
                 </p>
                 <p>
-                  {t('kv.updatedAt')}: {formatDt(editing.updatedAt)} · {authorLabel(editing.updatedBy)}
+                  {t('kv.updatedAt')}: {formatDt(editing.updatedAt)} ·{' '}
+                  {authorLabel(editing.updatedBy)}
                 </p>
               </div>
             ) : null}

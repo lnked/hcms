@@ -1036,7 +1036,8 @@ export const en = {
   'kv.empty': 'No entries yet.',
   'kv.key': 'Key',
   'kv.value': 'Value',
-  'kv.valueHint': 'Plain text is stored as a string. Valid JSON (number, bool, object, array) is parsed.',
+  'kv.valueHint':
+    'Plain text is stored as a string. Valid JSON (number, bool, object, array) is parsed.',
   'kv.author': 'Author',
   'kv.createdAt': 'Created',
   'kv.updatedAt': 'Updated',
