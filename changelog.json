@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.3",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Media overlay actions and stricter QA",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Media: Open/Delete/Optimize — иконки; в grid поверх превью (absolute, полупрозрачные); в таблице без overlay"
+        },
+        {
+          "type": "changed",
+          "area": "dev",
+          "text": "QA: PHPStan без baseline (level 8), расширены CS-Fixer и ESLint/knip/Stylelint"
+        }
+      ]
+    },
+    {
       "version": "0.62.2",
       "date": "2026-09-11",
       "channel": "stable",

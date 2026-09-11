@@ -216,6 +216,7 @@
 }
 
 .thumb {
+  position: relative;
   display: flex;
   aspect-ratio: 1;
   align-items: center;
@@ -261,6 +262,10 @@
 }
 
 .cardActions {
+  position: absolute;
+  top: var(--hcms-SPx1);
+  right: var(--hcms-SPx1);
+  z-index: 1;
   display: flex;
   gap: var(--hcms-SPx1);
 }
@@ -273,13 +278,15 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--hcms-CRx2);
-  border: 1px solid var(--hcms-color-input);
-  color: inherit;
+  border: 1px solid color-mix(in srgb, var(--hcms-color-border) 45%, transparent);
+  background-color: color-mix(in srgb, var(--hcms-color-card) 55%, transparent);
+  color: var(--hcms-color-foreground);
   text-decoration: none;
+  backdrop-filter: blur(6px);
 }
 
 .openLink:hover {
-  background-color: var(--hcms-color-accent);
+  background-color: color-mix(in srgb, var(--hcms-color-card) 85%, transparent);
 }
 
 .cardIconBtn {
@@ -287,6 +294,24 @@
   width: var(--hcms-SPx7);
   flex-shrink: 0;
   padding: 0;
+  border-color: color-mix(in srgb, var(--hcms-color-border) 45%, transparent);
+  background-color: color-mix(in srgb, var(--hcms-color-card) 55%, transparent);
+  color: var(--hcms-color-foreground);
+  backdrop-filter: blur(6px);
+}
+
+.cardIconBtn:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-card) 85%, transparent);
+}
+
+.cardDeleteBtn {
+  border-color: color-mix(in srgb, var(--hcms-color-destructive) 35%, transparent);
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 55%, transparent);
+  color: var(--hcms-color-primary-foreground);
+}
+
+.cardDeleteBtn:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-destructive) 80%, transparent);
 }
 
 .cardIcon {

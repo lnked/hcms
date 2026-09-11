@@ -365,14 +365,6 @@ export function MediaPage() {
                     ) : (
                       <span className={clsx(styles.mimeFallback)}>{item.mime}</span>
                     )}
-                  </div>
-                  <div className={clsx(styles.cardMeta)}>
-                    <p className={clsx(styles.cardName)} title={item.originalName}>
-                      {item.originalName}
-                    </p>
-                    <p className={clsx(styles.cardMetaLine)}>
-                      #{item.id} · {formatSize(item.size)}
-                    </p>
                     <div className={clsx(styles.cardActions)}>
                       <a
                         href={item.url}
@@ -387,7 +379,7 @@ export function MediaPage() {
                       {canOptimize(item) ? (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="secondary"
                           className={clsx(styles.cardIconBtn)}
                           title={t('media.optimize')}
                           aria-label={t('media.optimize')}
@@ -398,8 +390,8 @@ export function MediaPage() {
                       ) : null}
                       <Button
                         size="sm"
-                        variant="destructive"
-                        className={clsx(styles.cardIconBtn)}
+                        variant="secondary"
+                        className={clsx(styles.cardIconBtn, styles.cardDeleteBtn)}
                         title={t('common.delete')}
                         aria-label={t('common.delete')}
                         onClick={() => confirmDelete(item)}
@@ -407,6 +399,14 @@ export function MediaPage() {
                         <Trash2 className={clsx(styles.cardIcon)} aria-hidden />
                       </Button>
                     </div>
+                  </div>
+                  <div className={clsx(styles.cardMeta)}>
+                    <p className={clsx(styles.cardName)} title={item.originalName}>
+                      {item.originalName}
+                    </p>
+                    <p className={clsx(styles.cardMetaLine)}>
+                      #{item.id} · {formatSize(item.size)}
+                    </p>
                   </div>
                 </div>
               ))}
