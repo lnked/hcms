@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.5",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Uptime row actions and cron copy",
+      "changes": [
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Uptime: Check/Edit/Enable/Disable/Delete — иконки в строке цели"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Uptime cron: копирование без префикса * * * * * (только команда)"
+        }
+      ]
+    },
+    {
       "version": "0.62.4",
       "date": "2026-09-11",
       "channel": "stable",

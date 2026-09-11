@@ -57,6 +57,21 @@
 .alignRight {
   text-align: right;
 }
+.rowActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--hcms-SPx1);
+}
+.icon {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+}
+.iconDanger {
+  height: var(--hcms-SPx4);
+  width: var(--hcms-SPx4);
+  color: var(--hcms-color-destructive);
+}
 .rowSelected {
   background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
 }

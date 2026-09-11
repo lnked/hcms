@@ -17,6 +17,8 @@ const LANG_MAP: Record<DocLanguage, LanguageName> = {
 
 interface CodeBlockProps {
   code: string
+  /** Clipboard payload; defaults to `code`. Use when display includes extra context (e.g. crontab schedule). */
+  copyCode?: string
   label?: string
   language?: DocLanguage
   editable?: boolean
@@ -27,6 +29,7 @@ interface CodeBlockProps {
 
 export function CodeBlock({
   code,
+  copyCode,
   label,
   language = 'js',
   editable = false,
@@ -41,7 +44,7 @@ export function CodeBlock({
 
   async function copy() {
     try {
-      await copyToClipboard(code)
+      await copyToClipboard(copyCode ?? code)
       setCopied(true)
       if (timer.current) clearTimeout(timer.current)
       timer.current = setTimeout(() => setCopied(false), 1500)

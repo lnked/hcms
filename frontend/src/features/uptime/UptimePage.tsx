@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { Ban, CircleCheck, Pencil, RefreshCw, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
@@ -286,8 +287,10 @@ export function UptimePage() {
   const editingSelf = isEdit && targets.find((row) => row.id === editingId)?.kind === 'self'
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://example.com'
-  const cronCli = `* * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1`
-  const cronHttp = `* * * * * curl -fsS -X POST \\\n  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\\n  ${baseUrl}/admin/api/uptime/run >/dev/null`
+  const cronCliCmd = `cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1`
+  const cronHttpCmd = `curl -fsS -X POST \\\n  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\\n  ${baseUrl}/admin/api/uptime/run >/dev/null`
+  const cronCli = `* * * * * ${cronCliCmd}`
+  const cronHttp = `* * * * * ${cronHttpCmd}`
 
   return (
     <div className={clsx(styles.root)}>
@@ -341,8 +344,20 @@ export function UptimePage() {
               <span className={clsx(styles.mutedXs)}>{t('uptime.schedulerHint')}</span>
             </div>
           ) : null}
-          <CodeBlock code={cronCli} language="bash" label={t('uptime.cronCliLabel')} rows={2} />
-          <CodeBlock code={cronHttp} language="bash" label={t('uptime.cronHttpLabel')} rows={4} />
+          <CodeBlock
+            code={cronCli}
+            copyCode={cronCliCmd}
+            language="bash"
+            label={t('uptime.cronCliLabel')}
+            rows={2}
+          />
+          <CodeBlock
+            code={cronHttp}
+            copyCode={cronHttpCmd}
+            language="bash"
+            label={t('uptime.cronHttpLabel')}
+            rows={4}
+          />
         </CardContent>
       </Card>
 
@@ -436,37 +451,57 @@ export function UptimePage() {
                         {target.lastCheckAt ?? '—'}
                       </TableCell>
                       <TableCell className={clsx(styles.alignRight)}>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => checkNow.mutate(target.id)}
-                          disabled={checkNow.isPending && checkNow.variables === target.id}
-                        >
-                          {t('uptime.checkNow')}
-                        </Button>{' '}
-                        <Button size="sm" variant="ghost" onClick={() => openEdit(target)}>
-                          {t('common.edit')}
-                        </Button>{' '}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleEnabled.mutate(target)}
-                        >
-                          {target.enabled ? t('uptime.disable') : t('uptime.enable')}
-                        </Button>{' '}
-                        {target.kind !== 'self' ? (
+                        <div className={clsx(styles.rowActions)}>
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="ghost"
-                            onClick={() => {
-                              if (window.confirm(t('uptime.confirmDelete'))) {
-                                remove.mutate(target.id)
-                              }
-                            }}
+                            aria-label={t('uptime.checkNow')}
+                            title={t('uptime.checkNow')}
+                            onClick={() => checkNow.mutate(target.id)}
+                            disabled={checkNow.isPending && checkNow.variables === target.id}
                           >
-                            {t('common.delete')}
+                            <RefreshCw className={clsx(styles.icon)} />
                           </Button>
-                        ) : null}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={t('common.edit')}
+                            title={t('common.edit')}
+                            onClick={() => openEdit(target)}
+                          >
+                            <Pencil className={clsx(styles.icon)} />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={
+                              target.enabled ? t('uptime.disable') : t('uptime.enable')
+                            }
+                            title={target.enabled ? t('uptime.disable') : t('uptime.enable')}
+                            onClick={() => toggleEnabled.mutate(target)}
+                          >
+                            {target.enabled ? (
+                              <Ban className={clsx(styles.icon)} />
+                            ) : (
+                              <CircleCheck className={clsx(styles.icon)} />
+                            )}
+                          </Button>
+                          {target.kind !== 'self' ? (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label={t('common.delete')}
+                              title={t('common.delete')}
+                              onClick={() => {
+                                if (window.confirm(t('uptime.confirmDelete'))) {
+                                  remove.mutate(target.id)
+                                }
+                              }}
+                            >
+                              <Trash2 className={clsx(styles.iconDanger)} />
+                            </Button>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
