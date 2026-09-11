@@ -118,7 +118,7 @@ export function UptimePage() {
     enabled: selectedId !== null,
   })
 
-  const targets = statusQuery.data?.targets ?? []
+  const targets = useMemo(() => statusQuery.data?.targets ?? [], [statusQuery.data?.targets])
   const summary = statusQuery.data?.summary
   const selected = useMemo(
     () => targets.find((row) => row.id === selectedId) ?? null,
@@ -457,7 +457,7 @@ export function UptimePage() {
             <div className={clsx(styles.formRow)}>
               <Label htmlFor="uptime-name">{t('uptime.fieldName')}</Label>
               <Input id="uptime-name" value={name} onChange={(e) => setName(e.target.value)} />
-              <FieldError error={fieldErrors.name} />
+              <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.formRow)}>
               <Label htmlFor="uptime-url">{t('uptime.fieldUrl')}</Label>
@@ -467,7 +467,7 @@ export function UptimePage() {
                 onChange={(e) => setUrl(e.target.value)}
                 disabled={editingSelf}
               />
-              <FieldError error={fieldErrors.url} />
+              <FieldError messages={fieldErrors.url} />
             </div>
             <div className={clsx(styles.formRow)}>
               <Label htmlFor="uptime-interval">{t('uptime.fieldInterval')}</Label>
@@ -478,7 +478,7 @@ export function UptimePage() {
                 value={intervalSeconds}
                 onChange={(e) => setIntervalSeconds(e.target.value)}
               />
-              <FieldError error={fieldErrors.intervalSeconds} />
+              <FieldError messages={fieldErrors.intervalSeconds} />
             </div>
             {!editingSelf ? (
               <div className={clsx(styles.formRow)}>
@@ -491,7 +491,7 @@ export function UptimePage() {
                   value={expectedStatus}
                   onChange={(e) => setExpectedStatus(e.target.value)}
                 />
-                <FieldError error={fieldErrors.expectedStatus} />
+                <FieldError messages={fieldErrors.expectedStatus} />
               </div>
             ) : null}
             <div className={clsx(styles.formRow)}>
@@ -504,7 +504,7 @@ export function UptimePage() {
                 value={timeoutMs}
                 onChange={(e) => setTimeoutMs(e.target.value)}
               />
-              <FieldError error={fieldErrors.timeoutMs} />
+              <FieldError messages={fieldErrors.timeoutMs} />
             </div>
             <label className={clsx(styles.formRow)}>
               <span>
