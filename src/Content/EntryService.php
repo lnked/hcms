@@ -114,7 +114,7 @@ final class EntryService
         foreach ($entries as $entry) {
             foreach (['createdById', 'updatedById'] as $key) {
                 $id = $entry[$key] ?? null;
-                if (is_int($id) || (is_string($id) && ctype_digit($id))) {
+                if (\is_int($id) || (\is_string($id) && ctype_digit($id))) {
                     $ids[] = (int) $id;
                 }
             }

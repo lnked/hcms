@@ -59,7 +59,7 @@ final class MediaPublicCacheTest extends TestCase
     {
         $relative = '2026/09/' . bin2hex(random_bytes(8)) . '.png';
         $absolute = $this->root . '/storage/uploads/' . $relative;
-        mkdir(dirname($absolute), 0777, true);
+        mkdir(\dirname($absolute), 0777, true);
         $bytes = base64_decode(
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
             true,
@@ -74,7 +74,7 @@ final class MediaPublicCacheTest extends TestCase
                 'disk_path' => $relative,
                 'original_name' => 'cover.png',
                 'mime' => 'image/png',
-                'size' => strlen($bytes),
+                'size' => \strlen($bytes),
                 'created_at' => date('c'),
             ],
         );
@@ -98,7 +98,7 @@ final class MediaPublicCacheTest extends TestCase
     {
         $relative = '2026/09/' . bin2hex(random_bytes(8)) . '.svg';
         $absolute = $this->root . '/storage/uploads/' . $relative;
-        mkdir(dirname($absolute), 0777, true);
+        mkdir(\dirname($absolute), 0777, true);
         $svg = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
         file_put_contents($absolute, $svg);
 
@@ -109,7 +109,7 @@ final class MediaPublicCacheTest extends TestCase
                 'disk_path' => $relative,
                 'original_name' => 'icon.svg',
                 'mime' => 'image/svg+xml',
-                'size' => strlen($svg),
+                'size' => \strlen($svg),
                 'created_at' => date('c'),
             ],
         );

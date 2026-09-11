@@ -41,13 +41,13 @@ final class EmailIntegration
     public function raw(): array
     {
         $stored = $this->settings->get(self::SETTING_KEY);
-        if (!is_array($stored)) {
+        if (!\is_array($stored)) {
             return $this->defaults();
         }
 
         $defaults = $this->defaults();
-        $provider = is_string($stored['provider'] ?? null) ? $stored['provider'] : 'resend';
-        if (!in_array($provider, self::PROVIDERS, true)) {
+        $provider = \is_string($stored['provider'] ?? null) ? $stored['provider'] : 'resend';
+        if (!\in_array($provider, self::PROVIDERS, true)) {
             $provider = 'resend';
         }
 
@@ -56,7 +56,7 @@ final class EmailIntegration
         $mailgun = $this->readMailgunKeys($stored, $defaults['mailgun']);
 
         if (
-            is_string($stored['apiKey'] ?? null)
+            \is_string($stored['apiKey'] ?? null)
             && $stored['apiKey'] !== ''
             && $resend['apiKey'] === ''
             && $postmark['apiKey'] === ''
@@ -72,9 +72,9 @@ final class EmailIntegration
         }
 
         $domains = [];
-        if (is_array($stored['allowedRecipientDomains'] ?? null)) {
+        if (\is_array($stored['allowedRecipientDomains'] ?? null)) {
             foreach ($stored['allowedRecipientDomains'] as $domain) {
-                if (is_string($domain) && trim($domain) !== '') {
+                if (\is_string($domain) && trim($domain) !== '') {
                     $domains[] = strtolower(trim($domain));
                 }
             }
@@ -83,8 +83,8 @@ final class EmailIntegration
         return [
             'provider' => $provider,
             'enabled' => (bool) ($stored['enabled'] ?? false),
-            'fromEmail' => is_string($stored['fromEmail'] ?? null) ? $stored['fromEmail'] : '',
-            'fromName' => is_string($stored['fromName'] ?? null) ? $stored['fromName'] : '',
+            'fromEmail' => \is_string($stored['fromEmail'] ?? null) ? $stored['fromEmail'] : '',
+            'fromName' => \is_string($stored['fromName'] ?? null) ? $stored['fromName'] : '',
             'dailyQuota' => max(0, (int) ($stored['dailyQuota'] ?? 100)),
             'allowedRecipientDomains' => array_values(array_unique($domains)),
             'resend' => $resend,
@@ -161,25 +161,25 @@ final class EmailIntegration
     {
         $current = $this->raw();
 
-        if (array_key_exists('enabled', $payload)) {
-            if (!is_bool($payload['enabled'])) {
+        if (\array_key_exists('enabled', $payload)) {
+            if (!\is_bool($payload['enabled'])) {
                 throw new InvalidArgumentException('enabled must be a boolean');
             }
             $current['enabled'] = $payload['enabled'];
         }
 
-        if (array_key_exists('provider', $payload)) {
-            if (!is_string($payload['provider']) || $payload['provider'] === '') {
+        if (\array_key_exists('provider', $payload)) {
+            if (!\is_string($payload['provider']) || $payload['provider'] === '') {
                 throw new InvalidArgumentException('provider is required');
             }
-            if (!in_array($payload['provider'], self::PROVIDERS, true)) {
+            if (!\in_array($payload['provider'], self::PROVIDERS, true)) {
                 throw new InvalidArgumentException('Unsupported provider');
             }
             $current['provider'] = $payload['provider'];
         }
 
-        if (array_key_exists('fromEmail', $payload)) {
-            if (!is_string($payload['fromEmail'])) {
+        if (\array_key_exists('fromEmail', $payload)) {
+            if (!\is_string($payload['fromEmail'])) {
                 throw new InvalidArgumentException('fromEmail must be a string');
             }
             $fromEmail = trim($payload['fromEmail']);
@@ -189,27 +189,27 @@ final class EmailIntegration
             $current['fromEmail'] = $fromEmail;
         }
 
-        if (array_key_exists('fromName', $payload)) {
-            if (!is_string($payload['fromName'])) {
+        if (\array_key_exists('fromName', $payload)) {
+            if (!\is_string($payload['fromName'])) {
                 throw new InvalidArgumentException('fromName must be a string');
             }
             $current['fromName'] = trim($payload['fromName']);
         }
 
-        if (array_key_exists('dailyQuota', $payload)) {
-            if (!is_int($payload['dailyQuota']) && !(is_string($payload['dailyQuota']) && ctype_digit($payload['dailyQuota']))) {
+        if (\array_key_exists('dailyQuota', $payload)) {
+            if (!\is_int($payload['dailyQuota']) && !(\is_string($payload['dailyQuota']) && ctype_digit($payload['dailyQuota']))) {
                 throw new InvalidArgumentException('dailyQuota must be an integer');
             }
             $current['dailyQuota'] = max(0, (int) $payload['dailyQuota']);
         }
 
-        if (array_key_exists('allowedRecipientDomains', $payload)) {
-            if (!is_array($payload['allowedRecipientDomains'])) {
+        if (\array_key_exists('allowedRecipientDomains', $payload)) {
+            if (!\is_array($payload['allowedRecipientDomains'])) {
                 throw new InvalidArgumentException('allowedRecipientDomains must be an array');
             }
             $domains = [];
             foreach ($payload['allowedRecipientDomains'] as $domain) {
-                if (!is_string($domain)) {
+                if (!\is_string($domain)) {
                     continue;
                 }
                 $domain = strtolower(trim($domain));
@@ -220,8 +220,8 @@ final class EmailIntegration
             $current['allowedRecipientDomains'] = array_values(array_unique($domains));
         }
 
-        if (array_key_exists('apiKey', $payload)) {
-            if (!is_string($payload['apiKey'])) {
+        if (\array_key_exists('apiKey', $payload)) {
+            if (!\is_string($payload['apiKey'])) {
                 throw new InvalidArgumentException('apiKey must be a string');
             }
             $apiKey = trim($payload['apiKey']);
@@ -234,19 +234,19 @@ final class EmailIntegration
             }
         }
 
-        if (array_key_exists('mailgunDomain', $payload)) {
-            if (!is_string($payload['mailgunDomain'])) {
+        if (\array_key_exists('mailgunDomain', $payload)) {
+            if (!\is_string($payload['mailgunDomain'])) {
                 throw new InvalidArgumentException('mailgunDomain must be a string');
             }
             $current['mailgun']['domain'] = trim($payload['mailgunDomain']);
         }
 
-        if (array_key_exists('mailgunRegion', $payload)) {
-            if (!is_string($payload['mailgunRegion'])) {
+        if (\array_key_exists('mailgunRegion', $payload)) {
+            if (!\is_string($payload['mailgunRegion'])) {
                 throw new InvalidArgumentException('mailgunRegion must be a string');
             }
             $region = strtolower(trim($payload['mailgunRegion']));
-            if (!in_array($region, ['us', 'eu'], true)) {
+            if (!\in_array($region, ['us', 'eu'], true)) {
                 throw new InvalidArgumentException('mailgunRegion must be us or eu');
             }
             $current['mailgun']['region'] = $region;
@@ -314,7 +314,7 @@ final class EmailIntegration
         }
         $parts = explode('@', strtolower($to));
         $domain = $parts[1] ?? '';
-        if ($domain === '' || !in_array($domain, $domains, true)) {
+        if ($domain === '' || !\in_array($domain, $domains, true)) {
             throw new InvalidArgumentException('Recipient domain is not allowed');
         }
     }
@@ -327,12 +327,12 @@ final class EmailIntegration
     private function readProviderKeys(array $stored, string $key, array $fallback): array
     {
         $bucket = $stored[$key] ?? null;
-        if (!is_array($bucket)) {
+        if (!\is_array($bucket)) {
             return $fallback;
         }
 
         return [
-            'apiKey' => is_string($bucket['apiKey'] ?? null) ? $bucket['apiKey'] : '',
+            'apiKey' => \is_string($bucket['apiKey'] ?? null) ? $bucket['apiKey'] : '',
         ];
     }
 
@@ -344,17 +344,17 @@ final class EmailIntegration
     private function readMailgunKeys(array $stored, array $fallback): array
     {
         $bucket = $stored['mailgun'] ?? null;
-        if (!is_array($bucket)) {
+        if (!\is_array($bucket)) {
             return $fallback;
         }
-        $region = is_string($bucket['region'] ?? null) ? strtolower($bucket['region']) : 'us';
-        if (!in_array($region, ['us', 'eu'], true)) {
+        $region = \is_string($bucket['region'] ?? null) ? strtolower($bucket['region']) : 'us';
+        if (!\in_array($region, ['us', 'eu'], true)) {
             $region = 'us';
         }
 
         return [
-            'apiKey' => is_string($bucket['apiKey'] ?? null) ? $bucket['apiKey'] : '',
-            'domain' => is_string($bucket['domain'] ?? null) ? $bucket['domain'] : '',
+            'apiKey' => \is_string($bucket['apiKey'] ?? null) ? $bucket['apiKey'] : '',
+            'domain' => \is_string($bucket['domain'] ?? null) ? $bucket['domain'] : '',
             'region' => $region,
         ];
     }
@@ -374,7 +374,7 @@ final class EmailIntegration
 
     private function maskApiKey(string $apiKey, string $provider): string
     {
-        $len = strlen($apiKey);
+        $len = \strlen($apiKey);
         if ($len <= 4) {
             return str_repeat('•', $len);
         }

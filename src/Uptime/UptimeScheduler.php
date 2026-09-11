@@ -39,7 +39,7 @@ final class UptimeScheduler
         }
 
         register_shutdown_function(function () use ($skipSelf): void {
-            if (function_exists('fastcgi_finish_request')) {
+            if (\function_exists('fastcgi_finish_request')) {
                 @fastcgi_finish_request();
             }
             $this->runNow($skipSelf);
@@ -58,7 +58,7 @@ final class UptimeScheduler
         }
 
         $lockPath = $this->lockPath();
-        $dir = dirname($lockPath);
+        $dir = \dirname($lockPath);
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
         }
@@ -124,7 +124,7 @@ final class UptimeScheduler
     private function touchThrottle(): void
     {
         $path = $this->throttlePath();
-        $dir = dirname($path);
+        $dir = \dirname($path);
         if (!is_dir($dir)) {
             @mkdir($dir, 0775, true);
         }

@@ -30,7 +30,7 @@ final class PhpCliTest extends TestCase
 
     public function testVersionIdOfCurrentBinaryMatchesRuntime(): void
     {
-        if (!defined('PHP_BINARY') || PHP_BINARY === '' || !is_file(PHP_BINARY)) {
+        if (!\defined('PHP_BINARY') || PHP_BINARY === '' || !is_file(PHP_BINARY)) {
             self::markTestSkipped('PHP_BINARY unavailable');
         }
 

@@ -82,7 +82,7 @@ final class LocaleRepository
         $sets = [];
         $params = ['code' => $code];
         foreach (['label', 'enabled', 'is_default', 'sort_order'] as $col) {
-            if (array_key_exists($col, $data)) {
+            if (\array_key_exists($col, $data)) {
                 $sets[] = $col . ' = :' . $col;
                 $params[$col] = $data[$col];
             }

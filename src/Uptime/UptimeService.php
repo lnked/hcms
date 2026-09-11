@@ -267,25 +267,25 @@ final class UptimeService
     {
         $parsed = $this->parseWriteFields($payload, false);
         $out = [];
-        if (array_key_exists('name', $payload)) {
+        if (\array_key_exists('name', $payload)) {
             $out['name'] = $parsed['name'];
         }
-        if (array_key_exists('url', $payload)) {
+        if (\array_key_exists('url', $payload)) {
             $out['url'] = $parsed['url'];
         }
-        if (array_key_exists('method', $payload)) {
+        if (\array_key_exists('method', $payload)) {
             $out['method'] = $parsed['method'];
         }
-        if (array_key_exists('expectedStatus', $payload)) {
+        if (\array_key_exists('expectedStatus', $payload)) {
             $out['expected_status'] = $parsed['expected_status'];
         }
-        if (array_key_exists('timeoutMs', $payload)) {
+        if (\array_key_exists('timeoutMs', $payload)) {
             $out['timeout_ms'] = $parsed['timeout_ms'];
         }
-        if (array_key_exists('intervalSeconds', $payload)) {
+        if (\array_key_exists('intervalSeconds', $payload)) {
             $out['interval_seconds'] = $parsed['interval_seconds'];
         }
-        if (array_key_exists('enabled', $payload)) {
+        if (\array_key_exists('enabled', $payload)) {
             $out['enabled'] = $parsed['enabled'];
         }
 
@@ -306,9 +306,9 @@ final class UptimeService
      */
     private function parseWriteFields(array $payload, bool $creating): array
     {
-        $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
-        $url = isset($payload['url']) && is_string($payload['url']) ? trim($payload['url']) : '';
-        $methodRaw = isset($payload['method']) && is_string($payload['method'])
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
+        $url = isset($payload['url']) && \is_string($payload['url']) ? trim($payload['url']) : '';
+        $methodRaw = isset($payload['method']) && \is_string($payload['method'])
             ? strtoupper(trim($payload['method']))
             : 'GET';
         $method = $methodRaw === 'HEAD' ? 'HEAD' : 'GET';
@@ -321,22 +321,22 @@ final class UptimeService
         $interval = isset($payload['intervalSeconds']) && is_numeric($payload['intervalSeconds'])
             ? (int) $payload['intervalSeconds']
             : $this->settings->defaultIntervalSeconds();
-        $enabled = array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
+        $enabled = \array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
 
-        if ($creating || array_key_exists('name', $payload)) {
-            if ($name === '' || strlen($name) > 191) {
+        if ($creating || \array_key_exists('name', $payload)) {
+            if ($name === '' || \strlen($name) > 191) {
                 throw new InvalidArgumentException('name is required (1–191 chars)');
             }
         }
-        if ($creating || array_key_exists('url', $payload)) {
+        if ($creating || \array_key_exists('url', $payload)) {
             if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url)) {
                 throw new InvalidArgumentException('url must be a valid http(s) URL');
             }
-            if (strlen($url) > 2048) {
+            if (\strlen($url) > 2048) {
                 throw new InvalidArgumentException('url is too long');
             }
         }
-        if (array_key_exists('method', $payload) && !in_array($methodRaw, ['GET', 'HEAD'], true)) {
+        if (\array_key_exists('method', $payload) && !\in_array($methodRaw, ['GET', 'HEAD'], true)) {
             throw new InvalidArgumentException('method must be GET or HEAD');
         }
         if ($expected < 100 || $expected > 599) {

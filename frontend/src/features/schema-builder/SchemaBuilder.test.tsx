@@ -1,11 +1,11 @@
-import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
+import { I18nProvider } from '@/i18n'
 import { SchemaBuilder } from './SchemaBuilder'
 import type { SchemaField } from '@/types/field'
-import { I18nProvider } from '@/i18n'
 
 function Harness() {
   const [schema, setSchema] = useState<SchemaField[]>([])

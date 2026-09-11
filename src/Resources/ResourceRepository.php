@@ -177,10 +177,10 @@ final class ResourceRepository
         }
 
         $settings = $existing['settings_json'];
-        if (isset($data['settings']) && is_array($data['settings'])) {
-            $decoded = is_string($settings) ? json_decode($settings, true) : $settings;
+        if (isset($data['settings']) && \is_array($data['settings'])) {
+            $decoded = \is_string($settings) ? json_decode($settings, true) : $settings;
             $settings = json_encode(
-                array_replace_recursive(is_array($decoded) ? $decoded : [], $data['settings']),
+                array_replace_recursive(\is_array($decoded) ? $decoded : [], $data['settings']),
                 JSON_UNESCAPED_SLASHES,
             );
         }
@@ -193,7 +193,7 @@ final class ResourceRepository
                 'id' => $id,
                 'endpoint' => $data['endpoint'] ?? $existing['endpoint'],
                 'status' => $data['status'] ?? $existing['status'],
-                'settings_json' => is_string($settings) ? $settings : json_encode($settings, JSON_UNESCAPED_SLASHES),
+                'settings_json' => \is_string($settings) ? $settings : json_encode($settings, JSON_UNESCAPED_SLASHES),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         );

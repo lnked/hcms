@@ -174,16 +174,16 @@ final class PublicApiController
         $settings = [];
         if ($resource !== null) {
             $raw = $resource['settings_json'] ?? [];
-            if (is_string($raw)) {
+            if (\is_string($raw)) {
                 $decoded = json_decode($raw, true);
-                $settings = is_array($decoded) ? $decoded : [];
-            } elseif (is_array($raw)) {
+                $settings = \is_array($decoded) ? $decoded : [];
+            } elseif (\is_array($raw)) {
                 $settings = $raw;
             }
             $settings = ResourceService::normalizeSettings($settings);
         }
         $this->spamGuard->assertCreateAllowed($request, $slug, $settings, $payload);
-        $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
+        $honeypot = \is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
         if ($honeypot !== '') {
             unset($payload[$honeypot]);
         }
@@ -232,7 +232,7 @@ final class PublicApiController
     private function runtimeError(RuntimeException $e): Response
     {
         $code = $e->getCode();
-        $status = in_array($code, [401, 403, 404, 405], true) ? $code : 400;
+        $status = \in_array($code, [401, 403, 404, 405], true) ? $code : 400;
         $errorCode = match ($status) {
             401 => 'UNAUTHORIZED',
             403 => 'FORBIDDEN',
@@ -250,10 +250,10 @@ final class PublicApiController
         if ($resource === null || ($resource['status'] ?? '') !== 'published') {
             throw new RuntimeException('Resource not found', 404);
         }
-        $settings = is_string($resource['settings_json'])
+        $settings = \is_string($resource['settings_json'])
             ? json_decode((string) $resource['settings_json'], true)
             : $resource['settings_json'];
-        $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $public = \is_array($settings['public'] ?? null) ? $settings['public'] : [];
         $action = self::actionFor($method);
 
         $this->authorizeAction($resource, (bool) ($public[$action] ?? false), $action, $auth);
@@ -273,17 +273,17 @@ final class PublicApiController
             throw new RuntimeException('Resource API not found', 404);
         }
 
-        $resourceSettings = is_string($resource['settings_json'])
+        $resourceSettings = \is_string($resource['settings_json'])
             ? json_decode((string) $resource['settings_json'], true)
             : $resource['settings_json'];
-        $resourcePublic = is_array($resourceSettings['public'] ?? null) ? $resourceSettings['public'] : [];
+        $resourcePublic = \is_array($resourceSettings['public'] ?? null) ? $resourceSettings['public'] : [];
 
-        $apiSettings = is_string($api['settings_json'])
+        $apiSettings = \is_string($api['settings_json'])
             ? json_decode((string) $api['settings_json'], true)
             : $api['settings_json'];
-        $apiPublic = is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
+        $apiPublic = \is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
 
-        $allowPublic = array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
+        $allowPublic = \array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
             ? (bool) $apiPublic[$action]
             : (bool) ($resourcePublic[$action] ?? false);
 

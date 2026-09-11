@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
-import { Check, Copy } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Check, Copy } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { highlight, type LanguageName } from 'sugar-high'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'

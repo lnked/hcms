@@ -31,7 +31,7 @@ final class UptimeHeartbeatService
         $last = $self['last_heartbeat_at'] ?? null;
         $stale = $this->settings->heartbeatStaleSeconds();
 
-        if (is_string($last) && $last !== '') {
+        if (\is_string($last) && $last !== '') {
             $lastTs = strtotime($last);
             $nowTs = strtotime($now);
             if ($lastTs !== false && $nowTs !== false && ($nowTs - $lastTs) > $stale) {

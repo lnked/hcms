@@ -51,14 +51,14 @@ final class MigrationService
         $fieldRows = $this->fields->forContentType((int) $resource['content_type_id']);
         $desired = [];
         foreach ($fieldRows as $row) {
-            $spec = is_string($row['spec_json']) ? json_decode((string) $row['spec_json'], true) : $row['spec_json'];
+            $spec = \is_string($row['spec_json']) ? json_decode((string) $row['spec_json'], true) : $row['spec_json'];
             $column = $this->mapper->columnFor([
                 'name' => $row['name'],
                 'type' => $row['type'],
-                'nullable' => is_array($spec) ? ($spec['nullable'] ?? true) : true,
-                'unique' => is_array($spec) ? ($spec['unique'] ?? false) : false,
-                'indexed' => is_array($spec) ? ($spec['indexed'] ?? false) : false,
-                'config' => is_array($spec) && is_array($spec['config'] ?? null) ? $spec['config'] : [],
+                'nullable' => \is_array($spec) ? ($spec['nullable'] ?? true) : true,
+                'unique' => \is_array($spec) ? ($spec['unique'] ?? false) : false,
+                'indexed' => \is_array($spec) ? ($spec['indexed'] ?? false) : false,
+                'config' => \is_array($spec) && \is_array($spec['config'] ?? null) ? $spec['config'] : [],
             ]);
             if ($column !== null) {
                 $desired[] = $column;
@@ -138,7 +138,7 @@ final class MigrationService
         $cols = [];
         foreach ($rows as $row) {
             $name = (string) $row['Field'];
-            if (in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'], true)) {
+            if (\in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'], true)) {
                 continue;
             }
             $cols[] = new ColumnDefinition(

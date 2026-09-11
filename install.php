@@ -242,11 +242,13 @@ function cms_install_inline_download(string $root, bool $force = false)
     $actual = hash_file('sha256', $tmp);
     if ($actual === false || $expected === '' || !hash_equals($expected, $actual)) {
         @unlink($tmp);
+
         throw new RuntimeException('Release checksum mismatch');
     }
     $zip = new ZipArchive();
     if ($zip->open($tmp) !== true) {
         @unlink($tmp);
+
         throw new RuntimeException('Unable to open archive');
     }
     $zip->extractTo($root);

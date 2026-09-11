@@ -3,8 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
-import { DataTable, type EntryRow } from './DataTable'
+import { requireInput } from '@/test/dom'
 import { emptyField } from '@/types/field'
+import { DataTable, type EntryRow } from './DataTable'
 
 const editHref = (row: EntryRow) => `/resources/1/data/${row.id}`
 
@@ -77,7 +78,7 @@ describe('DataTable', () => {
         onFilterChange={onFilterChange}
       />,
     )
-    const checkbox = screen.getByLabelText('Filter Published') as HTMLInputElement
+    const checkbox = requireInput(screen.getByLabelText('Filter Published'))
     expect(checkbox.indeterminate).toBe(true)
     await user.click(checkbox)
     expect(onFilterChange).toHaveBeenLastCalledWith('isPublished', '1')

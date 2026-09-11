@@ -23,6 +23,6 @@ final class MailMessage
             return $this->fromEmail;
         }
 
-        return sprintf('%s <%s>', $name, $this->fromEmail);
+        return \sprintf('%s <%s>', $name, $this->fromEmail);
     }
 }

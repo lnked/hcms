@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
-import type { DateGranularity } from '@/lib/dateFormat'
 import { DatePickerField } from './date-picker'
+import type { DateGranularity } from '@/lib/dateFormat'
 
 /** Segments are wrapped in bidi isolates, which carry no meaning for assertions. */
 function plainText(element: HTMLElement): string {
@@ -67,7 +67,7 @@ describe('DatePickerField', () => {
     const user = userEvent.setup()
     render(wrap(<Harness />))
 
-    await user.click(screen.getAllByRole('spinbutton')[0])
+    await user.click(screen.getAllByRole('spinbutton')[0]!)
     await user.keyboard('08092026')
 
     expect(screen.getByText('2026-09-08')).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('DatePickerField', () => {
     render(wrap(<Harness initial="2026-09-08" />))
 
     const buttons = screen.getAllByRole('button')
-    await user.click(buttons[buttons.length - 1])
+    await user.click(buttons[buttons.length - 1]!)
     await user.click(screen.getByRole('button', { name: /15/ }))
 
     expect(screen.getByText('2026-09-15')).toBeInTheDocument()
@@ -102,7 +102,7 @@ describe('DatePickerField', () => {
     )
 
     const buttons = screen.getAllByRole('button')
-    await user.click(buttons[buttons.length - 1])
+    await user.click(buttons[buttons.length - 1]!)
     await user.click(screen.getByRole('button', { name: /15/ }))
 
     expect(screen.getByText('2026-09-15 21:04:07')).toBeInTheDocument()

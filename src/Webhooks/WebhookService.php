@@ -52,6 +52,7 @@ final class WebhookService
     public function create(array $payload): array
     {
         $data = $this->normalizeWrite($payload, true);
+        /** @var array{name: string, url: string, secret: string, events: list<string>, resource_id: int|null, status: string} $data */
 
         return $this->serialize($this->webhooks->create($data));
     }
@@ -141,44 +142,44 @@ final class WebhookService
     {
         $out = [];
 
-        if ($creating || array_key_exists('name', $payload)) {
-            $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
+        if ($creating || \array_key_exists('name', $payload)) {
+            $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 120) {
                 throw ValidationFailedException::field('name', 'name is required (max 120)');
             }
             $out['name'] = $name;
         }
 
-        if ($creating || array_key_exists('url', $payload)) {
-            $url = isset($payload['url']) && is_string($payload['url']) ? trim($payload['url']) : '';
+        if ($creating || \array_key_exists('url', $payload)) {
+            $url = isset($payload['url']) && \is_string($payload['url']) ? trim($payload['url']) : '';
             if ($url === '' || mb_strlen($url) > 2048 || !filter_var($url, FILTER_VALIDATE_URL)) {
                 throw ValidationFailedException::field('url', 'url must be a valid URL');
             }
             $scheme = strtolower((string) (parse_url($url, PHP_URL_SCHEME) ?? ''));
-            if (!in_array($scheme, ['http', 'https'], true)) {
+            if (!\in_array($scheme, ['http', 'https'], true)) {
                 throw ValidationFailedException::field('url', 'url must be http or https');
             }
             $out['url'] = $url;
         }
 
-        if ($creating || array_key_exists('secret', $payload)) {
-            $secret = isset($payload['secret']) && is_string($payload['secret']) ? trim($payload['secret']) : '';
+        if ($creating || \array_key_exists('secret', $payload)) {
+            $secret = isset($payload['secret']) && \is_string($payload['secret']) ? trim($payload['secret']) : '';
             if ($secret === '') {
                 $secret = bin2hex(random_bytes(32));
             }
-            if (strlen($secret) > 128) {
+            if (\strlen($secret) > 128) {
                 throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
 
-        if ($creating || array_key_exists('events', $payload)) {
+        if ($creating || \array_key_exists('events', $payload)) {
             $out['events'] = $this->normalizeEvents($payload['events'] ?? null);
         }
 
-        if ($creating || array_key_exists('resourceId', $payload)) {
+        if ($creating || \array_key_exists('resourceId', $payload)) {
             $resourceId = null;
-            if (array_key_exists('resourceId', $payload) && $payload['resourceId'] !== null && $payload['resourceId'] !== '') {
+            if (\array_key_exists('resourceId', $payload) && $payload['resourceId'] !== null && $payload['resourceId'] !== '') {
                 $resourceId = (int) $payload['resourceId'];
                 if ($this->resources->find($resourceId) === null) {
                     throw ValidationFailedException::field('resourceId', 'Unknown resourceId: ' . $resourceId);
@@ -187,11 +188,11 @@ final class WebhookService
             $out['resource_id'] = $resourceId;
         }
 
-        if ($creating || array_key_exists('status', $payload)) {
-            $status = isset($payload['status']) && is_string($payload['status'])
+        if ($creating || \array_key_exists('status', $payload)) {
+            $status = isset($payload['status']) && \is_string($payload['status'])
                 ? trim($payload['status'])
                 : 'active';
-            if (!in_array($status, ['active', 'disabled'], true)) {
+            if (!\in_array($status, ['active', 'disabled'], true)) {
                 throw ValidationFailedException::field('status', 'status must be active or disabled');
             }
             $out['status'] = $status;
@@ -206,13 +207,13 @@ final class WebhookService
      */
     private function normalizeEvents(mixed $input): array
     {
-        if (!is_array($input) || $input === []) {
+        if (!\is_array($input) || $input === []) {
             throw ValidationFailedException::field('events', 'events must be a non-empty array');
         }
         $out = [];
         foreach ($input as $event) {
-            if (!is_string($event) || !in_array($event, self::EVENTS, true)) {
-                throw ValidationFailedException::field('events', 'Invalid event: ' . (is_string($event) ? $event : gettype($event)));
+            if (!\is_string($event) || !\in_array($event, self::EVENTS, true)) {
+                throw ValidationFailedException::field('events', 'Invalid event: ' . (\is_string($event) ? $event : \gettype($event)));
             }
             $out[] = $event;
         }
@@ -227,11 +228,11 @@ final class WebhookService
     private function serialize(array $row): array
     {
         $events = $row['events'];
-        if (is_string($events)) {
+        if (\is_string($events)) {
             $decoded = json_decode($events, true);
-            $events = is_array($decoded) ? $decoded : [];
+            $events = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($events)) {
+        if (!\is_array($events)) {
             $events = [];
         }
 
@@ -240,7 +241,7 @@ final class WebhookService
             'name' => $row['name'],
             'url' => $row['url'],
             'secret' => $row['secret'],
-            'events' => array_values(array_filter($events, static fn (mixed $e): bool => is_string($e))),
+            'events' => array_values(array_filter($events, static fn (mixed $e): bool => \is_string($e))),
             'resourceId' => $row['resource_id'] === null ? null : (int) $row['resource_id'],
             'status' => $row['status'],
             'createdAt' => $row['created_at'],
@@ -255,11 +256,11 @@ final class WebhookService
     private function serializeDelivery(array $row): array
     {
         $payload = $row['payload'];
-        if (is_string($payload)) {
+        if (\is_string($payload)) {
             $decoded = json_decode($payload, true);
-            $payload = is_array($decoded) ? $decoded : [];
+            $payload = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($payload)) {
+        if (!\is_array($payload)) {
             $payload = [];
         }
 

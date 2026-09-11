@@ -33,7 +33,7 @@ final class FieldSpec
      */
     public static function fromArray(array $data): self
     {
-        $config = isset($data['config']) && is_array($data['config']) ? $data['config'] : [];
+        $config = isset($data['config']) && \is_array($data['config']) ? $data['config'] : [];
 
         return new self(
             required: (bool) ($data['required'] ?? false),
@@ -49,8 +49,8 @@ final class FieldSpec
             readable: (bool) ($data['readable'] ?? true),
             writable: (bool) ($data['writable'] ?? true),
             config: $config,
-            label: isset($data['label']) && is_string($data['label']) ? $data['label'] : null,
-            description: isset($data['description']) && is_string($data['description']) ? $data['description'] : null,
+            label: isset($data['label']) && \is_string($data['label']) ? $data['label'] : null,
+            description: isset($data['description']) && \is_string($data['description']) ? $data['description'] : null,
         );
     }
 

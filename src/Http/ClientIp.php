@@ -54,15 +54,15 @@ final class ClientIp
      */
     public static function normalizeTrustedList(mixed $raw): array
     {
-        if (is_string($raw)) {
+        if (\is_string($raw)) {
             $raw = preg_split('/[\s,]+/', $raw) ?: [];
         }
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return [];
         }
         $out = [];
         foreach ($raw as $item) {
-            if (!is_string($item)) {
+            if (!\is_string($item)) {
                 continue;
             }
             $item = trim($item);

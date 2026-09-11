@@ -21,6 +21,9 @@ if (PHP_SAPI !== 'cli') {
 /** How many past releases to ship; enough for anyone updating from far behind. */
 const CMS_MANIFEST_RELEASES = 25;
 
+/** @var list<string> $argv */
+$argv = $_SERVER['argv'] ?? [];
+
 $options = [];
 foreach (array_slice($argv, 1) as $arg) {
     if (!str_starts_with($arg, '--') || !str_contains($arg, '=')) {

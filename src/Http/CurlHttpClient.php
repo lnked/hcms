@@ -24,11 +24,16 @@ final class CurlHttpClient implements HttpClient
             $headerLines[] = $name . ': ' . $value;
         }
 
+        $customMethod = strtoupper($method);
+        if ($customMethod === '') {
+            throw new RuntimeException('HTTP method must not be empty');
+        }
+
         $options = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_TIMEOUT => 15,
-            CURLOPT_CUSTOMREQUEST => strtoupper($method),
+            CURLOPT_CUSTOMREQUEST => $customMethod,
             CURLOPT_HTTPHEADER => $headerLines,
         ];
         if ($body !== null) {
@@ -47,7 +52,7 @@ final class CurlHttpClient implements HttpClient
 
         return [
             'status' => $status,
-            'body' => is_string($raw) ? $raw : '',
+            'body' => \is_string($raw) ? $raw : '',
         ];
     }
 }

@@ -1,8 +1,8 @@
-import { InfoIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { clsx } from 'clsx'
+import { InfoIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import styles from './EmptyState.module.css'
+import type { ReactNode } from 'react'
 
 interface EmptyStateProps {
   title: string

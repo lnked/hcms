@@ -1,14 +1,16 @@
 parameters:
-    level: 7
+    level: 8
     treatPhpDocTypesAsCertain: false
     paths:
         - src
         - install.php
         - cms
         - public/index.php
+        - scripts/verify-tree.php
+        - scripts/restore.php
+        - scripts/apply-pending-migrations.php
+        - scripts/latest-json.php
     excludePaths:
         - vendor
         - frontend
     tmpDir: storage/cache/phpstan
-includes:
-    - phpstan-baseline.neon

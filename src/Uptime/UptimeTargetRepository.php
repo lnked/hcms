@@ -185,7 +185,7 @@ final class UptimeTargetRepository
                 'expected_status' => $data['expected_status'] ?? (int) $existing['expected_status'],
                 'timeout_ms' => $data['timeout_ms'] ?? (int) $existing['timeout_ms'],
                 'interval_seconds' => $data['interval_seconds'] ?? (int) $existing['interval_seconds'],
-                'enabled' => array_key_exists('enabled', $data)
+                'enabled' => \array_key_exists('enabled', $data)
                     ? ($data['enabled'] ? 1 : 0)
                     : (int) $existing['enabled'],
                 'updated_at' => date('Y-m-d H:i:s'),

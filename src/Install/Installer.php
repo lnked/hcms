@@ -86,22 +86,22 @@ final class Installer
         // Unpacked into hosting docroot → non-public tree must go to the parent.
         $parentWritable = true;
         if (Paths::isKnownWebRootName(basename($root))) {
-            $parent = dirname($root);
+            $parent = \dirname($root);
             $parentWritable = is_dir($parent) && is_writable($parent);
         }
 
         $checks = [
             'php' => version_compare(PHP_VERSION, '8.3.0', '>='),
-            'pdo_mysql' => extension_loaded('pdo_mysql'),
-            'json' => extension_loaded('json'),
-            'mbstring' => extension_loaded('mbstring'),
-            'zip' => extension_loaded('zip') || class_exists(\ZipArchive::class),
-            'http' => function_exists('curl_init') || (bool) ini_get('allow_url_fopen'),
+            'pdo_mysql' => \extension_loaded('pdo_mysql'),
+            'json' => \extension_loaded('json'),
+            'mbstring' => \extension_loaded('mbstring'),
+            'zip' => \extension_loaded('zip') || class_exists(\ZipArchive::class),
+            'http' => \function_exists('curl_init') || (bool) \ini_get('allow_url_fopen'),
             'writable' => $rootWritable && $storageWritable && $parentWritable,
         ];
 
         return [
-            'ok' => !in_array(false, $checks, true),
+            'ok' => !\in_array(false, $checks, true),
             'phpVersion' => PHP_VERSION,
             'checks' => $checks,
         ];
@@ -151,14 +151,14 @@ final class Installer
             throw new RuntimeException('Already installed');
         }
 
-        $db = $this->normalizeDb(isset($payload['database']) && is_array($payload['database']) ? $payload['database'] : []);
-        $app = isset($payload['application']) && is_array($payload['application']) ? $payload['application'] : [];
-        $admin = isset($payload['administrator']) && is_array($payload['administrator']) ? $payload['administrator'] : [];
+        $db = $this->normalizeDb(isset($payload['database']) && \is_array($payload['database']) ? $payload['database'] : []);
+        $app = isset($payload['application']) && \is_array($payload['application']) ? $payload['application'] : [];
+        $admin = isset($payload['administrator']) && \is_array($payload['administrator']) ? $payload['administrator'] : [];
 
-        $name = isset($admin['name']) && is_string($admin['name']) ? trim($admin['name']) : '';
-        $email = isset($admin['email']) && is_string($admin['email']) ? trim($admin['email']) : '';
-        $password = isset($admin['password']) && is_string($admin['password']) ? $admin['password'] : '';
-        $confirm = isset($admin['passwordConfirm']) && is_string($admin['passwordConfirm']) ? $admin['passwordConfirm'] : '';
+        $name = isset($admin['name']) && \is_string($admin['name']) ? trim($admin['name']) : '';
+        $email = isset($admin['email']) && \is_string($admin['email']) ? trim($admin['email']) : '';
+        $password = isset($admin['password']) && \is_string($admin['password']) ? $admin['password'] : '';
+        $confirm = isset($admin['passwordConfirm']) && \is_string($admin['passwordConfirm']) ? $admin['passwordConfirm'] : '';
 
         $fields = [];
         if ($name === '') {
@@ -171,7 +171,7 @@ final class Installer
         }
         if ($password === '') {
             $fields['password'] = ['Password is required'];
-        } elseif (strlen($password) < 8) {
+        } elseif (\strlen($password) < 8) {
             $fields['password'] = ['Password must be at least 8 characters'];
         }
         if ($confirm === '') {
@@ -183,14 +183,14 @@ final class Installer
             throw new ValidationException($fields);
         }
 
-        $appName = isset($app['name']) && is_string($app['name']) ? trim($app['name']) : 'HCMS';
-        $appUrl = isset($app['url']) && is_string($app['url']) ? rtrim(trim($app['url']), '/') : 'http://localhost';
-        $timezone = isset($app['timezone']) && is_string($app['timezone']) ? $app['timezone'] : 'UTC';
+        $appName = isset($app['name']) && \is_string($app['name']) ? trim($app['name']) : 'HCMS';
+        $appUrl = isset($app['url']) && \is_string($app['url']) ? rtrim(trim($app['url']), '/') : 'http://localhost';
+        $timezone = isset($app['timezone']) && \is_string($app['timezone']) ? $app['timezone'] : 'UTC';
         $language = Locale::normalize(
-            isset($app['language']) && is_string($app['language']) ? $app['language'] : 'en',
+            isset($app['language']) && \is_string($app['language']) ? $app['language'] : 'en',
         );
         $publicDir = Paths::normalizePublicDir(
-            isset($app['publicDir']) && is_string($app['publicDir']) && $app['publicDir'] !== ''
+            isset($app['publicDir']) && \is_string($app['publicDir']) && $app['publicDir'] !== ''
                 ? $app['publicDir']
                 : 'public',
         );
@@ -365,12 +365,12 @@ final class Installer
     private function normalizeDb(array $db): array
     {
         return [
-            'host' => isset($db['host']) && is_string($db['host']) ? $db['host'] : '127.0.0.1',
+            'host' => isset($db['host']) && \is_string($db['host']) ? $db['host'] : '127.0.0.1',
             'port' => isset($db['port']) ? (int) $db['port'] : 3306,
-            'database' => isset($db['name']) && is_string($db['name']) ? $db['name'] : (isset($db['database']) && is_string($db['database']) ? $db['database'] : ''),
-            'username' => isset($db['user']) && is_string($db['user']) ? $db['user'] : (isset($db['username']) && is_string($db['username']) ? $db['username'] : ''),
-            'password' => isset($db['password']) && is_string($db['password']) ? $db['password'] : '',
-            'charset' => isset($db['charset']) && is_string($db['charset']) ? $db['charset'] : 'utf8mb4',
+            'database' => isset($db['name']) && \is_string($db['name']) ? $db['name'] : (isset($db['database']) && \is_string($db['database']) ? $db['database'] : ''),
+            'username' => isset($db['user']) && \is_string($db['user']) ? $db['user'] : (isset($db['username']) && \is_string($db['username']) ? $db['username'] : ''),
+            'password' => isset($db['password']) && \is_string($db['password']) ? $db['password'] : '',
+            'charset' => isset($db['charset']) && \is_string($db['charset']) ? $db['charset'] : 'utf8mb4',
         ];
     }
 
@@ -452,7 +452,7 @@ final class Installer
     private function flattenIntoHostingWebRoot(string $publicDir): Paths
     {
         $webRoot = rtrim($this->paths->root, '/\\');
-        $projectRoot = dirname($webRoot);
+        $projectRoot = \dirname($webRoot);
 
         if ($projectRoot === $webRoot || $projectRoot === '/' || $projectRoot === '.') {
             throw new RuntimeException('Cannot place project files above ' . $publicDir . ' (no parent directory)');
@@ -525,7 +525,7 @@ final class Installer
         }
 
         if (!file_exists($to)) {
-            $parent = dirname($to);
+            $parent = \dirname($to);
             if (!is_dir($parent) && !mkdir($parent, 0775, true) && !is_dir($parent)) {
                 throw new RuntimeException('Unable to create directory: ' . $parent);
             }

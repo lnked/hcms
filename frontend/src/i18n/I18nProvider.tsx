@@ -8,7 +8,6 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { MessageKey } from './en'
 import {
   isLocale,
   normalizeLocale,
@@ -17,6 +16,7 @@ import {
   writeStoredLocale,
   type Locale,
 } from './locale'
+import type { MessageKey } from './en'
 
 type TranslateFn = (key: MessageKey, params?: Record<string, string | number>) => string
 

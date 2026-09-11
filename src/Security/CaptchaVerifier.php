@@ -20,21 +20,21 @@ final class CaptchaVerifier
     public function siteKey(): string
     {
         $raw = $this->settings->get('security.captcha');
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return '';
         }
 
-        return is_string($raw['siteKey'] ?? null) ? trim($raw['siteKey']) : '';
+        return \is_string($raw['siteKey'] ?? null) ? trim($raw['siteKey']) : '';
     }
 
     public function provider(): ?string
     {
         $raw = $this->settings->get('security.captcha');
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return null;
         }
-        $provider = is_string($raw['provider'] ?? null) ? strtolower(trim($raw['provider'])) : '';
-        if (!in_array($provider, ['turnstile', 'hcaptcha'], true)) {
+        $provider = \is_string($raw['provider'] ?? null) ? strtolower(trim($raw['provider'])) : '';
+        if (!\in_array($provider, ['turnstile', 'hcaptcha'], true)) {
             return null;
         }
         if (!(bool) ($raw['enabled'] ?? false)) {
@@ -47,11 +47,11 @@ final class CaptchaVerifier
     public function secret(): string
     {
         $raw = $this->settings->get('security.captcha');
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return '';
         }
 
-        return is_string($raw['secretKey'] ?? null) ? trim($raw['secretKey']) : '';
+        return \is_string($raw['secretKey'] ?? null) ? trim($raw['secretKey']) : '';
     }
 
     public function verify(string $token, string $ip): bool
@@ -88,7 +88,7 @@ final class CaptchaVerifier
             return false;
         }
         $decoded = json_decode($body, true);
-        if (!is_array($decoded)) {
+        if (!\is_array($decoded)) {
             return false;
         }
 

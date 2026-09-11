@@ -102,7 +102,7 @@ final class OAuthService
     public static function parseState(string $state, string $appSecret): array
     {
         $parts = explode('.', $state, 2);
-        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+        if (\count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
             throw new OAuthException('INVALID_STATE', 'Invalid OAuth state', 400);
         }
         [$payload, $sig] = $parts;
@@ -111,7 +111,7 @@ final class OAuthService
             throw new OAuthException('INVALID_STATE', 'Invalid OAuth state', 400);
         }
         $b64 = strtr($payload, '-_', '+/');
-        $pad = strlen($b64) % 4;
+        $pad = \strlen($b64) % 4;
         if ($pad > 0) {
             $b64 .= str_repeat('=', 4 - $pad);
         }
@@ -120,10 +120,10 @@ final class OAuthService
             throw new OAuthException('INVALID_STATE', 'Invalid OAuth state', 400);
         }
         $data = json_decode($json, true);
-        if (!is_array($data)) {
+        if (!\is_array($data)) {
             throw new OAuthException('INVALID_STATE', 'Invalid OAuth state', 400);
         }
-        $ts = isset($data['ts']) && is_int($data['ts']) ? $data['ts'] : 0;
+        $ts = isset($data['ts']) && \is_int($data['ts']) ? $data['ts'] : 0;
         if ($ts < time() - self::STATE_TTL_SECONDS) {
             throw new OAuthException('INVALID_STATE', 'OAuth state expired', 400);
         }
@@ -154,7 +154,7 @@ final class OAuthService
             ]),
         );
         $tokenJson = $this->decodeJson($tokenResponse['body']);
-        $accessToken = isset($tokenJson['access_token']) && is_string($tokenJson['access_token'])
+        $accessToken = isset($tokenJson['access_token']) && \is_string($tokenJson['access_token'])
             ? $tokenJson['access_token']
             : '';
         if ($tokenResponse['status'] >= 400 || $accessToken === '') {
@@ -171,10 +171,10 @@ final class OAuthService
             throw new OAuthException('PROVIDER_ERROR', 'Google userinfo failed', 502);
         }
 
-        $id = isset($info['sub']) && is_string($info['sub']) ? $info['sub'] : '';
-        $email = isset($info['email']) && is_string($info['email']) ? strtolower(trim($info['email'])) : '';
+        $id = isset($info['sub']) && \is_string($info['sub']) ? $info['sub'] : '';
+        $email = isset($info['email']) && \is_string($info['email']) ? strtolower(trim($info['email'])) : '';
         $verified = (bool) ($info['email_verified'] ?? false);
-        $name = isset($info['name']) && is_string($info['name']) ? $info['name'] : $email;
+        $name = isset($info['name']) && \is_string($info['name']) ? $info['name'] : $email;
         if ($id === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             throw new OAuthException('PROVIDER_ERROR', 'Google account has no verified email', 400);
         }
@@ -224,6 +224,7 @@ final class OAuthService
             if ((string) $existing['provider_user_id'] === $providerUserId) {
                 return;
             }
+
             throw new OAuthException('ALREADY_LINKED', 'A different account is already linked', 409);
         }
         $this->identities->create($userId, $provider, $providerUserId, $email);
@@ -254,7 +255,7 @@ final class OAuthService
         $byProvider = [];
         foreach ($rows as $row) {
             $provider = (string) $row['provider'];
-            $byProvider[$provider] = is_string($row['email'] ?? null) ? (string) $row['email'] : (string) $row['provider_user_id'];
+            $byProvider[$provider] = \is_string($row['email'] ?? null) ? (string) $row['email'] : (string) $row['provider_user_id'];
         }
 
         return [
@@ -273,7 +274,7 @@ final class OAuthService
 
     public function unlink(int $userId, string $provider): void
     {
-        if (!in_array($provider, ['google', 'telegram'], true)) {
+        if (!\in_array($provider, ['google', 'telegram'], true)) {
             throw new OAuthException('VALIDATION_ERROR', 'Unknown provider', 422);
         }
         $this->identities->deleteByUserAndProvider($userId, $provider);
@@ -296,11 +297,11 @@ final class OAuthService
         if ($id === '') {
             throw new OAuthException('UNAUTHORIZED', 'Invalid Telegram login payload', 401);
         }
-        $username = isset($payload['username']) && is_string($payload['username']) && $payload['username'] !== ''
+        $username = isset($payload['username']) && \is_string($payload['username']) && $payload['username'] !== ''
             ? $payload['username']
             : null;
-        $first = isset($payload['first_name']) && is_string($payload['first_name']) ? $payload['first_name'] : '';
-        $last = isset($payload['last_name']) && is_string($payload['last_name']) ? $payload['last_name'] : '';
+        $first = isset($payload['first_name']) && \is_string($payload['first_name']) ? $payload['first_name'] : '';
+        $last = isset($payload['last_name']) && \is_string($payload['last_name']) ? $payload['last_name'] : '';
         $name = trim($first . ' ' . $last);
 
         return [
@@ -315,7 +316,7 @@ final class OAuthService
      */
     public static function verifyTelegramAuth(array $payload, string $botToken): bool
     {
-        $hash = isset($payload['hash']) && is_string($payload['hash']) ? $payload['hash'] : '';
+        $hash = isset($payload['hash']) && \is_string($payload['hash']) ? $payload['hash'] : '';
         if ($hash === '' || !preg_match('/^[a-f0-9]{64}$/', $hash)) {
             return false;
         }
@@ -335,7 +336,7 @@ final class OAuthService
     {
         $pairs = [];
         foreach ($payload as $key => $value) {
-            if ($key === 'hash' || !is_scalar($value)) {
+            if ($key === 'hash' || !\is_scalar($value)) {
                 continue;
             }
             $pairs[] = $key . '=' . (string) $value;
@@ -353,6 +354,6 @@ final class OAuthService
     {
         $decoded = json_decode($body, true);
 
-        return is_array($decoded) ? $decoded : [];
+        return \is_array($decoded) ? $decoded : [];
     }
 }

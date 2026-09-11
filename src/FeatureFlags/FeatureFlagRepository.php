@@ -128,7 +128,7 @@ final class FeatureFlagRepository
         $sets = [];
         $params = ['id' => $id, 'updated_at' => date('Y-m-d H:i:s')];
         foreach (['name', 'type', 'value_json', 'description', 'enabled', 'ab_test', 'rollout_percent'] as $col) {
-            if (array_key_exists($col, $data)) {
+            if (\array_key_exists($col, $data)) {
                 $sets[] = $col . ' = :' . $col;
                 $params[$col] = $data[$col];
             }

@@ -49,7 +49,7 @@ final class UpdateJournal
         }
         $data = json_decode((string) file_get_contents($this->path()), true);
 
-        return is_array($data) ? $data : null;
+        return \is_array($data) ? $data : null;
     }
 
     public function clear(): void
@@ -68,9 +68,9 @@ final class UpdateJournal
         }
 
         $reverted = [];
-        $applied = is_array($journal['applied'] ?? null) ? $journal['applied'] : [];
+        $applied = \is_array($journal['applied'] ?? null) ? $journal['applied'] : [];
         foreach (array_reverse($applied) as $dest) {
-            if (!is_string($dest) || !file_exists($dest . '.old')) {
+            if (!\is_string($dest) || !file_exists($dest . '.old')) {
                 continue;
             }
             self::remove($dest);
@@ -100,7 +100,7 @@ final class UpdateJournal
         }
 
         $reverted = $journal->revert();
-        if (function_exists('opcache_reset')) {
+        if (\function_exists('opcache_reset')) {
             @opcache_reset();
         }
         @unlink($storage . '/update.lock');
@@ -124,10 +124,10 @@ final class UpdateJournal
         }
 
         $pid = (int) trim((string) @file_get_contents($lock));
-        if ($pid > 0 && function_exists('posix_kill') && posix_kill($pid, 0)) {
+        if ($pid > 0 && \function_exists('posix_kill') && posix_kill($pid, 0)) {
             return false;
         }
-        if ($pid > 0 && !function_exists('posix_kill')) {
+        if ($pid > 0 && !\function_exists('posix_kill')) {
             $age = time() - (int) @filemtime($journal->path());
 
             return $age > self::STALE_AFTER_SECONDS;

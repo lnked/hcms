@@ -39,7 +39,7 @@ final class ExceptionHandler
         // Legacy: services encoded HTTP status in RuntimeException::$code (400–499).
         if ($e instanceof RuntimeException) {
             $code = $e->getCode();
-            if ($code >= 400 && $code < 500) {
+            if (\is_int($code) && $code >= 400 && $code < 500) {
                 $errorCode = match ($code) {
                     404 => 'NOT_FOUND',
                     409 => 'CONFLICT',
@@ -73,7 +73,7 @@ final class ExceptionHandler
             @mkdir($dir, 0775, true);
         }
 
-        $line = sprintf(
+        $line = \sprintf(
             "[%s] %s in %s:%d\n%s\n",
             date('c'),
             $e->getMessage(),

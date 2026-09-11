@@ -118,15 +118,15 @@ final class InboundEndpointRepository
         }
 
         $fieldMap = $existing['field_map'];
-        if (array_key_exists('field_map', $data)) {
+        if (\array_key_exists('field_map', $data)) {
             $fieldMap = $data['field_map'] === null
                 ? null
                 : json_encode($data['field_map'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        } elseif (!is_string($fieldMap) && $fieldMap !== null) {
+        } elseif (!\is_string($fieldMap) && $fieldMap !== null) {
             $fieldMap = json_encode($fieldMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
 
-        $enabled = array_key_exists('enabled', $data)
+        $enabled = \array_key_exists('enabled', $data)
             ? ($data['enabled'] ? 1 : 0)
             : (int) $existing['enabled'];
 
@@ -149,7 +149,7 @@ final class InboundEndpointRepository
                 'label' => $data['label'] ?? $existing['label'],
                 'target_url' => $data['target_url'] ?? $existing['target_url'],
                 'secret' => $data['secret'] ?? $existing['secret'],
-                'persist_resource_id' => array_key_exists('persist_resource_id', $data)
+                'persist_resource_id' => \array_key_exists('persist_resource_id', $data)
                     ? $data['persist_resource_id']
                     : $existing['persist_resource_id'],
                 'field_map' => $fieldMap,

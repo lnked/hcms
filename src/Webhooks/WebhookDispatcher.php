@@ -35,7 +35,7 @@ final class WebhookDispatcher
     public function dispatchAfterResponse(string $event, array $payload, ?int $resourceId = null): void
     {
         register_shutdown_function(function () use ($event, $payload, $resourceId): void {
-            if (function_exists('fastcgi_finish_request')) {
+            if (\function_exists('fastcgi_finish_request')) {
                 @fastcgi_finish_request();
             }
             $this->dispatch($event, $payload, $resourceId);
@@ -116,7 +116,7 @@ final class WebhookDispatcher
         $result = ($this->httpClient)((string) $webhook['url'], $body, $headers);
         $ok = $result['status'] !== null && $result['status'] >= 200 && $result['status'] < 300;
         $error = $ok ? null : ($result['error'] ?? ('HTTP ' . ($result['status'] ?? 'n/a')));
-        if ($error !== null && strlen($error) > 500) {
+        if ($error !== null && \strlen($error) > 500) {
             $error = substr($error, 0, 497) . '...';
         }
 
@@ -134,15 +134,15 @@ final class WebhookDispatcher
     private function matchesEvent(array $webhook, string $event): bool
     {
         $events = $webhook['events'];
-        if (is_string($events)) {
+        if (\is_string($events)) {
             $decoded = json_decode($events, true);
-            $events = is_array($decoded) ? $decoded : [];
+            $events = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($events)) {
+        if (!\is_array($events)) {
             return false;
         }
 
-        return in_array($event, $events, true);
+        return \in_array($event, $events, true);
     }
 
     /**
@@ -152,7 +152,7 @@ final class WebhookDispatcher
     private function defaultHttpClient(string $url, string $body, array $headers): array
     {
         $started = hrtime(true);
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             return $this->curlRequest($url, $body, $headers, $started);
         }
 
@@ -198,7 +198,7 @@ final class WebhookDispatcher
 
         return [
             'status' => $status > 0 ? $status : null,
-            'body' => is_string($responseBody) ? $responseBody : '',
+            'body' => \is_string($responseBody) ? $responseBody : '',
             'error' => $error !== null && $error !== '' ? $error : null,
             'durationMs' => $this->elapsedMs($started),
         ];
@@ -227,10 +227,10 @@ final class WebhookDispatcher
 
         $raw = @file_get_contents($url, false, $context);
         $status = null;
-        $responseHeaders = function_exists('http_get_last_response_headers')
+        $responseHeaders = \function_exists('http_get_last_response_headers')
             ? http_get_last_response_headers()
             : null;
-        if (!is_array($responseHeaders)) {
+        if (!\is_array($responseHeaders)) {
             $responseHeaders = [];
         }
         if ($responseHeaders !== [] && preg_match('/\s(\d{3})\s/', (string) $responseHeaders[0], $m) === 1) {

@@ -18,90 +18,94 @@ final class FeatureTranslatesRoutes
         FeatureFlagsController $flags,
         TranslatesController $translates,
     ): void {
-        $auth = static function (?AuthContext $context): ?Response {
-            if ($context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
+        $router->add('GET', '/admin/api/feature-flags/settings', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
+            unset($params);
 
-            return null;
-        };
+            return $flags->getSettings($request, RequireAuth::context($context));
+        });
+        $router->add('PUT', '/admin/api/feature-flags/settings', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
+            unset($params);
 
-        $router->add('GET', '/admin/api/feature-flags/settings', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
+            return $flags->saveSettings($request, RequireAuth::context($context));
+        });
+        $router->add('GET', '/admin/api/feature-flags', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
             unset($params);
-            return $auth($context) ?? $flags->getSettings($request, $context);
+
+            return $flags->index($request, RequireAuth::context($context));
         });
-        $router->add('PUT', '/admin/api/feature-flags/settings', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
+        $router->add('POST', '/admin/api/feature-flags', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
             unset($params);
-            return $auth($context) ?? $flags->saveSettings($request, $context);
+
+            return $flags->create($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/feature-flags', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
-            unset($params);
-            return $auth($context) ?? $flags->index($request, $context);
+        $router->add('GET', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
+            return $flags->show($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('POST', '/admin/api/feature-flags', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
-            unset($params);
-            return $auth($context) ?? $flags->create($request, $context);
+        $router->add('PATCH', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
+            return $flags->update($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('GET', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
-            return $auth($context) ?? $flags->show($request, $context, (int) $params['id']);
-        });
-        $router->add('PATCH', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
-            return $auth($context) ?? $flags->update($request, $context, (int) $params['id']);
-        });
-        $router->add('DELETE', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags, $auth): Response {
-            return $auth($context) ?? $flags->delete($request, $context, (int) $params['id']);
+        $router->add('DELETE', '/admin/api/feature-flags/{id}', function (Request $request, array $params, ?AuthContext $context) use ($flags): Response {
+            return $flags->delete($request, RequireAuth::context($context), (int) $params['id']);
         });
 
-        $router->add('GET', '/admin/api/locales', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('GET', '/admin/api/locales', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->listLocales($request, $context);
+
+            return $translates->listLocales($request, RequireAuth::context($context));
         });
-        $router->add('POST', '/admin/api/locales', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('POST', '/admin/api/locales', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->createLocale($request, $context);
+
+            return $translates->createLocale($request, RequireAuth::context($context));
         });
-        $router->add('PATCH', '/admin/api/locales/{code}', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->updateLocale($request, $context, (string) $params['code']);
+        $router->add('PATCH', '/admin/api/locales/{code}', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->updateLocale($request, RequireAuth::context($context), (string) $params['code']);
         });
-        $router->add('PUT', '/admin/api/locales/{code}/default', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->setDefaultLocale($request, $context, (string) $params['code']);
+        $router->add('PUT', '/admin/api/locales/{code}/default', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->setDefaultLocale($request, RequireAuth::context($context), (string) $params['code']);
         });
-        $router->add('DELETE', '/admin/api/locales/{code}', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->deleteLocale($request, $context, (string) $params['code']);
+        $router->add('DELETE', '/admin/api/locales/{code}', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->deleteLocale($request, RequireAuth::context($context), (string) $params['code']);
         });
 
-        $router->add('GET', '/admin/api/translations/settings', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('GET', '/admin/api/translations/settings', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->getSettings($request, $context);
+
+            return $translates->getSettings($request, RequireAuth::context($context));
         });
-        $router->add('PUT', '/admin/api/translations/settings', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('PUT', '/admin/api/translations/settings', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->saveSettings($request, $context);
+
+            return $translates->saveSettings($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/translations/export', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('GET', '/admin/api/translations/export', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->export($request, $context);
+
+            return $translates->export($request, RequireAuth::context($context));
         });
-        $router->add('POST', '/admin/api/translations/import', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('POST', '/admin/api/translations/import', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->import($request, $context);
+
+            return $translates->import($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/translations', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('GET', '/admin/api/translations', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->listTranslations($request, $context);
+
+            return $translates->listTranslations($request, RequireAuth::context($context));
         });
-        $router->add('POST', '/admin/api/translations', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
+        $router->add('POST', '/admin/api/translations', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
             unset($params);
-            return $auth($context) ?? $translates->createTranslation($request, $context);
+
+            return $translates->createTranslation($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->showTranslation($request, $context, (int) $params['id']);
+        $router->add('GET', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->showTranslation($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('PATCH', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->updateTranslation($request, $context, (int) $params['id']);
+        $router->add('PATCH', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->updateTranslation($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('DELETE', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates, $auth): Response {
-            return $auth($context) ?? $translates->deleteTranslation($request, $context, (int) $params['id']);
+        $router->add('DELETE', '/admin/api/translations/{id}', function (Request $request, array $params, ?AuthContext $context) use ($translates): Response {
+            return $translates->deleteTranslation($request, RequireAuth::context($context), (int) $params['id']);
         });
     }
 

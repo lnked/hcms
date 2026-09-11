@@ -26,14 +26,14 @@ final class PayloadValidator
         foreach ($fieldMap as $name => $meta) {
             $spec = $meta['spec'];
             $type = (string) $meta['type'];
-            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
             if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                 continue;
             }
             if (!($spec['writable'] ?? true)) {
                 continue;
             }
-            if (!array_key_exists($name, $payload)) {
+            if (!\array_key_exists($name, $payload)) {
                 if ($type === 'slug') {
                     continue;
                 }
@@ -61,23 +61,23 @@ final class PayloadValidator
             if (!($spec['writable'] ?? true)) {
                 continue;
             }
-            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
-            $associated = is_string($config['associatedWith'] ?? null) ? $config['associatedWith'] : '';
+            $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $associated = \is_string($config['associatedWith'] ?? null) ? $config['associatedWith'] : '';
             $maxLength = (int) ($config['maxLength'] ?? 255);
             $current = $out[$name] ?? null;
             if (($current === null || $current === '') && $associated !== '') {
                 $source = $out[$associated] ?? $payload[$associated] ?? null;
-                if (is_scalar($source) && (string) $source !== '') {
+                if (\is_scalar($source) && (string) $source !== '') {
                     $out[$name] = UrlSlug::from((string) $source, $maxLength);
                 }
-            } elseif (is_string($current) && $current !== '') {
+            } elseif (\is_string($current) && $current !== '') {
                 $out[$name] = UrlSlug::from($current, $maxLength);
             }
 
             if (
                 !$partial
                 && ($spec['required'] ?? false)
-                && (!array_key_exists($name, $out) || $out[$name] === null || $out[$name] === '')
+                && (!\array_key_exists($name, $out) || $out[$name] === null || $out[$name] === '')
             ) {
                 throw ValidationFailedException::field($name, 'Field required: ' . $name);
             }
@@ -101,14 +101,14 @@ final class PayloadValidator
                 : throw ValidationFailedException::field($name, 'Invalid float: ' . $name),
             'boolean' => filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
                 ?? throw ValidationFailedException::field($name, 'Invalid boolean: ' . $name),
-            'email' => is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)
+            'email' => \is_string($value) && filter_var($value, FILTER_VALIDATE_EMAIL)
                 ? $value
                 : throw ValidationFailedException::field($name, 'Invalid email: ' . $name),
-            'json' => is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_SLASHES),
-            'slug' => is_scalar($value)
+            'json' => \is_string($value) ? $value : json_encode($value, JSON_UNESCAPED_SLASHES),
+            'slug' => \is_scalar($value)
                 ? UrlSlug::from((string) $value)
                 : throw ValidationFailedException::field($name, 'Invalid value: ' . $name),
-            default => is_scalar($value)
+            default => \is_scalar($value)
                 ? (string) $value
                 : throw ValidationFailedException::field($name, 'Invalid value: ' . $name),
         };

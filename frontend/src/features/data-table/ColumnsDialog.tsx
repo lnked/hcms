@@ -1,6 +1,6 @@
-import { useRef, useState, type DragEvent } from 'react'
-import { GripVertical } from 'lucide-react'
 import { clsx } from 'clsx'
+import { GripVertical } from 'lucide-react'
+import { useRef, useState, type DragEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,10 +11,10 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
-import type { SchemaField } from '@/types/field'
-import type { ResourceListColumn } from '@/types/resource'
 import { listableFields, mergeColumns } from './columns'
 import styles from './ColumnsDialog.module.css'
+import type { SchemaField } from '@/types/field'
+import type { ResourceListColumn } from '@/types/resource'
 
 /** Unsaved layout tied to the schema + settings it was opened with. */
 interface ColumnsDraft {
@@ -64,6 +64,7 @@ export function ColumnsDialog({
     if (from === to || to < 0 || to >= items.length) return
     const next = [...items]
     const [moved] = next.splice(from, 1)
+    if (moved === undefined) return
     next.splice(to, 0, moved)
     edit(next)
   }

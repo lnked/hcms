@@ -49,7 +49,7 @@ final class MediaController
         try {
             /** @var array<string, mixed>|null $file */
             $file = $_FILES['file'] ?? null;
-            if (!is_array($file)) {
+            if (!\is_array($file)) {
                 return Response::error('VALIDATION_ERROR', 'file is required (multipart field name: file)', 422);
             }
 
@@ -226,7 +226,7 @@ final class MediaController
         try {
             $body = $request->json();
             $ids = $body['ids'] ?? null;
-            if (!is_array($ids) || $ids === []) {
+            if (!\is_array($ids) || $ids === []) {
                 throw new InvalidArgumentException('ids array is required');
             }
             $normalized = [];
@@ -272,20 +272,20 @@ final class MediaController
         }
 
         $opts = ['quality' => (int) $body['quality']];
-        if (isset($body['format']) && is_string($body['format'])) {
+        if (isset($body['format']) && \is_string($body['format'])) {
             $opts['format'] = $body['format'];
         }
-        if (array_key_exists('maxWidth', $body)) {
+        if (\array_key_exists('maxWidth', $body)) {
             $opts['maxWidth'] = $body['maxWidth'] === null || $body['maxWidth'] === ''
                 ? null
                 : (int) $body['maxWidth'];
         }
-        if (array_key_exists('maxHeight', $body)) {
+        if (\array_key_exists('maxHeight', $body)) {
             $opts['maxHeight'] = $body['maxHeight'] === null || $body['maxHeight'] === ''
                 ? null
                 : (int) $body['maxHeight'];
         }
-        if (array_key_exists('applyToVariants', $body)) {
+        if (\array_key_exists('applyToVariants', $body)) {
             $opts['applyToVariants'] = (bool) $body['applyToVariants'];
         }
 
@@ -311,7 +311,7 @@ final class MediaController
         try {
             $body = $request->json();
             $ids = $body['ids'] ?? null;
-            if (!is_array($ids) || $ids === []) {
+            if (!\is_array($ids) || $ids === []) {
                 throw new InvalidArgumentException('ids array is required');
             }
 
@@ -380,7 +380,7 @@ final class MediaController
             $contents,
             [
                 'Content-Type' => $mime !== '' ? $mime : 'application/octet-stream',
-                'Content-Length' => (string) strlen($contents),
+                'Content-Length' => (string) \strlen($contents),
                 'Content-Disposition' => ($inline ? 'inline' : 'attachment')
                     . '; filename="' . $filename . '"'
                     . "; filename*=UTF-8''" . rawurlencode($file['name']),
@@ -403,14 +403,15 @@ final class MediaController
         if ($raw === null || $raw === '') {
             return null;
         }
-        if (is_string($raw)) {
+        if (\is_string($raw)) {
             $decoded = json_decode($raw, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            if (json_last_error() === JSON_ERROR_NONE && \is_array($decoded)) {
                 return array_values(array_filter($decoded, 'is_string'));
             }
+
             return array_values(array_filter(array_map('trim', explode(',', $raw)), static fn (string $v): bool => $v !== ''));
         }
-        if (is_array($raw)) {
+        if (\is_array($raw)) {
             return array_values(array_filter($raw, 'is_string'));
         }
 
@@ -425,7 +426,7 @@ final class MediaController
         if ($raw === null || $raw === '') {
             return [];
         }
-        if (is_string($raw)) {
+        if (\is_string($raw)) {
             $decoded = json_decode($raw, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new InvalidArgumentException('sizes must be valid JSON');
@@ -444,14 +445,14 @@ final class MediaController
         if ($raw === null || $raw === '') {
             return null;
         }
-        if (is_array($raw)) {
+        if (\is_array($raw)) {
             return $raw;
         }
-        if (!is_string($raw)) {
+        if (!\is_string($raw)) {
             return null;
         }
         $decoded = json_decode($raw, true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+        if (json_last_error() !== JSON_ERROR_NONE || !\is_array($decoded)) {
             throw new InvalidArgumentException('positions must be valid JSON object');
         }
 

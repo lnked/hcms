@@ -31,8 +31,8 @@ final class SettingsController
     public function update(Request $request): Response
     {
         $payload = $request->json();
-        $hasLanguage = array_key_exists('language', $payload);
-        $hasApiAccess = array_key_exists('apiAccess', $payload);
+        $hasLanguage = \array_key_exists('language', $payload);
+        $hasApiAccess = \array_key_exists('apiAccess', $payload);
 
         if (!$hasLanguage && !$hasApiAccess) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
@@ -43,7 +43,7 @@ final class SettingsController
         $out = [];
 
         if ($hasLanguage) {
-            if (!is_string($payload['language'])) {
+            if (!\is_string($payload['language'])) {
                 return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
                     'language' => ['Language is required'],
                 ]);
@@ -59,7 +59,7 @@ final class SettingsController
         }
 
         if ($hasApiAccess) {
-            if (!is_array($payload['apiAccess'])) {
+            if (!\is_array($payload['apiAccess'])) {
                 return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
                     'apiAccess' => ['Must be an object'],
                 ]);

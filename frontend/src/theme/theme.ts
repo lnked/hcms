@@ -1,9 +1,9 @@
 export type ThemePreference = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 
-export const THEME_STORAGE_KEY = 'hcms.theme'
+const THEME_STORAGE_KEY = 'hcms.theme'
 
-export function isThemePreference(value: unknown): value is ThemePreference {
+function isThemePreference(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'system'
 }
 
@@ -23,17 +23,6 @@ export function writeStoredTheme(preference: ThemePreference): void {
   } catch {
     // ignore
   }
-}
-
-export function systemPrefersDark(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-export function resolveTheme(preference: ThemePreference): ResolvedTheme {
-  if (preference === 'system') {
-    return systemPrefersDark() ? 'dark' : 'light'
-  }
-  return preference
 }
 
 export function applyResolvedTheme(resolved: ResolvedTheme): void {

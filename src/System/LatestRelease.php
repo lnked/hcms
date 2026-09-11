@@ -20,7 +20,7 @@ final class LatestRelease
      */
     public function fetch(): ?array
     {
-        $url = sprintf(
+        $url = \sprintf(
             'https://github.com/%s/releases/latest/download/latest.json',
             $this->config->githubRepo,
         );
@@ -31,7 +31,7 @@ final class LatestRelease
         }
 
         $data = json_decode($json, true);
-        if (!is_array($data) || !isset($data['version']) || !is_string($data['version'])) {
+        if (!\is_array($data) || !isset($data['version']) || !\is_string($data['version'])) {
             return null;
         }
 
@@ -40,7 +40,7 @@ final class LatestRelease
 
     private function httpGet(string $url): ?string
     {
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch === false) {
                 return null;
@@ -54,7 +54,7 @@ final class LatestRelease
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            if (!is_string($body) || $code >= 400) {
+            if (!\is_string($body) || $code >= 400) {
                 return null;
             }
 
@@ -66,6 +66,6 @@ final class LatestRelease
         ]);
         $body = @file_get_contents($url, false, $context);
 
-        return is_string($body) ? $body : null;
+        return \is_string($body) ? $body : null;
     }
 }

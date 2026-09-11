@@ -134,8 +134,7 @@
 .linkList {
   display: flex;
   flex-wrap: wrap;
-  column-gap: var(--hcms-SPx4);
-  row-gap: var(--hcms-SPx2);
+  gap: var(--hcms-SPx2) var(--hcms-SPx4);
   list-style: none;
   margin: 0;
   padding: 0;

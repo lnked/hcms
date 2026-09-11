@@ -27,7 +27,7 @@ final class MetadataCache
     {
         $value = $this->cache->get(self::OPENAPI_KEY);
 
-        return is_array($value) ? $value : null;
+        return \is_array($value) ? $value : null;
     }
 
     /**

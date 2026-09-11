@@ -1,8 +1,8 @@
-import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { PasswordField } from '@/components/PasswordField'
+import { useState } from 'react'
 import { FieldError } from '@/components/FieldError'
+import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,11 +13,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { meetsPasswordPolicy } from '@/lib/password'
 import { showSuccess } from '@/lib/toast'
-import { useI18n } from '@/i18n'
 import styles from './ChangePasswordDialog.module.css'
 
 interface ChangePasswordResult {
@@ -87,6 +87,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         id="account-current-password"
         label={t('account.currentPassword')}
         autoComplete="current-password"
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus current password when dialog opens
         autoFocus
         value={current}
         onChange={(value) => {

@@ -155,7 +155,7 @@ final class ResourceHookService
         foreach ($this->hooks->findActiveForPhase($resourceId, 'after_create') as $hook) {
             $payload = ['entry' => $entry];
             $response = $this->invokeCreateHook($hook, $resourceId, $slug, 'after_create', $payload, $meta, $entry);
-            if (is_array($response) && $response !== []) {
+            if (\is_array($response) && $response !== []) {
                 $merged = array_merge($merged, $response);
             }
         }
@@ -200,7 +200,7 @@ final class ResourceHookService
         );
 
         $decoded = $result['decoded'];
-        $accept = array_key_exists('accept', $decoded) ? (bool) $decoded['accept'] : $result['ok'];
+        $accept = \array_key_exists('accept', $decoded) ? (bool) $decoded['accept'] : $result['ok'];
         $onFailure = (string) $hook['on_failure'];
 
         if (!$result['ok']) {
@@ -223,9 +223,9 @@ final class ResourceHookService
         }
 
         if (!$accept) {
-            $error = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
-            $code = isset($error['code']) && is_string($error['code']) ? $error['code'] : 'HOOK_REJECTED';
-            $message = isset($error['message']) && is_string($error['message'])
+            $error = \is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $code = isset($error['code']) && \is_string($error['code']) ? $error['code'] : 'HOOK_REJECTED';
+            $message = isset($error['message']) && \is_string($error['message'])
                 ? $error['message']
                 : 'Rejected by hook';
             $this->deliveries->create([
@@ -239,6 +239,7 @@ final class ResourceHookService
                 'status' => 'rejected',
                 'error_message' => $message,
             ]);
+
             throw new HookRejectedException($message, $code);
         }
 
@@ -254,13 +255,13 @@ final class ResourceHookService
             'error_message' => null,
         ]);
 
-        if ($phase === 'before_create' && isset($decoded['payload']) && is_array($decoded['payload'])) {
+        if ($phase === 'before_create' && isset($decoded['payload']) && \is_array($decoded['payload'])) {
             /** @var array<string, mixed> $mutated */
             $mutated = $decoded['payload'];
             $payload = $mutated;
         }
 
-        if ($phase === 'after_create' && isset($decoded['response']) && is_array($decoded['response'])) {
+        if ($phase === 'after_create' && isset($decoded['response']) && \is_array($decoded['response'])) {
             return $decoded['response'];
         }
 
@@ -291,38 +292,38 @@ final class ResourceHookService
     {
         $out = [];
 
-        if ($creating || array_key_exists('name', $payload)) {
-            $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
+        if ($creating || \array_key_exists('name', $payload)) {
+            $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 120) {
                 throw ValidationFailedException::field('name', 'name is required (max 120)');
             }
             $out['name'] = $name;
         }
 
-        if ($creating || array_key_exists('phase', $payload)) {
-            $phase = isset($payload['phase']) && is_string($payload['phase']) ? trim($payload['phase']) : '';
-            if (!in_array($phase, self::PHASES, true)) {
+        if ($creating || \array_key_exists('phase', $payload)) {
+            $phase = isset($payload['phase']) && \is_string($payload['phase']) ? trim($payload['phase']) : '';
+            if (!\in_array($phase, self::PHASES, true)) {
                 throw ValidationFailedException::field('phase', 'phase must be before_create or after_create');
             }
             $out['phase'] = $phase;
         }
 
-        if ($creating || array_key_exists('url', $payload)) {
+        if ($creating || \array_key_exists('url', $payload)) {
             $out['url'] = $this->normalizeUrl($payload['url'] ?? null);
         }
 
-        if ($creating || array_key_exists('secret', $payload)) {
-            $secret = isset($payload['secret']) && is_string($payload['secret']) ? trim($payload['secret']) : '';
+        if ($creating || \array_key_exists('secret', $payload)) {
+            $secret = isset($payload['secret']) && \is_string($payload['secret']) ? trim($payload['secret']) : '';
             if ($secret === '') {
                 $secret = bin2hex(random_bytes(32));
             }
-            if (strlen($secret) > 128) {
+            if (\strlen($secret) > 128) {
                 throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
 
-        if ($creating || array_key_exists('timeoutMs', $payload)) {
+        if ($creating || \array_key_exists('timeoutMs', $payload)) {
             $timeout = isset($payload['timeoutMs']) ? (int) $payload['timeoutMs'] : 3000;
             if ($timeout < 100 || $timeout > 30000) {
                 throw ValidationFailedException::field('timeoutMs', 'timeoutMs must be between 100 and 30000');
@@ -330,21 +331,21 @@ final class ResourceHookService
             $out['timeout_ms'] = $timeout;
         }
 
-        if ($creating || array_key_exists('onFailure', $payload)) {
-            $onFailure = isset($payload['onFailure']) && is_string($payload['onFailure'])
+        if ($creating || \array_key_exists('onFailure', $payload)) {
+            $onFailure = isset($payload['onFailure']) && \is_string($payload['onFailure'])
                 ? trim($payload['onFailure'])
                 : 'reject';
-            if (!in_array($onFailure, ['reject', 'continue'], true)) {
+            if (!\in_array($onFailure, ['reject', 'continue'], true)) {
                 throw ValidationFailedException::field('onFailure', 'onFailure must be reject or continue');
             }
             $out['on_failure'] = $onFailure;
         }
 
-        if ($creating || array_key_exists('status', $payload)) {
-            $status = isset($payload['status']) && is_string($payload['status'])
+        if ($creating || \array_key_exists('status', $payload)) {
+            $status = isset($payload['status']) && \is_string($payload['status'])
                 ? trim($payload['status'])
                 : 'active';
-            if (!in_array($status, ['active', 'disabled'], true)) {
+            if (!\in_array($status, ['active', 'disabled'], true)) {
                 throw ValidationFailedException::field('status', 'status must be active or disabled');
             }
             $out['status'] = $status;
@@ -355,12 +356,12 @@ final class ResourceHookService
 
     private function normalizeUrl(mixed $url): string
     {
-        $value = is_string($url) ? trim($url) : '';
+        $value = \is_string($url) ? trim($url) : '';
         if ($value === '' || mb_strlen($value) > 2048 || !filter_var($value, FILTER_VALIDATE_URL)) {
             throw ValidationFailedException::field('url', 'url must be a valid URL');
         }
         $scheme = strtolower((string) (parse_url($value, PHP_URL_SCHEME) ?? ''));
-        if (!in_array($scheme, ['http', 'https'], true)) {
+        if (!\in_array($scheme, ['http', 'https'], true)) {
             throw ValidationFailedException::field('url', 'url must be http or https');
         }
 
@@ -416,11 +417,11 @@ final class ResourceHookService
     private function serializeDelivery(array $row): array
     {
         $payload = $row['payload'];
-        if (is_string($payload)) {
+        if (\is_string($payload)) {
             $decoded = json_decode($payload, true);
-            $payload = is_array($decoded) ? $decoded : [];
+            $payload = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($payload)) {
+        if (!\is_array($payload)) {
             $payload = [];
         }
 

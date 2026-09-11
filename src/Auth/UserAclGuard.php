@@ -54,7 +54,7 @@ final class UserAclGuard
             if ($fieldResourceId !== null) {
                 $requirement = [
                     'resourceId' => $fieldResourceId,
-                    'action' => in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update',
+                    'action' => \in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update',
                     'tab' => 'schema',
                     'collectionWrite' => false,
                 ];

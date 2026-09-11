@@ -25,7 +25,7 @@ final class SlugType extends AbstractFieldType
     public function validateConfig(array $config): void
     {
         $associated = $config['associatedWith'] ?? '';
-        if (!is_string($associated) || $associated === '' || !Slug::isValid($associated)) {
+        if (!\is_string($associated) || $associated === '' || !Slug::isValid($associated)) {
             throw new InvalidArgumentException('Slug fields require associatedWith field name');
         }
     }

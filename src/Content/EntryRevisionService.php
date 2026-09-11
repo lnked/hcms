@@ -96,7 +96,7 @@ final class EntryRevisionService
     {
         $rev = $this->find($resourceId, $entryId, $revisionId);
         /** @var array<string, mixed> $data */
-        $data = is_array($rev['data']) ? $rev['data'] : [];
+        $data = \is_array($rev['data']) ? $rev['data'] : [];
 
         return $data;
     }
@@ -111,10 +111,10 @@ final class EntryRevisionService
              ORDER BY id DESC',
             ['resource_id' => $resourceId, 'entry_id' => $entryId],
         );
-        if (count($rows) <= $keep) {
+        if (\count($rows) <= $keep) {
             return;
         }
-        $drop = array_slice($rows, $keep);
+        $drop = \array_slice($rows, $keep);
         foreach ($drop as $row) {
             $this->db->execute('DELETE FROM cms_entry_revisions WHERE id = :id', ['id' => (int) $row['id']]);
         }
@@ -153,8 +153,8 @@ final class EntryRevisionService
             'id' => (int) $row['id'],
             'resourceId' => (int) $row['resource_id'],
             'entryId' => (int) $row['entry_id'],
-            'data' => is_array($data) ? $data : [],
-            'diff' => is_array($diff) ? $diff : null,
+            'data' => \is_array($data) ? $data : [],
+            'diff' => \is_array($diff) ? $diff : null,
             'actorUserId' => $row['actor_user_id'] === null ? null : (int) $row['actor_user_id'],
             'actor' => $this->serializeActor($row),
             'createdAt' => (string) $row['created_at'],

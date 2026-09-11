@@ -24,7 +24,7 @@ final class KeyValuesController
     public function index(Request $request, AuthContext $auth): Response
     {
         unset($auth);
-        $search = isset($request->query['search']) && is_string($request->query['search'])
+        $search = isset($request->query['search']) && \is_string($request->query['search'])
             ? $request->query['search']
             : null;
 
@@ -137,7 +137,7 @@ final class KeyValuesController
         $map = $this->entries->publicMap($keys);
         $etag = $this->entries->etag();
         $ifNoneMatch = $request->header('If-None-Match');
-        if (is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
+        if (\is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
             return new Response(304, '', [
                 'ETag' => $etag,
                 'Cache-Control' => 'public, max-age=30',
@@ -162,16 +162,16 @@ final class KeyValuesController
         $keys = [];
         if (isset($request->query['keys'])) {
             $raw = $request->query['keys'];
-            if (is_string($raw)) {
+            if (\is_string($raw)) {
                 foreach (explode(',', $raw) as $part) {
                     $part = trim($part);
                     if ($part !== '') {
                         $keys[] = $part;
                     }
                 }
-            } elseif (is_array($raw)) {
+            } elseif (\is_array($raw)) {
                 foreach ($raw as $part) {
-                    if (is_string($part) && trim($part) !== '') {
+                    if (\is_string($part) && trim($part) !== '') {
                         $keys[] = trim($part);
                     }
                 }
@@ -179,11 +179,11 @@ final class KeyValuesController
         }
         if (isset($request->query['key'])) {
             $raw = $request->query['key'];
-            if (is_string($raw) && trim($raw) !== '') {
+            if (\is_string($raw) && trim($raw) !== '') {
                 $keys[] = trim($raw);
-            } elseif (is_array($raw)) {
+            } elseif (\is_array($raw)) {
                 foreach ($raw as $part) {
-                    if (is_string($part) && trim($part) !== '') {
+                    if (\is_string($part) && trim($part) !== '') {
                         $keys[] = trim($part);
                     }
                 }

@@ -16,13 +16,13 @@ function randomIndex(max: number): number {
   const buffer = new Uint32Array(1)
   do {
     crypto.getRandomValues(buffer)
-  } while (buffer[0] >= limit)
+  } while ((buffer[0] ?? 0) >= limit)
 
-  return buffer[0] % max
+  return (buffer[0] ?? 0) % max
 }
 
 function pick(pool: string): string {
-  return pool[randomIndex(pool.length)]
+  return pool[randomIndex(pool.length)] ?? ''
 }
 
 export function meetsPasswordPolicy(password: string): boolean {
@@ -38,7 +38,11 @@ export function generatePassword(length = GENERATED_PASSWORD_LENGTH): string {
   }
   for (let i = chars.length - 1; i > 0; i -= 1) {
     const j = randomIndex(i + 1)
-    ;[chars[i], chars[j]] = [chars[j], chars[i]]
+    const a = chars[i]
+    const b = chars[j]
+    if (a === undefined || b === undefined) continue
+    chars[i] = b
+    chars[j] = a
   }
 
   return chars.join('')

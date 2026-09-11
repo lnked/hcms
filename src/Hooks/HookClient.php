@@ -50,13 +50,13 @@ final class HookClient
         $decoded = [];
         if ($result['body'] !== '') {
             $parsed = json_decode($result['body'], true);
-            if (is_array($parsed)) {
+            if (\is_array($parsed)) {
                 $decoded = $parsed;
             }
         }
 
         $error = $ok ? null : ($result['error'] ?? ('HTTP ' . ($result['status'] ?? 'n/a')));
-        if ($error !== null && strlen($error) > 500) {
+        if ($error !== null && \strlen($error) > 500) {
             $error = substr($error, 0, 497) . '...';
         }
 
@@ -78,7 +78,7 @@ final class HookClient
     {
         $started = hrtime(true);
         $timeoutSec = max(1, (int) ceil($timeoutMs / 1000));
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             return $this->curlRequest($url, $body, $headers, $started, $timeoutSec);
         }
 
@@ -124,7 +124,7 @@ final class HookClient
 
         return [
             'status' => $status > 0 ? $status : null,
-            'body' => is_string($responseBody) ? $responseBody : '',
+            'body' => \is_string($responseBody) ? $responseBody : '',
             'error' => $error !== null && $error !== '' ? $error : null,
             'durationMs' => $this->elapsedMs($started),
         ];
@@ -153,10 +153,10 @@ final class HookClient
 
         $raw = @file_get_contents($url, false, $context);
         $status = null;
-        $responseHeaders = function_exists('http_get_last_response_headers')
+        $responseHeaders = \function_exists('http_get_last_response_headers')
             ? http_get_last_response_headers()
             : null;
-        if (!is_array($responseHeaders)) {
+        if (!\is_array($responseHeaders)) {
             $responseHeaders = [];
         }
         if ($responseHeaders !== [] && preg_match('/\s(\d{3})\s/', (string) $responseHeaders[0], $m) === 1) {

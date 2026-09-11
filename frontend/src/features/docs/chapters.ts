@@ -1,6 +1,6 @@
 import type { Locale } from '@/i18n'
 
-export const CHAPTER_IDS = [
+const CHAPTER_IDS = [
   'overview',
   'connection',
   'tokens',

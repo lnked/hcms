@@ -24,7 +24,7 @@ export interface SchemaField {
   /** Stable React list key for unsaved fields; not sent to the API. */
   clientKey?: string
   name: string
-  type: FieldTypeName | string
+  type: FieldTypeName
   sortOrder: number
   label: string
   description?: string | null

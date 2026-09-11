@@ -1,9 +1,9 @@
-import { render, type RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, type RenderOptions } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import type { ReactElement, ReactNode } from 'react'
 import { I18nProvider } from '@/i18n'
 import type { Locale } from '@/i18n'
+import type { ReactElement, ReactNode } from 'react'
 
 export function createTestQueryClient() {
   return new QueryClient({

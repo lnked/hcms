@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useI18n, type MessageKey } from '@/i18n'
 import { api, getToken, setToken } from '@/lib/api'
 import { showError } from '@/lib/toast'
-import { useI18n, type MessageKey } from '@/i18n'
-import type { AuthUser } from '@/types/system'
 import styles from './OAuthCompletePage.module.css'
+import type { AuthUser } from '@/types/system'
 
 const OAUTH_ERRORS: Record<string, MessageKey> = {
   ACCOUNT_NOT_FOUND: 'login.oauth.accountNotFound',
@@ -44,12 +44,12 @@ export function OAuthCompletePage() {
 
   useEffect(() => {
     if (linked) {
-      navigate(getToken() ? '/settings/account' : '/login', { replace: true })
+      void navigate(getToken() ? '/settings/account' : '/login', { replace: true })
       return
     }
     if (token) {
       setToken(token)
-      navigate('/', { replace: true })
+      void navigate('/', { replace: true })
     }
   }, [linked, token, navigate])
 
@@ -64,7 +64,7 @@ export function OAuthCompletePage() {
         body: JSON.stringify({ ticket, totpCode }),
       })
       setToken(data.token)
-      navigate('/', { replace: true })
+      void navigate('/', { replace: true })
     } catch (err) {
       const text = err instanceof Error ? err.message : t('login.failed')
       setMessage(text)
@@ -88,7 +88,12 @@ export function OAuthCompletePage() {
         <CardContent className={styles.content}>
           {errorText ? <p className={styles.error}>{errorText}</p> : null}
           {ticket ? (
-            <form onSubmit={onTotp} className={styles.form}>
+            <form
+              onSubmit={(e) => {
+                void onTotp(e)
+              }}
+              className={styles.form}
+            >
               <div className={styles.field}>
                 <Label htmlFor="oauth-totp">{t('login.totp')}</Label>
                 <Input
@@ -108,7 +113,9 @@ export function OAuthCompletePage() {
           ) : errorText ? (
             <Button
               className={styles.fullWidth}
-              onClick={() => navigate('/login', { replace: true })}
+              onClick={() => {
+                void navigate('/login', { replace: true })
+              }}
             >
               {t('login.title')}
             </Button>

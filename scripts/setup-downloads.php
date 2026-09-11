@@ -299,6 +299,7 @@ final class DownloadsPatch
         }
         if ($status >= 400) {
             $message = $decoded['error']['message'] ?? $decoded['message'] ?? ('HTTP ' . $status);
+
             throw new RuntimeException($method . ' ' . $path . ' → ' . (is_string($message) ? $message : 'HTTP ' . $status));
         }
 

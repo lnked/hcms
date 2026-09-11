@@ -1,6 +1,6 @@
-import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 import styles from './Badge.module.css'
+import type { HTMLAttributes } from 'react'
 
 const variantClass = {
   default: styles.variantDefault,

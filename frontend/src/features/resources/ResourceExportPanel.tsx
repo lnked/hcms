@@ -1,12 +1,12 @@
-import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useI18n } from '@/i18n'
 import { ApiError, getToken, handleUnauthorized } from '@/lib/api'
 import { showError } from '@/lib/toast'
-import type { Resource } from '@/types/resource'
 import styles from './ResourceExportPanel.module.css'
+import type { Resource } from '@/types/resource'
 
 interface ResourceExportPanelProps {
   resource: Resource
@@ -64,8 +64,9 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
         <CardDescription>{t('resources.package.exportHint')}</CardDescription>
       </CardHeader>
       <CardContent className={styles.stack}>
-        <label className={styles.checkLabel}>
+        <label className={styles.checkLabel} htmlFor="resource-export-include-data">
           <input
+            id="resource-export-include-data"
             type="checkbox"
             className={styles.checkbox}
             checked={includeData}
@@ -75,11 +76,9 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
               setError(null)
             }}
           />
-          <span>
-            <span className={styles.labelStrong}>{t('resources.package.includeData')}</span>
-            <span className={styles.hint}>{t('resources.package.includeDataHint')}</span>
-          </span>
+          <span className={styles.labelStrong}>{t('resources.package.includeData')}</span>
         </label>
+        <p className={styles.hint}>{t('resources.package.includeDataHint')}</p>
 
         <div className={styles.actions}>
           <Button onClick={() => doExport.mutate()} disabled={doExport.isPending}>

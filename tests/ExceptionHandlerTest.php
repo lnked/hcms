@@ -19,7 +19,7 @@ final class ExceptionHandlerTest extends TestCase
 
     protected function setUp(): void
     {
-        $root = dirname(__DIR__);
+        $root = \dirname(__DIR__);
         $this->handler = new ExceptionHandler(
             new Config(
                 appEnv: 'testing',

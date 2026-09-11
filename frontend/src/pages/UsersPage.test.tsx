@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppToast } from '@/components/AppToast'
 import { I18nProvider } from '@/i18n'
+import { requireInput } from '@/test/dom'
 import { UsersPage } from './UsersPage'
 
 vi.mock('@/lib/api', () => ({
@@ -74,7 +75,7 @@ describe('UsersPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Create user' }))
     await userEvent.click(screen.getByRole('button', { name: 'Generate' }))
 
-    const password = (screen.getByLabelText('Password') as HTMLInputElement).value
+    const password = requireInput(screen.getByLabelText('Password')).value
     expect(password).toHaveLength(20)
     expect(copyToClipboard).toHaveBeenCalledWith(password)
     const toast = await screen.findByText('Value copied')

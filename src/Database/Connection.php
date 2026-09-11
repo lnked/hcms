@@ -19,7 +19,7 @@ final class Connection
      */
     public static function connect(array $config, bool $withDatabase = true): self
     {
-        $dsn = sprintf(
+        $dsn = \sprintf(
             'mysql:host=%s;port=%d;charset=%s',
             $config['host'],
             $config['port'],

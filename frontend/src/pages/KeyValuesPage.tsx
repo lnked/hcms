@@ -1,9 +1,10 @@
-import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
+import { FieldError } from '@/components/FieldError'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,7 +27,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
@@ -92,7 +92,7 @@ export function KeyValuesPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
-  const section = (params.get('section') === 'api' ? 'api' : 'entries') as Section
+  const section = params.get('section') === 'api' ? 'api' : 'entries'
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<KeyValueEntry | null>(null)

@@ -64,8 +64,8 @@ final class PublicIntegrationApiController
             return Response::error('NOT_FOUND', 'Integration API not found', 404);
         }
 
-        $defaults = is_array($api['defaults'] ?? null) ? $api['defaults'] : [];
-        $settings = is_array($api['settings'] ?? null) ? $api['settings'] : [];
+        $defaults = \is_array($api['defaults'] ?? null) ? $api['defaults'] : [];
+        $settings = \is_array($api['settings'] ?? null) ? $api['settings'] : [];
         $allowFromOverride = (bool) ($settings['allowFromOverride'] ?? true);
 
         try {
@@ -73,9 +73,9 @@ final class PublicIntegrationApiController
             $result = $this->mailer->sendIntegration(
                 $request->json(),
                 [
-                    'subject' => is_string($defaults['subject'] ?? null) ? $defaults['subject'] : '',
-                    'html' => is_string($defaults['html'] ?? null) ? $defaults['html'] : '',
-                    'text' => is_string($defaults['text'] ?? null) ? $defaults['text'] : '',
+                    'subject' => \is_string($defaults['subject'] ?? null) ? $defaults['subject'] : '',
+                    'html' => \is_string($defaults['html'] ?? null) ? $defaults['html'] : '',
+                    'text' => \is_string($defaults['text'] ?? null) ? $defaults['text'] : '',
                 ],
                 $allowFromOverride,
                 $tokenId,

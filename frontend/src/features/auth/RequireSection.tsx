@@ -1,8 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { PageSkeleton } from '@/components/skeletons'
 import { useAcl } from '@/hooks/useAcl'
 import { sectionForPath, type AdminRole, type AdminSection } from '@/lib/rbac'
-import { PageSkeleton } from '@/components/skeletons'
+import type { ReactNode } from 'react'
 
 export function RequireSection({
   section,

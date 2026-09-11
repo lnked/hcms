@@ -1,7 +1,9 @@
-import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { QRCodeSVG } from 'qrcode.react'
 import { clsx } from 'clsx'
+import { QRCodeSVG } from 'qrcode.react'
+import { useState } from 'react'
+import { CodeBlock } from '@/components/CodeBlock'
+import { FieldError } from '@/components/FieldError'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,14 +16,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CodeBlock } from '@/components/CodeBlock'
-import { FieldError } from '@/components/FieldError'
+import { useAuthMe } from '@/hooks/useAcl'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { queryKeys } from '@/lib/queryKeys'
 import { showSuccess } from '@/lib/toast'
-import { useAuthMe } from '@/hooks/useAcl'
-import { useI18n } from '@/i18n'
 import styles from './TotpSection.module.css'
 
 export function TotpSection() {
@@ -156,6 +156,7 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
 
         <Input
           id="totp-enable-code"
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- focus TOTP code when enabling
           autoFocus
           value={code}
           onChange={(e) => {
@@ -242,6 +243,7 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
           id="totp-disable-password"
           type="password"
           autoComplete="current-password"
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- focus password when disabling TOTP
           autoFocus
           value={password}
           onChange={(e) => {

@@ -24,10 +24,10 @@ final class FeatureFlagsController
     public function index(Request $request, AuthContext $auth): Response
     {
         unset($auth);
-        $search = isset($request->query['search']) && is_string($request->query['search'])
+        $search = isset($request->query['search']) && \is_string($request->query['search'])
             ? $request->query['search']
             : null;
-        $type = isset($request->query['type']) && is_string($request->query['type'])
+        $type = isset($request->query['type']) && \is_string($request->query['type'])
             ? $request->query['type']
             : null;
         $enabled = null;
@@ -152,7 +152,7 @@ final class FeatureFlagsController
         $etag = $this->flags->etag($result['subject']);
         $cacheControl = $result['hasAb'] ? 'private, no-store' : 'public, max-age=30';
         $ifNoneMatch = $request->header('If-None-Match');
-        if (is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
+        if (\is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
             return new Response(304, '', [
                 'ETag' => $etag,
                 'Cache-Control' => $cacheControl,
@@ -175,7 +175,7 @@ final class FeatureFlagsController
     private function parseSubject(Request $request): ?string
     {
         foreach (['subject', 'sid'] as $q) {
-            if (isset($request->query[$q]) && is_string($request->query[$q])) {
+            if (isset($request->query[$q]) && \is_string($request->query[$q])) {
                 $v = trim($request->query[$q]);
                 if ($v !== '') {
                     return mb_substr($v, 0, 128);
@@ -183,7 +183,7 @@ final class FeatureFlagsController
             }
         }
         $header = $request->header('X-Flag-Subject');
-        if (is_string($header)) {
+        if (\is_string($header)) {
             $v = trim($header);
             if ($v !== '') {
                 return mb_substr($v, 0, 128);
@@ -201,16 +201,16 @@ final class FeatureFlagsController
         $keys = [];
         if (isset($request->query['keys'])) {
             $raw = $request->query['keys'];
-            if (is_string($raw)) {
+            if (\is_string($raw)) {
                 foreach (explode(',', $raw) as $part) {
                     $part = trim($part);
                     if ($part !== '') {
                         $keys[] = $part;
                     }
                 }
-            } elseif (is_array($raw)) {
+            } elseif (\is_array($raw)) {
                 foreach ($raw as $part) {
-                    if (is_string($part) && trim($part) !== '') {
+                    if (\is_string($part) && trim($part) !== '') {
                         $keys[] = trim($part);
                     }
                 }
@@ -218,11 +218,11 @@ final class FeatureFlagsController
         }
         if (isset($request->query['key'])) {
             $raw = $request->query['key'];
-            if (is_string($raw) && trim($raw) !== '') {
+            if (\is_string($raw) && trim($raw) !== '') {
                 $keys[] = trim($raw);
-            } elseif (is_array($raw)) {
+            } elseif (\is_array($raw)) {
                 foreach ($raw as $part) {
-                    if (is_string($part) && trim($part) !== '') {
+                    if (\is_string($part) && trim($part) !== '') {
                         $keys[] = trim($part);
                     }
                 }

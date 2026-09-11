@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
-import type { MediaFieldValue, MediaItemRef } from '@/types/field'
 import styles from './MediaCell.module.css'
+import type { MediaFieldValue, MediaItemRef } from '@/types/field'
 
 const MAX_PREVIEWS = 3
 

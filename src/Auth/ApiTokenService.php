@@ -70,18 +70,18 @@ final class ApiTokenService
      */
     public function create(array $payload): array
     {
-        $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
         if ($name === '') {
             throw new InvalidArgumentException('Name is required');
         }
 
         $expiresAt = null;
-        if (isset($payload['expiresAt']) && is_string($payload['expiresAt']) && $payload['expiresAt'] !== '') {
+        if (isset($payload['expiresAt']) && \is_string($payload['expiresAt']) && $payload['expiresAt'] !== '') {
             $expiresAt = (new DateTimeImmutable($payload['expiresAt']))->format('Y-m-d H:i:s');
         }
 
         $grantInput = $payload['grants'] ?? [];
-        if (!is_array($grantInput)) {
+        if (!\is_array($grantInput)) {
             throw new InvalidArgumentException('grants must be an array');
         }
         $normalized = $this->normalizeGrants($grantInput);
@@ -120,8 +120,8 @@ final class ApiTokenService
         $sets = [];
         $params = ['id' => $id];
 
-        if (array_key_exists('name', $payload)) {
-            $name = is_string($payload['name']) ? trim($payload['name']) : '';
+        if (\array_key_exists('name', $payload)) {
+            $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '') {
                 throw new InvalidArgumentException('Name is required');
             }
@@ -129,9 +129,9 @@ final class ApiTokenService
             $params['name'] = $name;
         }
 
-        if (array_key_exists('expiresAt', $payload)) {
+        if (\array_key_exists('expiresAt', $payload)) {
             $expiresAt = null;
-            if (is_string($payload['expiresAt']) && $payload['expiresAt'] !== '') {
+            if (\is_string($payload['expiresAt']) && $payload['expiresAt'] !== '') {
                 $expiresAt = (new DateTimeImmutable($payload['expiresAt']))->format('Y-m-d H:i:s');
             }
             $sets[] = 'expires_at = :expires_at';
@@ -145,15 +145,15 @@ final class ApiTokenService
             );
         }
 
-        if (array_key_exists('grants', $payload)) {
+        if (\array_key_exists('grants', $payload)) {
             $grantInput = $payload['grants'];
-            if (!is_array($grantInput)) {
+            if (!\is_array($grantInput)) {
                 throw new InvalidArgumentException('grants must be an array');
             }
             $this->grants->replace($id, $this->normalizeGrants($grantInput));
         }
 
-        if (array_key_exists('integrationGrants', $payload)) {
+        if (\array_key_exists('integrationGrants', $payload)) {
             $this->grants->replaceIntegrationGrants(
                 $id,
                 $this->normalizeIntegrationGrants($payload['integrationGrants']),
@@ -166,8 +166,8 @@ final class ApiTokenService
 
         if (
             $sets === []
-            && !array_key_exists('grants', $payload)
-            && !array_key_exists('integrationGrants', $payload)
+            && !\array_key_exists('grants', $payload)
+            && !\array_key_exists('integrationGrants', $payload)
             && $policy === null
         ) {
             throw new InvalidArgumentException('Nothing to update');
@@ -206,7 +206,7 @@ final class ApiTokenService
     {
         $touched = array_filter(
             self::POLICY_KEYS,
-            static fn (string $key): bool => array_key_exists($key, $payload),
+            static fn (string $key): bool => \array_key_exists($key, $payload),
         );
         if ($touched === []) {
             return null;
@@ -215,9 +215,9 @@ final class ApiTokenService
         $current = $this->policies->forToken($id);
 
         return TokenPolicy::fromInput(
-            array_key_exists('allowedOrigins', $payload) ? $payload['allowedOrigins'] : $current->allowedOrigins,
-            array_key_exists('requireOrigin', $payload) ? $payload['requireOrigin'] : $current->requireOrigin,
-            array_key_exists('allowedIps', $payload) ? $payload['allowedIps'] : $current->allowedIps,
+            \array_key_exists('allowedOrigins', $payload) ? $payload['allowedOrigins'] : $current->allowedOrigins,
+            \array_key_exists('requireOrigin', $payload) ? $payload['requireOrigin'] : $current->requireOrigin,
+            \array_key_exists('allowedIps', $payload) ? $payload['allowedIps'] : $current->allowedIps,
         );
     }
 
@@ -239,16 +239,16 @@ final class ApiTokenService
      */
     private function normalizeGrants(mixed $input): array
     {
-        if (!is_array($input)) {
+        if (!\is_array($input)) {
             return [];
         }
         $out = [];
         foreach ($input as $item) {
-            if (!is_array($item)) {
+            if (!\is_array($item)) {
                 continue;
             }
             $resourceId = null;
-            if (array_key_exists('resourceId', $item) && $item['resourceId'] !== null && $item['resourceId'] !== '') {
+            if (\array_key_exists('resourceId', $item) && $item['resourceId'] !== null && $item['resourceId'] !== '') {
                 $resourceId = (int) $item['resourceId'];
                 if ($this->resources->find($resourceId) === null) {
                     throw new InvalidArgumentException('Unknown resourceId: ' . $resourceId);
@@ -272,19 +272,19 @@ final class ApiTokenService
      */
     private function normalizeIntegrationGrants(mixed $input): array
     {
-        if (!is_array($input)) {
+        if (!\is_array($input)) {
             return [];
         }
         $allowed = ['email'];
         $out = [];
         foreach ($input as $item) {
-            if (!is_array($item)) {
+            if (!\is_array($item)) {
                 continue;
             }
-            $key = isset($item['integrationKey']) && is_string($item['integrationKey'])
+            $key = isset($item['integrationKey']) && \is_string($item['integrationKey'])
                 ? trim($item['integrationKey'])
                 : '';
-            if ($key === '' || !in_array($key, $allowed, true)) {
+            if ($key === '' || !\in_array($key, $allowed, true)) {
                 throw new InvalidArgumentException('Unknown integrationKey: ' . $key);
             }
             $out[] = [

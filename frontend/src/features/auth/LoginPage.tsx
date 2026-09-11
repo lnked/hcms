@@ -1,18 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { LanguageSelect } from '@/components/LanguageSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LanguageSelect } from '@/components/LanguageSelect'
+import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 import { useI18n } from '@/i18n'
 import { api, ApiError, getToken, setToken } from '@/lib/api'
 import { showError } from '@/lib/toast'
-import type { AuthUser } from '@/types/system'
-import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 import styles from './LoginPage.module.css'
+import type { AuthUser } from '@/types/system'
 
 interface CaptchaConfig {
   enabled: boolean
@@ -54,7 +54,9 @@ export function LoginPage() {
       return
     }
     void api<AuthUser>('/admin/api/auth/me')
-      .then(() => navigate('/', { replace: true }))
+      .then(() => {
+        void navigate('/', { replace: true })
+      })
       .catch(() => setCheckingSession(false))
   }, [navigate])
 
@@ -77,7 +79,7 @@ export function LoginPage() {
         body: JSON.stringify(body),
       })
       setToken(data.token)
-      navigate('/', { replace: true })
+      void navigate('/', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'TOTP_REQUIRED') {
         setNeedTotp(true)
@@ -104,7 +106,7 @@ export function LoginPage() {
         body: JSON.stringify({ ...payload, totpCode: code, remember }),
       })
       setToken(data.token)
-      navigate('/', { replace: true })
+      void navigate('/', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'TOTP_REQUIRED') {
         setTelegramPayload(payload)

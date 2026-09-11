@@ -30,7 +30,7 @@ final class MediaValue
             return null;
         }
 
-        if (is_string($value)) {
+        if (\is_string($value)) {
             $decoded = json_decode($value, true);
             if (json_last_error() === JSON_ERROR_NONE) {
                 $value = $decoded;
@@ -44,10 +44,11 @@ final class MediaValue
         // Legacy BIGINT / bare id
         if (is_numeric($value)) {
             $item = self::itemFromId((int) $value);
+
             return $multiple ? [$item] : $item;
         }
 
-        if (!is_array($value)) {
+        if (!\is_array($value)) {
             throw new InvalidArgumentException('Invalid media value');
         }
 
@@ -59,6 +60,7 @@ final class MediaValue
                 if (isset($value['id'])) {
                     return [self::normalizeItem($value)];
                 }
+
                 throw new InvalidArgumentException('multiple media value must be an array');
             }
             $items = [];
@@ -73,6 +75,7 @@ final class MediaValue
             if ($value === []) {
                 return null;
             }
+
             // Accidental array for single field — take first
             return self::normalizeItem($value[0]);
         }
@@ -136,22 +139,23 @@ final class MediaValue
             if (is_numeric($value)) {
                 return [(int) $value];
             }
-            $normalized = self::normalize($value, is_array($value) && array_is_list($value));
+            $normalized = self::normalize($value, \is_array($value) && array_is_list($value));
         } catch (InvalidArgumentException) {
             return [];
         }
         if ($normalized === null) {
             return [];
         }
+        /** @var list<MediaItem> $items */
         $items = array_is_list($normalized) ? $normalized : [$normalized];
         $ids = [];
         foreach ($items as $item) {
-            $ids[(int) $item['id']] = true;
+            $ids[$item['id']] = true;
             if ($item['sourceId'] !== null) {
-                $ids[(int) $item['sourceId']] = true;
+                $ids[$item['sourceId']] = true;
             }
             foreach ($item['variants'] as $vid) {
-                $ids[(int) $vid] = true;
+                $ids[$vid] = true;
             }
         }
 
@@ -174,9 +178,9 @@ final class MediaValue
             return $mediaMap[$old] ?? $old;
         }
 
-        $multiple = is_array($value) && array_is_list($value);
+        $multiple = \is_array($value) && array_is_list($value);
         try {
-            $normalized = self::normalize($value, $multiple || (is_array($value) && isset($value[0])));
+            $normalized = self::normalize($value, $multiple || (\is_array($value) && isset($value[0])));
         } catch (InvalidArgumentException) {
             return $value;
         }
@@ -184,16 +188,17 @@ final class MediaValue
             return null;
         }
 
+        /** @param MediaItem $item
+         * @return MediaItem */
         $remapItem = static function (array $item) use ($mediaMap): array {
-            $id = (int) $item['id'];
+            $id = $item['id'];
             $item['id'] = $mediaMap[$id] ?? $id;
             if ($item['sourceId'] !== null) {
-                $sourceId = (int) $item['sourceId'];
+                $sourceId = $item['sourceId'];
                 $item['sourceId'] = $mediaMap[$sourceId] ?? $sourceId;
             }
             $variants = [];
             foreach ($item['variants'] as $key => $vid) {
-                $vid = (int) $vid;
                 $variants[$key] = $mediaMap[$vid] ?? $vid;
             }
             $item['variants'] = $variants;
@@ -202,7 +207,14 @@ final class MediaValue
         };
 
         if (array_is_list($normalized)) {
-            return array_map($remapItem, $normalized);
+            /** @var list<MediaItem> $list */
+            $list = $normalized;
+            $out = [];
+            foreach ($list as $item) {
+                $out[] = $remapItem($item);
+            }
+
+            return $out;
         }
 
         return $remapItem($normalized);
@@ -217,7 +229,7 @@ final class MediaValue
         if (is_numeric($entry)) {
             return self::itemFromId((int) $entry);
         }
-        if (!is_array($entry)) {
+        if (!\is_array($entry)) {
             throw new InvalidArgumentException('Invalid media item');
         }
         $id = isset($entry['id']) && is_numeric($entry['id']) ? (int) $entry['id'] : 0;
@@ -228,12 +240,12 @@ final class MediaValue
         return self::itemFromId(
             $id,
             $entry['rotation'] ?? 0,
-            is_array($entry['positions'] ?? null) ? $entry['positions'] : [],
-            is_array($entry['variants'] ?? null) ? $entry['variants'] : [],
+            \is_array($entry['positions'] ?? null) ? $entry['positions'] : [],
+            \is_array($entry['variants'] ?? null) ? $entry['variants'] : [],
             [
                 'sourceId' => $entry['sourceId'] ?? null,
                 'edit' => $entry['edit'] ?? null,
-                'overrides' => is_array($entry['overrides'] ?? null) ? $entry['overrides'] : [],
+                'overrides' => \is_array($entry['overrides'] ?? null) ? $entry['overrides'] : [],
             ],
         );
     }
@@ -248,11 +260,13 @@ final class MediaValue
     private static function normalizeVariants(array $variants): array
     {
         $out = [];
-        foreach ($variants as $key => $id) {
-            if (is_array($id)) {
-                $id = $id['id'] ?? null;
+        foreach ($variants as $key => $value) {
+            $id = $value;
+            if (\is_array($value)) {
+                $nested = $value['id'] ?? null;
+                $id = is_numeric($nested) ? $nested : null;
             }
-            if (!is_string($key) || $key === '' || !is_numeric($id)) {
+            if (!\is_string($key) || $key === '' || !is_numeric($id)) {
                 continue;
             }
             $vid = (int) $id;

@@ -97,7 +97,7 @@ final class Response
         echo $this->body;
 
         // Let long-running shutdown work (updates) continue after the client gets the body.
-        if (function_exists('fastcgi_finish_request')) {
+        if (\function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
         } else {
             if (ob_get_level() > 0) {

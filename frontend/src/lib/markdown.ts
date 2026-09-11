@@ -9,11 +9,11 @@ export function markdownToHtml(source: string): string {
 
       const fence = trimmed.match(/^```(?:\w+)?\n?([\s\S]*?)```$/)
       if (fence) {
-        return `<pre><code>${fence[1].replace(/\n$/, '')}</code></pre>`
+        return `<pre><code>${(fence[1] ?? '').replace(/\n$/, '')}</code></pre>`
       }
 
       if (/^#{1,3} /.test(trimmed)) {
-        const level = trimmed.match(/^(#{1,3}) /)?.[1].length ?? 1
+        const level = trimmed.match(/^(#{1,3}) /)?.[1]?.length ?? 1
         const text = inlineMarkdown(trimmed.replace(/^#{1,3} /, ''))
         return `<h${level}>${text}</h${level}>`
       }

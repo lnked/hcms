@@ -229,7 +229,7 @@ HTACCESS;
         $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
         $name = pathinfo($base, PATHINFO_FILENAME);
 
-        if ($ext === '' && is_string($mime) && $mime !== '') {
+        if ($ext === '' && \is_string($mime) && $mime !== '') {
             $mimeKey = strtolower(trim(explode(';', $mime)[0]));
             $ext = self::MIME_EXTENSIONS[$mimeKey] ?? 'bin';
         }
@@ -542,7 +542,7 @@ HTACCESS;
         }
 
         $outputMime = MediaFieldConfig::encodeFormatToMime($encodeFormat) ?? (string) $row['mime'];
-        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
             throw new InvalidArgumentException('WebP encoding is not available on this server');
         }
 
@@ -616,10 +616,10 @@ HTACCESS;
             throw new InvalidArgumentException('quality must be between 1 and 100');
         }
 
-        $format = isset($opts['format']) && is_string($opts['format'])
+        $format = isset($opts['format']) && \is_string($opts['format'])
             ? strtolower(trim($opts['format']))
             : 'keep';
-        if (!in_array($format, ['keep', 'webp', 'jpeg', 'png'], true)) {
+        if (!\in_array($format, ['keep', 'webp', 'jpeg', 'png'], true)) {
             throw new InvalidArgumentException('format must be keep, webp, jpeg, or png');
         }
 
@@ -629,7 +629,7 @@ HTACCESS;
             'png' => 'image/png',
             default => $mime,
         };
-        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
             throw new InvalidArgumentException('WebP encoding is not available on this server');
         }
 
@@ -639,7 +639,7 @@ HTACCESS;
         $maxHeight = isset($opts['maxHeight']) && is_numeric($opts['maxHeight']) && (int) $opts['maxHeight'] > 0
             ? (int) $opts['maxHeight']
             : null;
-        $applyToVariants = !array_key_exists('applyToVariants', $opts) || (bool) $opts['applyToVariants'];
+        $applyToVariants = !\array_key_exists('applyToVariants', $opts) || (bool) $opts['applyToVariants'];
 
         @set_time_limit(0);
 
@@ -741,7 +741,7 @@ HTACCESS;
      */
     private function replaceFileContents(int $id, array $row, array $encoded): void
     {
-        $size = strlen($encoded['bytes']);
+        $size = \strlen($encoded['bytes']);
         if ($size <= 0 || $size > self::MAX_BYTES) {
             throw new InvalidArgumentException('Optimized file too large (max 10MB)');
         }
@@ -752,13 +752,13 @@ HTACCESS;
         $relative = (string) $row['disk_path'];
 
         if ($oldExt !== $newExt) {
-            $dir = dirname($relative);
+            $dir = \dirname($relative);
             $base = pathinfo($relative, PATHINFO_FILENAME);
             $relative = ($dir !== '.' ? $dir . '/' : '') . $base . '.' . $newExt;
         }
 
         $absolute = $this->paths->media() . '/' . $relative;
-        $dirPath = dirname($absolute);
+        $dirPath = \dirname($absolute);
         if (!is_dir($dirPath) && !mkdir($dirPath, 0755, true) && !is_dir($dirPath)) {
             throw new RuntimeException('Cannot create media directory');
         }
@@ -837,7 +837,7 @@ HTACCESS;
         ?int $sourceId = null,
         ?int $uploadedBy = null,
     ): array {
-        $size = strlen($bytes);
+        $size = \strlen($bytes);
         if ($size <= 0 || $size > self::MAX_BYTES) {
             throw new InvalidArgumentException('File too large (max 10MB)');
         }
@@ -850,7 +850,7 @@ HTACCESS;
         $this->ensureUploadsProtected();
         $relative = date('Y/m') . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
         $absolute = $this->paths->media() . '/' . $relative;
-        $dir = dirname($absolute);
+        $dir = \dirname($absolute);
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
             throw new RuntimeException('Cannot create media directory');
         }
@@ -864,7 +864,7 @@ HTACCESS;
         $height = null;
         if (str_starts_with($mime, 'image/')) {
             $info = @getimagesize($absolute);
-            if (is_array($info)) {
+            if (\is_array($info)) {
                 $width = $info[0];
                 $height = $info[1];
             }
@@ -1020,7 +1020,7 @@ HTACCESS;
         if ($outputMime === null) {
             return;
         }
-        if ($outputMime === 'image/webp' && !function_exists('imagewebp')) {
+        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
             throw new InvalidArgumentException('WebP encoding is not available on this server');
         }
 
@@ -1276,7 +1276,7 @@ HTACCESS;
 
     private function isSourceAsText(string $originalName, string $mime): bool
     {
-        if (in_array($mime, self::SOURCE_MIMES, true)) {
+        if (\in_array($mime, self::SOURCE_MIMES, true)) {
             return true;
         }
 
@@ -1360,7 +1360,7 @@ HTACCESS;
         $parts = preg_split('/\./', $base) ?: [];
         foreach ($parts as $part) {
             $clean = preg_replace('/[^a-z0-9]/i', '', $part);
-            if (is_string($clean) && $clean !== '' && in_array($clean, $extensions, true)) {
+            if (\is_string($clean) && $clean !== '' && \in_array($clean, $extensions, true)) {
                 return true;
             }
         }
@@ -1476,8 +1476,8 @@ HTACCESS;
     private function serialize(array $row): array
     {
         $id = (int) $row['id'];
-        $originalName = is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
-        $mime = is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
+        $originalName = \is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
+        $mime = \is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
         $urls = self::publicUrls($this->appUrl, $id, $originalName, $mime);
 
         return [

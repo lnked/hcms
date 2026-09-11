@@ -132,13 +132,13 @@ final class TokenPolicy
         if ($input === null || $input === '') {
             return [];
         }
-        if (!is_array($input)) {
+        if (!\is_array($input)) {
             throw new InvalidArgumentException($field . ' must be an array');
         }
 
         $out = [];
         foreach ($input as $item) {
-            if (!is_string($item)) {
+            if (!\is_string($item)) {
                 throw new InvalidArgumentException($field . ' entries must be strings');
             }
             if (trim($item) === '') {
@@ -152,7 +152,7 @@ final class TokenPolicy
         }
 
         $unique = array_values(array_unique($out));
-        if (count($unique) > self::MAX_ENTRIES) {
+        if (\count($unique) > self::MAX_ENTRIES) {
             throw new InvalidArgumentException($field . ' allows at most ' . self::MAX_ENTRIES . ' entries');
         }
 

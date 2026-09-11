@@ -77,6 +77,7 @@ final class FieldService
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
+
             throw $e;
         }
 
@@ -101,7 +102,7 @@ final class FieldService
         foreach ($existing as $row) {
             $names[(string) $row['name']] = true;
         }
-        $field = $this->normalizeIncoming($payload, count($existing), $names);
+        $field = $this->normalizeIncoming($payload, \count($existing), $names);
         $created = $this->fields->create([
             'content_type_id' => $contentTypeId,
             'name' => $field['name'],
@@ -172,8 +173,8 @@ final class FieldService
      */
     private function normalizeIncoming(array $field, int $index, array &$usedNames): array
     {
-        $name = isset($field['name']) && is_string($field['name']) ? trim($field['name']) : '';
-        $type = isset($field['type']) && is_string($field['type']) ? trim($field['type']) : '';
+        $name = isset($field['name']) && \is_string($field['name']) ? trim($field['name']) : '';
+        $type = isset($field['type']) && \is_string($field['type']) ? trim($field['type']) : '';
         if ($name === '' || !Slug::isValid($name)) {
             throw new InvalidArgumentException('Invalid field name: ' . $name);
         }
@@ -191,7 +192,7 @@ final class FieldService
                 'label' => $field['label'] ?? $name,
                 'config' => array_merge(
                     $fieldType->defaultConfig(),
-                    isset($field['config']) && is_array($field['config']) ? $field['config'] : [],
+                    isset($field['config']) && \is_array($field['config']) ? $field['config'] : [],
                 ),
             ],
             $field,
@@ -213,9 +214,9 @@ final class FieldService
     private function serialize(array $row): array
     {
         $spec = $row['spec_json'] ?? [];
-        if (is_string($spec)) {
+        if (\is_string($spec)) {
             $decoded = json_decode($spec, true);
-            $spec = is_array($decoded) ? $decoded : [];
+            $spec = \is_array($decoded) ? $decoded : [];
         }
 
         return [
@@ -238,7 +239,7 @@ final class FieldService
             'filterable' => (bool) ($spec['filterable'] ?? false),
             'readable' => (bool) ($spec['readable'] ?? true),
             'writable' => (bool) ($spec['writable'] ?? true),
-            'config' => is_array($spec['config'] ?? null) ? $spec['config'] : [],
+            'config' => \is_array($spec['config'] ?? null) ? $spec['config'] : [],
             'createdAt' => $row['created_at'],
             'updatedAt' => $row['updated_at'],
         ];

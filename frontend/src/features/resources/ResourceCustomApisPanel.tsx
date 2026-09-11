@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
-import { TableSkeleton } from '@/components/skeletons'
+import { useMemo, useState } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,8 +11,6 @@ import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { showSuccess } from '@/lib/toast'
-import type { SchemaField } from '@/types/field'
-import type { Resource } from '@/types/resource'
 import {
   emptyJoin,
   isWriteMethod,
@@ -25,6 +23,8 @@ import {
   type ResourceCustomApiInput,
 } from '@/types/resourceApi'
 import styles from './ResourceCustomApisPanel.module.css'
+import type { SchemaField } from '@/types/field'
+import type { Resource } from '@/types/resource'
 
 interface ResourceCustomApisPanelProps {
   resource: Resource

@@ -1,7 +1,7 @@
-import { lazy, Suspense, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { Skeleton } from '@/components/ui/skeleton'
+import { lazy, Suspense, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -19,11 +20,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
-import type { PathCount } from './DashboardCharts'
 import styles from './DashboardPage.module.css'
+import type { PathCount } from './DashboardCharts'
 
 // All three charts sit in one lazy module, so recharts costs a single request
 // and stays out of the chunk that renders the KPI cards.

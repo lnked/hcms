@@ -22,7 +22,7 @@ final class InstallerTest extends TestCase
 
     public function testStatusWhenNotInstalled(): void
     {
-        $installer = new Installer(new Paths(dirname(__DIR__)));
+        $installer = new Installer(new Paths(\dirname(__DIR__)));
         $status = $installer->status();
 
         $this->assertFalse($status['installed']);

@@ -74,12 +74,12 @@ final class IpMatcher
 
         [$address, $bits] = explode('/', $pattern, 2);
         $base = self::toBinary($address);
-        if ($base === null || strlen($base) !== strlen($target)) {
+        if ($base === null || \strlen($base) !== \strlen($target)) {
             return false;
         }
 
         $prefix = (int) $bits;
-        if ($prefix < 0 || $prefix > strlen($base) * 8) {
+        if ($prefix < 0 || $prefix > \strlen($base) * 8) {
             return false;
         }
 
@@ -93,7 +93,7 @@ final class IpMatcher
             return true;
         }
 
-        $mask = chr((0xFF << (8 - $remainingBits)) & 0xFF);
+        $mask = \chr((0xFF << (8 - $remainingBits)) & 0xFF);
 
         return ($base[$wholeBytes] & $mask) === ($target[$wholeBytes] & $mask);
     }
@@ -109,7 +109,7 @@ final class IpMatcher
             return null;
         }
 
-        if (strlen($packed) === 16 && str_starts_with($packed, self::V4_MAPPED_PREFIX)) {
+        if (\strlen($packed) === 16 && str_starts_with($packed, self::V4_MAPPED_PREFIX)) {
             return substr($packed, 12);
         }
 

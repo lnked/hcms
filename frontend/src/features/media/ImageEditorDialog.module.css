@@ -54,7 +54,7 @@
   height: calc(var(--hcms-SPx1) * 1.5);
   width: calc(var(--hcms-SPx1) * 1.5);
   border-radius: 9999px;
-  background-color: #f59e0b;
+  background-color: var(--hcms-color-warning-border);
 }
 
 .frame {
@@ -88,7 +88,7 @@
 }
 
 .gridCell {
-  border: 1px solid rgb(255 255 255 / 0.25);
+  border: 1px solid color-mix(in srgb, var(--hcms-color-primary-foreground) 25%, transparent);
 }
 
 .loadError {
@@ -167,7 +167,7 @@
 .upscaleWarn {
   font-size: 0.75rem;
   line-height: 1rem;
-  color: #d97706;
+  color: var(--hcms-color-warning-soft);
 }
 
 .previews {

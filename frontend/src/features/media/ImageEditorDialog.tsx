@@ -1,5 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
 import { clsx } from 'clsx'
 import {
   FlipHorizontal,
@@ -11,6 +9,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,7 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/i18n'
-import type { CropRect, ImageSizeConfig, MediaEdit } from '@/types/field'
+import styles from './ImageEditorDialog.module.css'
 import {
   anchorCrop,
   cropWithin,
@@ -32,7 +31,8 @@ import {
   roundCrop,
   useCropFrame,
 } from './useCropFrame'
-import styles from './ImageEditorDialog.module.css'
+import type { CropRect, ImageSizeConfig, MediaEdit } from '@/types/field'
+import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
 
 const BASE_TAB = 'base'
 const PAN_STEP = 0.02
@@ -354,6 +354,8 @@ function ImageEditor({
         ))}
       </div>
 
+      {/* Crop canvas: pointer/keyboard handlers are intentional for the overlay pattern. */}
+      {/* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex -- crop canvas */}
       <div
         ref={frameRef}
         role="application"
@@ -382,6 +384,7 @@ function ImageEditor({
         ) : null}
         {failed ? <div className={clsx(styles.loadError)}>{t('media.imageLoadFailed')}</div> : null}
       </div>
+      {/* eslint-enable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */}
 
       <div className={clsx(styles.toolbar)}>
         <Button

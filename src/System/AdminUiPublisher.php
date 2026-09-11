@@ -132,7 +132,7 @@ final class AdminUiPublisher
         if (!preg_match_all('#/admin/(assets/[^"\']+)#', $html, $matches)) {
             return true;
         }
-        $adminDir = dirname($indexPath);
+        $adminDir = \dirname($indexPath);
         foreach ($matches[1] as $rel) {
             if (!is_file($adminDir . '/' . $rel)) {
                 return false;
@@ -163,7 +163,7 @@ final class AdminUiPublisher
         if (is_dir($dest)) {
             $this->removeDir($dest);
         }
-        $parent = dirname($dest);
+        $parent = \dirname($dest);
         if (!is_dir($parent) && !mkdir($parent, 0775, true) && !is_dir($parent)) {
             return;
         }

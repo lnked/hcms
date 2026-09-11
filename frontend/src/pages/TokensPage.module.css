@@ -45,8 +45,8 @@
 }
 
 .warnBadge {
-  border-color: color-mix(in srgb, #f59e0b 60%, transparent);
-  color: #b45309;
+  border-color: color-mix(in srgb, var(--hcms-color-warning-border) 60%, transparent);
+  color: var(--hcms-color-warning);
 }
 
 .rowActions {

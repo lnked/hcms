@@ -20,7 +20,7 @@ final class DateFormat
 
     public static function assertValid(mixed $format): void
     {
-        if (!is_string($format) || trim($format) === '') {
+        if (!\is_string($format) || trim($format) === '') {
             throw new InvalidArgumentException('Date format must be a non-empty string');
         }
         if (mb_strlen($format) > self::MAX_LENGTH) {
@@ -39,11 +39,11 @@ final class DateFormat
             }
             if ($matched !== null) {
                 $hasToken = true;
-                $rest = substr($rest, strlen($matched));
+                $rest = substr($rest, \strlen($matched));
 
                 continue;
             }
-            if (!in_array($rest[0], self::SEPARATORS, true)) {
+            if (!\in_array($rest[0], self::SEPARATORS, true)) {
                 throw new InvalidArgumentException('Unsupported date format: ' . $format);
             }
             $rest = substr($rest, 1);

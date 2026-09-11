@@ -44,7 +44,7 @@ final class UptimeSettings
     public function softCronEnabled(): bool
     {
         $raw = $this->settings->get(self::SETTINGS_KEY);
-        if (!is_array($raw) || !array_key_exists('softCronEnabled', $raw)) {
+        if (!\is_array($raw) || !\array_key_exists('softCronEnabled', $raw)) {
             return true;
         }
 
@@ -64,7 +64,7 @@ final class UptimeSettings
     private function int(string $key, int $default, int $min, int $max): int
     {
         $raw = $this->settings->get(self::SETTINGS_KEY);
-        if (!is_array($raw) || !isset($raw[$key]) || !is_numeric($raw[$key])) {
+        if (!\is_array($raw) || !isset($raw[$key]) || !is_numeric($raw[$key])) {
             return $default;
         }
         $value = (int) $raw[$key];

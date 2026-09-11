@@ -1,0 +1,50 @@
+{
+  "extends": ["stylelint-config-standard", "stylelint-config-css-modules"],
+  "ignoreFiles": ["**/dist/**", "**/coverage/**", "**/node_modules/**"],
+  "rules": {
+    "max-nesting-depth": 0,
+    "selector-class-pattern": [
+      "^[a-z][a-zA-Z0-9]+$",
+      {
+        "message": "Expected class selector to be camelCase (CSS Modules)"
+      }
+    ],
+    "selector-pseudo-class-no-unknown": [
+      true,
+      {
+        "ignorePseudoClasses": ["global", "local"]
+      }
+    ],
+    "custom-property-pattern": null,
+    "color-no-hex": true,
+    "color-named": "never",
+    "color-hex-length": null,
+    "declaration-property-value-disallowed-list": {
+      "/.*/": ["/\\brgb\\(/i", "/\\brgba\\(/i", "/\\bhsl\\(/i", "/\\bhsla\\(/i"]
+    },
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "import-notation": null,
+    "media-feature-range-notation": null,
+    "no-descending-specificity": null,
+    "selector-id-pattern": null,
+    "rule-empty-line-before": null,
+    "at-rule-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "comment-empty-line-before": null
+  },
+  "overrides": [
+    {
+      "files": ["src/index.css", "src/reset.css"],
+      "rules": {
+        "color-no-hex": null,
+        "color-named": null,
+        "declaration-property-value-disallowed-list": null,
+        "function-disallowed-list": null,
+        "selector-class-pattern": null,
+        "max-nesting-depth": null
+      }
+    }
+  ]
+}

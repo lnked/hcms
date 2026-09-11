@@ -11,53 +11,45 @@ final class UptimeRoutes
 {
     public static function register(Router $router, UptimeController $uptime): void
     {
-        $auth = static function (?AuthContext $context): ?Response {
-            if ($context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
-
-            return null;
-        };
-
-        $router->add('GET', '/admin/api/uptime/summary', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
+        $router->add('GET', '/admin/api/uptime/summary', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
             unset($params);
 
-            return $auth($context) ?? $uptime->summary($request, $context);
+            return $uptime->summary($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/uptime/status', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
+        $router->add('GET', '/admin/api/uptime/status', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
             unset($params);
 
-            return $auth($context) ?? $uptime->status($request, $context);
+            return $uptime->status($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/uptime/targets', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
+        $router->add('GET', '/admin/api/uptime/targets', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
             unset($params);
 
-            return $auth($context) ?? $uptime->index($request, $context);
+            return $uptime->index($request, RequireAuth::context($context));
         });
-        $router->add('POST', '/admin/api/uptime/targets', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
+        $router->add('POST', '/admin/api/uptime/targets', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
             unset($params);
 
-            return $auth($context) ?? $uptime->create($request, $context);
+            return $uptime->create($request, RequireAuth::context($context));
         });
-        $router->add('PATCH', '/admin/api/uptime/targets/{id}', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
-            return $auth($context) ?? $uptime->update($request, $context, (int) $params['id']);
+        $router->add('PATCH', '/admin/api/uptime/targets/{id}', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
+            return $uptime->update($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('DELETE', '/admin/api/uptime/targets/{id}', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
-            return $auth($context) ?? $uptime->delete($request, $context, (int) $params['id']);
+        $router->add('DELETE', '/admin/api/uptime/targets/{id}', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
+            return $uptime->delete($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('GET', '/admin/api/uptime/targets/{id}/incidents', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
-            return $auth($context) ?? $uptime->incidents($request, $context, (int) $params['id']);
+        $router->add('GET', '/admin/api/uptime/targets/{id}/incidents', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
+            return $uptime->incidents($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('GET', '/admin/api/uptime/targets/{id}/checks', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
-            return $auth($context) ?? $uptime->checks($request, $context, (int) $params['id']);
+        $router->add('GET', '/admin/api/uptime/targets/{id}/checks', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
+            return $uptime->checks($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('POST', '/admin/api/uptime/targets/{id}/check', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
-            return $auth($context) ?? $uptime->checkNow($request, $context, (int) $params['id']);
+        $router->add('POST', '/admin/api/uptime/targets/{id}/check', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
+            return $uptime->checkNow($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('POST', '/admin/api/uptime/run', function (Request $request, array $params, ?AuthContext $context) use ($uptime, $auth): Response {
+        $router->add('POST', '/admin/api/uptime/run', function (Request $request, array $params, ?AuthContext $context) use ($uptime): Response {
             unset($params);
 
-            return $auth($context) ?? $uptime->run($request, $context);
+            return $uptime->run($request, RequireAuth::context($context));
         });
     }
 }

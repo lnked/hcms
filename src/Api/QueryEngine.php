@@ -106,7 +106,7 @@ final class QueryEngine
         if ($meta === null || ($meta['type'] ?? '') !== 'relation') {
             throw new InvalidArgumentException('Not a relation field: ' . $field);
         }
-        $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+        $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
         if (($config['cardinality'] ?? 'manyToOne') !== 'manyToOne') {
             throw new InvalidArgumentException('Only manyToOne relations have stored ids: ' . $field);
         }
@@ -156,7 +156,7 @@ final class QueryEngine
         );
         foreach ($rows as $row) {
             $label = $row['label'] ?? null;
-            if ($label === null || is_array($label)) {
+            if ($label === null || \is_array($label)) {
                 continue;
             }
             $out['labels'][(int) $row['id']] = (string) $label;
@@ -411,7 +411,7 @@ final class QueryEngine
     private function maskPayload(array $payload, array $api, array $fieldMap): array
     {
         $whitelist = $api['fields'];
-        if (!is_array($whitelist)) {
+        if (!\is_array($whitelist)) {
             return $payload;
         }
 
@@ -464,22 +464,22 @@ final class QueryEngine
         }
 
         $methods = ResourceApiService::normalizeMethods(
-            is_string($apiRow['methods_json'])
+            \is_string($apiRow['methods_json'])
                 ? json_decode((string) $apiRow['methods_json'], true)
                 : $apiRow['methods_json'],
         );
-        if (!in_array($method, $methods, true)) {
+        if (!\in_array($method, $methods, true)) {
             throw new RuntimeException('Method not allowed', 405);
         }
 
         $fields = $apiRow['fields_json'];
-        if (is_string($fields)) {
+        if (\is_string($fields)) {
             $fields = json_decode($fields, true);
         }
-        $joins = is_string($apiRow['joins_json'])
+        $joins = \is_string($apiRow['joins_json'])
             ? json_decode((string) $apiRow['joins_json'], true)
             : $apiRow['joins_json'];
-        $apiSettings = is_string($apiRow['settings_json'])
+        $apiSettings = \is_string($apiRow['settings_json'])
             ? json_decode((string) $apiRow['settings_json'], true)
             : $apiRow['settings_json'];
 
@@ -487,9 +487,9 @@ final class QueryEngine
             'id' => (int) $apiRow['id'],
             'slug' => (string) $apiRow['slug'],
             'methods' => $methods,
-            'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
-            'joins' => is_array($joins) ? array_values($joins) : [],
-            'settings' => ResourceApiService::normalizeSettings(is_array($apiSettings) ? $apiSettings : []),
+            'fields' => \is_array($fields) ? array_values(array_map('strval', $fields)) : null,
+            'joins' => \is_array($joins) ? array_values($joins) : [],
+            'settings' => ResourceApiService::normalizeSettings(\is_array($apiSettings) ? $apiSettings : []),
         ];
 
         return [$resource, $table, $fieldMap, $api];
@@ -503,9 +503,9 @@ final class QueryEngine
     private function mergedSettings(array $resource, array $api): array
     {
         $base = $this->settingsOf($resource);
-        $override = is_array($api['settings'] ?? null) ? $api['settings'] : [];
+        $override = \is_array($api['settings'] ?? null) ? $api['settings'] : [];
         foreach (['pagination', 'search', 'sorting', 'filtering'] as $key) {
-            if (array_key_exists($key, $override)) {
+            if (\array_key_exists($key, $override)) {
                 $base[$key] = (bool) $override[$key];
             }
         }
@@ -523,7 +523,7 @@ final class QueryEngine
         $needed = [];
         if ($api['fields'] === null) {
             foreach ($fieldMap as $name => $meta) {
-                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
                 if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                     continue;
                 }
@@ -531,13 +531,13 @@ final class QueryEngine
             }
         } else {
             foreach ($api['fields'] as $name) {
-                if (is_string($name) && isset($fieldMap[$name])) {
+                if (\is_string($name) && isset($fieldMap[$name])) {
                     $needed[$name] = true;
                 }
             }
         }
         foreach ($api['joins'] as $join) {
-            if (!is_array($join)) {
+            if (!\is_array($join)) {
                 continue;
             }
             $local = (string) ($join['localField'] ?? '');
@@ -567,7 +567,7 @@ final class QueryEngine
             $out['createdAt'] = $row['created_at'] ?? null;
             $out['updatedAt'] = $row['updated_at'] ?? null;
             foreach ($fieldMap as $name => $meta) {
-                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
                 if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                     continue;
                 }
@@ -597,7 +597,7 @@ final class QueryEngine
     private function serializeFieldValue(mixed $value, array $meta, array &$mediaCache): mixed
     {
         $type = (string) ($meta['type'] ?? '');
-        $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+        $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
         if ($type === 'relation' && $value !== null) {
             return (int) $value;
         }
@@ -616,7 +616,7 @@ final class QueryEngine
     private function attachJoins(array &$items, array $rows, array $api): void
     {
         foreach ($api['joins'] as $join) {
-            if (!is_array($join) || ($join['type'] ?? 'manyToOne') !== 'manyToOne') {
+            if (!\is_array($join) || ($join['type'] ?? 'manyToOne') !== 'manyToOne') {
                 continue;
             }
             $as = (string) ($join['as'] ?? '');
@@ -693,7 +693,7 @@ final class QueryEngine
             $out['createdAt'] = $row['created_at'] ?? null;
             $out['updatedAt'] = $row['updated_at'] ?? null;
             foreach ($fieldMap as $name => $meta) {
-                $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+                $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
                 if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                     continue;
                 }
@@ -725,12 +725,12 @@ final class QueryEngine
         $fields = $this->fields->forContentType((int) $resource['content_type_id']);
         $map = [];
         foreach ($fields as $field) {
-            $spec = is_string($field['spec_json'])
+            $spec = \is_string($field['spec_json'])
                 ? json_decode((string) $field['spec_json'], true)
                 : $field['spec_json'];
             $map[(string) $field['name']] = [
                 'type' => $field['type'],
-                'spec' => is_array($spec) ? $spec : [],
+                'spec' => \is_array($spec) ? $spec : [],
             ];
         }
 
@@ -757,10 +757,10 @@ final class QueryEngine
         $fields = $this->fields->forContentType((int) $resource['content_type_id']);
         $map = [];
         foreach ($fields as $field) {
-            $spec = is_string($field['spec_json']) ? json_decode((string) $field['spec_json'], true) : $field['spec_json'];
+            $spec = \is_string($field['spec_json']) ? json_decode((string) $field['spec_json'], true) : $field['spec_json'];
             $map[(string) $field['name']] = [
                 'type' => $field['type'],
-                'spec' => is_array($spec) ? $spec : [],
+                'spec' => \is_array($spec) ? $spec : [],
             ];
         }
 
@@ -774,11 +774,11 @@ final class QueryEngine
     private function settingsOf(array $resource): array
     {
         $settings = $resource['settings_json'] ?? [];
-        if (is_string($settings)) {
+        if (\is_string($settings)) {
             $decoded = json_decode($settings, true);
-            $settings = is_array($decoded) ? $decoded : [];
+            $settings = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($settings)) {
+        if (!\is_array($settings)) {
             $settings = [];
         }
 
@@ -838,7 +838,7 @@ final class QueryEngine
      */
     private function actorUserId(array $options): ?int
     {
-        if (!array_key_exists('actorUserId', $options) || $options['actorUserId'] === null) {
+        if (!\array_key_exists('actorUserId', $options) || $options['actorUserId'] === null) {
             return null;
         }
         $id = (int) $options['actorUserId'];
@@ -958,7 +958,7 @@ final class QueryEngine
             if (!isset($fieldMap[$field]) || !($fieldMap[$field]['spec']['filterable'] ?? false)) {
                 throw new InvalidArgumentException('Field not filterable: ' . $field);
             }
-            $param = 'f_' . count($params);
+            $param = 'f_' . \count($params);
             match ($op) {
                 'eq' => [$where[], $params[$param]] = ['`' . $field . '` = :' . $param, $value],
                 'neq' => [$where[], $params[$param]] = ['`' . $field . '` <> :' . $param, $value],
@@ -987,7 +987,7 @@ final class QueryEngine
         }
         $placeholders = [];
         foreach ($parts as $i => $part) {
-            $param = 'in_' . count($params) . '_' . $i;
+            $param = 'in_' . \count($params) . '_' . $i;
             $placeholders[] = ':' . $param;
             $params[$param] = $part;
         }
@@ -1028,7 +1028,7 @@ final class QueryEngine
         foreach ($tokens as $token) {
             $fieldParts = [];
             foreach ($fields as $name) {
-                $param = 's_' . count($params);
+                $param = 's_' . \count($params);
                 $fieldParts[] = '`' . $name . '` LIKE :' . $param . " ESCAPE '\\\\'";
                 $params[$param] = $this->likeContains($token);
             }
@@ -1099,7 +1099,7 @@ final class QueryEngine
         ];
         $mediaCache = [];
         foreach ($fieldMap as $name => $meta) {
-            $config = is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
             if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                 continue;
             }
@@ -1168,7 +1168,14 @@ final class QueryEngine
         };
 
         if (array_is_list($normalized)) {
-            return array_map($expandItem, $normalized);
+            /** @var list<array{id: int, sourceId: int|null, rotation: int, edit: array<string, mixed>|null, positions: array<string, string>, overrides: array<string, array<string, mixed>>, variants: array<string, int>}> $list */
+            $list = $normalized;
+            $out = [];
+            foreach ($list as $item) {
+                $out[] = $expandItem($item);
+            }
+
+            return $out;
         }
 
         return $expandItem($normalized);
@@ -1199,8 +1206,8 @@ final class QueryEngine
         $out = [];
         foreach ($rows as $row) {
             $id = (int) $row['id'];
-            $originalName = is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
-            $mime = is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
+            $originalName = \is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
+            $mime = \is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
             $urls = MediaService::publicUrls($this->appUrl, $id, $originalName, $mime);
             $out[$id] = [
                 'id' => $id,

@@ -30,7 +30,7 @@ final class SqlTypeMapper
         $nullable = (bool) ($field['nullable'] ?? true);
         $unique = (bool) ($field['unique'] ?? false);
         $indexed = (bool) ($field['indexed'] ?? false) || $unique;
-        $config = is_array($field['config'] ?? null) ? $field['config'] : [];
+        $config = \is_array($field['config'] ?? null) ? $field['config'] : [];
 
         if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
             return null;

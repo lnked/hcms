@@ -105,7 +105,7 @@ final class UptimeStatusService
         foreach ($this->incidents->overlapping($from, $to) as $incident) {
             $start = strtotime((string) $incident['started_at']);
             $endRaw = $incident['ended_at'] ?? null;
-            $end = is_string($endRaw) && $endRaw !== '' ? strtotime($endRaw) : $toTs;
+            $end = \is_string($endRaw) && $endRaw !== '' ? strtotime($endRaw) : $toTs;
             if ($start === false || $end === false) {
                 continue;
             }
@@ -117,7 +117,7 @@ final class UptimeStatusService
         }
 
         // Average across targets: total possible = window * targetCount
-        $capacity = $window * count($targets);
+        $capacity = $window * \count($targets);
         $up = max(0, $capacity - $downSeconds);
         $pct = ($up / $capacity) * 100;
 

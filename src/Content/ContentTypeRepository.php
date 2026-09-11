@@ -93,7 +93,7 @@ final class ContentTypeRepository
                 'id' => $id,
                 'name' => $data['name'] ?? $existing['name'],
                 'label' => $data['label'] ?? $existing['label'],
-                'description' => array_key_exists('description', $data) ? $data['description'] : $existing['description'],
+                'description' => \array_key_exists('description', $data) ? $data['description'] : $existing['description'],
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         );

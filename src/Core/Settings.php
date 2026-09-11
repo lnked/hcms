@@ -24,7 +24,7 @@ final class Settings
 
         $decoded = json_decode((string) $row['value_json'], true);
 
-        return is_int($decoded) ? $decoded : $default;
+        return \is_int($decoded) ? $decoded : $default;
     }
 
     public function string(string $key, string $default): string
@@ -39,7 +39,7 @@ final class Settings
 
         $decoded = json_decode((string) $row['value_json'], true);
 
-        return is_string($decoded) ? $decoded : $default;
+        return \is_string($decoded) ? $decoded : $default;
     }
 
     public function get(string $key): mixed

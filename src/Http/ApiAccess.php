@@ -32,17 +32,17 @@ final class ApiAccess
     public static function fromSettings(Settings $settings): self
     {
         $raw = $settings->get('api.access');
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return self::defaults();
         }
 
-        $unrestricted = array_key_exists('unrestricted', $raw)
+        $unrestricted = \array_key_exists('unrestricted', $raw)
             ? (bool) $raw['unrestricted']
             : true;
         $list = [];
-        if (isset($raw['allowedOrigins']) && is_array($raw['allowedOrigins'])) {
+        if (isset($raw['allowedOrigins']) && \is_array($raw['allowedOrigins'])) {
             foreach ($raw['allowedOrigins'] as $item) {
-                if (!is_string($item)) {
+                if (!\is_string($item)) {
                     continue;
                 }
                 $normalized = self::normalizeEntry($item);
@@ -61,19 +61,19 @@ final class ApiAccess
      */
     public static function validatePayload(array $payload): array
     {
-        if (!array_key_exists('unrestricted', $payload) || !is_bool($payload['unrestricted'])) {
+        if (!\array_key_exists('unrestricted', $payload) || !\is_bool($payload['unrestricted'])) {
             return ['ok' => false, 'error' => ['unrestricted' => ['Must be a boolean']]];
         }
 
         $origins = $payload['allowedOrigins'] ?? [];
-        if (!is_array($origins)) {
+        if (!\is_array($origins)) {
             return ['ok' => false, 'error' => ['allowedOrigins' => ['Must be a list of domains']]];
         }
 
         $normalized = [];
         $invalid = [];
         foreach ($origins as $i => $item) {
-            if (!is_string($item)) {
+            if (!\is_string($item)) {
                 $invalid[] = 'Entry #' . ((int) $i + 1) . ' must be a string';
 
                 continue;

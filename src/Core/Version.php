@@ -8,7 +8,7 @@ final class Version
 {
     public static function current(): string
     {
-        $path = dirname(__DIR__, 2) . '/VERSION';
+        $path = \dirname(__DIR__, 2) . '/VERSION';
         if (!is_file($path)) {
             return '0.0.0';
         }

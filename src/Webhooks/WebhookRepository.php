@@ -120,9 +120,9 @@ final class WebhookRepository
         }
 
         $events = $existing['events'];
-        if (array_key_exists('events', $data)) {
+        if (\array_key_exists('events', $data)) {
             $events = json_encode($data['events'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        } elseif (!is_string($events)) {
+        } elseif (!\is_string($events)) {
             $events = json_encode($events, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
 
@@ -142,7 +142,7 @@ final class WebhookRepository
                 'url' => $data['url'] ?? $existing['url'],
                 'secret' => $data['secret'] ?? $existing['secret'],
                 'events' => $events,
-                'resource_id' => array_key_exists('resource_id', $data)
+                'resource_id' => \array_key_exists('resource_id', $data)
                     ? $data['resource_id']
                     : $existing['resource_id'],
                 'status' => $data['status'] ?? $existing['status'],

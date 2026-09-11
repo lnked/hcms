@@ -130,19 +130,19 @@ final class ResourceApiRepository
                 'id' => $id,
                 'slug' => $data['slug'] ?? $existing['slug'],
                 'label' => $data['label'] ?? $existing['label'],
-                'enabled' => array_key_exists('enabled', $data)
+                'enabled' => \array_key_exists('enabled', $data)
                     ? (($data['enabled'] ?? false) ? 1 : 0)
                     : (int) $existing['enabled'],
-                'methods_json' => array_key_exists('methods', $data)
+                'methods_json' => \array_key_exists('methods', $data)
                     ? json_encode($data['methods'], JSON_UNESCAPED_SLASHES)
                     : $existing['methods_json'],
-                'fields_json' => array_key_exists('fields', $data)
+                'fields_json' => \array_key_exists('fields', $data)
                     ? ($data['fields'] === null ? null : json_encode($data['fields'], JSON_UNESCAPED_SLASHES))
                     : $existing['fields_json'],
-                'joins_json' => array_key_exists('joins', $data)
+                'joins_json' => \array_key_exists('joins', $data)
                     ? json_encode($data['joins'], JSON_UNESCAPED_SLASHES)
                     : $existing['joins_json'],
-                'settings_json' => array_key_exists('settings', $data)
+                'settings_json' => \array_key_exists('settings', $data)
                     ? json_encode($data['settings'], JSON_UNESCAPED_SLASHES)
                     : $existing['settings_json'],
                 'updated_at' => date('Y-m-d H:i:s'),

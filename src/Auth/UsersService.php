@@ -171,26 +171,26 @@ final class UsersService
 
         $aclEnabled = !empty($payload['aclEnabled']);
         $sections = $payload['sections'] ?? [];
-        if (!is_array($sections)) {
+        if (!\is_array($sections)) {
             throw new InvalidArgumentException('sections must be an array');
         }
         $normalizedSections = [];
         foreach ($sections as $section) {
-            if (!is_string($section) || !UserAclPolicy::isValidSection($section)) {
+            if (!\is_string($section) || !UserAclPolicy::isValidSection($section)) {
                 throw new InvalidArgumentException('Invalid section');
             }
-            if (!in_array($section, $normalizedSections, true)) {
+            if (!\in_array($section, $normalizedSections, true)) {
                 $normalizedSections[] = $section;
             }
         }
 
         $resources = $payload['resources'] ?? [];
-        if (!is_array($resources)) {
+        if (!\is_array($resources)) {
             throw new InvalidArgumentException('resources must be an array');
         }
         $normalizedResources = [];
         foreach ($resources as $item) {
-            if (!is_array($item)) {
+            if (!\is_array($item)) {
                 throw new InvalidArgumentException('Invalid resource grant');
             }
             $resourceId = isset($item['resourceId']) ? (int) $item['resourceId'] : 0;
@@ -198,15 +198,15 @@ final class UsersService
                 throw new InvalidArgumentException('resourceId is required');
             }
             $tabsRaw = $item['tabs'] ?? [];
-            if (!is_array($tabsRaw)) {
+            if (!\is_array($tabsRaw)) {
                 throw new InvalidArgumentException('tabs must be an array');
             }
             $tabs = [];
             foreach ($tabsRaw as $tab) {
-                if (!is_string($tab) || !UserAclPolicy::isValidTab($tab)) {
+                if (!\is_string($tab) || !UserAclPolicy::isValidTab($tab)) {
                     throw new InvalidArgumentException('Invalid tab');
                 }
-                if (!in_array($tab, $tabs, true)) {
+                if (!\in_array($tab, $tabs, true)) {
                     $tabs[] = $tab;
                 }
             }
@@ -266,11 +266,11 @@ final class UsersService
      */
     public static function validateCreate(array $payload): array
     {
-        $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
-        $email = isset($payload['email']) && is_string($payload['email']) ? trim($payload['email']) : '';
-        $password = isset($payload['password']) && is_string($payload['password']) ? $payload['password'] : '';
-        $status = isset($payload['status']) && is_string($payload['status']) ? trim($payload['status']) : 'active';
-        $role = isset($payload['role']) && is_string($payload['role']) ? trim($payload['role']) : RolePolicy::ADMIN;
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
+        $email = isset($payload['email']) && \is_string($payload['email']) ? trim($payload['email']) : '';
+        $password = isset($payload['password']) && \is_string($payload['password']) ? $payload['password'] : '';
+        $status = isset($payload['status']) && \is_string($payload['status']) ? trim($payload['status']) : 'active';
+        $role = isset($payload['role']) && \is_string($payload['role']) ? trim($payload['role']) : RolePolicy::ADMIN;
 
         if ($name === '') {
             throw new InvalidArgumentException('Name is required');
@@ -281,10 +281,10 @@ final class UsersService
         if (!Password::meetsPolicy($password)) {
             throw new InvalidArgumentException(Password::policyMessage());
         }
-        if (!in_array($status, ['active', 'disabled'], true)) {
+        if (!\in_array($status, ['active', 'disabled'], true)) {
             throw new InvalidArgumentException('Invalid status');
         }
-        if (!in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+        if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
             throw new InvalidArgumentException('Invalid role');
         }
 
@@ -304,37 +304,37 @@ final class UsersService
     public static function validateUpdate(array $payload): array
     {
         $out = [];
-        if (array_key_exists('name', $payload)) {
-            $name = is_string($payload['name']) ? trim($payload['name']) : '';
+        if (\array_key_exists('name', $payload)) {
+            $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '') {
                 throw new InvalidArgumentException('Name is required');
             }
             $out['name'] = $name;
         }
-        if (array_key_exists('email', $payload)) {
-            $email = is_string($payload['email']) ? trim($payload['email']) : '';
+        if (\array_key_exists('email', $payload)) {
+            $email = \is_string($payload['email']) ? trim($payload['email']) : '';
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw new InvalidArgumentException('Valid email is required');
             }
             $out['email'] = strtolower($email);
         }
-        if (array_key_exists('password', $payload) && $payload['password'] !== null && $payload['password'] !== '') {
-            $password = is_string($payload['password']) ? $payload['password'] : '';
+        if (\array_key_exists('password', $payload) && $payload['password'] !== null && $payload['password'] !== '') {
+            $password = \is_string($payload['password']) ? $payload['password'] : '';
             if (!Password::meetsPolicy($password)) {
                 throw new InvalidArgumentException(Password::policyMessage());
             }
             $out['password'] = $password;
         }
-        if (array_key_exists('status', $payload)) {
-            $status = is_string($payload['status']) ? trim($payload['status']) : '';
-            if (!in_array($status, ['active', 'disabled'], true)) {
+        if (\array_key_exists('status', $payload)) {
+            $status = \is_string($payload['status']) ? trim($payload['status']) : '';
+            if (!\in_array($status, ['active', 'disabled'], true)) {
                 throw new InvalidArgumentException('Invalid status');
             }
             $out['status'] = $status;
         }
-        if (array_key_exists('role', $payload)) {
-            $role = is_string($payload['role']) ? trim($payload['role']) : '';
-            if (!in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+        if (\array_key_exists('role', $payload)) {
+            $role = \is_string($payload['role']) ? trim($payload['role']) : '';
+            if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
                 throw new InvalidArgumentException('Invalid role');
             }
             $out['role'] = RolePolicy::normalize($role);

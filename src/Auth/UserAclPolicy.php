@@ -36,12 +36,12 @@ final class UserAclPolicy
 
     public static function isValidSection(string $section): bool
     {
-        return in_array($section, self::SECTIONS, true);
+        return \in_array($section, self::SECTIONS, true);
     }
 
     public static function isValidTab(string $tab): bool
     {
-        return in_array($tab, self::TABS, true);
+        return \in_array($tab, self::TABS, true);
     }
 
     /**
@@ -59,7 +59,7 @@ final class UserAclPolicy
             return true;
         }
 
-        return in_array($section, $sections, true);
+        return \in_array($section, $sections, true);
     }
 
     /**
@@ -127,7 +127,7 @@ final class UserAclPolicy
             }
             $tabs = $grant['tabs'] ?? [];
 
-            return in_array($tab, $tabs, true);
+            return \in_array($tab, $tabs, true);
         }
 
         return false;
@@ -257,7 +257,7 @@ final class UserAclPolicy
         }
 
         if (str_starts_with($rest, '/fields')) {
-            $action = in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
+            $action = \in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
 
             return ['resourceId' => $resourceId, 'action' => $action, 'tab' => 'schema', 'collectionWrite' => false];
         }
@@ -265,12 +265,12 @@ final class UserAclPolicy
             return ['resourceId' => $resourceId, 'action' => 'update', 'tab' => 'schema', 'collectionWrite' => false];
         }
         if (str_starts_with($rest, '/apis')) {
-            $action = in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
+            $action = \in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
 
             return ['resourceId' => $resourceId, 'action' => $action, 'tab' => 'api', 'collectionWrite' => false];
         }
         if (str_starts_with($rest, '/hooks')) {
-            $action = in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
+            $action = \in_array($method, ['GET', 'HEAD'], true) ? 'read' : 'update';
 
             return ['resourceId' => $resourceId, 'action' => $action, 'tab' => 'hooks', 'collectionWrite' => false];
         }

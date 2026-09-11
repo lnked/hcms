@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
 import { clsx } from 'clsx'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DetailPageSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -14,14 +14,13 @@ import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { ResourceHooksPanel } from '@/features/resources/ResourceHooksPanel'
 import { ResourceSettingsPanel } from '@/features/resources/ResourceSettingsPanel'
 import { SchemaBuilder } from '@/features/schema-builder/SchemaBuilder'
-import { useI18n } from '@/i18n'
 import { useAcl } from '@/hooks/useAcl'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { showSuccess } from '@/lib/toast'
+import styles from './ResourceDetailPage.module.css'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
-import type { ResourceTab } from '@/lib/rbac'
-import styles from './ResourceDetailPage.module.css'
 
 const TABS = ['overview', 'schema', 'data', 'settings', 'api', 'hooks', 'export'] as const
 type Tab = (typeof TABS)[number]
@@ -55,7 +54,7 @@ export function ResourceDetailPage() {
   const [playgroundPath, setPlaygroundPath] = useState<string | null>(null)
 
   const visibleTabs = useMemo(
-    () => TABS.filter((item) => canResourceTab(resourceId, item as ResourceTab)),
+    () => TABS.filter((item) => canResourceTab(resourceId, item)),
     // user identity drives grants; canResourceTab is recreated each render
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, resourceId],
@@ -64,11 +63,11 @@ export function ResourceDetailPage() {
   useEffect(() => {
     if (!Number.isFinite(resourceId) || resourceId <= 0) return
     if (!isTab(tabParam)) {
-      navigate(`/resources/${resourceId}/overview`, { replace: true })
+      void navigate(`/resources/${resourceId}/overview`, { replace: true })
       return
     }
     if (visibleTabs.length > 0 && !visibleTabs.includes(tab)) {
-      navigate(`/resources/${resourceId}/${visibleTabs[0]}`, { replace: true })
+      void navigate(`/resources/${resourceId}/${visibleTabs[0]}`, { replace: true })
     }
   }, [navigate, resourceId, tabParam, tab, visibleTabs])
 
@@ -98,7 +97,9 @@ export function ResourceDetailPage() {
 
   const remove = useMutation({
     mutationFn: () => api<void>(`/admin/api/resources/${resourceId}`, { method: 'DELETE' }),
-    onSuccess: () => navigate('/resources'),
+    onSuccess: () => {
+      void navigate('/resources')
+    },
   })
 
   const saveSchema = useMutation({
@@ -126,7 +127,12 @@ export function ResourceDetailPage() {
     return (
       <div className={styles.root}>
         <p className={styles.error}>{t('resources.notFound')}</p>
-        <Button variant="outline" onClick={() => navigate('/resources')}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            void navigate('/resources')
+          }}
+        >
           {t('common.back')}
         </Button>
       </div>

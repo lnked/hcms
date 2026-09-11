@@ -4,10 +4,11 @@ import { DatePickerField } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
+import { configString } from '@/lib/coerce'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
-import type { SchemaField } from '@/types/field'
-import { filterControlKind } from './filters'
 import styles from './FilterControl.module.css'
+import { filterControlKind } from './filters'
+import type { SchemaField } from '@/types/field'
 
 interface FilterControlProps {
   field: SchemaField
@@ -144,8 +145,8 @@ function RelationFilter({
   value: string
   onChange: (value: string) => void
 }) {
-  const relatedSlug = String(field.config.relatedSlug ?? '')
-  const labelField = String(field.config.labelField ?? 'id')
+  const relatedSlug = configString(field.config.relatedSlug)
+  const labelField = configString(field.config.labelField, 'id')
   const options = useQuery({
     queryKey: ['relation-filter-options', relatedSlug],
     queryFn: () => fetchRelatedList(relatedSlug),

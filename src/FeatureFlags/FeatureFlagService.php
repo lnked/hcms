@@ -26,16 +26,16 @@ final class FeatureFlagService
     public function getApiSettings(): array
     {
         $raw = $this->settings->get(self::SETTINGS_KEY);
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return self::defaultApiSettings();
         }
 
         return [
-            'enabled' => array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
-            'path' => isset($raw['path']) && is_string($raw['path']) && $raw['path'] !== ''
+            'enabled' => \array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
+            'path' => isset($raw['path']) && \is_string($raw['path']) && $raw['path'] !== ''
                 ? self::normalizePath($raw['path'])
                 : self::DEFAULT_PATH,
-            'requireToken' => array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
+            'requireToken' => \array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
         ];
     }
 
@@ -45,9 +45,9 @@ final class FeatureFlagService
      */
     public function saveApiSettings(array $payload): array
     {
-        $enabled = array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
-        $requireToken = array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false;
-        $path = isset($payload['path']) && is_string($payload['path'])
+        $enabled = \array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
+        $requireToken = \array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false;
+        $path = isset($payload['path']) && \is_string($payload['path'])
             ? self::normalizePath($payload['path'])
             : self::DEFAULT_PATH;
         self::assertValidPath($path);
@@ -209,7 +209,7 @@ final class FeatureFlagService
         if ($percent >= 100) {
             return true;
         }
-        $hash = sprintf('%u', crc32($flagKey . "\0" . $subject));
+        $hash = \sprintf('%u', crc32($flagKey . "\0" . $subject));
         $bucket = (int) $hash % 100;
 
         return $bucket < $percent;
@@ -238,27 +238,27 @@ final class FeatureFlagService
      */
     private function normalizeCreate(array $payload): array
     {
-        $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
         if ($name === '' || mb_strlen($name) > 191) {
             throw new InvalidArgumentException('name is required (max 191)');
         }
-        $key = isset($payload['key']) && is_string($payload['key'])
+        $key = isset($payload['key']) && \is_string($payload['key'])
             ? trim($payload['key'])
-            : (isset($payload['flagKey']) && is_string($payload['flagKey']) ? trim($payload['flagKey']) : '');
+            : (isset($payload['flagKey']) && \is_string($payload['flagKey']) ? trim($payload['flagKey']) : '');
         if ($key === '' || !preg_match('/^[a-z][a-zA-Z0-9_]{0,63}$/', $key)) {
             throw new InvalidArgumentException(
                 'key must match ^[a-z][a-zA-Z0-9_]{0,63}$',
             );
         }
-        $type = isset($payload['type']) && is_string($payload['type']) ? trim($payload['type']) : '';
-        if (!in_array($type, self::TYPES, true)) {
+        $type = isset($payload['type']) && \is_string($payload['type']) ? trim($payload['type']) : '';
+        if (!\in_array($type, self::TYPES, true)) {
             throw new InvalidArgumentException('type must be boolean, integer, string, or object');
         }
-        if (!array_key_exists('value', $payload)) {
+        if (!\array_key_exists('value', $payload)) {
             throw new InvalidArgumentException('value is required');
         }
         $desc = $payload['description'] ?? null;
-        if ($desc !== null && !is_string($desc)) {
+        if ($desc !== null && !\is_string($desc)) {
             throw new InvalidArgumentException('description must be a string');
         }
         $description = $desc !== null ? trim($desc) : null;
@@ -276,7 +276,7 @@ final class FeatureFlagService
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
             ) ?: 'null',
             'description' => $description,
-            'enabled' => array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1,
+            'enabled' => \array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1,
             'ab_test' => $ab['ab_test'],
             'rollout_percent' => $ab['rollout_percent'],
         ];
@@ -299,53 +299,53 @@ final class FeatureFlagService
     {
         $out = [];
         $type = (string) $existing['type'];
-        if (array_key_exists('name', $payload)) {
-            $name = is_string($payload['name']) ? trim($payload['name']) : '';
+        if (\array_key_exists('name', $payload)) {
+            $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 191) {
                 throw new InvalidArgumentException('name is required (max 191)');
             }
             $out['name'] = $name;
         }
 
-        if (array_key_exists('type', $payload)) {
-            $type = is_string($payload['type']) ? trim($payload['type']) : '';
-            if (!in_array($type, self::TYPES, true)) {
+        if (\array_key_exists('type', $payload)) {
+            $type = \is_string($payload['type']) ? trim($payload['type']) : '';
+            if (!\in_array($type, self::TYPES, true)) {
                 throw new InvalidArgumentException('type must be boolean, integer, string, or object');
             }
             $out['type'] = $type;
         }
 
-        if (array_key_exists('value', $payload)) {
+        if (\array_key_exists('value', $payload)) {
             $out['value_json'] = json_encode(
                 $this->normalizeValue($type, $payload['value']),
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
             ) ?: 'null';
         }
 
-        if (array_key_exists('description', $payload)) {
+        if (\array_key_exists('description', $payload)) {
             $desc = $payload['description'];
-            if ($desc !== null && !is_string($desc)) {
+            if ($desc !== null && !\is_string($desc)) {
                 throw new InvalidArgumentException('description must be a string');
             }
-            $out['description'] = is_string($desc) ? (trim($desc) !== '' ? trim($desc) : null) : null;
+            $out['description'] = \is_string($desc) ? (trim($desc) !== '' ? trim($desc) : null) : null;
         }
 
-        if (array_key_exists('enabled', $payload)) {
+        if (\array_key_exists('enabled', $payload)) {
             $out['enabled'] = (bool) $payload['enabled'] ? 1 : 0;
         }
 
         if (
-            array_key_exists('abTest', $payload)
-            || array_key_exists('ab_test', $payload)
-            || array_key_exists('rolloutPercent', $payload)
-            || array_key_exists('rollout_percent', $payload)
-            || array_key_exists('type', $payload)
+            \array_key_exists('abTest', $payload)
+            || \array_key_exists('ab_test', $payload)
+            || \array_key_exists('rolloutPercent', $payload)
+            || \array_key_exists('rollout_percent', $payload)
+            || \array_key_exists('type', $payload)
         ) {
             $merged = $payload;
-            if (!array_key_exists('abTest', $merged) && !array_key_exists('ab_test', $merged)) {
+            if (!\array_key_exists('abTest', $merged) && !\array_key_exists('ab_test', $merged)) {
                 $merged['abTest'] = (bool) ($existing['ab_test'] ?? false);
             }
-            if (!array_key_exists('rolloutPercent', $merged) && !array_key_exists('rollout_percent', $merged)) {
+            if (!\array_key_exists('rolloutPercent', $merged) && !\array_key_exists('rollout_percent', $merged)) {
                 $merged['rolloutPercent'] = (int) ($existing['rollout_percent'] ?? 100);
             }
             $ab = $this->normalizeAb($merged, $type);
@@ -389,10 +389,10 @@ final class FeatureFlagService
         return match ($type) {
             'boolean' => (bool) $value,
             'integer' => is_numeric($value) ? (int) $value : throw new InvalidArgumentException('value must be an integer'),
-            'string' => is_string($value) || is_numeric($value)
+            'string' => \is_string($value) || is_numeric($value)
                 ? (string) $value
                 : throw new InvalidArgumentException('value must be a string'),
-            'object' => (is_array($value) && (array_is_list($value) || $this->isAssoc($value)))
+            'object' => (\is_array($value) && (array_is_list($value) || $this->isAssoc($value)))
                 ? $value
                 : throw new InvalidArgumentException('value must be a JSON object or array'),
             default => throw new InvalidArgumentException('Unknown type'),
@@ -409,8 +409,8 @@ final class FeatureFlagService
 
     private function decodeValue(string $type, mixed $raw): mixed
     {
-        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
-        if (json_last_error() !== JSON_ERROR_NONE && is_string($raw)) {
+        $decoded = \is_string($raw) ? json_decode($raw, true) : $raw;
+        if (json_last_error() !== JSON_ERROR_NONE && \is_string($raw)) {
             return match ($type) {
                 'boolean' => false,
                 'integer' => 0,
@@ -422,8 +422,8 @@ final class FeatureFlagService
         return match ($type) {
             'boolean' => (bool) $decoded,
             'integer' => (int) $decoded,
-            'string' => is_string($decoded) ? $decoded : (string) $decoded,
-            'object' => is_array($decoded) ? $decoded : [],
+            'string' => \is_string($decoded) ? $decoded : (string) $decoded,
+            'object' => \is_array($decoded) ? $decoded : [],
             default => $decoded,
         };
     }

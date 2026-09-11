@@ -20,7 +20,7 @@ final class Password
 
     public static function meetsPolicy(string $plain): bool
     {
-        if (strlen($plain) < self::MIN_LENGTH) {
+        if (\strlen($plain) < self::MIN_LENGTH) {
             return false;
         }
 

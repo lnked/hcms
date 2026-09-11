@@ -67,7 +67,7 @@ final class IntegrationsController
     {
         $payload = $request->json();
         $to = $payload['to'] ?? null;
-        if (!is_string($to)) {
+        if (!\is_string($to)) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
                 'to' => ['to must be a valid email'],
             ]);

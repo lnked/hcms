@@ -1,5 +1,5 @@
-import type { MessageKey } from './en'
 import { en } from './en'
+import type { MessageKey } from './en'
 
 export const ru: Record<MessageKey, string> = {
   ...en,

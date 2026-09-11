@@ -77,7 +77,7 @@ final class QueryEngineMigrationTest extends TestCase
     {
         $dsn = (string) getenv('CMS_TEST_DSN');
         $parts = [];
-        foreach (explode(';', substr($dsn, strlen('mysql:'))) as $chunk) {
+        foreach (explode(';', substr($dsn, \strlen('mysql:'))) as $chunk) {
             if ($chunk === '' || !str_contains($chunk, '=')) {
                 continue;
             }

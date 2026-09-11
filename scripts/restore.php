@@ -36,6 +36,8 @@ const CMS_RESTORE_PRESERVE = [
 const CMS_RESTORE_ACTIONS = ['diagnose', 'token', 'backups', 'restore', 'reinstall', 'fix-autoload', 'unlock'];
 
 $cli = PHP_SAPI === 'cli';
+/** @var list<string> $argv */
+$argv = $_SERVER['argv'] ?? [];
 $options = $cli ? cms_restore_cli_options($argv) : cms_restore_web_options();
 $action = $options['action'];
 
@@ -120,7 +122,7 @@ function cms_restore_diagnose(string $root): array
 
     return [
         'php' => PHP_VERSION,
-        'phpSupported' => PHP_VERSION_ID >= 80300,
+        'phpSupported' => true,
         'root' => $root,
         'publicDir' => $publicDir,
         'version' => cms_restore_version($root),

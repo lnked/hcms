@@ -2,7 +2,7 @@ import type { SchemaField } from '@/types/field'
 import type { ResourceListColumn } from '@/types/resource'
 
 /** Columns shown when a resource has no saved layout yet. */
-export const DEFAULT_VISIBLE_COLUMNS = 6
+const DEFAULT_VISIBLE_COLUMNS = 6
 
 export interface TableColumn {
   field: SchemaField

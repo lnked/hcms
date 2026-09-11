@@ -14,38 +14,34 @@ final class KeyValuesRoutes
 {
     public static function registerAdmin(Router $router, KeyValuesController $kv): void
     {
-        $auth = static function (?AuthContext $context): ?Response {
-            if ($context === null) {
-                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
-            }
+        $router->add('GET', '/admin/api/key-values/settings', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
+            unset($params);
 
-            return null;
-        };
+            return $kv->getSettings($request, RequireAuth::context($context));
+        });
+        $router->add('PUT', '/admin/api/key-values/settings', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
+            unset($params);
 
-        $router->add('GET', '/admin/api/key-values/settings', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
+            return $kv->saveSettings($request, RequireAuth::context($context));
+        });
+        $router->add('GET', '/admin/api/key-values', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
             unset($params);
-            return $auth($context) ?? $kv->getSettings($request, $context);
+
+            return $kv->index($request, RequireAuth::context($context));
         });
-        $router->add('PUT', '/admin/api/key-values/settings', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
+        $router->add('POST', '/admin/api/key-values', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
             unset($params);
-            return $auth($context) ?? $kv->saveSettings($request, $context);
+
+            return $kv->create($request, RequireAuth::context($context));
         });
-        $router->add('GET', '/admin/api/key-values', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
-            unset($params);
-            return $auth($context) ?? $kv->index($request, $context);
+        $router->add('GET', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
+            return $kv->show($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('POST', '/admin/api/key-values', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
-            unset($params);
-            return $auth($context) ?? $kv->create($request, $context);
+        $router->add('PATCH', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
+            return $kv->update($request, RequireAuth::context($context), (int) $params['id']);
         });
-        $router->add('GET', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
-            return $auth($context) ?? $kv->show($request, $context, (int) $params['id']);
-        });
-        $router->add('PATCH', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
-            return $auth($context) ?? $kv->update($request, $context, (int) $params['id']);
-        });
-        $router->add('DELETE', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv, $auth): Response {
-            return $auth($context) ?? $kv->delete($request, $context, (int) $params['id']);
+        $router->add('DELETE', '/admin/api/key-values/{id}', function (Request $request, array $params, ?AuthContext $context) use ($kv): Response {
+            return $kv->delete($request, RequireAuth::context($context), (int) $params['id']);
         });
     }
 

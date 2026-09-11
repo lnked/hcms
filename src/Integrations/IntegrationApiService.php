@@ -130,48 +130,48 @@ final class IntegrationApiService
      */
     private function normalizePayload(array $payload, ?array $existing): array
     {
-        $slug = isset($payload['slug']) && is_string($payload['slug'])
+        $slug = isset($payload['slug']) && \is_string($payload['slug'])
             ? strtolower(trim($payload['slug']))
-            : (is_string($existing['slug'] ?? null) ? (string) $existing['slug'] : '');
+            : (\is_string($existing['slug'] ?? null) ? (string) $existing['slug'] : '');
         if ($slug === '' || !preg_match('/^[a-z][a-z0-9_-]{0,62}$/', $slug) || ctype_digit($slug)) {
             throw new InvalidArgumentException('Invalid slug');
         }
-        if (in_array($slug, self::RESERVED_SLUGS, true)) {
+        if (\in_array($slug, self::RESERVED_SLUGS, true)) {
             throw new InvalidArgumentException('Slug is reserved');
         }
 
-        $label = isset($payload['label']) && is_string($payload['label'])
+        $label = isset($payload['label']) && \is_string($payload['label'])
             ? trim($payload['label'])
-            : (is_string($existing['label'] ?? null) ? (string) $existing['label'] : '');
+            : (\is_string($existing['label'] ?? null) ? (string) $existing['label'] : '');
         if ($label === '') {
             throw new InvalidArgumentException('Label is required');
         }
 
-        $enabled = array_key_exists('enabled', $payload)
+        $enabled = \array_key_exists('enabled', $payload)
             ? (bool) $payload['enabled']
             : (bool) ($existing['enabled'] ?? true);
 
         $defaultsIn = $payload['defaults'] ?? null;
         if ($defaultsIn === null && $existing !== null) {
             $decoded = json_decode((string) ($existing['defaults_json'] ?? '{}'), true);
-            $defaultsIn = is_array($decoded) ? $decoded : [];
+            $defaultsIn = \is_array($decoded) ? $decoded : [];
         }
         if ($defaultsIn === null) {
             $defaultsIn = [];
         }
-        if (!is_array($defaultsIn)) {
+        if (!\is_array($defaultsIn)) {
             throw new InvalidArgumentException('defaults must be an object');
         }
 
         $settingsIn = $payload['settings'] ?? null;
         if ($settingsIn === null && $existing !== null) {
             $decoded = json_decode((string) ($existing['settings_json'] ?? '{}'), true);
-            $settingsIn = is_array($decoded) ? $decoded : [];
+            $settingsIn = \is_array($decoded) ? $decoded : [];
         }
         if ($settingsIn === null) {
             $settingsIn = ['allowFromOverride' => true];
         }
-        if (!is_array($settingsIn)) {
+        if (!\is_array($settingsIn)) {
             throw new InvalidArgumentException('settings must be an object');
         }
 
@@ -180,13 +180,13 @@ final class IntegrationApiService
             'label' => $label,
             'enabled' => $enabled,
             'defaults' => [
-                'subject' => isset($defaultsIn['subject']) && is_string($defaultsIn['subject'])
+                'subject' => isset($defaultsIn['subject']) && \is_string($defaultsIn['subject'])
                     ? $defaultsIn['subject']
                     : '',
-                'html' => isset($defaultsIn['html']) && is_string($defaultsIn['html'])
+                'html' => isset($defaultsIn['html']) && \is_string($defaultsIn['html'])
                     ? $defaultsIn['html']
                     : '',
-                'text' => isset($defaultsIn['text']) && is_string($defaultsIn['text'])
+                'text' => isset($defaultsIn['text']) && \is_string($defaultsIn['text'])
                     ? $defaultsIn['text']
                     : '',
             ],
@@ -204,10 +204,10 @@ final class IntegrationApiService
     {
         $defaults = json_decode((string) ($row['defaults_json'] ?? '{}'), true);
         $settings = json_decode((string) ($row['settings_json'] ?? '{}'), true);
-        if (!is_array($defaults)) {
+        if (!\is_array($defaults)) {
             $defaults = [];
         }
-        if (!is_array($settings)) {
+        if (!\is_array($settings)) {
             $settings = [];
         }
         $slug = (string) $row['slug'];
@@ -219,9 +219,9 @@ final class IntegrationApiService
             'label' => (string) $row['label'],
             'enabled' => (bool) $row['enabled'],
             'defaults' => [
-                'subject' => is_string($defaults['subject'] ?? null) ? $defaults['subject'] : '',
-                'html' => is_string($defaults['html'] ?? null) ? $defaults['html'] : '',
-                'text' => is_string($defaults['text'] ?? null) ? $defaults['text'] : '',
+                'subject' => \is_string($defaults['subject'] ?? null) ? $defaults['subject'] : '',
+                'html' => \is_string($defaults['html'] ?? null) ? $defaults['html'] : '',
+                'text' => \is_string($defaults['text'] ?? null) ? $defaults['text'] : '',
             ],
             'settings' => [
                 'allowFromOverride' => (bool) ($settings['allowFromOverride'] ?? true),

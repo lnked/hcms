@@ -47,16 +47,16 @@ final class Env
 
     public function get(string $key, ?string $default = null): ?string
     {
-        if (array_key_exists($key, $this->values)) {
+        if (\array_key_exists($key, $this->values)) {
             return $this->values[$key];
         }
 
-        if (isset($_ENV[$key]) && is_string($_ENV[$key])) {
+        if (isset($_ENV[$key]) && \is_string($_ENV[$key])) {
             return $_ENV[$key];
         }
 
         $fromEnv = getenv($key);
-        if (!is_string($fromEnv)) {
+        if (!\is_string($fromEnv)) {
             return $default;
         }
 
@@ -70,6 +70,6 @@ final class Env
             return $default;
         }
 
-        return in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
+        return \in_array(strtolower($value), ['1', 'true', 'yes', 'on'], true);
     }
 }

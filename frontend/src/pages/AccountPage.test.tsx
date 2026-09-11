@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppToast } from '@/components/AppToast'
 import { I18nProvider } from '@/i18n'
+import { requireInput } from '@/test/dom'
 import { AccountPage } from './AccountPage'
 
 const api = vi.fn(async (path: string, init?: RequestInit) => {
@@ -113,9 +114,9 @@ describe('AccountPage', () => {
 
     await userEvent.type(screen.getByLabelText('Current password'), 'old-secret1')
     await userEvent.click(screen.getByRole('button', { name: 'Generate' }))
-    const generated = (screen.getByLabelText('New password') as HTMLInputElement).value
+    const generated = requireInput(screen.getByLabelText('New password')).value
     expect(generated).toHaveLength(20)
-    expect((screen.getByLabelText('Repeat new password') as HTMLInputElement).value).toBe(generated)
+    expect(requireInput(screen.getByLabelText('Repeat new password')).value).toBe(generated)
     expect(await screen.findByText('Value copied')).toBeInTheDocument()
 
     expect(submit).toBeEnabled()

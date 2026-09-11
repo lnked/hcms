@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,9 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import type { Release, SystemVersion } from '@/types/system'
-import { useNavigate } from 'react-router-dom'
 import styles from './WhatsNewDialog.module.css'
+import type { Release, SystemVersion } from '@/types/system'
 
 export function WhatsNewDialog({ version }: { version: SystemVersion }) {
   const { t } = useI18n()
@@ -68,7 +68,7 @@ export function WhatsNewDialog({ version }: { version: SystemVersion }) {
             variant="outline"
             onClick={() => {
               void dismiss()
-              navigate('/changelog')
+              void navigate('/changelog')
             }}
           >
             {t('whatsNew.open')}

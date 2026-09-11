@@ -1,22 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { FieldError } from '@/components/FieldError'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { controlHugClass } from '@/components/ui/control'
 import { DatePickerField } from '@/components/ui/date-picker'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
+import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { useI18n } from '@/i18n'
+import { configString } from '@/lib/coerce'
 import { dateGranularity } from '@/lib/dateFormat'
-import type { FieldErrors } from '@/lib/formErrors'
 import { hasFieldError } from '@/lib/formErrors'
 import { entryLabel, fetchRelatedList } from '@/lib/relatedEntries'
 import { slugifyUrl } from '@/lib/slugify'
-import type { SchemaField } from '@/types/field'
 import styles from './FormRenderer.module.css'
+import type { FieldErrors } from '@/lib/formErrors'
+import type { SchemaField } from '@/types/field'
 
 export type EntryValues = Record<string, unknown>
 
@@ -54,10 +55,10 @@ function applySlugUpdates(
   for (const field of fields) {
     if (field.type !== 'slug') continue
     if (touchedSlugs.has(field.name)) continue
-    const source = String(field.config.associatedWith ?? '')
+    const source = configString(field.config.associatedWith)
     if (!source || source !== changedName) continue
     const maxLength = Number(field.config.maxLength ?? 255) || 255
-    const generated = slugifyUrl(changedValue == null ? '' : String(changedValue), maxLength)
+    const generated = slugifyUrl(configString(changedValue), maxLength)
     next[field.name] = generated === '' ? null : generated
   }
   return next
@@ -147,9 +148,9 @@ function RelationControl({
 }) {
   const { t } = useI18n()
   const cardinality = relationCardinality(field)
-  const relatedSlug = String(field.config.relatedSlug ?? '')
-  const labelField = String(field.config.labelField ?? 'id')
-  const foreignKey = String(field.config.foreignKey ?? '')
+  const relatedSlug = configString(field.config.relatedSlug)
+  const labelField = configString(field.config.labelField, 'id')
+  const foreignKey = configString(field.config.foreignKey)
   const canLoad = Boolean(relatedSlug) && !(cardinality === 'oneToMany' && !entryId)
   const filterQs =
     cardinality === 'oneToMany' && foreignKey && entryId
@@ -205,7 +206,7 @@ function RelationControl({
         id={id}
         disabled={disabled || loading}
         aria-invalid={invalid || undefined}
-        value={value == null ? '' : String(value)}
+        value={configString(value)}
         onChange={(e) =>
           onChange(e.target.value === '' ? null : Number.parseInt(e.target.value, 10))
         }
@@ -284,7 +285,7 @@ function renderControl(
       <RichTextEditor
         id={id}
         disabled={disabled}
-        value={typeof value === 'string' ? value : value == null ? '' : String(value)}
+        value={typeof value === 'string' ? value : configString(value)}
         onChange={(next) => set(field.name, next)}
       />
     )
@@ -310,7 +311,7 @@ function renderControl(
         id={id}
         disabled={disabled}
         aria-invalid={invalid || undefined}
-        value={value == null ? '' : String(value)}
+        value={configString(value)}
         onChange={(e) => set(field.name, e.target.value)}
       >
         <option value="">—</option>
@@ -358,7 +359,7 @@ function renderControl(
       step={field.type === 'float' ? 'any' : undefined}
       disabled={disabled}
       aria-invalid={invalid || undefined}
-      value={value == null ? '' : String(value)}
+      value={configString(value)}
       onChange={(e) => {
         const raw = e.target.value
         if (field.type === 'integer') {

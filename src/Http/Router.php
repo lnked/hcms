@@ -54,7 +54,7 @@ final class Router
         }
 
         $regex = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', '(?P<$1>[^/]+)', $pattern);
-        if (!is_string($regex)) {
+        if (!\is_string($regex)) {
             return null;
         }
 
@@ -64,7 +64,7 @@ final class Router
 
         $params = [];
         foreach ($matches as $key => $value) {
-            if (is_string($key)) {
+            if (\is_string($key)) {
                 $params[$key] = $value;
             }
         }

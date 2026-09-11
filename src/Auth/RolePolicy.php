@@ -22,7 +22,7 @@ final class RolePolicy
     public static function normalize(?string $role): string
     {
         $role = strtolower(trim((string) $role));
-        if ($role === '' || !in_array($role, self::ROLES, true)) {
+        if ($role === '' || !\in_array($role, self::ROLES, true)) {
             return self::ADMIN;
         }
 
@@ -35,10 +35,10 @@ final class RolePolicy
 
         return match ($capability) {
             'read' => true,
-            'entries.write' => in_array($role, [self::OWNER, self::ADMIN, self::EDITOR], true),
-            'schema.write' => in_array($role, [self::OWNER, self::ADMIN], true),
-            'users.write' => in_array($role, [self::OWNER, self::ADMIN], true),
-            'settings.write' => in_array($role, [self::OWNER, self::ADMIN], true),
+            'entries.write' => \in_array($role, [self::OWNER, self::ADMIN, self::EDITOR], true),
+            'schema.write' => \in_array($role, [self::OWNER, self::ADMIN], true),
+            'users.write' => \in_array($role, [self::OWNER, self::ADMIN], true),
+            'settings.write' => \in_array($role, [self::OWNER, self::ADMIN], true),
             'system.write' => $role === self::OWNER,
             default => false,
         };

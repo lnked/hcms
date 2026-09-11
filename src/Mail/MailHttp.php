@@ -17,7 +17,7 @@ final class MailHttp
      */
     public static function post(string $url, string $body, array $headers, string $providerLabel): array
     {
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch === false) {
                 throw new RuntimeException('curl_init failed');
@@ -39,7 +39,7 @@ final class MailHttp
                 throw new MailProviderException($providerLabel . ' request failed: ' . $error, 502);
             }
 
-            return [$status, is_string($responseBody) ? $responseBody : ''];
+            return [$status, \is_string($responseBody) ? $responseBody : ''];
         }
 
         $context = stream_context_create([
@@ -53,10 +53,10 @@ final class MailHttp
         ]);
         $responseBody = @file_get_contents($url, false, $context);
         $status = 0;
-        $responseHeaders = function_exists('http_get_last_response_headers')
+        $responseHeaders = \function_exists('http_get_last_response_headers')
             ? http_get_last_response_headers()
             : null;
-        if (is_array($responseHeaders)) {
+        if (\is_array($responseHeaders)) {
             foreach ($responseHeaders as $line) {
                 if (preg_match('/^HTTP\/\S+\s+(\d+)/', $line, $m) === 1) {
                     $status = (int) $m[1];
@@ -64,7 +64,7 @@ final class MailHttp
                 }
             }
         }
-        if (!is_string($responseBody)) {
+        if (!\is_string($responseBody)) {
             throw new MailProviderException($providerLabel . ' request failed: empty response', 502);
         }
 
@@ -76,16 +76,16 @@ final class MailHttp
      */
     public static function jsonErrorMessage(array $decoded): ?string
     {
-        if (isset($decoded['message']) && is_string($decoded['message']) && $decoded['message'] !== '') {
+        if (isset($decoded['message']) && \is_string($decoded['message']) && $decoded['message'] !== '') {
             return $decoded['message'];
         }
-        if (isset($decoded['Message']) && is_string($decoded['Message']) && $decoded['Message'] !== '') {
+        if (isset($decoded['Message']) && \is_string($decoded['Message']) && $decoded['Message'] !== '') {
             return $decoded['Message'];
         }
-        if (isset($decoded['error']) && is_string($decoded['error']) && $decoded['error'] !== '') {
+        if (isset($decoded['error']) && \is_string($decoded['error']) && $decoded['error'] !== '') {
             return $decoded['error'];
         }
-        if (isset($decoded['Error']) && is_string($decoded['Error']) && $decoded['Error'] !== '') {
+        if (isset($decoded['Error']) && \is_string($decoded['Error']) && $decoded['Error'] !== '') {
             return $decoded['Error'];
         }
 

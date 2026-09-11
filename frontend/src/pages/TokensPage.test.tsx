@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { I18nProvider } from '@/i18n'
 import { TokensPage } from './TokensPage'

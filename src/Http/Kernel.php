@@ -672,7 +672,7 @@ final class Kernel
             );
 
             $mimesRaw = $this->runtimeSettings?->get('security.media_allowed_mimes');
-            $mimes = is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
+            $mimes = \is_array($mimesRaw) ? array_values(array_filter($mimesRaw, 'is_string')) : null;
             $mediaService = new MediaService(
                 $this->db,
                 $this->paths,
@@ -987,7 +987,7 @@ final class Kernel
         if (
             $this->anonWriteLimiter !== null
             && $auth === null
-            && in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
+            && \in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
             && str_starts_with($request->path, '/api/')
         ) {
             $bucket = 'anon-write:ip:' . $request->ip;

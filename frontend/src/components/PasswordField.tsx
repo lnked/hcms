@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { Copy, Eye, EyeOff, Wand2 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Copy, Eye, EyeOff, Wand2 } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -78,6 +78,8 @@ export function PasswordField({
           id={id}
           type={reveal ? 'text' : 'password'}
           autoComplete={autoComplete}
+          // Intentional: focus password field when dialog/form opens.
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- dialog/password entry UX
           autoFocus={autoFocus}
           className={trailingCount > 1 ? styles.inputPadTwo : styles.inputPadOne}
           value={value}

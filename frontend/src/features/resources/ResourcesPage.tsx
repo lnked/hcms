@@ -1,10 +1,10 @@
-import { Fragment, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
-import { Code2, Pencil, Trash2, Upload } from 'lucide-react'
 import { clsx } from 'clsx'
-import { TableSkeleton } from '@/components/skeletons'
+import { Code2, Pencil, Trash2, Upload } from 'lucide-react'
+import { Fragment, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
+import { TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -26,14 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import { ResourceFetchExample } from '@/features/resources/ResourceFetchExample'
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { api, ApiError } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
-import type { Resource } from '@/types/resource'
 import styles from './ResourcesPage.module.css'
+import type { Resource } from '@/types/resource'
 
 interface ResourcePackage {
   kind?: string
@@ -136,7 +136,7 @@ export function ResourcesPage() {
       setImportResult(result)
       setImportError(null)
       void queryClient.invalidateQueries({ queryKey: ['resources'] })
-      navigate(`/resources/${result.resource.id}/overview`)
+      void navigate(`/resources/${result.resource.id}/overview`)
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : t('resources.package.importFailed')
@@ -153,7 +153,7 @@ export function ResourcesPage() {
     }
   }
 
-  async function parsePackageText(raw: string): Promise<void> {
+  function parsePackageText(raw: string): void {
     try {
       const pkg = JSON.parse(raw) as ResourcePackage
       if (pkg.kind !== 'cms.resource.package') {
@@ -178,7 +178,7 @@ export function ResourcesPage() {
     setImportError(null)
     setImportPackage(null)
     if (!file) return
-    await parsePackageText(await file.text())
+    parsePackageText(await file.text())
   }
 
   function openImport() {
@@ -207,7 +207,13 @@ export function ResourcesPage() {
               <Button variant="outline" onClick={openImport}>
                 {t('resources.package.import')}
               </Button>
-              <Button onClick={() => navigate('/resources/new')}>{t('resources.create')}</Button>
+              <Button
+                onClick={() => {
+                  void navigate('/resources/new')
+                }}
+              >
+                {t('resources.create')}
+              </Button>
             </>
           ) : null}
         </div>
@@ -288,7 +294,9 @@ export function ResourcesPage() {
                             variant="ghost"
                             aria-label={t('common.edit')}
                             title={t('common.edit')}
-                            onClick={() => navigate(`/resources/${resource.id}/overview`)}
+                            onClick={() => {
+                              void navigate(`/resources/${resource.id}/overview`)
+                            }}
                           >
                             <Pencil className={styles.icon} />
                           </Button>

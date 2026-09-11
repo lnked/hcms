@@ -18,7 +18,7 @@ final class RequestMeta
         return [
             'ip' => $request->ip,
             'userAgent' => $request->userAgent,
-            'origin' => is_string($origin) && $origin !== '' ? $origin : null,
+            'origin' => \is_string($origin) && $origin !== '' ? $origin : null,
             'source' => $source,
         ];
     }

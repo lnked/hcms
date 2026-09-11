@@ -41,7 +41,7 @@ final class UserSectionGrantRepository
         $this->db->execute('DELETE FROM cms_user_section_grants WHERE user_id = :user_id', ['user_id' => $userId]);
         $seen = [];
         foreach ($sections as $section) {
-            if (!is_string($section) || !UserAclPolicy::isValidSection($section)) {
+            if (!\is_string($section) || !UserAclPolicy::isValidSection($section)) {
                 continue;
             }
             if (isset($seen[$section])) {

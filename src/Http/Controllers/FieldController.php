@@ -41,7 +41,7 @@ final class FieldController
     {
         $payload = $request->json();
         $fields = $payload['fields'] ?? $payload;
-        if (!is_array($fields)) {
+        if (!\is_array($fields)) {
             return Response::error('VALIDATION_ERROR', 'fields must be an array', 422);
         }
 

@@ -1,14 +1,14 @@
-import { useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { useEffect, useRef } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { FormBlockSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { FormBlockSkeleton } from '@/components/skeletons'
 import { useI18n } from '@/i18n'
 import { apiPage } from '@/lib/api'
-import type { ChangeType, Release } from '@/types/system'
 import styles from './ChangelogPage.module.css'
+import type { ChangeType, Release } from '@/types/system'
 
 const PAGE_SIZE = 20
 

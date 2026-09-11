@@ -1,11 +1,11 @@
-import type { KeyboardEvent } from 'react'
 import { clsx } from 'clsx'
 import styles from './AnchorPicker.module.css'
+import type { KeyboardEvent } from 'react'
 
 export type AnchorPosition = 'nw' | 'n' | 'ne' | 'w' | 'c' | 'e' | 'sw' | 's' | 'se'
 
 /** Порядок перебора по клику: центр, затем по кругу с левого верхнего угла. */
-export const ANCHOR_CYCLE: AnchorPosition[] = ['c', 'nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+const ANCHOR_CYCLE: AnchorPosition[] = ['c', 'nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 
 const GRID = 36
 const CELL = GRID / 3
@@ -88,7 +88,7 @@ export function AnchorPicker({ value, disabled, onChange, className, title }: An
   const shift = (step: number) => {
     const index = ANCHOR_CYCLE.indexOf(current)
     const next = ANCHOR_CYCLE[(index + step + ANCHOR_CYCLE.length) % ANCHOR_CYCLE.length]
-    if (next !== current) onChange(next)
+    if (next !== undefined && next !== current) onChange(next)
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {

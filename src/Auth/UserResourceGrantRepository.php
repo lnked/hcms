@@ -77,8 +77,8 @@ final class UserResourceGrantRepository
     private function serializeRow(array $row): array
     {
         $tabsRaw = $row['tabs_json'] ?? '[]';
-        $decoded = is_string($tabsRaw) ? json_decode($tabsRaw, true) : $tabsRaw;
-        $tabs = is_array($decoded) ? $this->normalizeTabs($decoded) : [];
+        $decoded = \is_string($tabsRaw) ? json_decode($tabsRaw, true) : $tabsRaw;
+        $tabs = \is_array($decoded) ? $this->normalizeTabs($decoded) : [];
 
         return [
             'resourceId' => (int) $row['resource_id'],
@@ -96,12 +96,12 @@ final class UserResourceGrantRepository
      */
     private function normalizeTabs(mixed $tabs): array
     {
-        if (!is_array($tabs)) {
+        if (!\is_array($tabs)) {
             return [];
         }
         $out = [];
         foreach ($tabs as $tab) {
-            if (is_string($tab) && UserAclPolicy::isValidTab($tab) && !in_array($tab, $out, true)) {
+            if (\is_string($tab) && UserAclPolicy::isValidTab($tab) && !\in_array($tab, $out, true)) {
                 $out[] = $tab;
             }
         }

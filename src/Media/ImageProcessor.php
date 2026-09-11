@@ -150,14 +150,14 @@ final class ImageProcessor
     private function load(string $path): \GdImage
     {
         // Without GD every call below would die with "undefined function"; say why instead.
-        if (!extension_loaded('gd')) {
+        if (!\extension_loaded('gd')) {
             throw new RuntimeException('PHP extension gd is required for image transforms');
         }
         if (!is_file($path)) {
             throw new InvalidArgumentException('Image file not found');
         }
         $info = @getimagesize($path);
-        if (!is_array($info)) {
+        if (!\is_array($info)) {
             throw new InvalidArgumentException('Unsupported or corrupt image');
         }
         $type = $info[2];
@@ -165,13 +165,13 @@ final class ImageProcessor
             IMAGETYPE_JPEG => @imagecreatefromjpeg($path),
             IMAGETYPE_PNG => @imagecreatefrompng($path),
             IMAGETYPE_GIF => @imagecreatefromgif($path),
-            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+            IMAGETYPE_WEBP => \function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
             default => false,
         };
         if ($img === false) {
             throw new InvalidArgumentException('Failed to decode image (SVG and some formats cannot be transformed)');
         }
-        if (function_exists('imagepalettetotruecolor')) {
+        if (\function_exists('imagepalettetotruecolor')) {
             @imagepalettetotruecolor($img);
         }
         $this->keepAlpha($img);
@@ -193,10 +193,7 @@ final class ImageProcessor
             default => 0,
         };
         if ($gdAngle === 0) {
-            $copy = imagecreatetruecolor(imagesx($src), imagesy($src));
-            if ($copy === false) {
-                throw new RuntimeException('Failed to allocate image');
-            }
+            $copy = $this->allocateCanvas(imagesx($src), imagesy($src));
             $this->preserveAlpha($copy);
             imagecopy($copy, $src, 0, 0, 0, 0, imagesx($src), imagesy($src));
 
@@ -251,10 +248,7 @@ final class ImageProcessor
             return $src;
         }
 
-        $out = imagecreatetruecolor($w, $h);
-        if ($out === false) {
-            throw new RuntimeException('Failed to allocate crop canvas');
-        }
+        $out = $this->allocateCanvas($w, $h);
         $this->preserveAlpha($out);
         imagecopy($out, $src, 0, 0, $x, $y, $w, $h);
 
@@ -301,10 +295,7 @@ final class ImageProcessor
         $scaled = $this->resample($src, 0, 0, $sw, $sh, $rw, $rh);
 
         [$ox, $oy] = $this->anchorOffset($rw, $rh, $tw, $th, $position);
-        $out = imagecreatetruecolor($tw, $th);
-        if ($out === false) {
-            throw new RuntimeException('Failed to allocate crop canvas');
-        }
+        $out = $this->allocateCanvas($tw, $th);
         $this->preserveAlpha($out);
         imagecopy($out, $scaled, 0, 0, $ox, $oy, $tw, $th);
 
@@ -338,14 +329,26 @@ final class ImageProcessor
      */
     private function resample(\GdImage $src, int $sx, int $sy, int $sw, int $sh, int $dw, int $dh): \GdImage
     {
-        $dst = imagecreatetruecolor($dw, $dh);
-        if ($dst === false) {
-            throw new RuntimeException('Failed to allocate resample canvas');
-        }
+        $dst = $this->allocateCanvas($dw, $dh);
         $this->preserveAlpha($dst);
         imagecopyresampled($dst, $src, 0, 0, $sx, $sy, $dw, $dh, $sw, $sh);
 
         return $dst;
+    }
+
+    /**
+     * @return \GdImage
+     */
+    private function allocateCanvas(int $width, int $height): \GdImage
+    {
+        $width = max(1, $width);
+        $height = max(1, $height);
+        $img = imagecreatetruecolor($width, $height);
+        if ($img === false) {
+            throw new RuntimeException('Failed to allocate image canvas');
+        }
+
+        return $img;
     }
 
     /**
@@ -376,7 +379,7 @@ final class ImageProcessor
     private function detectMime(string $path): ?string
     {
         $info = @getimagesize($path);
-        if (!is_array($info)) {
+        if (!\is_array($info)) {
             return null;
         }
 
@@ -406,7 +409,7 @@ final class ImageProcessor
         $ok = match ($mime) {
             'image/png' => imagepng($img, null, $pngLevel),
             'image/gif' => imagegif($img),
-            'image/webp' => function_exists('imagewebp')
+            'image/webp' => \function_exists('imagewebp')
                 ? imagewebp($img, null, $webpQ)
                 : false,
             'image/jpeg', 'image/jpg' => imagejpeg($img, null, $jpegQ),

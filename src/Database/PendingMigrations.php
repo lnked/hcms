@@ -15,14 +15,14 @@ final class PendingMigrations
     {
         $appliedRaw = $settings->get('db.migrations');
         /** @var list<string> $applied */
-        $applied = is_array($appliedRaw) ? array_values(array_map('strval', $appliedRaw)) : [];
+        $applied = \is_array($appliedRaw) ? array_values(array_map('strval', $appliedRaw)) : [];
         $dir = $paths->migrations();
         $files = glob($dir . '/*.sql') ?: [];
         sort($files);
         $changed = false;
         foreach ($files as $file) {
             $name = basename($file);
-            if (in_array($name, $applied, true)) {
+            if (\in_array($name, $applied, true)) {
                 continue;
             }
             $sql = (string) file_get_contents($file);

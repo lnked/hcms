@@ -86,12 +86,12 @@ final class PublicInboundController
                 return Response::error('BAD_REQUEST', 'Persist resource has no slug', 400);
             }
             $fieldMap = $endpoint['field_map'];
-            if (is_string($fieldMap)) {
+            if (\is_string($fieldMap)) {
                 $decoded = json_decode($fieldMap, true);
-                $fieldMap = is_array($decoded) ? $decoded : null;
+                $fieldMap = \is_array($decoded) ? $decoded : null;
             }
             /** @var array<string, string>|null $fieldMap */
-            $fieldMap = is_array($fieldMap) ? $fieldMap : null;
+            $fieldMap = \is_array($fieldMap) ? $fieldMap : null;
             $payload = InboundEndpointService::applyFieldMap($payload, $fieldMap);
 
             if ($this->resourceHooks !== null) {
@@ -129,7 +129,7 @@ final class PublicInboundController
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
             $code = $e->getCode();
-            $status = in_array($code, [401, 403, 404, 405], true) ? $code : 400;
+            $status = \in_array($code, [401, 403, 404, 405], true) ? $code : 400;
 
             return Response::error('BAD_REQUEST', $e->getMessage(), $status);
         }
@@ -146,17 +146,17 @@ final class PublicInboundController
         }
 
         $raw = $resource['settings_json'] ?? [];
-        if (is_string($raw)) {
+        if (\is_string($raw)) {
             $decoded = json_decode($raw, true);
-            $settings = is_array($decoded) ? $decoded : [];
-        } elseif (is_array($raw)) {
+            $settings = \is_array($decoded) ? $decoded : [];
+        } elseif (\is_array($raw)) {
             $settings = $raw;
         } else {
             $settings = [];
         }
         $settings = ResourceService::normalizeSettings($settings);
         $this->spamGuard->assertCreateAllowed($request, $slug, $settings, $payload);
-        $honeypot = is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
+        $honeypot = \is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
         if ($honeypot !== '') {
             unset($payload[$honeypot]);
         }

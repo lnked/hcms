@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
-import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { TableSkeleton } from '@/components/skeletons'
+import { clsx } from 'clsx'
+import { useMemo, useState } from 'react'
+import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
+import { FieldError } from '@/components/FieldError'
+import { TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,12 +25,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FieldError } from '@/components/FieldError'
-import { CodeBlock } from '@/components/CodeBlock'
+import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
-import { useI18n } from '@/i18n'
 import styles from './UptimePage.module.css'
 
 interface UptimeTarget {
@@ -376,7 +376,7 @@ export function UptimePage() {
                           size="sm"
                           variant="outline"
                           onClick={() => checkNow.mutate(target.id)}
-                          disabled={checkNow.isPending}
+                          disabled={checkNow.isPending && checkNow.variables === target.id}
                         >
                           {t('uptime.checkNow')}
                         </Button>{' '}

@@ -31,7 +31,7 @@ final class MediaFieldConfig
     public const ENCODE_FORMATS = ['webp', 'jpeg', 'png'];
 
     /**
-     * @param list<mixed> $formats
+     * @param array<mixed> $formats
      * @param list<string> $allowed
      * @return list<string>
      */
@@ -39,7 +39,7 @@ final class MediaFieldConfig
     {
         $out = [];
         foreach ($formats as $format) {
-            if (!is_string($format) && !is_numeric($format)) {
+            if (!\is_string($format) && !is_numeric($format)) {
                 throw new InvalidArgumentException('formats entries must be strings');
             }
             $ext = strtolower(ltrim(trim((string) $format), '.'));
@@ -49,7 +49,7 @@ final class MediaFieldConfig
             if ($ext === 'jpeg') {
                 $ext = 'jpg';
             }
-            if (!in_array($ext, $allowed, true)) {
+            if (!\in_array($ext, $allowed, true)) {
                 throw new InvalidArgumentException('Unsupported format: ' . $ext);
             }
             $out[$ext] = true;
@@ -68,7 +68,7 @@ final class MediaFieldConfig
         if ($format === null || $format === '') {
             return null;
         }
-        if (!is_string($format)) {
+        if (!\is_string($format)) {
             throw new InvalidArgumentException('encodeFormat must be a string');
         }
         $normalized = strtolower(trim($format));
@@ -78,7 +78,7 @@ final class MediaFieldConfig
         if ($normalized === 'jpg') {
             $normalized = 'jpeg';
         }
-        if (!in_array($normalized, self::ENCODE_FORMATS, true)) {
+        if (!\in_array($normalized, self::ENCODE_FORMATS, true)) {
             throw new InvalidArgumentException('encodeFormat must be webp, jpeg, png, or empty');
         }
 
@@ -104,25 +104,25 @@ final class MediaFieldConfig
         if ($sizes === null) {
             return [];
         }
-        if (!is_array($sizes)) {
+        if (!\is_array($sizes)) {
             throw new InvalidArgumentException('sizes must be an array');
         }
-        if (count($sizes) > self::MAX_SIZES) {
+        if (\count($sizes) > self::MAX_SIZES) {
             throw new InvalidArgumentException('sizes must not exceed ' . self::MAX_SIZES . ' entries');
         }
 
         $out = [];
         $seen = [];
         foreach ($sizes as $size) {
-            if (!is_array($size)) {
+            if (!\is_array($size)) {
                 throw new InvalidArgumentException('Each size must be an object');
             }
-            $prefix = isset($size['prefix']) && is_string($size['prefix'])
+            $prefix = isset($size['prefix']) && \is_string($size['prefix'])
                 ? trim($size['prefix'])
                 : '';
             if ($prefix === '' || !preg_match('/^[a-z][a-z0-9_]{0,31}$/', $prefix)) {
                 // Dumping the raw bytes makes look-alike characters (e.g. Cyrillic "с") visible.
-                throw new InvalidArgumentException(sprintf(
+                throw new InvalidArgumentException(\sprintf(
                     'size.prefix must match /^[a-z][a-z0-9_]{0,31}$/, got %s',
                     json_encode($prefix, JSON_UNESCAPED_SLASHES) ?: '""',
                 ));
@@ -138,15 +138,15 @@ final class MediaFieldConfig
                 throw new InvalidArgumentException('size width/height must be 1..10000');
             }
 
-            $mode = isset($size['mode']) && is_string($size['mode']) ? strtolower(trim($size['mode'])) : 'crop';
-            if (!in_array($mode, self::MODES, true)) {
+            $mode = isset($size['mode']) && \is_string($size['mode']) ? strtolower(trim($size['mode'])) : 'crop';
+            if (!\in_array($mode, self::MODES, true)) {
                 throw new InvalidArgumentException('size.mode must be crop or resize');
             }
 
-            $position = isset($size['position']) && is_string($size['position'])
+            $position = isset($size['position']) && \is_string($size['position'])
                 ? strtolower(trim($size['position']))
                 : 'c';
-            if (!in_array($position, self::POSITIONS, true)) {
+            if (!\in_array($position, self::POSITIONS, true)) {
                 throw new InvalidArgumentException('size.position must be a 9-cell anchor');
             }
 
@@ -174,7 +174,7 @@ final class MediaFieldConfig
         if ($deg < 0) {
             $deg += 360;
         }
-        if (!in_array($deg, [0, 90, 180, 270], true)) {
+        if (!\in_array($deg, [0, 90, 180, 270], true)) {
             throw new InvalidArgumentException('rotation must be 0, 90, 180, or 270');
         }
 
@@ -193,7 +193,7 @@ final class MediaFieldConfig
         if ($crop === null || $crop === '') {
             return null;
         }
-        if (!is_array($crop)) {
+        if (!\is_array($crop)) {
             throw new InvalidArgumentException('crop must be an object');
         }
 
@@ -233,7 +233,7 @@ final class MediaFieldConfig
         if ($edit === null || $edit === '') {
             return null;
         }
-        if (!is_array($edit)) {
+        if (!\is_array($edit)) {
             throw new InvalidArgumentException('edit must be an object');
         }
 
@@ -261,16 +261,16 @@ final class MediaFieldConfig
         if ($overrides === null || $overrides === '') {
             return [];
         }
-        if (!is_array($overrides)) {
+        if (!\is_array($overrides)) {
             throw new InvalidArgumentException('overrides must be an object');
         }
 
         $out = [];
         foreach ($overrides as $prefix => $entry) {
-            if (!is_string($prefix) || !preg_match('/^[a-z][a-z0-9_]{0,31}$/', $prefix)) {
+            if (!\is_string($prefix) || !preg_match('/^[a-z][a-z0-9_]{0,31}$/', $prefix)) {
                 throw new InvalidArgumentException('overrides keys must be size prefixes');
             }
-            if (!is_array($entry)) {
+            if (!\is_array($entry)) {
                 throw new InvalidArgumentException('overrides.' . $prefix . ' must be an object');
             }
             $crop = self::normalizeCrop($entry['crop'] ?? null);
@@ -292,19 +292,19 @@ final class MediaFieldConfig
         if ($positions === null) {
             return [];
         }
-        if (!is_array($positions)) {
+        if (!\is_array($positions)) {
             throw new InvalidArgumentException('positions must be an object');
         }
         $out = [];
         foreach ($positions as $key => $value) {
-            if (!is_string($key) || $key === '') {
+            if (!\is_string($key) || $key === '') {
                 continue;
             }
-            if (!is_string($value)) {
+            if (!\is_string($value)) {
                 throw new InvalidArgumentException('position values must be strings');
             }
             $pos = strtolower(trim($value));
-            if (!in_array($pos, self::POSITIONS, true)) {
+            if (!\in_array($pos, self::POSITIONS, true)) {
                 throw new InvalidArgumentException('Invalid position: ' . $pos);
             }
             $out[$key] = $pos;

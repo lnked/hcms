@@ -23,11 +23,11 @@ final class ReleaseNotes
      */
     public static function fromManifest(?array $manifest): array
     {
-        $entries = is_array($manifest) && is_array($manifest['changelog'] ?? null) ? $manifest['changelog'] : [];
+        $entries = \is_array($manifest) && \is_array($manifest['changelog'] ?? null) ? $manifest['changelog'] : [];
 
         $releases = [];
         foreach ($entries as $release) {
-            if (is_array($release) && isset($release['version']) && is_string($release['version'])) {
+            if (\is_array($release) && isset($release['version']) && \is_string($release['version'])) {
                 $releases[] = $release;
             }
         }
@@ -60,9 +60,9 @@ final class ReleaseNotes
                 continue;
             }
 
-            $items = is_array($release['changes'] ?? null) ? $release['changes'] : [];
+            $items = \is_array($release['changes'] ?? null) ? $release['changes'] : [];
             foreach ($items as $item) {
-                if (!is_array($item)) {
+                if (!\is_array($item)) {
                     continue;
                 }
                 $changes[] = [
@@ -76,7 +76,7 @@ final class ReleaseNotes
                     continue;
                 }
                 $hasBreaking = true;
-                if (isset($item['migration']) && is_string($item['migration']) && $item['migration'] !== '') {
+                if (isset($item['migration']) && \is_string($item['migration']) && $item['migration'] !== '') {
                     $migrationNotes[] = $item['migration'];
                 }
             }

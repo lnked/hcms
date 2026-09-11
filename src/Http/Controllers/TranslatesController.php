@@ -89,7 +89,7 @@ final class TranslatesController
     public function listTranslations(Request $request, AuthContext $auth): Response
     {
         unset($auth);
-        $search = isset($request->query['search']) && is_string($request->query['search'])
+        $search = isset($request->query['search']) && \is_string($request->query['search'])
             ? $request->query['search']
             : null;
 
@@ -189,11 +189,11 @@ final class TranslatesController
         try {
             $body = $request->json();
             $map = $body['translations'] ?? $body;
-            if (!is_array($map)) {
+            if (!\is_array($map)) {
                 throw new InvalidArgumentException('Body must be a map of key → locale values');
             }
             // Strip wrapper keys if present
-            if (isset($map['translations']) && is_array($map['translations'])) {
+            if (isset($map['translations']) && \is_array($map['translations'])) {
                 $map = $map['translations'];
             }
             $result = $this->translates->import($map);
@@ -224,7 +224,7 @@ final class TranslatesController
             return Response::error('UNAUTHORIZED', 'Authentication required', 401);
         }
 
-        $locale = isset($request->query['locale']) && is_string($request->query['locale'])
+        $locale = isset($request->query['locale']) && \is_string($request->query['locale'])
             ? $request->query['locale']
             : null;
         $keys = $this->parseKeys($request);
@@ -237,7 +237,7 @@ final class TranslatesController
 
         $etag = $this->translates->etag();
         $ifNoneMatch = $request->header('If-None-Match');
-        if (is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
+        if (\is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
             return new Response(304, '', [
                 'ETag' => $etag,
                 'Cache-Control' => 'public, max-age=30',
@@ -261,16 +261,16 @@ final class TranslatesController
         $keys = [];
         if (isset($request->query['keys'])) {
             $raw = $request->query['keys'];
-            if (is_string($raw)) {
+            if (\is_string($raw)) {
                 foreach (explode(',', $raw) as $part) {
                     $part = trim($part);
                     if ($part !== '') {
                         $keys[] = $part;
                     }
                 }
-            } elseif (is_array($raw)) {
+            } elseif (\is_array($raw)) {
                 foreach ($raw as $part) {
-                    if (is_string($part) && trim($part) !== '') {
+                    if (\is_string($part) && trim($part) !== '') {
                         $keys[] = trim($part);
                     }
                 }

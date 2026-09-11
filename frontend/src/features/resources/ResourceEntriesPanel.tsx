@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Columns3, History, Link2, Upload } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Columns3, History, Link2, Upload } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,16 +22,16 @@ import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useResourceEntriesList } from '@/features/resources/useResourceEntriesList'
 import { useI18n } from '@/i18n'
 import { ApiError, api, getToken, handleUnauthorized } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { queryKeys } from '@/lib/queryKeys'
 import { showError, showSuccess } from '@/lib/toast'
+import styles from './ResourceEntriesPanel.module.css'
 import type { SchemaField } from '@/types/field'
 import type { Resource, ResourceListColumn } from '@/types/resource'
-import styles from './ResourceEntriesPanel.module.css'
 
 const SYSTEM_EXPORT_FIELDS = ['id', 'createdAt', 'updatedAt'] as const
 
@@ -44,7 +44,7 @@ interface ImportResult {
 }
 
 /** `null` closes the editor, `'new'` opens the create card, a numeric id opens that entry. */
-type EntryParam = string | 'new' | null
+type EntryParam = string | null
 
 /** Unsaved input for one entry card, tied to the URL segment that opened it. */
 interface EntryDraft {
@@ -178,7 +178,7 @@ export function ResourceEntriesPanel({
   const fieldErrors = activeDraft?.fieldErrors ?? {}
 
   function openEntry(entry: Exclude<EntryParam, null>) {
-    navigate(entryPath(entry))
+    void navigate(entryPath(entry))
   }
 
   /**
@@ -187,10 +187,10 @@ export function ResourceEntriesPanel({
    */
   function closeEntry() {
     if (locationKey !== 'default') {
-      navigate(-1)
+      void navigate(-1)
       return
     }
-    navigate(entryPath(null), { replace: true })
+    void navigate(entryPath(null), { replace: true })
   }
 
   async function copyEntryLink() {

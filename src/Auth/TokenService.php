@@ -47,7 +47,7 @@ final class TokenService
      */
     public function resolve(string $plain): ?array
     {
-        if (strlen($plain) < 8) {
+        if (\strlen($plain) < 8) {
             return null;
         }
 
@@ -119,6 +119,7 @@ final class TokenService
             $sql .= ' AND id <> :except_id';
             $params['except_id'] = $exceptId;
         }
+
         return $this->db->execute($sql, $params);
     }
 

@@ -31,11 +31,11 @@ final class ReleaseDownloader
         }
 
         $manifest = $this->fetchJson($this->latestUrl('latest.json'));
-        $version = isset($manifest['version']) && is_string($manifest['version']) ? $manifest['version'] : '';
-        $zipUrl = isset($manifest['zip']) && is_string($manifest['zip'])
+        $version = isset($manifest['version']) && \is_string($manifest['version']) ? $manifest['version'] : '';
+        $zipUrl = isset($manifest['zip']) && \is_string($manifest['zip'])
             ? $manifest['zip']
             : $this->latestUrl('cms-' . $version . '.zip');
-        $expectedHash = isset($manifest['sha256']) && is_string($manifest['sha256'])
+        $expectedHash = isset($manifest['sha256']) && \is_string($manifest['sha256'])
             ? strtolower($manifest['sha256'])
             : $this->fetchText($this->latestUrl('cms-' . $version . '.zip.sha256'));
 
@@ -53,12 +53,14 @@ final class ReleaseDownloader
         $expectedHash = strtolower(trim(preg_replace('/\s.*/', '', $expectedHash) ?? $expectedHash));
         if ($actual === false || $expectedHash === '' || !hash_equals($expectedHash, $actual)) {
             @unlink($tmp);
+
             throw new RuntimeException('Release checksum mismatch');
         }
 
         $zip = new ZipArchive();
         if ($zip->open($tmp) !== true) {
             @unlink($tmp);
+
             throw new RuntimeException('Unable to open release archive');
         }
         $zip->extractTo($this->paths->root);
@@ -92,7 +94,7 @@ final class ReleaseDownloader
     {
         $raw = $this->fetchText($url);
         $data = json_decode($raw, true);
-        if (!is_array($data)) {
+        if (!\is_array($data)) {
             throw new RuntimeException('Unable to parse ' . $url);
         }
 
@@ -126,7 +128,7 @@ final class ReleaseDownloader
             $headers[] = 'Accept: application/octet-stream';
         }
 
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch === false) {
                 return null;
@@ -140,7 +142,7 @@ final class ReleaseDownloader
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
-            if (!is_string($body) || $code >= 400) {
+            if (!\is_string($body) || $code >= 400) {
                 return null;
             }
 
@@ -155,6 +157,6 @@ final class ReleaseDownloader
         ]);
         $body = @file_get_contents($url, false, $context);
 
-        return is_string($body) ? $body : null;
+        return \is_string($body) ? $body : null;
     }
 }

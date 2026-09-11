@@ -179,7 +179,7 @@ final class InboundEndpointService
         );
 
         $decoded = $result['decoded'];
-        $accept = array_key_exists('accept', $decoded) ? (bool) $decoded['accept'] : $result['ok'];
+        $accept = \array_key_exists('accept', $decoded) ? (bool) $decoded['accept'] : $result['ok'];
         $onFailure = (string) $endpoint['on_failure'];
 
         if (!$result['ok']) {
@@ -202,9 +202,9 @@ final class InboundEndpointService
         }
 
         if (!$accept) {
-            $error = is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
-            $code = isset($error['code']) && is_string($error['code']) ? $error['code'] : 'HOOK_REJECTED';
-            $message = isset($error['message']) && is_string($error['message'])
+            $error = \is_array($decoded['error'] ?? null) ? $decoded['error'] : [];
+            $code = isset($error['code']) && \is_string($error['code']) ? $error['code'] : 'HOOK_REJECTED';
+            $message = isset($error['message']) && \is_string($error['message'])
                 ? $error['message']
                 : 'Rejected by inbound handler';
             $this->deliveries->create([
@@ -218,6 +218,7 @@ final class InboundEndpointService
                 'status' => 'rejected',
                 'error_message' => $message,
             ]);
+
             throw new HookRejectedException($message, $code);
         }
 
@@ -234,12 +235,12 @@ final class InboundEndpointService
         ]);
 
         $nextPayload = $payload;
-        if (isset($decoded['payload']) && is_array($decoded['payload'])) {
+        if (isset($decoded['payload']) && \is_array($decoded['payload'])) {
             $nextPayload = $decoded['payload'];
         }
 
         $response = [];
-        if (isset($decoded['response']) && is_array($decoded['response'])) {
+        if (isset($decoded['response']) && \is_array($decoded['response'])) {
             $response = $decoded['response'];
         }
 
@@ -259,10 +260,10 @@ final class InboundEndpointService
 
         $out = [];
         foreach ($fieldMap as $from => $to) {
-            if (!is_string($from) || !is_string($to) || $from === '' || $to === '') {
+            if (!\is_string($from) || !\is_string($to) || $from === '' || $to === '') {
                 continue;
             }
-            if (array_key_exists($from, $payload)) {
+            if (\array_key_exists($from, $payload)) {
                 $out[$to] = $payload[$from];
             }
         }
@@ -298,38 +299,38 @@ final class InboundEndpointService
     {
         $out = [];
 
-        if ($creating || array_key_exists('slug', $payload)) {
-            $slug = isset($payload['slug']) && is_string($payload['slug']) ? trim($payload['slug']) : '';
+        if ($creating || \array_key_exists('slug', $payload)) {
+            $slug = isset($payload['slug']) && \is_string($payload['slug']) ? trim($payload['slug']) : '';
             if ($slug === '' || preg_match(self::SLUG_PATTERN, $slug) !== 1) {
                 throw ValidationFailedException::field('slug', 'slug must match ^[a-z][a-z0-9_-]{0,62}$');
             }
             $out['slug'] = $slug;
         }
 
-        if ($creating || array_key_exists('label', $payload)) {
-            $label = isset($payload['label']) && is_string($payload['label']) ? trim($payload['label']) : '';
+        if ($creating || \array_key_exists('label', $payload)) {
+            $label = isset($payload['label']) && \is_string($payload['label']) ? trim($payload['label']) : '';
             if ($label === '' || mb_strlen($label) > 120) {
                 throw ValidationFailedException::field('label', 'label is required (max 120)');
             }
             $out['label'] = $label;
         }
 
-        if ($creating || array_key_exists('targetUrl', $payload)) {
+        if ($creating || \array_key_exists('targetUrl', $payload)) {
             $out['target_url'] = $this->normalizeUrl($payload['targetUrl'] ?? null);
         }
 
-        if ($creating || array_key_exists('secret', $payload)) {
-            $secret = isset($payload['secret']) && is_string($payload['secret']) ? trim($payload['secret']) : '';
+        if ($creating || \array_key_exists('secret', $payload)) {
+            $secret = isset($payload['secret']) && \is_string($payload['secret']) ? trim($payload['secret']) : '';
             if ($secret === '') {
                 $secret = bin2hex(random_bytes(32));
             }
-            if (strlen($secret) > 128) {
+            if (\strlen($secret) > 128) {
                 throw ValidationFailedException::field('secret', 'secret max length is 128');
             }
             $out['secret'] = $secret;
         }
 
-        if ($creating || array_key_exists('persistResourceId', $payload)) {
+        if ($creating || \array_key_exists('persistResourceId', $payload)) {
             $persistId = null;
             if ($payload['persistResourceId'] !== null && $payload['persistResourceId'] !== '') {
                 $persistId = (int) $payload['persistResourceId'];
@@ -343,15 +344,15 @@ final class InboundEndpointService
             $out['persist_resource_id'] = $persistId;
         }
 
-        if ($creating || array_key_exists('fieldMap', $payload)) {
+        if ($creating || \array_key_exists('fieldMap', $payload)) {
             $out['field_map'] = $this->normalizeFieldMap($payload['fieldMap'] ?? null);
         }
 
-        if ($creating || array_key_exists('enabled', $payload)) {
-            $out['enabled'] = !array_key_exists('enabled', $payload) || (bool) $payload['enabled'];
+        if ($creating || \array_key_exists('enabled', $payload)) {
+            $out['enabled'] = !\array_key_exists('enabled', $payload) || (bool) $payload['enabled'];
         }
 
-        if ($creating || array_key_exists('timeoutMs', $payload)) {
+        if ($creating || \array_key_exists('timeoutMs', $payload)) {
             $timeout = isset($payload['timeoutMs']) ? (int) $payload['timeoutMs'] : 5000;
             if ($timeout < 100 || $timeout > 30000) {
                 throw ValidationFailedException::field('timeoutMs', 'timeoutMs must be between 100 and 30000');
@@ -359,11 +360,11 @@ final class InboundEndpointService
             $out['timeout_ms'] = $timeout;
         }
 
-        if ($creating || array_key_exists('onFailure', $payload)) {
-            $onFailure = isset($payload['onFailure']) && is_string($payload['onFailure'])
+        if ($creating || \array_key_exists('onFailure', $payload)) {
+            $onFailure = isset($payload['onFailure']) && \is_string($payload['onFailure'])
                 ? trim($payload['onFailure'])
                 : 'reject';
-            if (!in_array($onFailure, ['reject', 'continue'], true)) {
+            if (!\in_array($onFailure, ['reject', 'continue'], true)) {
                 throw ValidationFailedException::field('onFailure', 'onFailure must be reject or continue');
             }
             $out['on_failure'] = $onFailure;
@@ -382,12 +383,12 @@ final class InboundEndpointService
 
     private function normalizeUrl(mixed $url): string
     {
-        $value = is_string($url) ? trim($url) : '';
+        $value = \is_string($url) ? trim($url) : '';
         if ($value === '' || mb_strlen($value) > 2048 || !filter_var($value, FILTER_VALIDATE_URL)) {
             throw ValidationFailedException::field('targetUrl', 'targetUrl must be a valid URL');
         }
         $scheme = strtolower((string) (parse_url($value, PHP_URL_SCHEME) ?? ''));
-        if (!in_array($scheme, ['http', 'https'], true)) {
+        if (!\in_array($scheme, ['http', 'https'], true)) {
             throw ValidationFailedException::field('targetUrl', 'targetUrl must be http or https');
         }
 
@@ -402,12 +403,12 @@ final class InboundEndpointService
         if ($input === null) {
             return null;
         }
-        if (!is_array($input)) {
+        if (!\is_array($input)) {
             throw ValidationFailedException::field('fieldMap', 'fieldMap must be an object of string→string');
         }
         $out = [];
         foreach ($input as $from => $to) {
-            if (!is_string($from) || !is_string($to) || $from === '' || $to === '') {
+            if (!\is_string($from) || !\is_string($to) || $from === '' || $to === '') {
                 throw ValidationFailedException::field(
                     'fieldMap',
                     'fieldMap keys and values must be non-empty strings',
@@ -426,11 +427,11 @@ final class InboundEndpointService
     private function serialize(array $row): array
     {
         $fieldMap = $row['field_map'];
-        if (is_string($fieldMap)) {
+        if (\is_string($fieldMap)) {
             $decoded = json_decode($fieldMap, true);
-            $fieldMap = is_array($decoded) ? $decoded : null;
+            $fieldMap = \is_array($decoded) ? $decoded : null;
         }
-        if (!is_array($fieldMap)) {
+        if (!\is_array($fieldMap)) {
             $fieldMap = null;
         }
 
@@ -457,11 +458,11 @@ final class InboundEndpointService
     private function serializeDelivery(array $row): array
     {
         $payload = $row['payload'];
-        if (is_string($payload)) {
+        if (\is_string($payload)) {
             $decoded = json_decode($payload, true);
-            $payload = is_array($decoded) ? $decoded : [];
+            $payload = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($payload)) {
+        if (!\is_array($payload)) {
             $payload = [];
         }
 

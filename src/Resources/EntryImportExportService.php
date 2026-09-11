@@ -60,12 +60,12 @@ final class EntryImportExportService
     public function import(string $slug, string $format, string $content): array
     {
         $format = $this->normalizeFormat($format);
-        if (strlen($content) > self::MAX_BYTES) {
+        if (\strlen($content) > self::MAX_BYTES) {
             throw new InvalidArgumentException('Import payload exceeds 5MB limit');
         }
 
         $rows = $format === 'json' ? $this->parseJson($content) : $this->parseCsv($content);
-        if (count($rows) > self::MAX_ROWS) {
+        if (\count($rows) > self::MAX_ROWS) {
             throw new InvalidArgumentException('Import exceeds ' . self::MAX_ROWS . ' rows limit');
         }
 
@@ -133,6 +133,7 @@ final class EntryImportExportService
         $header = fgetcsv($handle, 0, ',', '"', '');
         if ($header === false || $header === [null]) {
             fclose($handle);
+
             throw new InvalidArgumentException('CSV must include a header row');
         }
 
@@ -140,8 +141,9 @@ final class EntryImportExportService
             static fn (mixed $col): string => trim((string) $col),
             $header,
         );
-        if (in_array('', $columns, true) || count($columns) !== count(array_unique($columns))) {
+        if (\in_array('', $columns, true) || \count($columns) !== \count(array_unique($columns))) {
             fclose($handle);
+
             throw new InvalidArgumentException('CSV header has empty or duplicate columns');
         }
 
@@ -152,7 +154,7 @@ final class EntryImportExportService
             }
             $row = [];
             foreach ($columns as $i => $name) {
-                $row[$name] = array_key_exists($i, $cells) ? $cells[$i] : null;
+                $row[$name] = \array_key_exists($i, $cells) ? $cells[$i] : null;
             }
             $rows[] = $row;
         }
@@ -172,13 +174,13 @@ final class EntryImportExportService
         }
 
         $decoded = json_decode($content, true);
-        if (!is_array($decoded)) {
+        if (!\is_array($decoded)) {
             throw new InvalidArgumentException('Invalid JSON import payload');
         }
 
         if (array_is_list($decoded)) {
             $rows = $decoded;
-        } elseif (isset($decoded['data']) && is_array($decoded['data']) && array_is_list($decoded['data'])) {
+        } elseif (isset($decoded['data']) && \is_array($decoded['data']) && array_is_list($decoded['data'])) {
             $rows = $decoded['data'];
         } else {
             throw new InvalidArgumentException('JSON import must be an array of objects or { "data": [...] }');
@@ -186,7 +188,7 @@ final class EntryImportExportService
 
         $out = [];
         foreach ($rows as $i => $row) {
-            if (!is_array($row)) {
+            if (!\is_array($row)) {
                 throw new InvalidArgumentException('JSON row ' . ($i + 1) . ' must be an object');
             }
             /** @var array<string, mixed> $row */
@@ -259,14 +261,14 @@ final class EntryImportExportService
         $payload = [];
         foreach ($row as $key => $value) {
             $name = (string) $key;
-            if (in_array($name, self::SYSTEM_FIELDS, true)) {
+            if (\in_array($name, self::SYSTEM_FIELDS, true)) {
                 continue;
             }
             if ($value === '' || $value === null) {
                 $payload[$name] = null;
                 continue;
             }
-            if (is_string($value)) {
+            if (\is_string($value)) {
                 $trimmed = trim($value);
                 if (
                     ($trimmed !== '' && ($trimmed[0] === '{' || $trimmed[0] === '['))
@@ -296,13 +298,13 @@ final class EntryImportExportService
         if ($value === null) {
             return '';
         }
-        if (is_bool($value)) {
+        if (\is_bool($value)) {
             return $value ? 'true' : 'false';
         }
-        if (is_array($value)) {
+        if (\is_array($value)) {
             return (string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
-        if (is_scalar($value)) {
+        if (\is_scalar($value)) {
             return (string) $value;
         }
 

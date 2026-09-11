@@ -55,7 +55,7 @@ final class Mailer
     {
         $config = $this->requireReadyConfig();
 
-        $to = isset($payload['to']) && is_string($payload['to']) ? trim($payload['to']) : '';
+        $to = isset($payload['to']) && \is_string($payload['to']) ? trim($payload['to']) : '';
         if ($to === '' || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
             throw new InvalidArgumentException('to must be a valid email');
         }
@@ -64,12 +64,12 @@ final class Mailer
         $this->assertDailyQuota($tokenId);
 
         $vars = [];
-        if (isset($payload['vars']) && is_array($payload['vars'])) {
+        if (isset($payload['vars']) && \is_array($payload['vars'])) {
             foreach ($payload['vars'] as $key => $value) {
-                if (!is_string($key) || $key === '') {
+                if (!\is_string($key) || $key === '') {
                     continue;
                 }
-                if (is_scalar($value) || $value === null) {
+                if (\is_scalar($value) || $value === null) {
                     $vars[$key] = (string) ($value ?? '');
                 }
             }
@@ -89,14 +89,14 @@ final class Mailer
         $fromEmail = $config['fromEmail'];
         $fromName = $config['fromName'] !== '' ? $config['fromName'] : $this->settings->string('app.name', 'HCMS');
         if ($allowFromOverride) {
-            if (isset($payload['fromEmail']) && is_string($payload['fromEmail']) && trim($payload['fromEmail']) !== '') {
+            if (isset($payload['fromEmail']) && \is_string($payload['fromEmail']) && trim($payload['fromEmail']) !== '') {
                 $overrideFrom = trim($payload['fromEmail']);
                 if (filter_var($overrideFrom, FILTER_VALIDATE_EMAIL) === false) {
                     throw new InvalidArgumentException('fromEmail is invalid');
                 }
                 $fromEmail = $overrideFrom;
             }
-            if (isset($payload['fromName']) && is_string($payload['fromName']) && trim($payload['fromName']) !== '') {
+            if (isset($payload['fromName']) && \is_string($payload['fromName']) && trim($payload['fromName']) !== '') {
                 $fromName = trim($payload['fromName']);
             }
         }
@@ -155,7 +155,7 @@ final class Mailer
      */
     private function pickAndRender(array $payload, string $key, string $default, array $vars): string
     {
-        $value = isset($payload[$key]) && is_string($payload[$key]) ? $payload[$key] : $default;
+        $value = isset($payload[$key]) && \is_string($payload[$key]) ? $payload[$key] : $default;
 
         return $this->renderTemplate($value, $vars);
     }

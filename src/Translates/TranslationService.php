@@ -26,16 +26,16 @@ final class TranslationService
     public function getApiSettings(): array
     {
         $raw = $this->settings->get(self::SETTINGS_KEY);
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return self::defaultApiSettings();
         }
 
         return [
-            'enabled' => array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
-            'path' => isset($raw['path']) && is_string($raw['path']) && $raw['path'] !== ''
+            'enabled' => \array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
+            'path' => isset($raw['path']) && \is_string($raw['path']) && $raw['path'] !== ''
                 ? self::normalizePath($raw['path'])
                 : self::DEFAULT_PATH,
-            'requireToken' => array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
+            'requireToken' => \array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
         ];
     }
 
@@ -45,14 +45,14 @@ final class TranslationService
      */
     public function saveApiSettings(array $payload): array
     {
-        $path = isset($payload['path']) && is_string($payload['path'])
+        $path = isset($payload['path']) && \is_string($payload['path'])
             ? self::normalizePath($payload['path'])
             : self::DEFAULT_PATH;
         self::assertValidPath($path);
         $value = [
-            'enabled' => array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true,
+            'enabled' => \array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true,
             'path' => $path,
-            'requireToken' => array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false,
+            'requireToken' => \array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false,
         ];
         $this->settings->set(self::SETTINGS_KEY, $value);
 
@@ -104,22 +104,22 @@ final class TranslationService
      */
     public function createLocale(array $payload): array
     {
-        $code = isset($payload['code']) && is_string($payload['code']) ? trim($payload['code']) : '';
+        $code = isset($payload['code']) && \is_string($payload['code']) ? trim($payload['code']) : '';
         if ($code === '' || !preg_match('/^[a-z]{2}(-[A-Za-z]{2})?$/', $code)) {
             throw new InvalidArgumentException('code must be like en or en-US');
         }
         if ($this->locales->find($code) !== null) {
             throw new InvalidArgumentException('locale already exists');
         }
-        $label = isset($payload['label']) && is_string($payload['label']) ? trim($payload['label']) : '';
+        $label = isset($payload['label']) && \is_string($payload['label']) ? trim($payload['label']) : '';
         if ($label === '' || mb_strlen($label) > 191) {
             throw new InvalidArgumentException('label is required (max 191)');
         }
-        $enabled = array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1;
+        $enabled = \array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1;
         $sortOrder = isset($payload['sortOrder']) && is_numeric($payload['sortOrder'])
             ? (int) $payload['sortOrder']
-            : count($this->locales->all());
-        $isDefault = array_key_exists('isDefault', $payload) && (bool) $payload['isDefault'];
+            : \count($this->locales->all());
+        $isDefault = \array_key_exists('isDefault', $payload) && (bool) $payload['isDefault'];
         if ($isDefault || $this->locales->defaultLocale() === null) {
             $this->locales->clearDefault();
             $isDefault = true;
@@ -144,20 +144,20 @@ final class TranslationService
             throw new RuntimeException('Locale not found', 404);
         }
         $data = [];
-        if (array_key_exists('label', $payload)) {
-            $label = is_string($payload['label']) ? trim($payload['label']) : '';
+        if (\array_key_exists('label', $payload)) {
+            $label = \is_string($payload['label']) ? trim($payload['label']) : '';
             if ($label === '' || mb_strlen($label) > 191) {
                 throw new InvalidArgumentException('label is required (max 191)');
             }
             $data['label'] = $label;
         }
-        if (array_key_exists('enabled', $payload)) {
+        if (\array_key_exists('enabled', $payload)) {
             $data['enabled'] = (bool) $payload['enabled'] ? 1 : 0;
         }
-        if (array_key_exists('sortOrder', $payload) && is_numeric($payload['sortOrder'])) {
+        if (\array_key_exists('sortOrder', $payload) && is_numeric($payload['sortOrder'])) {
             $data['sort_order'] = (int) $payload['sortOrder'];
         }
-        if (array_key_exists('isDefault', $payload) && (bool) $payload['isDefault']) {
+        if (\array_key_exists('isDefault', $payload) && (bool) $payload['isDefault']) {
             $this->locales->clearDefault();
             $data['is_default'] = 1;
         }
@@ -190,7 +190,7 @@ final class TranslationService
         $this->locales->delete($code);
         foreach ($this->translations->allRows() as $tr) {
             $values = $this->decodeValues($tr['values_json']);
-            if (array_key_exists($code, $values)) {
+            if (\array_key_exists($code, $values)) {
                 unset($values[$code]);
                 $this->translations->update((int) $tr['id'], [
                     'values_json' => json_encode($values, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
@@ -229,7 +229,7 @@ final class TranslationService
      */
     public function createTranslation(array $payload): array
     {
-        $key = isset($payload['key']) && is_string($payload['key']) ? trim($payload['key']) : '';
+        $key = isset($payload['key']) && \is_string($payload['key']) ? trim($payload['key']) : '';
         if ($key === '' || !preg_match('/^[a-z][a-z0-9_.-]{0,190}$/', $key)) {
             throw new InvalidArgumentException('key must match ^[a-z][a-z0-9_.-]{0,190}$');
         }
@@ -237,8 +237,8 @@ final class TranslationService
             throw new InvalidArgumentException('translation key already exists');
         }
         $description = null;
-        if (array_key_exists('description', $payload)) {
-            $description = is_string($payload['description']) ? trim($payload['description']) : null;
+        if (\array_key_exists('description', $payload)) {
+            $description = \is_string($payload['description']) ? trim($payload['description']) : null;
             if ($description === '') {
                 $description = null;
             }
@@ -266,8 +266,8 @@ final class TranslationService
             throw new RuntimeException('Translation not found', 404);
         }
         $data = [];
-        if (array_key_exists('description', $payload)) {
-            $description = is_string($payload['description']) ? trim($payload['description']) : null;
+        if (\array_key_exists('description', $payload)) {
+            $description = \is_string($payload['description']) ? trim($payload['description']) : null;
             if ($description === '') {
                 $description = null;
             }
@@ -276,7 +276,7 @@ final class TranslationService
             }
             $data['description'] = $description;
         }
-        if (array_key_exists('values', $payload)) {
+        if (\array_key_exists('values', $payload)) {
             $current = $this->decodeValues($existing['values_json']);
             $incoming = $this->normalizeValues($payload['values'] ?? []);
             $data['values_json'] = json_encode(
@@ -305,7 +305,7 @@ final class TranslationService
         $created = 0;
         $updated = 0;
         foreach ($map as $key => $values) {
-            if (!is_string($key) || !is_array($values)) {
+            if (!\is_string($key) || !\is_array($values)) {
                 continue;
             }
             $key = trim($key);
@@ -360,7 +360,7 @@ final class TranslationService
         $defaultCode = $default !== null ? (string) $default['code'] : (string) $enabled[0]['code'];
 
         if ($locale === null || $locale === '') {
-            if (count($enabled) === 1) {
+            if (\count($enabled) === 1) {
                 $locale = (string) $enabled[0]['code'];
             } else {
                 throw new InvalidArgumentException('locale query parameter is required');
@@ -368,7 +368,7 @@ final class TranslationService
         }
 
         $localeCodes = array_map(static fn (array $r): string => (string) $r['code'], $enabled);
-        if (!in_array($locale, $localeCodes, true)) {
+        if (!\in_array($locale, $localeCodes, true)) {
             throw new InvalidArgumentException('Unknown or disabled locale');
         }
 
@@ -388,7 +388,7 @@ final class TranslationService
             if ($value === null || $value === '') {
                 $value = $values[$defaultCode] ?? '';
             }
-            $out[$key] = is_string($value) ? $value : (string) $value;
+            $out[$key] = \is_string($value) ? $value : (string) $value;
         }
 
         return $out;
@@ -412,7 +412,7 @@ final class TranslationService
      */
     private function normalizeValues(mixed $raw): array
     {
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             throw new InvalidArgumentException('values must be an object of locale → string');
         }
         $known = array_fill_keys(
@@ -421,10 +421,10 @@ final class TranslationService
         );
         $out = [];
         foreach ($raw as $code => $value) {
-            if (!is_string($code) || !isset($known[$code])) {
+            if (!\is_string($code) || !isset($known[$code])) {
                 continue;
             }
-            if (!is_string($value) && !is_numeric($value)) {
+            if (!\is_string($value) && !is_numeric($value)) {
                 throw new InvalidArgumentException('values.' . $code . ' must be a string');
             }
             $out[$code] = (string) $value;
@@ -438,13 +438,13 @@ final class TranslationService
      */
     private function decodeValues(mixed $raw): array
     {
-        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
-        if (!is_array($decoded)) {
+        $decoded = \is_string($raw) ? json_decode($raw, true) : $raw;
+        if (!\is_array($decoded)) {
             return [];
         }
         $out = [];
         foreach ($decoded as $k => $v) {
-            if (is_string($k) && (is_string($v) || is_numeric($v))) {
+            if (\is_string($k) && (\is_string($v) || is_numeric($v))) {
                 $out[$k] = (string) $v;
             }
         }

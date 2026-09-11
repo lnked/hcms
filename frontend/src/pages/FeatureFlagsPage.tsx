@@ -1,10 +1,11 @@
-import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { ExternalLink } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
+import { FieldError } from '@/components/FieldError'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,8 +29,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { configString } from '@/lib/coerce'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './FeatureFlagsPage.module.css'
@@ -62,14 +63,14 @@ function previewValue(flag: FeatureFlag): string {
     return `A/B ${flag.rolloutPercent}%`
   }
   if (flag.type === 'object') return JSON.stringify(flag.value)
-  return String(flag.value)
+  return configString(flag.value)
 }
 
 export function FeatureFlagsPage() {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
-  const section = (params.get('section') === 'api' ? 'api' : 'flags') as Section
+  const section = params.get('section') === 'api' ? 'api' : 'flags'
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -141,8 +142,8 @@ export function FeatureFlagsPage() {
     setJsonError(null)
     setFieldErrors({})
     if (flag.type === 'boolean') setBoolValue(Boolean(flag.value))
-    if (flag.type === 'integer') setIntValue(String(flag.value))
-    if (flag.type === 'string') setStringValue(String(flag.value ?? ''))
+    if (flag.type === 'integer') setIntValue(configString(flag.value))
+    if (flag.type === 'string') setStringValue(configString(flag.value))
     if (flag.type === 'object') setObjectValue(JSON.stringify(flag.value ?? {}, null, 2))
     setDialogOpen(true)
   }

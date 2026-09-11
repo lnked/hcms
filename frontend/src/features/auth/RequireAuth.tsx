@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
-import { clearToken, getToken } from '@/lib/api'
 import { useAuthMe } from '@/hooks/useAcl'
+import { clearToken, getToken } from '@/lib/api'
 import styles from './RequireAuth.module.css'
 
 export function RequireAuth() {

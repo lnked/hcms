@@ -1,11 +1,11 @@
-import type { MessageKey } from './en'
 import { en } from './en'
 import { ru } from './ru'
+import type { MessageKey } from './en'
 
 export const LOCALES = ['en', 'ru'] as const
 export type Locale = (typeof LOCALES)[number]
 
-export const LOCALE_STORAGE_KEY = 'hcms_locale'
+const LOCALE_STORAGE_KEY = 'hcms_locale'
 
 const catalogs: Record<Locale, Record<MessageKey, string>> = {
   en,

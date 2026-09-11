@@ -50,15 +50,15 @@ final class ResourceService
      */
     public function create(array $payload): array
     {
-        $name = isset($payload['name']) && is_string($payload['name']) ? trim($payload['name']) : '';
-        $label = isset($payload['label']) && is_string($payload['label']) ? trim($payload['label']) : '';
-        $description = isset($payload['description']) && is_string($payload['description'])
+        $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
+        $label = isset($payload['label']) && \is_string($payload['label']) ? trim($payload['label']) : '';
+        $description = isset($payload['description']) && \is_string($payload['description'])
             ? trim($payload['description'])
             : null;
-        $slug = isset($payload['slug']) && is_string($payload['slug']) && $payload['slug'] !== ''
+        $slug = isset($payload['slug']) && \is_string($payload['slug']) && $payload['slug'] !== ''
             ? trim($payload['slug'])
             : Slug::fromName($name !== '' ? $name : $label);
-        $endpoint = isset($payload['endpoint']) && is_string($payload['endpoint']) && $payload['endpoint'] !== ''
+        $endpoint = isset($payload['endpoint']) && \is_string($payload['endpoint']) && $payload['endpoint'] !== ''
             ? self::normalizeEndpoint($payload['endpoint'])
             : '/api/' . $slug;
 
@@ -80,7 +80,7 @@ final class ResourceService
         $this->assertEndpointAvailable($endpoint);
 
         $settings = self::defaultSettings(
-            isset($payload['settings']) && is_array($payload['settings']) ? $payload['settings'] : [],
+            isset($payload['settings']) && \is_array($payload['settings']) ? $payload['settings'] : [],
         );
 
         $pdo = $this->db->pdo();
@@ -103,6 +103,7 @@ final class ResourceService
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
+
             throw $e;
         }
 
@@ -123,25 +124,25 @@ final class ResourceService
         }
 
         $update = [];
-        if (isset($payload['endpoint']) && is_string($payload['endpoint'])) {
+        if (isset($payload['endpoint']) && \is_string($payload['endpoint'])) {
             $endpoint = self::normalizeEndpoint($payload['endpoint']);
             $this->assertEndpointAvailable($endpoint, $id);
             $update['endpoint'] = $endpoint;
         }
-        if (isset($payload['status']) && is_string($payload['status'])) {
+        if (isset($payload['status']) && \is_string($payload['status'])) {
             $status = $payload['status'];
-            if (!in_array($status, ['draft', 'published', 'archived'], true)) {
+            if (!\in_array($status, ['draft', 'published', 'archived'], true)) {
                 throw new InvalidArgumentException('Invalid status');
             }
             $update['status'] = $status;
         }
-        if (isset($payload['settings']) && is_array($payload['settings'])) {
+        if (isset($payload['settings']) && \is_array($payload['settings'])) {
             $existingSettings = $existing['settings_json'] ?? [];
-            if (is_string($existingSettings)) {
+            if (\is_string($existingSettings)) {
                 $decoded = json_decode($existingSettings, true);
-                $existingSettings = is_array($decoded) ? $decoded : [];
+                $existingSettings = \is_array($decoded) ? $decoded : [];
             }
-            if (!is_array($existingSettings)) {
+            if (!\is_array($existingSettings)) {
                 $existingSettings = [];
             }
             $update['settings'] = self::normalizeSettings(
@@ -153,14 +154,14 @@ final class ResourceService
 
         if (isset($payload['label']) || isset($payload['description']) || isset($payload['name'])) {
             $ctUpdate = [];
-            if (isset($payload['label']) && is_string($payload['label'])) {
+            if (isset($payload['label']) && \is_string($payload['label'])) {
                 $ctUpdate['label'] = trim($payload['label']);
             }
-            if (isset($payload['name']) && is_string($payload['name'])) {
+            if (isset($payload['name']) && \is_string($payload['name'])) {
                 $ctUpdate['name'] = trim($payload['name']);
             }
-            if (array_key_exists('description', $payload)) {
-                $ctUpdate['description'] = is_string($payload['description'])
+            if (\array_key_exists('description', $payload)) {
+                $ctUpdate['description'] = \is_string($payload['description'])
                     ? trim($payload['description'])
                     : null;
             }
@@ -203,6 +204,7 @@ final class ResourceService
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
+
             throw $e;
         }
 
@@ -293,15 +295,15 @@ final class ResourceService
      */
     public static function normalizeSettings(array $settings): array
     {
-        $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $public = \is_array($settings['public'] ?? null) ? $settings['public'] : [];
         $strategy = ($settings['deleteStrategy'] ?? 'hard') === 'soft' ? 'soft' : 'hard';
         $softDelete = $strategy === 'soft' || (bool) ($settings['softDelete'] ?? false);
-        $list = is_array($settings['list'] ?? null) ? $settings['list'] : [];
-        $spam = is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
+        $list = \is_array($settings['list'] ?? null) ? $settings['list'] : [];
+        $spam = \is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
         $blocklist = [];
-        if (is_array($spam['blocklist'] ?? null)) {
+        if (\is_array($spam['blocklist'] ?? null)) {
             foreach ($spam['blocklist'] as $term) {
-                if (is_string($term) && trim($term) !== '') {
+                if (\is_string($term) && trim($term) !== '') {
                     $blocklist[] = trim($term);
                 }
             }
@@ -325,7 +327,7 @@ final class ResourceService
             'deleteStrategy' => $softDelete ? 'soft' : 'hard',
             'softDelete' => $softDelete,
             'spam' => [
-                'honeypotField' => is_string($spam['honeypotField'] ?? null) ? trim($spam['honeypotField']) : '',
+                'honeypotField' => \is_string($spam['honeypotField'] ?? null) ? trim($spam['honeypotField']) : '',
                 'minSubmitMs' => max(0, (int) ($spam['minSubmitMs'] ?? 0)),
                 'rateLimitPerMinute' => max(0, (int) ($spam['rateLimitPerMinute'] ?? 0)),
                 'requireCaptcha' => (bool) ($spam['requireCaptcha'] ?? false),
@@ -348,7 +350,7 @@ final class ResourceService
     {
         foreach ($override as $key => $value) {
             $current = $base[$key] ?? null;
-            $base[$key] = is_array($value) && is_array($current) && !array_is_list($value)
+            $base[$key] = \is_array($value) && \is_array($current) && !array_is_list($value)
                 ? self::mergeSettings($current, $value)
                 : $value;
         }
@@ -364,22 +366,22 @@ final class ResourceService
      */
     private static function normalizeListColumns(mixed $columns): array
     {
-        if (!is_array($columns)) {
+        if (!\is_array($columns)) {
             return [];
         }
 
         $out = [];
         $seen = [];
         foreach ($columns as $column) {
-            if (!is_array($column)) {
+            if (!\is_array($column)) {
                 continue;
             }
-            $field = is_string($column['field'] ?? null) ? trim($column['field']) : '';
+            $field = \is_string($column['field'] ?? null) ? trim($column['field']) : '';
             if ($field === '' || isset($seen[$field])) {
                 continue;
             }
             $seen[$field] = true;
-            $label = is_string($column['label'] ?? null) ? trim($column['label']) : '';
+            $label = \is_string($column['label'] ?? null) ? trim($column['label']) : '';
             $width = isset($column['width']) && is_numeric($column['width'])
                 ? (int) $column['width']
                 : 0;
@@ -401,11 +403,11 @@ final class ResourceService
     private function serialize(array $row): array
     {
         $settings = $row['settings_json'] ?? [];
-        if (is_string($settings)) {
+        if (\is_string($settings)) {
             $decoded = json_decode($settings, true);
-            $settings = is_array($decoded) ? $decoded : [];
+            $settings = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($settings)) {
+        if (!\is_array($settings)) {
             $settings = [];
         }
 

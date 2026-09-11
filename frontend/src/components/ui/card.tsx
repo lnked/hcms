@@ -1,6 +1,8 @@
-import type { HTMLAttributes } from 'react'
+/* Heading text is supplied by consumers; this is a presentational primitive. */
+/* eslint-disable jsx-a11y/heading-has-content */
 import { cn } from '@/lib/utils'
 import styles from './Card.module.css'
+import type { HTMLAttributes } from 'react'
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn(styles.card, className)} {...props} />

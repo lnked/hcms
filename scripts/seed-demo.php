@@ -554,6 +554,7 @@ final class DemoApiClient
             if ($raw === false) {
                 $err = curl_error($ch);
                 curl_close($ch);
+
                 throw new RuntimeException('HTTP error: ' . $err);
             }
 
@@ -582,6 +583,7 @@ final class DemoApiClient
 
             if ($status >= 400) {
                 $msg = (string) ($decoded['error']['message'] ?? $decoded['message'] ?? $responseBody);
+
                 throw new RuntimeException("{$method} {$path} → HTTP {$status}: {$msg}");
             }
 
@@ -622,6 +624,7 @@ final class DemoApiClient
             if ($raw === false) {
                 $err = curl_error($ch);
                 curl_close($ch);
+
                 throw new RuntimeException('Upload failed: ' . $err);
             }
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -643,6 +646,7 @@ final class DemoApiClient
                 $msg = is_array($decoded)
                     ? (string) ($decoded['error']['message'] ?? $responseBody)
                     : (string) $responseBody;
+
                 throw new RuntimeException("Upload → HTTP {$status}: {$msg}");
             }
 

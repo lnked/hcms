@@ -11,6 +11,10 @@ final class Totp
 {
     public static function generateSecret(int $bytes = 20): string
     {
+        if ($bytes < 1) {
+            throw new \InvalidArgumentException('TOTP secret byte length must be >= 1');
+        }
+
         return self::base32Encode(random_bytes($bytes));
     }
 
@@ -51,12 +55,12 @@ final class Totp
         $key = self::base32Decode($secret);
         $binCounter = pack('N*', 0, $counter);
         $hash = hash_hmac('sha1', $binCounter, $key, true);
-        $offset = ord($hash[19]) & 0x0F;
+        $offset = \ord($hash[19]) & 0x0F;
         $value = (
-            ((ord($hash[$offset]) & 0x7F) << 24)
-            | ((ord($hash[$offset + 1]) & 0xFF) << 16)
-            | ((ord($hash[$offset + 2]) & 0xFF) << 8)
-            | (ord($hash[$offset + 3]) & 0xFF)
+            ((\ord($hash[$offset]) & 0x7F) << 24)
+            | ((\ord($hash[$offset + 1]) & 0xFF) << 16)
+            | ((\ord($hash[$offset + 2]) & 0xFF) << 8)
+            | (\ord($hash[$offset + 3]) & 0xFF)
         ) % 1_000_000;
 
         return str_pad((string) $value, 6, '0', STR_PAD_LEFT);
@@ -67,14 +71,14 @@ final class Totp
         $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         $bits = '';
         foreach (str_split($data) as $char) {
-            $bits .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
+            $bits .= str_pad(decbin(\ord($char)), 8, '0', STR_PAD_LEFT);
         }
         $out = '';
         foreach (str_split($bits, 5) as $chunk) {
-            if (strlen($chunk) < 5) {
+            if (\strlen($chunk) < 5) {
                 $chunk = str_pad($chunk, 5, '0', STR_PAD_RIGHT);
             }
-            $out .= $alphabet[bindec($chunk)];
+            $out .= $alphabet[(int) bindec($chunk)];
         }
 
         return $out;
@@ -94,8 +98,8 @@ final class Totp
         }
         $out = '';
         foreach (str_split($bits, 8) as $chunk) {
-            if (strlen($chunk) === 8) {
-                $out .= chr(bindec($chunk));
+            if (\strlen($chunk) === 8) {
+                $out .= \chr((int) bindec($chunk));
             }
         }
 

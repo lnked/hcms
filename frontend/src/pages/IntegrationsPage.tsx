@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { Plus, Trash2 } from 'lucide-react'
-import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
+import { useMemo, useState } from 'react'
+import { CodeBlock } from '@/components/CodeBlock'
 import { EmptyState } from '@/components/EmptyState'
+import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,11 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useI18n, type MessageKey } from '@/i18n'
 import { api, ApiError, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError, showSuccess } from '@/lib/toast'
-import { useI18n, type MessageKey } from '@/i18n'
-import { CodeBlock } from '@/components/CodeBlock'
 import { buildEmailSendFetchExample } from './buildEmailSendFetchExample'
 import styles from './IntegrationsPage.module.css'
 
@@ -141,7 +141,7 @@ export function IntegrationsPage() {
     setApiKey('')
   }
 
-  const activeMeta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0]
+  const activeMeta = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0]!
 
   const pathOptions = useMemo(() => {
     const custom = (apisQuery.data ?? []).filter((item) => item.enabled).map((item) => item.path)

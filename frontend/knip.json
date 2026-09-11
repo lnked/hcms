@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.tsx!", "src/**/*.{ts,tsx}!", "vite.config.ts!", "eslint.config.js!"],
+  "entry": ["src/main.tsx!", "vite.config.ts!", "eslint.config.js!", "stylelint.config.json!"],
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": ["src/**/*.test.{ts,tsx}", "src/test/**"],
   "ignoreDependencies": [
@@ -9,15 +9,12 @@
     "eslint-config-prettier",
     "eslint-plugin-import-x",
     "eslint-plugin-jsx-a11y",
+    "eslint-plugin-react",
+    "eslint-plugin-react-hooks",
+    "stylelint",
+    "stylelint-config-css-modules",
+    "stylelint-config-standard",
     "@vitest/coverage-v8"
   ],
-  "exclude": [
-    "exports",
-    "types",
-    "nsExports",
-    "nsTypes",
-    "enumMembers",
-    "namespaceMembers",
-    "duplicates"
-  ]
+  "exclude": ["types", "nsExports", "nsTypes", "enumMembers", "namespaceMembers", "duplicates"]
 }

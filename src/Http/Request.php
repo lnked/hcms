@@ -27,21 +27,21 @@ final class Request
         $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         $uri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
         $path = parse_url($uri, PHP_URL_PATH);
-        $path = is_string($path) ? $path : '/';
+        $path = \is_string($path) ? $path : '/';
         $path = self::normalizePath($path);
 
         $headers = [];
         foreach ($_SERVER as $key => $value) {
-            if (!str_starts_with($key, 'HTTP_') || !is_string($value)) {
+            if (!str_starts_with($key, 'HTTP_') || !\is_string($value)) {
                 continue;
             }
             $name = strtolower(str_replace('_', '-', substr($key, 5)));
             $headers[$name] = $value;
         }
-        if (isset($_SERVER['CONTENT_TYPE']) && is_string($_SERVER['CONTENT_TYPE'])) {
+        if (isset($_SERVER['CONTENT_TYPE']) && \is_string($_SERVER['CONTENT_TYPE'])) {
             $headers['content-type'] = $_SERVER['CONTENT_TYPE'];
         }
-        if (isset($_SERVER['CONTENT_LENGTH']) && is_string($_SERVER['CONTENT_LENGTH'])) {
+        if (isset($_SERVER['CONTENT_LENGTH']) && \is_string($_SERVER['CONTENT_LENGTH'])) {
             $headers['content-length'] = $_SERVER['CONTENT_LENGTH'];
         }
 
@@ -56,7 +56,7 @@ final class Request
         $contentType = $headers['content-type'] ?? '';
         if ($raw !== '' && str_contains($contentType, 'application/json')) {
             $decoded = json_decode($raw, true);
-            $body = is_array($decoded) ? $decoded : null;
+            $body = \is_array($decoded) ? $decoded : null;
         }
 
         /** @var array<string, mixed> $get */
@@ -80,12 +80,12 @@ final class Request
         $out = [];
         foreach ($input as $key => $value) {
             $full = $prefix === '' ? (string) $key : $prefix . '[' . $key . ']';
-            if (is_array($value)) {
+            if (\is_array($value)) {
                 /** @var array<string, mixed> $value */
                 $out += self::flattenQuery($value, $full);
                 continue;
             }
-            if (is_scalar($value) || $value === null) {
+            if (\is_scalar($value) || $value === null) {
                 $out[$full] = (string) $value;
             }
         }
@@ -141,12 +141,12 @@ final class Request
             'Authorization',
         ] as $key) {
             $value = $_SERVER[$key] ?? null;
-            if (is_string($value) && $value !== '') {
+            if (\is_string($value) && $value !== '') {
                 return $value;
             }
         }
 
-        if (function_exists('apache_request_headers')) {
+        if (\function_exists('apache_request_headers')) {
             /** @var array<string, string> $apacheHeaders */
             $apacheHeaders = apache_request_headers();
             foreach ($apacheHeaders as $name => $value) {
@@ -179,7 +179,7 @@ final class Request
      */
     public function json(): array
     {
-        return is_array($this->body) ? $this->body : [];
+        return \is_array($this->body) ? $this->body : [];
     }
 
     public function query(string $key, ?string $default = null): ?string

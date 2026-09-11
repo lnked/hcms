@@ -25,16 +25,16 @@ final class KeyValueService
     public function getApiSettings(): array
     {
         $raw = $this->settings->get(self::SETTINGS_KEY);
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             return self::defaultApiSettings();
         }
 
         return [
-            'enabled' => array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
-            'path' => isset($raw['path']) && is_string($raw['path']) && $raw['path'] !== ''
+            'enabled' => \array_key_exists('enabled', $raw) ? (bool) $raw['enabled'] : true,
+            'path' => isset($raw['path']) && \is_string($raw['path']) && $raw['path'] !== ''
                 ? self::normalizePath($raw['path'])
                 : self::DEFAULT_PATH,
-            'requireToken' => array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
+            'requireToken' => \array_key_exists('requireToken', $raw) ? (bool) $raw['requireToken'] : false,
         ];
     }
 
@@ -44,9 +44,9 @@ final class KeyValueService
      */
     public function saveApiSettings(array $payload): array
     {
-        $enabled = array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
-        $requireToken = array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false;
-        $path = isset($payload['path']) && is_string($payload['path'])
+        $enabled = \array_key_exists('enabled', $payload) ? (bool) $payload['enabled'] : true;
+        $requireToken = \array_key_exists('requireToken', $payload) ? (bool) $payload['requireToken'] : false;
+        $path = isset($payload['path']) && \is_string($payload['path'])
             ? self::normalizePath($payload['path'])
             : self::DEFAULT_PATH;
         self::assertValidPath($path);
@@ -125,7 +125,7 @@ final class KeyValueService
         if ($this->entries->findByKey($key) !== null) {
             throw new InvalidArgumentException('key already exists');
         }
-        if (!array_key_exists('value', $payload)) {
+        if (!\array_key_exists('value', $payload)) {
             throw new InvalidArgumentException('value is required');
         }
 
@@ -148,7 +148,7 @@ final class KeyValueService
             throw new RuntimeException('Key-value entry not found', 404);
         }
         $data = ['updated_by' => $userId];
-        if (array_key_exists('value', $payload)) {
+        if (\array_key_exists('value', $payload)) {
             $data['value_json'] = $this->encodeValue($payload['value']);
         }
 
@@ -201,7 +201,7 @@ final class KeyValueService
      */
     private function normalizeKey(array $payload): string
     {
-        $key = isset($payload['key']) && is_string($payload['key'])
+        $key = isset($payload['key']) && \is_string($payload['key'])
             ? trim($payload['key'])
             : '';
         if ($key === '' || !preg_match('/^[a-z][a-zA-Z0-9_]{0,63}$/', $key)) {
@@ -225,7 +225,7 @@ final class KeyValueService
 
     private function decodeValue(mixed $raw): mixed
     {
-        if (!is_string($raw)) {
+        if (!\is_string($raw)) {
             return $raw;
         }
         $decoded = json_decode($raw, true);
@@ -272,8 +272,8 @@ final class KeyValueService
 
         return [
             'id' => (int) $id,
-            'name' => is_string($name) ? $name : '',
-            'email' => is_string($email) ? $email : '',
+            'name' => \is_string($name) ? $name : '',
+            'email' => \is_string($email) ? $email : '',
         ];
     }
 }

@@ -1,4 +1,6 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { useQuery } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import {
   Activity,
   BookOpen,
@@ -27,19 +29,17 @@ import {
 } from 'lucide-react'
 import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { clsx } from 'clsx'
 import { PageSkeleton } from '@/components/skeletons'
-import { api, clearToken } from '@/lib/api'
-import { queryKeys } from '@/lib/queryKeys'
-import { useAuthMe } from '@/hooks/useAcl'
-import { isLocale, useI18n } from '@/i18n'
-import type { SystemVersion } from '@/types/system'
-import { canAccessNav, type AdminRole, type AdminSection } from '@/lib/rbac'
 import { Button } from '@/components/ui/button'
 import { WhatsNewDialog } from '@/features/changelog/WhatsNewDialog'
+import { useAuthMe } from '@/hooks/useAcl'
+import { isLocale, useI18n } from '@/i18n'
+import { api, clearToken } from '@/lib/api'
+import { queryKeys } from '@/lib/queryKeys'
+import { canAccessNav, type AdminRole, type AdminSection } from '@/lib/rbac'
 import { useTheme } from '@/theme'
 import styles from './AppShell.module.css'
+import type { SystemVersion } from '@/types/system'
 
 const SIDEBAR_COLLAPSED_KEY = 'hcms.sidebar.collapsed'
 

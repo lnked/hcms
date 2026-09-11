@@ -49,9 +49,10 @@ final class PostmarkTransport implements MailTransport
         }
 
         $decoded = json_decode($responseBody, true);
-        $errorMessage = is_array($decoded)
+        $errorMessage = \is_array($decoded)
             ? (MailHttp::jsonErrorMessage($decoded) ?? ('Postmark request failed with HTTP ' . $status))
             : ('Postmark request failed with HTTP ' . $status);
+
         throw new MailProviderException($errorMessage, $status >= 400 && $status < 600 ? $status : 502);
     }
 }

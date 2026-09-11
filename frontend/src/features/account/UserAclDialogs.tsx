@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 import { PasswordField } from '@/components/PasswordField'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,10 +14,10 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { showSuccess } from '@/lib/toast'
 import { ADMIN_SECTIONS, RESOURCE_TABS, type AdminSection, type ResourceTab } from '@/lib/rbac'
-import type { Resource } from '@/types/resource'
+import { showSuccess } from '@/lib/toast'
 import styles from './UserAclDialogs.module.css'
+import type { Resource } from '@/types/resource'
 
 export interface UserAclPayload {
   aclEnabled: boolean

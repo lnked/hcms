@@ -166,10 +166,10 @@ final class UptimeController
                 $auth->userId(),
                 'uptime',
                 null,
-                ['checked' => count($results)],
+                ['checked' => \count($results)],
             );
 
-            return Response::data(['results' => $results, 'checked' => count($results)]);
+            return Response::data(['results' => $results, 'checked' => \count($results)]);
         } catch (Throwable $e) {
             return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
         }

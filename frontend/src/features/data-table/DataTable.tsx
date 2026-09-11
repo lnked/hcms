@@ -1,5 +1,5 @@
-import { Pencil, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -12,16 +12,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n, type MessageKey } from '@/i18n'
+import { configString } from '@/lib/coerce'
 import { formatDateValue } from '@/lib/dateFormat'
-import type { SchemaField } from '@/types/field'
-import type { ResourceListColumn } from '@/types/resource'
 import { resolveColumns, type TableColumn } from './columns'
+import styles from './DataTable.module.css'
 import { FilterControl } from './FilterControl'
 import { isFilterable } from './filters'
 import { MediaCell } from './MediaCell'
 import { RelationCell } from './RelationCell'
 import { isManyToOneRelation, type RelationTarget } from './useRelationLabels'
-import styles from './DataTable.module.css'
+import type { SchemaField } from '@/types/field'
+import type { ResourceListColumn } from '@/types/resource'
 
 export type EntryRow = Record<string, unknown> & { id: number }
 
@@ -258,10 +259,10 @@ function formatCell(
   if (typeof value === 'boolean') return value ? t('common.yes') : t('common.no')
   if (typeof value === 'object') return JSON.stringify(value)
   if (field.type === 'date' || field.type === 'datetime') {
-    const format = typeof field.config.format === 'string' ? field.config.format.trim() : ''
+    const format = configString(field.config.format).trim()
     if (format !== '') {
-      return formatDateValue(value, format) ?? String(value)
+      return formatDateValue(value, format) ?? configString(value)
     }
   }
-  return String(value)
+  return configString(value)
 }

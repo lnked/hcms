@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,11 +10,11 @@ import { useI18n } from '@/i18n'
 import { api, getToken } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
 import { showError } from '@/lib/toast'
+import { buildResourceFetchExample } from './buildResourceFetchExample'
+import styles from './ResourceApiPlayground.module.css'
 import type { SchemaField } from '@/types/field'
 import type { Resource } from '@/types/resource'
 import type { ResourceCustomApi } from '@/types/resourceApi'
-import { buildResourceFetchExample } from './buildResourceFetchExample'
-import styles from './ResourceApiPlayground.module.css'
 
 interface ResourceApiPlaygroundProps {
   resource: Resource
@@ -188,9 +188,11 @@ export function ResourceApiPlayground({
               className={styles.endpointBtn}
               onClick={() => {
                 const match = line.match(/^(GET|POST|PATCH|DELETE)\s+(\S+)/)
-                if (!match) return
-                setMethod(match[1] as HttpMethod)
-                setPath(match[2].replace(/\/:id$/, '/1'))
+                const method = match?.[1]
+                const pathPart = match?.[2]
+                if (!method || !pathPart) return
+                setMethod(method as HttpMethod)
+                setPath(pathPart.replace(/\/:id$/, '/1'))
                 setMessage(null)
               }}
             >

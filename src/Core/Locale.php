@@ -13,11 +13,11 @@ final class Locale
     {
         $language = strtolower(trim($language));
 
-        return in_array($language, self::SUPPORTED, true) ? $language : 'en';
+        return \in_array($language, self::SUPPORTED, true) ? $language : 'en';
     }
 
     public static function isSupported(string $language): bool
     {
-        return in_array(strtolower(trim($language)), self::SUPPORTED, true);
+        return \in_array(strtolower(trim($language)), self::SUPPORTED, true);
     }
 }

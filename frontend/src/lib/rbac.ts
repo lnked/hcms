@@ -53,7 +53,7 @@ export const RESOURCE_TABS: ResourceTab[] = [
   'export',
 ]
 
-export const ROLE_RANK: Record<string, number> = {
+const ROLE_RANK: Record<string, number> = {
   viewer: 1,
   editor: 2,
   admin: 3,
@@ -91,10 +91,7 @@ export interface ResourceGrant {
   tabs: ResourceTab[]
 }
 
-export function resourceGrantFor(
-  user: AuthUser | undefined,
-  resourceId: number,
-): ResourceGrant | null {
+function resourceGrantFor(user: AuthUser | undefined, resourceId: number): ResourceGrant | null {
   if (!user || user.role === 'owner' || !user.aclEnabled) {
     return null
   }

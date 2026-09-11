@@ -1,17 +1,19 @@
-import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
+import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
 import { AnchorPicker } from '@/components/AnchorPicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { controlFieldClass } from '@/components/ui/control'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { controlFieldClass } from '@/components/ui/control'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { configString } from '@/lib/coerce'
+import { slugifyIdentifier } from '@/lib/slugify'
 import {
   DEFAULT_DATE_FORMAT,
   DEFAULT_DATETIME_FORMAT,
@@ -21,7 +23,6 @@ import {
   type ImageSizeConfig,
   type SchemaField,
 } from '@/types/field'
-import { slugifyIdentifier } from '@/lib/slugify'
 import styles from './SchemaBuilder.module.css'
 
 interface SchemaBuilderProps {
@@ -87,6 +88,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     if (from === to || from < 0 || to < 0 || from >= schema.length || to >= schema.length) return
     const next = [...schema]
     const [moved] = next.splice(from, 1)
+    if (moved === undefined) return
     next.splice(to, 0, moved)
     onChange(next.map((field, i) => ({ ...field, sortOrder: i })))
     setEditingIndex((current) => {
@@ -117,7 +119,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
     let insertBefore = rows.length
     for (let i = 0; i < rows.length; i += 1) {
-      if (y < rows[i].top + rows[i].height / 2) {
+      const row = rows[i]
+      if (row === undefined) continue
+      if (y < row.top + row.height / 2) {
         insertBefore = i
         break
       }
@@ -205,6 +209,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
   function changeType(index: number, type: FieldTypeName) {
     const field = schema[index]
+    if (field === undefined) return
     const base = emptyField(type, field.sortOrder)
     updateAt(index, {
       ...base,
@@ -218,6 +223,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
   function patchConfig(index: number, patch: Record<string, unknown>) {
     const field = schema[index]
+    if (field === undefined) return
     const nextConfig = { ...field.config, ...patch }
     const cardinality = nextConfig.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
     updateAt(index, {
@@ -446,7 +452,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     <div className={clsx(styles.field, styles.span2)}>
                       <Label>{t('schema.date.format')}</Label>
                       <Input
-                        value={String(field.config.format ?? '')}
+                        value={configString(field.config.format)}
                         maxLength={32}
                         placeholder={
                           field.type === 'date' ? DEFAULT_DATE_FORMAT : DEFAULT_DATETIME_FORMAT
@@ -460,7 +466,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                     <div className={clsx(styles.field, styles.span2)}>
                       <Label>{t('schema.slug.associatedWith')}</Label>
                       <Select
-                        value={String(field.config.associatedWith ?? '')}
+                        value={configString(field.config.associatedWith)}
                         onChange={(e) => patchConfig(index, { associatedWith: e.target.value })}
                       >
                         <option value="">—</option>
@@ -554,8 +560,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            const sizes = Array.isArray(field.config.sizes)
-                              ? ([...field.config.sizes] as ImageSizeConfig[])
+                            const existing = field.config.sizes
+                            const sizes: ImageSizeConfig[] = Array.isArray(existing)
+                              ? (existing as ImageSizeConfig[]).slice()
                               : []
                             sizes.push({
                               prefix: `size${sizes.length + 1}`,
@@ -585,8 +592,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               placeholder="crop"
                               onChange={(e) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                const current = sizes[sizeIndex]
+                                if (current === undefined) return
                                 sizes[sizeIndex] = {
-                                  ...sizes[sizeIndex],
+                                  ...current,
                                   prefix: slugifyIdentifier(e.target.value, 32),
                                 }
                                 patchConfig(index, { sizes })
@@ -602,8 +611,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               value={size.width}
                               onChange={(e) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                const current = sizes[sizeIndex]
+                                if (current === undefined) return
                                 sizes[sizeIndex] = {
-                                  ...sizes[sizeIndex],
+                                  ...current,
                                   width: Number(e.target.value) || 1,
                                 }
                                 patchConfig(index, { sizes })
@@ -619,8 +630,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               value={size.height}
                               onChange={(e) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                const current = sizes[sizeIndex]
+                                if (current === undefined) return
                                 sizes[sizeIndex] = {
-                                  ...sizes[sizeIndex],
+                                  ...current,
                                   height: Number(e.target.value) || 1,
                                 }
                                 patchConfig(index, { sizes })
@@ -644,8 +657,10 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                                 checked={size.mode === 'resize'}
                                 onCheckedChange={(checked) => {
                                   const sizes = [...(field.config.sizes as ImageSizeConfig[])]
+                                  const current = sizes[sizeIndex]
+                                  if (current === undefined) return
                                   sizes[sizeIndex] = {
-                                    ...sizes[sizeIndex],
+                                    ...current,
                                     mode: checked ? 'resize' : 'crop',
                                   }
                                   patchConfig(index, { sizes })
@@ -669,7 +684,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                               title={t('schema.image.position')}
                               onChange={(position) => {
                                 const sizes = [...(field.config.sizes as ImageSizeConfig[])]
-                                sizes[sizeIndex] = { ...sizes[sizeIndex], position }
+                                const current = sizes[sizeIndex]
+                                if (current === undefined) return
+                                sizes[sizeIndex] = { ...current, position }
                                 patchConfig(index, { sizes })
                               }}
                             />
@@ -697,7 +714,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       <div className={styles.field}>
                         <Label>{t('schema.relation.relatedSlug')}</Label>
                         <Input
-                          value={String(field.config.relatedSlug ?? '')}
+                          value={configString(field.config.relatedSlug)}
                           onChange={(e) => patchConfig(index, { relatedSlug: e.target.value })}
                           placeholder="posts"
                         />
@@ -724,7 +741,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       <div className={styles.field}>
                         <Label>{t('schema.relation.labelField')}</Label>
                         <Input
-                          value={String(field.config.labelField ?? 'id')}
+                          value={configString(field.config.labelField, 'id')}
                           onChange={(e) => patchConfig(index, { labelField: e.target.value })}
                           placeholder="title"
                         />
@@ -733,7 +750,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         <div className={styles.field}>
                           <Label>{t('schema.relation.foreignKey')}</Label>
                           <Input
-                            value={String(field.config.foreignKey ?? '')}
+                            value={configString(field.config.foreignKey)}
                             onChange={(e) => patchConfig(index, { foreignKey: e.target.value })}
                             placeholder="post_id"
                           />

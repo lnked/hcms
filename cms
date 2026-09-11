@@ -29,7 +29,9 @@ require $root . '/vendor/autoload.php';
 $argv = $_SERVER['argv'] ?? [];
 array_shift($argv);
 $command = $argv[0] ?? null;
-$options = parseCliOptions(array_slice($argv, 1));
+/** @var list<string> $cliArgs */
+$cliArgs = array_values(array_map(static fn (mixed $v): string => (string) $v, array_slice($argv, 1)));
+$options = parseCliOptions($cliArgs);
 
 $paths = new Paths($root);
 $env = new Env();

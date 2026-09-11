@@ -28,12 +28,12 @@ final class OriginMatcher
         }
 
         $parts = parse_url($raw);
-        if (!is_array($parts)) {
+        if (!\is_array($parts)) {
             return null;
         }
         $scheme = strtolower((string) ($parts['scheme'] ?? ''));
         $host = strtolower((string) ($parts['host'] ?? ''));
-        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || !self::isValidHostPattern($host)) {
+        if (!\in_array($scheme, ['http', 'https'], true) || $host === '' || !self::isValidHostPattern($host)) {
             return null;
         }
         $port = isset($parts['port']) ? (int) $parts['port'] : null;

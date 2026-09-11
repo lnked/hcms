@@ -1,5 +1,5 @@
-import type { SchemaField } from '@/types/field'
 import { isManyToOneRelation } from './useRelationLabels'
+import type { SchemaField } from '@/types/field'
 
 /** Control the filter row renders for a column, picked from the field type. */
 export type FilterControlKind =

@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { LayoutGrid, Sparkles, Table2, Upload } from 'lucide-react'
-import { MediaGridSkeleton, TableSkeleton } from '@/components/skeletons'
+import { ExternalLink, LayoutGrid, Sparkles, Table2, Trash2, Upload } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { MediaGridSkeleton, TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -16,9 +16,9 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api, apiPage, apiUpload } from '@/lib/api'
-import type { MediaItem } from '@/types/media'
-import { OptimizeImageDialog } from './OptimizeImageDialog'
 import styles from './MediaPage.module.css'
+import { OptimizeImageDialog } from './OptimizeImageDialog'
+import type { MediaItem } from '@/types/media'
 
 type MediaView = 'list' | 'table'
 
@@ -65,12 +65,13 @@ export function MediaPage() {
       setProgress({ done: 0, total: queue.length })
       const failures: string[] = []
       for (let i = 0; i < queue.length; i++) {
+        const file = queue[i]
+        if (file === undefined) continue
         try {
-          await apiUpload<MediaItem>('/admin/api/media', queue[i]!)
+          await apiUpload<MediaItem>('/admin/api/media', file)
         } catch (err) {
-          const name = queue[i]!.name
           const msg = err instanceof Error ? err.message : t('common.uploadFailed')
-          failures.push(`${name}: ${msg}`)
+          failures.push(`${file.name}: ${msg}`)
         }
         setProgress({ done: i + 1, total: queue.length })
       }
@@ -378,8 +379,10 @@ export function MediaPage() {
                         target="_blank"
                         rel="noreferrer"
                         className={clsx(styles.openLink)}
+                        title={t('common.open')}
+                        aria-label={t('common.open')}
                       >
-                        {t('common.open')}
+                        <ExternalLink className={clsx(styles.cardIcon)} aria-hidden />
                       </a>
                       {canOptimize(item) ? (
                         <Button
@@ -396,10 +399,12 @@ export function MediaPage() {
                       <Button
                         size="sm"
                         variant="destructive"
-                        className={clsx(styles.cardDeleteBtn)}
+                        className={clsx(styles.cardIconBtn)}
+                        title={t('common.delete')}
+                        aria-label={t('common.delete')}
                         onClick={() => confirmDelete(item)}
                       >
-                        {t('common.delete')}
+                        <Trash2 className={clsx(styles.cardIcon)} aria-hidden />
                       </Button>
                     </div>
                   </div>
@@ -467,20 +472,30 @@ export function MediaPage() {
                           target="_blank"
                           rel="noreferrer"
                           className={clsx(styles.openLinkTable)}
+                          title={t('common.open')}
+                          aria-label={t('common.open')}
                         >
-                          {t('common.open')}
+                          <ExternalLink className={clsx(styles.cardIcon)} aria-hidden />
                         </a>
                         {canOptimize(item) ? (
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="outline"
+                            title={t('media.optimize')}
+                            aria-label={t('media.optimize')}
                             onClick={() => setOptimizeIds([item.id])}
                           >
-                            {t('media.optimize')}
+                            <Sparkles className={clsx(styles.cardIcon)} aria-hidden />
                           </Button>
                         ) : null}
-                        <Button size="sm" variant="destructive" onClick={() => confirmDelete(item)}>
-                          {t('common.delete')}
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          title={t('common.delete')}
+                          aria-label={t('common.delete')}
+                          onClick={() => confirmDelete(item)}
+                        >
+                          <Trash2 className={clsx(styles.cardIcon)} aria-hidden />
                         </Button>
                       </div>
                     </TableCell>

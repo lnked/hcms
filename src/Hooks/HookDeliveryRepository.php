@@ -31,7 +31,7 @@ final class HookDeliveryRepository
     {
         $now = date('Y-m-d H:i:s');
         $responseBody = $data['response_body'];
-        if (is_string($responseBody) && strlen($responseBody) > 4000) {
+        if (\is_string($responseBody) && \strlen($responseBody) > 4000) {
             $responseBody = substr($responseBody, 0, 3997) . '...';
         }
 

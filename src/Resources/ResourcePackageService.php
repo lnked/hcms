@@ -66,11 +66,11 @@ final class ResourcePackageService
         $apis = array_map([$this, 'exportApi'], $apiRows);
 
         $settings = $resource['settings_json'] ?? [];
-        if (is_string($settings)) {
+        if (\is_string($settings)) {
             $decoded = json_decode($settings, true);
-            $settings = is_array($decoded) ? $decoded : [];
+            $settings = \is_array($decoded) ? $decoded : [];
         }
-        if (!is_array($settings)) {
+        if (!\is_array($settings)) {
             $settings = [];
         }
 
@@ -103,7 +103,7 @@ final class ResourcePackageService
             }
             $slug = (string) $resource['slug'];
             $entries = $this->query->listAll($slug);
-            if (count($entries) > self::MAX_ENTRIES) {
+            if (\count($entries) > self::MAX_ENTRIES) {
                 throw new InvalidArgumentException('Export exceeds ' . self::MAX_ENTRIES . ' entries limit');
             }
 
@@ -126,7 +126,7 @@ final class ResourcePackageService
             throw new InvalidArgumentException('Failed to encode package JSON');
         }
         $body .= "\n";
-        if (strlen($body) > self::MAX_BYTES) {
+        if (\strlen($body) > self::MAX_BYTES) {
             throw new InvalidArgumentException('Export package exceeds 50MB limit');
         }
 
@@ -167,30 +167,30 @@ final class ResourcePackageService
         /** @var list<array<string, mixed>> $fields */
         $fields = $package['fields'];
         /** @var list<array<string, mixed>> $apis */
-        $apis = is_array($package['apis'] ?? null) ? $package['apis'] : [];
+        $apis = \is_array($package['apis'] ?? null) ? $package['apis'] : [];
         /** @var list<array<string, mixed>> $entries */
-        $entries = is_array($package['entries'] ?? null) ? $package['entries'] : [];
+        $entries = \is_array($package['entries'] ?? null) ? $package['entries'] : [];
         /** @var list<array<string, mixed>> $mediaItems */
-        $mediaItems = is_array($package['media'] ?? null) ? $package['media'] : [];
+        $mediaItems = \is_array($package['media'] ?? null) ? $package['media'] : [];
 
-        if (count($entries) > self::MAX_ENTRIES) {
+        if (\count($entries) > self::MAX_ENTRIES) {
             throw new InvalidArgumentException('Import exceeds ' . self::MAX_ENTRIES . ' entries limit');
         }
 
         $endpoint = $this->endpointForSlug(
-            is_string($resourceMeta['endpoint'] ?? null) ? (string) $resourceMeta['endpoint'] : '/api/' . $slug,
+            \is_string($resourceMeta['endpoint'] ?? null) ? (string) $resourceMeta['endpoint'] : '/api/' . $slug,
             (string) ($resourceMeta['slug'] ?? $contentType['slug']),
             $slug,
         );
 
-        $settings = is_array($resourceMeta['settings'] ?? null) ? $resourceMeta['settings'] : [];
-        $label = is_string($contentType['label'] ?? null) && trim((string) $contentType['label']) !== ''
+        $settings = \is_array($resourceMeta['settings'] ?? null) ? $resourceMeta['settings'] : [];
+        $label = \is_string($contentType['label'] ?? null) && trim((string) $contentType['label']) !== ''
             ? trim((string) $contentType['label'])
             : $slug;
-        $name = is_string($contentType['name'] ?? null) && trim((string) $contentType['name']) !== ''
+        $name = \is_string($contentType['name'] ?? null) && trim((string) $contentType['name']) !== ''
             ? trim((string) $contentType['name'])
             : $slug;
-        $description = isset($contentType['description']) && is_string($contentType['description'])
+        $description = isset($contentType['description']) && \is_string($contentType['description'])
             ? $contentType['description']
             : null;
 
@@ -215,8 +215,8 @@ final class ResourcePackageService
             if (($field['type'] ?? '') !== 'relation') {
                 continue;
             }
-            $config = is_array($field['config'] ?? null) ? $field['config'] : [];
-            $relatedSlug = isset($config['relatedSlug']) && is_string($config['relatedSlug'])
+            $config = \is_array($field['config'] ?? null) ? $field['config'] : [];
+            $relatedSlug = isset($config['relatedSlug']) && \is_string($config['relatedSlug'])
                 ? trim($config['relatedSlug'])
                 : '';
             if ($relatedSlug === '') {
@@ -230,18 +230,18 @@ final class ResourcePackageService
         }
 
         foreach ($apis as $apiPayload) {
-            if (!is_array($apiPayload)) {
+            if (!\is_array($apiPayload)) {
                 continue;
             }
             $payload = $apiPayload;
             unset($payload['id'], $payload['resourceId'], $payload['path'], $payload['createdAt'], $payload['updatedAt']);
-            $joins = is_array($payload['joins'] ?? null) ? $payload['joins'] : [];
+            $joins = \is_array($payload['joins'] ?? null) ? $payload['joins'] : [];
             $keptJoins = [];
             foreach ($joins as $join) {
-                if (!is_array($join)) {
+                if (!\is_array($join)) {
                     continue;
                 }
-                $relatedSlug = isset($join['relatedSlug']) && is_string($join['relatedSlug'])
+                $relatedSlug = isset($join['relatedSlug']) && \is_string($join['relatedSlug'])
                     ? trim($join['relatedSlug'])
                     : '';
                 $related = $relatedSlug !== '' ? $this->resources->findBySlug($relatedSlug) : null;
@@ -262,11 +262,11 @@ final class ResourcePackageService
 
         $mediaMap = [];
         foreach ($mediaItems as $item) {
-            if (!is_array($item)) {
+            if (!\is_array($item)) {
                 continue;
             }
             $oldId = isset($item['id']) ? (int) $item['id'] : 0;
-            $b64 = isset($item['contentBase64']) && is_string($item['contentBase64'])
+            $b64 = isset($item['contentBase64']) && \is_string($item['contentBase64'])
                 ? $item['contentBase64']
                 : '';
             if ($oldId <= 0 || $b64 === '') {
@@ -281,8 +281,8 @@ final class ResourcePackageService
             try {
                 $created = $this->media->storeFromBytes(
                     $bytes,
-                    is_string($item['originalName'] ?? null) ? (string) $item['originalName'] : 'file.bin',
-                    is_string($item['mime'] ?? null) ? (string) $item['mime'] : 'application/octet-stream',
+                    \is_string($item['originalName'] ?? null) ? (string) $item['originalName'] : 'file.bin',
+                    \is_string($item['mime'] ?? null) ? (string) $item['mime'] : 'application/octet-stream',
                 );
                 $mediaMap[$oldId] = (int) $created['id'];
             } catch (Throwable $e) {
@@ -292,7 +292,7 @@ final class ResourcePackageService
 
         $entryStats = ['created' => 0, 'failed' => 0, 'errors' => []];
         $shouldMaterialize = $entries !== []
-            || (is_string($resourceMeta['status'] ?? null) && $resourceMeta['status'] === 'published');
+            || (\is_string($resourceMeta['status'] ?? null) && $resourceMeta['status'] === 'published');
 
         if ($shouldMaterialize) {
             $this->migrations->applyForResource($resourceId, ['confirmDestructive' => true]);
@@ -327,7 +327,7 @@ final class ResourcePackageService
         return [
             'resource' => $this->resourceService->get($resourceId),
             'slugResolved' => $slug,
-            'mediaRemapped' => count($mediaMap),
+            'mediaRemapped' => \count($mediaMap),
             'entries' => $entryStats,
             'warnings' => $warnings,
         ];
@@ -345,21 +345,21 @@ final class ResourcePackageService
         if ($version !== self::FORMAT_VERSION) {
             throw new InvalidArgumentException('Unsupported package formatVersion');
         }
-        if (!is_array($package['contentType'] ?? null)) {
+        if (!\is_array($package['contentType'] ?? null)) {
             throw new InvalidArgumentException('Package contentType is required');
         }
-        if (!is_array($package['resource'] ?? null)) {
+        if (!\is_array($package['resource'] ?? null)) {
             throw new InvalidArgumentException('Package resource is required');
         }
-        if (!is_array($package['fields'] ?? null) || !array_is_list($package['fields'])) {
+        if (!\is_array($package['fields'] ?? null) || !array_is_list($package['fields'])) {
             throw new InvalidArgumentException('Package fields must be a list');
         }
         $slug = $package['contentType']['slug'] ?? null;
-        if (!is_string($slug) || !Slug::isValid($slug)) {
+        if (!\is_string($slug) || !Slug::isValid($slug)) {
             throw new InvalidArgumentException('Package contentType.slug is invalid');
         }
         $label = $package['contentType']['label'] ?? null;
-        if (!is_string($label) || trim($label) === '') {
+        if (!\is_string($label) || trim($label) === '') {
             throw new InvalidArgumentException('Package contentType.label is required');
         }
     }
@@ -384,7 +384,7 @@ final class ResourcePackageService
 
         for ($i = 2; $i <= 999; $i++) {
             $suffix = '_' . $i;
-            $base = substr($desired, 0, max(1, 48 - strlen($suffix)));
+            $base = substr($desired, 0, max(1, 48 - \strlen($suffix)));
             $candidate = $base . $suffix;
             if (!Slug::isValid($candidate)) {
                 continue;
@@ -407,7 +407,7 @@ final class ResourcePackageService
         $ids = [];
         foreach ($entries as $entry) {
             foreach ($mediaFieldNames as $name) {
-                if (!array_key_exists($name, $entry) || $entry[$name] === null || $entry[$name] === '') {
+                if (!\array_key_exists($name, $entry) || $entry[$name] === null || $entry[$name] === '') {
                     continue;
                 }
                 foreach (MediaValue::collectIds($entry[$name]) as $id) {
@@ -431,7 +431,7 @@ final class ResourcePackageService
         foreach ($entries as $entry) {
             $row = $entry;
             foreach ($mediaFieldNames as $name) {
-                if (!array_key_exists($name, $row) || $row[$name] === null || $row[$name] === '') {
+                if (!\array_key_exists($name, $row) || $row[$name] === null || $row[$name] === '') {
                     continue;
                 }
                 $row[$name] = MediaValue::remapIds($row[$name], $mediaMap);
@@ -451,7 +451,7 @@ final class ResourcePackageService
         $payload = [];
         foreach ($row as $key => $value) {
             $name = (string) $key;
-            if (in_array($name, self::SYSTEM_ENTRY_KEYS, true)) {
+            if (\in_array($name, self::SYSTEM_ENTRY_KEYS, true)) {
                 continue;
             }
             $payload[$name] = $value;
@@ -471,7 +471,7 @@ final class ResourcePackageService
     {
         $endpoint = ResourceService::normalizeEndpoint($originalEndpoint);
         if (str_ends_with($endpoint, '/' . $originalSlug)) {
-            $endpoint = substr($endpoint, 0, -strlen($originalSlug)) . $newSlug;
+            $endpoint = substr($endpoint, 0, -\strlen($originalSlug)) . $newSlug;
         } elseif (preg_match('#^/api(?:/v1)?/#', $endpoint) === 1) {
             $prefix = str_starts_with($endpoint, '/api/v1/') ? '/api/v1/' : '/api/';
             $endpoint = $prefix . $newSlug;

@@ -1,3 +1,4 @@
+import { clsx } from 'clsx'
 import {
   Bar,
   BarChart,
@@ -10,7 +11,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { clsx } from 'clsx'
 import { useI18n } from '@/i18n'
 import styles from './DashboardCharts.module.css'
 

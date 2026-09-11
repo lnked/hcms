@@ -1,11 +1,11 @@
 import type { Resource } from '@/types/resource'
 
-export function resolveApiOrigin(origin?: string): string {
+function resolveApiOrigin(origin?: string): string {
   const value = (origin ?? (typeof window !== 'undefined' ? window.location.origin : '')).trim()
   return value.replace(/\/$/, '')
 }
 
-export function buildResourceFetchUrl(
+function buildResourceFetchUrl(
   endpoint: string,
   options?: { origin?: string; query?: string },
 ): string {

@@ -25,11 +25,11 @@ final class ImageType extends AbstractFieldType
 
     public function validateConfig(array $config): void
     {
-        if (array_key_exists('multiple', $config) && !is_bool($config['multiple'])) {
+        if (\array_key_exists('multiple', $config) && !\is_bool($config['multiple'])) {
             throw new InvalidArgumentException('image.multiple must be boolean');
         }
         $formats = $config['formats'] ?? [];
-        if (!is_array($formats)) {
+        if (!\is_array($formats)) {
             throw new InvalidArgumentException('image.formats must be an array');
         }
         MediaFieldConfig::normalizeFormats($formats, MediaFieldConfig::IMAGE_FORMATS);

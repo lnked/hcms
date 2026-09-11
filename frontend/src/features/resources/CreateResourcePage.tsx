@@ -1,16 +1,16 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { FieldError } from '@/components/FieldError'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
-import type { Resource } from '@/types/resource'
 import styles from './CreateResourcePage.module.css'
+import type { Resource } from '@/types/resource'
 
 function slugify(value: string): string {
   return value
@@ -75,7 +75,7 @@ export function CreateResourcePage() {
         }),
       })
       showSuccess(t('common.saved'))
-      navigate(`/resources/${resource.id}/overview`)
+      void navigate(`/resources/${resource.id}/overview`)
     } catch (err) {
       setFieldErrors(apiFieldErrors(err))
     } finally {
@@ -95,7 +95,12 @@ export function CreateResourcePage() {
           <CardDescription>{t('resources.generalHint')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className={styles.form} onSubmit={onSubmit}>
+          <form
+            className={styles.form}
+            onSubmit={(e) => {
+              void onSubmit(e)
+            }}
+          >
             <div className={styles.field}>
               <Label htmlFor="label">{t('common.label')}</Label>
               <Input
@@ -161,7 +166,13 @@ export function CreateResourcePage() {
               <Button type="submit" disabled={pending}>
                 {pending ? t('common.creating') : t('common.create')}
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/resources')}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  void navigate('/resources')
+                }}
+              >
                 {t('common.cancel')}
               </Button>
             </div>

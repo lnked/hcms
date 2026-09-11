@@ -75,11 +75,11 @@
 
 .selectBtn {
   text-align: left;
-  font-weight: 500;
   border: none;
   background: transparent;
   padding: 0;
   font: inherit;
+  font-weight: 500;
   color: inherit;
   cursor: pointer;
 }

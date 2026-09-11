@@ -51,7 +51,7 @@ final class AuditRepository
      */
     private function serialize(array $row): array
     {
-        $meta = is_string($row['metadata_json'] ?? null)
+        $meta = \is_string($row['metadata_json'] ?? null)
             ? json_decode((string) $row['metadata_json'], true)
             : $row['metadata_json'];
 
@@ -61,7 +61,7 @@ final class AuditRepository
             'action' => $row['action'],
             'entityType' => $row['entity_type'],
             'entityId' => $row['entity_id'],
-            'metadata' => is_array($meta) ? $meta : [],
+            'metadata' => \is_array($meta) ? $meta : [],
             'ip' => $row['ip'],
             'userAgent' => $row['user_agent'],
             'createdAt' => $row['created_at'],

@@ -37,7 +37,7 @@ final class LogsController
         unset($auth);
         $page = max(1, (int) ($request->query['page'] ?? 1));
         $limit = max(1, (int) ($request->query['limit'] ?? 50));
-        $path = isset($request->query['path']) && is_string($request->query['path'])
+        $path = isset($request->query['path']) && \is_string($request->query['path'])
             ? $request->query['path']
             : null;
         $minStatus = isset($request->query['minStatus']) ? (int) $request->query['minStatus'] : null;
@@ -88,8 +88,8 @@ final class LogsController
             return Response::error('SERVICE_UNAVAILABLE', 'Unavailable', 503);
         }
         $payload = $request->json();
-        $ip = isset($payload['ip']) && is_string($payload['ip']) ? trim($payload['ip']) : '';
-        $reason = isset($payload['reason']) && is_string($payload['reason']) ? trim($payload['reason']) : 'manual';
+        $ip = isset($payload['ip']) && \is_string($payload['ip']) ? trim($payload['ip']) : '';
+        $reason = isset($payload['reason']) && \is_string($payload['reason']) ? trim($payload['reason']) : 'manual';
         $ttl = isset($payload['ttlSeconds']) ? (int) $payload['ttlSeconds'] : 3600;
         if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
             return Response::error('VALIDATION_ERROR', 'Valid IP is required', 422);

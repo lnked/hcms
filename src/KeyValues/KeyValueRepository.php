@@ -109,7 +109,7 @@ final class KeyValueRepository
         $sets = [];
         $params = ['id' => $id, 'updated_at' => date('Y-m-d H:i:s')];
         foreach (['value_json', 'updated_by'] as $col) {
-            if (array_key_exists($col, $data)) {
+            if (\array_key_exists($col, $data)) {
                 $sets[] = $col . ' = :' . $col;
                 $params[$col] = $data[$col];
             }

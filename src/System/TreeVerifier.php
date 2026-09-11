@@ -87,13 +87,13 @@ final class TreeVerifier
 
         // Generated maps only return arrays; including them cannot boot the app.
         $classmap = @include $classmapFile;
-        if (!is_array($classmap) || $classmap === []) {
+        if (!\is_array($classmap) || $classmap === []) {
             return ['vendor/composer/autoload_classmap.php did not return a class map'];
         }
 
         $problems = [];
         foreach ($classmap as $class => $file) {
-            if (!is_string($file) || is_file($file)) {
+            if (!\is_string($file) || is_file($file)) {
                 continue;
             }
             $problems[] = 'class map points outside the tree (vendor built at the wrong depth?): '
@@ -102,10 +102,10 @@ final class TreeVerifier
         }
 
         $psr4 = @include $root . '/vendor/composer/autoload_psr4.php';
-        if (is_array($psr4)) {
+        if (\is_array($psr4)) {
             foreach ($psr4 as $prefix => $dirs) {
                 foreach ((array) $dirs as $dir) {
-                    if (is_string($dir) && !is_dir($dir)) {
+                    if (\is_string($dir) && !is_dir($dir)) {
                         $problems[] = 'PSR-4 prefix ' . $prefix . ' points at a missing directory: ' . $dir;
                     }
                 }

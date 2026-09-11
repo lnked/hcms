@@ -20,7 +20,7 @@ final class MediaAccess
 
         $allowed = $scope->allowedResourceIds ?? [];
         foreach ($refResourceIds as $resourceId) {
-            if (in_array($resourceId, $allowed, true)) {
+            if (\in_array($resourceId, $allowed, true)) {
                 return true;
             }
         }

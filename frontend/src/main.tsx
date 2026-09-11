@@ -1,6 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppRouter } from '@/app/router'
 import { I18nProvider, LocaleBootstrap } from '@/i18n'
 import { ThemeProvider } from '@/theme'

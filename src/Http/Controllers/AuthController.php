@@ -42,11 +42,11 @@ final class AuthController
     public function login(Request $request): Response
     {
         $payload = $request->json();
-        $email = isset($payload['email']) && is_string($payload['email']) ? trim($payload['email']) : '';
-        $password = isset($payload['password']) && is_string($payload['password']) ? $payload['password'] : '';
-        $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $email = isset($payload['email']) && \is_string($payload['email']) ? trim($payload['email']) : '';
+        $password = isset($payload['password']) && \is_string($payload['password']) ? $payload['password'] : '';
+        $totpCode = isset($payload['totpCode']) && \is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
         $remember = $this->wantsRemember($payload);
-        $captchaToken = isset($payload['captchaToken']) && is_string($payload['captchaToken'])
+        $captchaToken = isset($payload['captchaToken']) && \is_string($payload['captchaToken'])
             ? $payload['captchaToken']
             : ($request->header('x-captcha-token') ?? '');
 
@@ -167,12 +167,12 @@ final class AuthController
             return Response::error('SERVICE_UNAVAILABLE', 'Unavailable', 503);
         }
         $payload = $request->json();
-        $code = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $code = isset($payload['totpCode']) && \is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
         $user = $this->users->find($auth->userId());
         if ($user === null) {
             return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
         }
-        $secret = is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
+        $secret = \is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
         if ($secret === '') {
             return Response::error('VALIDATION_ERROR', 'Call totp setup first', 422);
         }
@@ -191,7 +191,7 @@ final class AuthController
             return Response::error('SERVICE_UNAVAILABLE', 'Unavailable', 503);
         }
         $payload = $request->json();
-        $password = isset($payload['password']) && is_string($payload['password']) ? $payload['password'] : '';
+        $password = isset($payload['password']) && \is_string($payload['password']) ? $payload['password'] : '';
         $user = $this->tokens->userByEmail((string) ($auth->user['email'] ?? ''));
         if ($user === null || !Password::verify($password, (string) $user['password_hash'])) {
             return Response::error('UNAUTHORIZED', 'Invalid password', 401);
@@ -210,10 +210,10 @@ final class AuthController
         }
 
         $payload = $request->json();
-        $current = isset($payload['currentPassword']) && is_string($payload['currentPassword'])
+        $current = isset($payload['currentPassword']) && \is_string($payload['currentPassword'])
             ? $payload['currentPassword']
             : '';
-        $new = isset($payload['newPassword']) && is_string($payload['newPassword'])
+        $new = isset($payload['newPassword']) && \is_string($payload['newPassword'])
             ? $payload['newPassword']
             : '';
 
@@ -267,8 +267,8 @@ final class AuthController
     public function totpComplete(Request $request): Response
     {
         $payload = $request->json();
-        $ticket = isset($payload['ticket']) && is_string($payload['ticket']) ? $payload['ticket'] : '';
-        $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $ticket = isset($payload['ticket']) && \is_string($payload['ticket']) ? $payload['ticket'] : '';
+        $totpCode = isset($payload['totpCode']) && \is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
         $remember = $this->wantsRemember($payload);
         if ($ticket === '') {
             return Response::error('VALIDATION_ERROR', 'Ticket is required', 422, ['ticket' => ['required']]);
@@ -342,8 +342,8 @@ final class AuthController
 
         try {
             $decoded = $this->oauth->decodeState($state);
-            $intent = isset($decoded['intent']) && is_string($decoded['intent']) ? $decoded['intent'] : 'login';
-            $linkUserId = isset($decoded['userId']) && is_int($decoded['userId'])
+            $intent = isset($decoded['intent']) && \is_string($decoded['intent']) ? $decoded['intent'] : 'login';
+            $linkUserId = isset($decoded['userId']) && \is_int($decoded['userId'])
                 ? $decoded['userId']
                 : (isset($decoded['userId']) && is_numeric($decoded['userId']) ? (int) $decoded['userId'] : null);
             $profile = $this->oauth->exchangeGoogleCode($code);
@@ -418,7 +418,7 @@ final class AuthController
             return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
         }
         $payload = $request->json();
-        $totpCode = isset($payload['totpCode']) && is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
+        $totpCode = isset($payload['totpCode']) && \is_string($payload['totpCode']) ? trim($payload['totpCode']) : '';
         $remember = $this->wantsRemember($payload);
         $guardKey = 'telegram';
 
@@ -525,7 +525,7 @@ final class AuthController
     {
         $email = (string) ($user['email'] ?? '');
         if ((bool) ($user['totp_enabled'] ?? false)) {
-            $secret = is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
+            $secret = \is_string($user['totp_secret'] ?? null) ? (string) $user['totp_secret'] : '';
             if ($totpCode === '') {
                 return Response::error('TOTP_REQUIRED', 'Two-factor code required', 401, [
                     'totp' => ['required'],
@@ -564,7 +564,7 @@ final class AuthController
         $ttlHours = $remember
             ? max(1, $this->settings?->int('auth.remember_token_ttl_hours', 720) ?? 720)
             : $this->adminTtlHours;
-        $expiresAt = (new DateTimeImmutable(sprintf('+%d hours', $ttlHours)))->format('Y-m-d H:i:s');
+        $expiresAt = (new DateTimeImmutable(\sprintf('+%d hours', $ttlHours)))->format('Y-m-d H:i:s');
         $issued = $this->tokens->issue('admin', (int) $user['id'], 'admin-session', $expiresAt);
 
         return [

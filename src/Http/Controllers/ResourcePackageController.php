@@ -24,7 +24,7 @@ final class ResourcePackageController
     public function export(Request $request, AuthContext $auth, int $id): Response
     {
         try {
-            $includeData = in_array(
+            $includeData = \in_array(
                 strtolower((string) ($request->query['includeData'] ?? '0')),
                 ['1', 'true', 'yes'],
                 true,
@@ -69,7 +69,7 @@ final class ResourcePackageController
                     'slugResolved' => $result['slugResolved'],
                     'mediaRemapped' => $result['mediaRemapped'],
                     'entriesCreated' => $result['entries']['created'],
-                    'warnings' => count($result['warnings']),
+                    'warnings' => \count($result['warnings']),
                 ],
             );
 
@@ -92,7 +92,7 @@ final class ResourcePackageController
     {
         /** @var array<string, mixed>|null $file */
         $file = $_FILES['file'] ?? null;
-        if (is_array($file)) {
+        if (\is_array($file)) {
             $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
             if ($error !== UPLOAD_ERR_OK) {
                 throw new InvalidArgumentException('file upload failed');
@@ -105,29 +105,29 @@ final class ResourcePackageController
             if ($raw === false) {
                 throw new InvalidArgumentException('failed to read uploaded file');
             }
-            if (strlen($raw) > ResourcePackageService::MAX_BYTES) {
+            if (\strlen($raw) > ResourcePackageService::MAX_BYTES) {
                 throw new InvalidArgumentException('Import payload exceeds 50MB limit');
             }
             $decoded = json_decode($raw, true);
-            if (!is_array($decoded)) {
+            if (!\is_array($decoded)) {
                 throw new InvalidArgumentException('Uploaded file must be a JSON package');
             }
-            $slug = isset($_POST['slug']) && is_string($_POST['slug']) ? $_POST['slug'] : null;
+            $slug = isset($_POST['slug']) && \is_string($_POST['slug']) ? $_POST['slug'] : null;
 
             return [$decoded, $slug];
         }
 
         $json = $request->json();
-        if (isset($json['package']) && is_array($json['package'])) {
+        if (isset($json['package']) && \is_array($json['package'])) {
             $package = $json['package'];
-            $slug = isset($json['slug']) && is_string($json['slug']) ? $json['slug'] : null;
+            $slug = isset($json['slug']) && \is_string($json['slug']) ? $json['slug'] : null;
 
             return [$package, $slug];
         }
 
         // Raw package object as body
         if (isset($json['kind']) && $json['kind'] === ResourcePackageService::KIND) {
-            $slug = isset($json['slug']) && is_string($json['slug']) ? $json['slug'] : null;
+            $slug = isset($json['slug']) && \is_string($json['slug']) ? $json['slug'] : null;
             unset($json['slug']);
 
             return [$json, $slug];
@@ -135,11 +135,11 @@ final class ResourcePackageController
 
         $raw = $request->rawBody;
         if (trim($raw) !== '') {
-            if (strlen($raw) > ResourcePackageService::MAX_BYTES) {
+            if (\strlen($raw) > ResourcePackageService::MAX_BYTES) {
                 throw new InvalidArgumentException('Import payload exceeds 50MB limit');
             }
             $decoded = json_decode($raw, true);
-            if (is_array($decoded) && ($decoded['kind'] ?? null) === ResourcePackageService::KIND) {
+            if (\is_array($decoded) && ($decoded['kind'] ?? null) === ResourcePackageService::KIND) {
                 return [$decoded, null];
             }
         }

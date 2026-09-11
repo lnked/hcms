@@ -57,10 +57,10 @@ final class OpenApiGenerator
                 if (($resource['status'] ?? '') !== 'published') {
                     continue;
                 }
-                $settings = is_string($resource['settings_json'])
+                $settings = \is_string($resource['settings_json'])
                     ? json_decode((string) $resource['settings_json'], true)
                     : $resource['settings_json'];
-                if (is_array($settings) && ($settings['apiEnabled'] ?? true) === false) {
+                if (\is_array($settings) && ($settings['apiEnabled'] ?? true) === false) {
                     continue;
                 }
 
@@ -77,7 +77,7 @@ final class OpenApiGenerator
                 $schemas[$schemaName] = $this->itemSchema($fieldRows);
                 $schemas[$inputName] = $this->inputSchema($fieldRows);
 
-                $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+                $public = \is_array($settings['public'] ?? null) ? $settings['public'] : [];
                 $paths['/' . $pathKey] = $this->collectionPath($slug, $tag, $schemaName, $inputName, $public, $fieldRows);
                 $paths['/' . $pathKey . '/{id}'] = $this->itemPath($slug, $tag, $schemaName, $inputName, $public);
 
@@ -86,31 +86,31 @@ final class OpenApiGenerator
                         $apiSlug = (string) $apiRow['slug'];
                         $apiLabel = (string) ($apiRow['label'] ?? $apiSlug);
                         $apiFields = $apiRow['fields_json'];
-                        if (is_string($apiFields)) {
+                        if (\is_string($apiFields)) {
                             $apiFields = json_decode($apiFields, true);
                         }
                         $apiJoins = $apiRow['joins_json'];
-                        if (is_string($apiJoins)) {
+                        if (\is_string($apiJoins)) {
                             $apiJoins = json_decode($apiJoins, true);
                         }
                         $apiSettings = $apiRow['settings_json'];
-                        if (is_string($apiSettings)) {
+                        if (\is_string($apiSettings)) {
                             $apiSettings = json_decode($apiSettings, true);
                         }
                         $apiPublic = $this->customPublicAccess(
-                            is_array($apiSettings) ? $apiSettings : [],
+                            \is_array($apiSettings) ? $apiSettings : [],
                             $public,
                         );
                         $apiMethods = ResourceApiService::normalizeMethods(
-                            is_string($apiRow['methods_json'])
+                            \is_string($apiRow['methods_json'])
                                 ? json_decode((string) $apiRow['methods_json'], true)
                                 : $apiRow['methods_json'],
                         );
 
                         $customSchema = $this->customItemSchema(
                             $fieldRows,
-                            is_array($apiFields) ? $apiFields : null,
-                            is_array($apiJoins) ? $apiJoins : [],
+                            \is_array($apiFields) ? $apiFields : null,
+                            \is_array($apiJoins) ? $apiJoins : [],
                         );
                         $customSchemaName = $this->schemaName($slug . '_' . $apiSlug);
                         $schemas[$customSchemaName] = $customSchema;
@@ -120,7 +120,7 @@ final class OpenApiGenerator
                             $customInputName = $customSchemaName . 'Input';
                             $schemas[$customInputName] = $this->inputSchema(
                                 $fieldRows,
-                                is_array($apiFields) ? array_values(array_map('strval', $apiFields)) : null,
+                                \is_array($apiFields) ? array_values(array_map('strval', $apiFields)) : null,
                             );
                         }
 
@@ -386,7 +386,7 @@ final class OpenApiGenerator
         }
         $schemas = $cached['components']['schemas'] ?? null;
         if ($schemas === [] || $schemas === null) {
-            if (!isset($cached['components']) || !is_array($cached['components'])) {
+            if (!isset($cached['components']) || !\is_array($cached['components'])) {
                 $cached['components'] = [];
             }
             $cached['components']['schemas'] = new \stdClass();
@@ -435,7 +435,7 @@ final class OpenApiGenerator
                 continue;
             }
             $name = (string) $field['name'];
-            if ($only !== null && !in_array($name, $only, true)) {
+            if ($only !== null && !\in_array($name, $only, true)) {
                 continue;
             }
             $properties[$name] = $this->propertySchema((string) $field['type'], $spec);
@@ -475,7 +475,7 @@ final class OpenApiGenerator
             'richtext' => ['type' => 'string', 'format' => 'markdown'],
             'enum' => [
                 'type' => 'string',
-                'enum' => array_values(array_map('strval', is_array($spec['config']['options'] ?? null) ? $spec['config']['options'] : [])),
+                'enum' => array_values(array_map('strval', \is_array($spec['config']['options'] ?? null) ? $spec['config']['options'] : [])),
             ],
             'image', 'file' => $this->mediaPropertySchema($spec),
             default => ['type' => 'string'],
@@ -792,11 +792,11 @@ final class OpenApiGenerator
      */
     private function spec(array $field): array
     {
-        $spec = is_string($field['spec_json'])
+        $spec = \is_string($field['spec_json'])
             ? json_decode((string) $field['spec_json'], true)
             : $field['spec_json'];
 
-        return is_array($spec) ? $spec : [];
+        return \is_array($spec) ? $spec : [];
     }
 
     private function schemaName(string $slug): string
@@ -812,8 +812,8 @@ final class OpenApiGenerator
 
     /**
      * @param list<array<string, mixed>> $fieldRows
-     * @param list<mixed>|null $fields
-     * @param list<mixed> $joins
+     * @param array<mixed>|null $fields
+     * @param array<mixed> $joins
      * @return array<string, mixed>
      */
     private function customItemSchema(array $fieldRows, ?array $fields, array $joins): array
@@ -839,7 +839,7 @@ final class OpenApiGenerator
             }
         } else {
             foreach ($fields as $name) {
-                if (!is_string($name) || !isset($byName[$name])) {
+                if (!\is_string($name) || !isset($byName[$name])) {
                     continue;
                 }
                 $field = $byName[$name];
@@ -849,10 +849,10 @@ final class OpenApiGenerator
         }
 
         foreach ($joins as $join) {
-            if (!is_array($join)) {
+            if (!\is_array($join)) {
                 continue;
             }
-            $as = isset($join['as']) && is_string($join['as']) ? $join['as'] : '';
+            $as = isset($join['as']) && \is_string($join['as']) ? $join['as'] : '';
             if ($as === '') {
                 continue;
             }
@@ -879,10 +879,10 @@ final class OpenApiGenerator
      */
     private function customPublicAccess(array $apiSettings, array $resourcePublic): array
     {
-        $apiPublic = is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
+        $apiPublic = \is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
         $out = [];
         foreach (['read', 'create', 'update', 'delete'] as $action) {
-            $out[$action] = array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
+            $out[$action] = \array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
                 ? (bool) $apiPublic[$action]
                 : (bool) ($resourcePublic[$action] ?? false);
         }
@@ -927,7 +927,7 @@ final class OpenApiGenerator
 
         $operationSuffix = $slug . '_' . str_replace('-', '_', $apiSlug);
         $path = [];
-        if (in_array('GET', $methods, true)) {
+        if (\in_array('GET', $methods, true)) {
             $path['get'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (list)',
@@ -966,7 +966,7 @@ final class OpenApiGenerator
             }
         }
 
-        if (in_array('POST', $methods, true) && $inputName !== null) {
+        if (\in_array('POST', $methods, true) && $inputName !== null) {
             $path['post'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (create)',
@@ -1009,7 +1009,7 @@ final class OpenApiGenerator
         $operationSuffix = $slug . '_' . str_replace('-', '_', $apiSlug);
         $path = [];
 
-        if (in_array('GET', $methods, true)) {
+        if (\in_array('GET', $methods, true)) {
             $path['get'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (item)',
@@ -1025,7 +1025,7 @@ final class OpenApiGenerator
             }
         }
 
-        if (in_array('PATCH', $methods, true) && $inputName !== null) {
+        if (\in_array('PATCH', $methods, true) && $inputName !== null) {
             $path['patch'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (update)',
@@ -1043,7 +1043,7 @@ final class OpenApiGenerator
             }
         }
 
-        if (in_array('DELETE', $methods, true)) {
+        if (\in_array('DELETE', $methods, true)) {
             $path['delete'] = [
                 'tags' => [$tag],
                 'summary' => $apiLabel . ' (delete)',

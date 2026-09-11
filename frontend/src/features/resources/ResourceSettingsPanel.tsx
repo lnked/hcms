@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,8 @@ import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { showSuccess } from '@/lib/toast'
-import type { Resource, ResourceSettings } from '@/types/resource'
 import styles from './ResourceSettingsPanel.module.css'
+import type { Resource, ResourceSettings } from '@/types/resource'
 
 interface ResourceSettingsPanelProps {
   resource: Resource

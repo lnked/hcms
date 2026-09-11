@@ -45,7 +45,7 @@ final class SchemaDiff
         }
 
         foreach ($currentByName as $name => $col) {
-            if (!isset($desiredByName[$name]) && !in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'], true)) {
+            if (!isset($desiredByName[$name]) && !\in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at'], true)) {
                 $ops[] = ['op' => 'drop_field', 'name' => $name];
             }
         }

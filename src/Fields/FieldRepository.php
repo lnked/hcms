@@ -79,7 +79,7 @@ final class FieldRepository
         }
 
         $spec = $existing['spec_json'];
-        if (isset($data['spec']) && is_array($data['spec'])) {
+        if (isset($data['spec']) && \is_array($data['spec'])) {
             $spec = json_encode($data['spec'], JSON_UNESCAPED_SLASHES);
         }
 
@@ -92,7 +92,7 @@ final class FieldRepository
                 'name' => $data['name'] ?? $existing['name'],
                 'type' => $data['type'] ?? $existing['type'],
                 'sort_order' => $data['sort_order'] ?? $existing['sort_order'],
-                'spec_json' => is_string($spec) ? $spec : json_encode($spec, JSON_UNESCAPED_SLASHES),
+                'spec_json' => \is_string($spec) ? $spec : json_encode($spec, JSON_UNESCAPED_SLASHES),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         );

@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/toast', () => ({
   showSuccess: vi.fn(),
   showError: vi.fn(),
-  showToast: vi.fn(),
   onToast: vi.fn(() => () => undefined),
 }))
 

@@ -30,7 +30,7 @@ final class SystemController
         unset($request);
         $current = Version::current();
         $latest = $this->latest->fetch();
-        $latestVersion = is_array($latest) && isset($latest['version']) && is_string($latest['version'])
+        $latestVersion = \is_array($latest) && isset($latest['version']) && \is_string($latest['version'])
             ? $latest['version']
             : null;
 
@@ -40,9 +40,9 @@ final class SystemController
             'current' => $current,
             'latest' => $latestVersion,
             'updateAvailable' => $latestVersion !== null && Version::isGreater($latestVersion, $current),
-            'releasedAt' => is_array($latest) ? ($latest['releasedAt'] ?? null) : null,
-            'channel' => is_array($latest) ? ($latest['channel'] ?? 'stable') : 'stable',
-            'changelogSeenVersion' => is_string($seen) ? $seen : null,
+            'releasedAt' => \is_array($latest) ? ($latest['releasedAt'] ?? null) : null,
+            'channel' => \is_array($latest) ? ($latest['channel'] ?? 'stable') : 'stable',
+            'changelogSeenVersion' => \is_string($seen) ? $seen : null,
             'backupReady' => true,
         ]);
     }
@@ -173,7 +173,7 @@ final class SystemController
     public function markSeen(Request $request, AuthContext $auth): Response
     {
         $payload = $request->json();
-        $version = isset($payload['version']) && is_string($payload['version']) ? $payload['version'] : '';
+        $version = isset($payload['version']) && \is_string($payload['version']) ? $payload['version'] : '';
         if ($version === '') {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
                 'version' => ['Version is required'],

@@ -20,7 +20,7 @@
 
 Контекст к K–N: [anti-spam.md](anti-spam.md), раздел «Известные ограничения». Порядок — K → M → L → N: K закрывает дыру, M дешёвый и меняет тот же код, L опирается на сигнал, который добавит M, N независим.
 
-Контекст к O: слои Deptrac — [`deptrac.yaml`](../deptrac.yaml); PHPStan L7 + [`phpstan-baseline.neon`](../phpstan-baseline.neon).
+Контекст к O: слои Deptrac — [`deptrac.yaml`](../deptrac.yaml); PHPStan L8 (без baseline).
 
 ## K. Anti-spam на публичные update/delete
 
@@ -77,12 +77,20 @@
 
 Сделано (фазы 1–2 + каркас 3):
 
-- Frontend: `knip`, `eslint-config-prettier`, `eslint-plugin-jsx-a11y`, `eslint-plugin-import-x` (no-cycle), type-aware ESLint на `src/lib` + `src/hooks`, Vitest coverage thresholds на `lib/`+`hooks/`, `queryKeys` + `useAuthMe`, `src/test/render.tsx`, `CodeBlock` → `components/`, `useResourceEntriesList`, удалён мёртвый `.oxlintrc.json`
-- Backend: `AuthRoutes` / `SystemRoutes` / `AdminResourceRoutes`, `Cms\Core\Exception\*` + map в `ExceptionHandler`, `PayloadValidator`, `EntryService`, Deptrac ([`deptrac.yaml`](../deptrac.yaml)), PHPStan **level 7** + [`phpstan-baseline.neon`](../phpstan-baseline.neon), MySQL integ smoke (`tests/Integration/QueryEngineMigrationTest.php`, `CMS_TEST_DSN` в CI)
+- Frontend: `knip`, `eslint-config-prettier`, `eslint-plugin-jsx-a11y`, `eslint-plugin-import-x` (order + no-cycle), type-aware ESLint на весь `src/`, Stylelint CSS Modules, Vitest coverage thresholds на `lib/`+`hooks/`, `queryKeys` + `useAuthMe`, `src/test/render.tsx`, `CodeBlock` → `components/`, `useResourceEntriesList`, удалён мёртвый `.oxlintrc.json`
+- Backend: `AuthRoutes` / `SystemRoutes` / `AdminResourceRoutes`, `Cms\Core\Exception\*` + map в `ExceptionHandler`, `PayloadValidator`, `EntryService`, Deptrac ([`deptrac.yaml`](../deptrac.yaml)), PHPStan **level 8** (без baseline), MySQL integ smoke (`tests/Integration/QueryEngineMigrationTest.php`, `CMS_TEST_DSN` в CI)
 
 Остаток фазы 3 (по мере касания кода):
 
 1. Глубже разрезать `QueryEngine` (serialize / filters отдельно)
 2. Вынести hooks из god-панелей (`IntegrationsPage`, `SchemaBuilder`, `WebhooksPage`)
 3. Свести `pages/` → `features/` по единому ownership
-4. Разбирать baseline PHPStan (Media/Totp/OpenAPI list shapes)
+
+Сделано дополнительно (quality audit):
+
+- PHPStan **level 8**, baseline снят; CS-Fixer: `strict_*`, `native_function_invocation`, …
+- PHPStan paths: release scripts (`verify-tree`, `restore`, `latest-json`, `apply-pending-migrations`)
+- Frontend: type-aware ESLint на весь `src/`, `import-x/order`, a11y → error, `eslint-plugin-react` selective
+- knip entry = `main.tsx` (+ configs), exports check on
+- `noUncheckedIndexedAccess` в `tsconfig.app.json`
+- Stylelint (CSS Modules: no nesting, no raw hex/rgb in modules, `--hcms-*`)

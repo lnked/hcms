@@ -24,14 +24,14 @@ final class ChangelogRepository
         }
 
         $decoded = json_decode((string) file_get_contents($path), true);
-        if (!is_array($decoded) || !isset($decoded['releases']) || !is_array($decoded['releases'])) {
+        if (!\is_array($decoded) || !isset($decoded['releases']) || !\is_array($decoded['releases'])) {
             return [];
         }
 
         /** @var list<array<string, mixed>> $releases */
         $releases = [];
         foreach ($decoded['releases'] as $release) {
-            if (is_array($release) && isset($release['version']) && is_string($release['version'])) {
+            if (\is_array($release) && isset($release['version']) && \is_string($release['version'])) {
                 $releases[] = $release;
             }
         }
@@ -72,13 +72,13 @@ final class ChangelogRepository
     public function page(?string $since, ?string $channel, int $page = 1, int $limit = 20): array
     {
         $releases = $this->since($since, $channel);
-        $total = count($releases);
+        $total = \count($releases);
         $limit = min(100, max(1, $limit));
         $page = max(1, $page);
         $offset = ($page - 1) * $limit;
 
         return [
-            'data' => array_values(array_slice($releases, $offset, $limit)),
+            'data' => array_values(\array_slice($releases, $offset, $limit)),
             'meta' => [
                 'page' => $page,
                 'limit' => $limit,

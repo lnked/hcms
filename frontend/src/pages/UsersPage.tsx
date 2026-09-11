@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { clsx } from 'clsx'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { clsx } from 'clsx'
 import { Ban, CircleCheck, KeyRound, Shield, Trash2 } from 'lucide-react'
-import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/account/UserAclDialogs'
+import { useState } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { FieldError } from '@/components/FieldError'
 import { PasswordField } from '@/components/PasswordField'
 import { TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
@@ -27,9 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/account/UserAclDialogs'
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'

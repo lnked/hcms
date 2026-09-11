@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
 import { clsx } from 'clsx'
+import { useEffect, useState } from 'react'
+import { FieldError } from '@/components/FieldError'
+import { LanguageSelect } from '@/components/LanguageSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { LanguageSelect } from '@/components/LanguageSelect'
 import { useI18n, type Locale } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { ApiError, clearToken, installApi } from '@/lib/api'
 import { normalizeFieldErrors, type FieldErrors } from '@/lib/formErrors'
-import type { InstallStatus } from '@/types/system'
 import styles from './InstallPage.module.css'
+import type { InstallStatus } from '@/types/system'
 
 const stepKeys = [
   'install.step.files',
@@ -227,7 +227,7 @@ export function InstallPage() {
                 {t('install.stepOf', {
                   current: step + 1,
                   total: stepKeys.length,
-                  name: t(stepKeys[step]),
+                  name: t(stepKeys[step] ?? stepKeys[0]),
                 })}
               </CardDescription>
             </div>

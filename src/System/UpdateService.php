@@ -53,7 +53,7 @@ final class UpdateService
     private function summarize(?array $manifest): array
     {
         $current = Version::current();
-        $latestVersion = is_array($manifest) && isset($manifest['version']) && is_string($manifest['version'])
+        $latestVersion = \is_array($manifest) && isset($manifest['version']) && \is_string($manifest['version'])
             ? $manifest['version']
             : null;
 
@@ -61,8 +61,8 @@ final class UpdateService
             'current' => $current,
             'latest' => $latestVersion,
             'updateAvailable' => $latestVersion !== null && Version::isGreater($latestVersion, $current),
-            'channel' => is_array($manifest) ? ($manifest['channel'] ?? 'stable') : 'stable',
-            'releasedAt' => is_array($manifest) ? ($manifest['releasedAt'] ?? null) : null,
+            'channel' => \is_array($manifest) ? ($manifest['channel'] ?? 'stable') : 'stable',
+            'releasedAt' => \is_array($manifest) ? ($manifest['releasedAt'] ?? null) : null,
             'backupReady' => is_writable($this->paths->storage()),
         ];
     }
@@ -75,7 +75,7 @@ final class UpdateService
         $manifest = $this->latest->fetch();
         $check = $this->summarize($manifest);
         $from = (string) $check['current'];
-        $to = is_string($check['latest'] ?? null) ? (string) $check['latest'] : $from;
+        $to = \is_string($check['latest'] ?? null) ? (string) $check['latest'] : $from;
 
         // The local changelog stops at the installed version, so notes about an
         // update can only come from the manifest; the local file is the fallback
@@ -108,7 +108,7 @@ final class UpdateService
         }
         $data = json_decode((string) file_get_contents($file), true);
 
-        return is_array($data) ? $data : ['state' => 'idle', 'step' => null, 'progress' => 0, 'error' => null];
+        return \is_array($data) ? $data : ['state' => 'idle', 'step' => null, 'progress' => 0, 'error' => null];
     }
 
     /**
@@ -143,6 +143,7 @@ final class UpdateService
         $jobFile = $this->jobFile();
         if (@file_put_contents($jobFile, json_encode($job, JSON_UNESCAPED_SLASHES)) === false) {
             @unlink($lock);
+
             throw new RuntimeException('Unable to write update job');
         }
 
@@ -169,7 +170,7 @@ final class UpdateService
 
         $raw = json_decode((string) file_get_contents($jobFile), true);
         @unlink($jobFile);
-        if (!is_array($raw)) {
+        if (!\is_array($raw)) {
             $this->writeStatus('failed', 'error', 'Invalid update job');
             @unlink($this->paths->storage() . '/update.lock');
 
@@ -193,8 +194,8 @@ final class UpdateService
         $zipPath = null;
         $workDir = null;
         try {
-            $to = isset($job['to']) && is_string($job['to']) ? $job['to'] : '';
-            $from = isset($job['from']) && is_string($job['from']) ? $job['from'] : Version::current();
+            $to = isset($job['to']) && \is_string($job['to']) ? $job['to'] : '';
+            $from = isset($job['from']) && \is_string($job['from']) ? $job['from'] : Version::current();
             if ($to === '') {
                 throw new RuntimeException('Update job missing target version');
             }
@@ -249,11 +250,11 @@ final class UpdateService
                 );
             }
         } finally {
-            if (is_string($zipPath) && is_file($zipPath)) {
+            if (\is_string($zipPath) && is_file($zipPath)) {
                 @unlink($zipPath);
             }
-            if (is_string($workDir)) {
-                $this->removePath(dirname($workDir));
+            if (\is_string($workDir)) {
+                $this->removePath(\dirname($workDir));
             }
             @unlink($lock);
             @unlink($this->jobFile());
@@ -290,7 +291,7 @@ final class UpdateService
         }
 
         $free = @disk_free_space($storage);
-        if (is_float($free) && $free > 0 && $free < 64 * 1024 * 1024) {
+        if (\is_float($free) && $free > 0 && $free < 64 * 1024 * 1024) {
             throw new RuntimeException('less than 64 MB free on disk — free space before updating');
         }
     }
@@ -367,6 +368,7 @@ final class UpdateService
             }
             if (!@rename((string) $step['staged'], $dest)) {
                 @rename($old, $dest);
+
                 throw new RuntimeException('Unable to move the new ' . $dest . ' into place');
             }
 
@@ -407,7 +409,7 @@ final class UpdateService
             if ($this->shouldPreserve($name)) {
                 continue;
             }
-            if (is_dir($workDir . '/' . $name) && in_array($name, self::SPLIT_DIRS, true)) {
+            if (is_dir($workDir . '/' . $name) && \in_array($name, self::SPLIT_DIRS, true)) {
                 foreach ($this->childNames($workDir . '/' . $name) as $child) {
                     $entries[] = $name . '/' . $child;
                 }
@@ -447,7 +449,7 @@ final class UpdateService
         foreach (['storage/.htaccess', 'storage/uploads/.htaccess'] as $rel) {
             $source = $workDir . '/' . $rel;
             $target = $this->paths->root . '/' . $rel;
-            if (is_file($source) && !is_file($target) && is_dir(dirname($target))) {
+            if (is_file($source) && !is_file($target) && is_dir(\dirname($target))) {
                 @copy($source, $target);
             }
         }
@@ -455,7 +457,7 @@ final class UpdateService
 
     private function resetOpcache(): void
     {
-        if (function_exists('opcache_reset')) {
+        if (\function_exists('opcache_reset')) {
             @opcache_reset();
         }
     }
@@ -552,10 +554,10 @@ final class UpdateService
     {
         $base = 'https://github.com/' . $this->config->githubRepo . '/releases/latest/download/';
         $manifest = $this->httpJson($base . 'latest.json');
-        $zipUrl = isset($manifest['zip']) && is_string($manifest['zip'])
+        $zipUrl = isset($manifest['zip']) && \is_string($manifest['zip'])
             ? $manifest['zip']
             : $base . 'cms-' . $version . '.zip';
-        $expected = isset($manifest['sha256']) && is_string($manifest['sha256'])
+        $expected = isset($manifest['sha256']) && \is_string($manifest['sha256'])
             ? strtolower(trim(preg_replace('/\s.*/', '', $manifest['sha256']) ?? $manifest['sha256']))
             : strtolower(trim($this->httpText($base . 'cms-' . $version . '.zip.sha256')));
 
@@ -567,6 +569,7 @@ final class UpdateService
         $actual = hash_file('sha256', $tmp);
         if ($actual === false || $expected === '' || !hash_equals($expected, $actual)) {
             @unlink($tmp);
+
             throw new RuntimeException('Release checksum mismatch');
         }
 
@@ -588,7 +591,7 @@ final class UpdateService
             return $relative;
         }
         if ($relative === 'public' || str_starts_with($relative, 'public/')) {
-            return $publicDir . substr($relative, strlen('public'));
+            return $publicDir . substr($relative, \strlen('public'));
         }
 
         return $relative;
@@ -596,7 +599,7 @@ final class UpdateService
 
     private function shouldPreserve(string $entry): bool
     {
-        return in_array($entry, self::PRESERVE, true);
+        return \in_array($entry, self::PRESERVE, true);
     }
 
     private function runPendingMigrations(): void
@@ -616,6 +619,7 @@ final class UpdateService
         exec($cmd . ' 2>&1', $output, $code);
         if ($code !== 0) {
             $detail = trim(implode("\n", $output));
+
             throw new RuntimeException(
                 'Pending migrations failed'
                 . ($detail !== '' ? ': ' . $detail : ' (exit ' . $code . ')'),
@@ -643,6 +647,7 @@ final class UpdateService
         if ($state === 'done') {
             return 100;
         }
+
         return match ($step) {
             'starting' => 5,
             'backup' => 15,
@@ -665,7 +670,7 @@ final class UpdateService
     private function copyPath(string $src, string $dest): void
     {
         if (is_file($src)) {
-            $dir = dirname($dest);
+            $dir = \dirname($dest);
             if (!is_dir($dir)) {
                 mkdir($dir, 0775, true);
             }
@@ -690,7 +695,7 @@ final class UpdateService
                     mkdir($target, 0775, true);
                 }
             } else {
-                $parent = dirname($target);
+                $parent = \dirname($target);
                 if (!is_dir($parent)) {
                     mkdir($parent, 0775, true);
                 }
@@ -729,7 +734,7 @@ final class UpdateService
     private function httpJson(string $url): array
     {
         $data = json_decode($this->httpText($url), true);
-        if (!is_array($data)) {
+        if (!\is_array($data)) {
             throw new RuntimeException('Invalid JSON from ' . $url);
         }
 
@@ -738,7 +743,7 @@ final class UpdateService
 
     private function httpText(string $url): string
     {
-        if (function_exists('curl_init')) {
+        if (\function_exists('curl_init')) {
             $ch = curl_init($url);
             if ($ch === false) {
                 throw new RuntimeException('curl_init failed');
@@ -751,7 +756,7 @@ final class UpdateService
             ]);
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if (!is_string($body) || $code >= 400) {
+            if (!\is_string($body) || $code >= 400) {
                 throw new RuntimeException('Download failed: ' . $url);
             }
 
@@ -762,7 +767,7 @@ final class UpdateService
             'http' => ['timeout' => 120, 'header' => "User-Agent: hcms-updater\r\n"],
         ]);
         $body = @file_get_contents($url, false, $context);
-        if (!is_string($body)) {
+        if (!\is_string($body)) {
             throw new RuntimeException('Download failed: ' . $url);
         }
 

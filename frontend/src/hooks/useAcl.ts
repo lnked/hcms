@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
-import type { AuthUser } from '@/types/system'
 import {
   allowsResourceAction,
   allowsResourceTab,
@@ -10,6 +9,7 @@ import {
   type AdminSection,
   type ResourceTab,
 } from '@/lib/rbac'
+import type { AuthUser } from '@/types/system'
 
 export function useAuthMe(options?: { enabled?: boolean; retry?: boolean | number }) {
   return useQuery({

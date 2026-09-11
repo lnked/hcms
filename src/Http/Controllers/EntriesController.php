@@ -71,8 +71,8 @@ final class EntriesController
                     $ids[] = (int) $raw;
                 }
             }
-            if (count($ids) > 100) {
-                $ids = array_slice($ids, 0, 100);
+            if (\count($ids) > 100) {
+                $ids = \array_slice($ids, 0, 100);
             }
 
             return Response::data($this->entries->relationLabels($resourceId, $field, $ids));
@@ -189,7 +189,7 @@ final class EntriesController
             $slug = $this->entries->slug($resourceId);
             $body = $request->json();
             $ids = $body['ids'] ?? null;
-            if (!is_array($ids) || $ids === []) {
+            if (!\is_array($ids) || $ids === []) {
                 throw new InvalidArgumentException('ids array is required');
             }
 
@@ -380,7 +380,7 @@ final class EntriesController
     {
         /** @var array<string, mixed>|null $file */
         $file = $_FILES['file'] ?? null;
-        if (is_array($file)) {
+        if (\is_array($file)) {
             $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
             if ($error !== UPLOAD_ERR_OK) {
                 throw new InvalidArgumentException('file upload failed');
@@ -402,7 +402,7 @@ final class EntriesController
         $body = $request->json();
         $format = (string) ($body['format'] ?? $request->query['format'] ?? 'json');
         $content = $body['content'] ?? null;
-        if (!is_string($content)) {
+        if (!\is_string($content)) {
             throw new InvalidArgumentException('content string is required (or multipart file)');
         }
 
@@ -416,7 +416,7 @@ final class EntriesController
             return Response::error($e->errorCode(), $e->getMessage(), $e->status());
         }
         $code = $e->getCode();
-        $status = in_array($code, [403, 404], true) ? $code : 400;
+        $status = \in_array($code, [403, 404], true) ? $code : 400;
 
         return Response::error(
             $status === 404 ? 'NOT_FOUND' : ($status === 403 ? 'FORBIDDEN' : 'BAD_REQUEST'),

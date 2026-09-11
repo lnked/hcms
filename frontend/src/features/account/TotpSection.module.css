@@ -46,7 +46,7 @@
   display: inline-flex;
   border-radius: var(--hcms-CRx2);
   border: 1px solid var(--hcms-color-border);
-  background-color: #ffffff;
+  background-color: var(--hcms-color-card);
   padding: var(--hcms-SPx3);
 }
 

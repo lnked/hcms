@@ -48,9 +48,10 @@ final class ResendTransport implements MailTransport
         }
 
         $decoded = json_decode($responseBody, true);
-        $errorMessage = is_array($decoded)
+        $errorMessage = \is_array($decoded)
             ? (MailHttp::jsonErrorMessage($decoded) ?? ('Resend request failed with HTTP ' . $status))
             : ('Resend request failed with HTTP ' . $status);
+
         throw new MailProviderException($errorMessage, $status >= 400 && $status < 600 ? $status : 502);
     }
 }

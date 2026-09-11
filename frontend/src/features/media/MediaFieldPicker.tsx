@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react'
 import { clsx } from 'clsx'
 import { Pencil, RotateCcw, RotateCw, Sparkles, X } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { api, apiUpload } from '@/lib/api'
 import { showSuccess } from '@/lib/toast'
+import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
+import styles from './MediaFieldPicker.module.css'
+import { OptimizeImageDialog } from './OptimizeImageDialog'
 import type {
   CropRect,
   ImageSizeConfig,
@@ -12,9 +15,6 @@ import type {
   MediaFieldValue,
   MediaItemRef,
 } from '@/types/field'
-import { ImageEditorDialog, type ImageEditorResult } from './ImageEditorDialog'
-import { OptimizeImageDialog } from './OptimizeImageDialog'
-import styles from './MediaFieldPicker.module.css'
 
 type UploadResult = MediaFieldValue & { media?: MediaItemRef; warning?: string | null }
 
@@ -284,11 +284,13 @@ export function MediaFieldPicker({
         className={clsx(styles.hiddenInput)}
         disabled={disabled || busy}
         multiple={false}
-        onChange={async (e) => {
-          const file = e.target.files?.[0]
-          e.target.value = ''
-          if (!file) return
-          await uploadFile(file)
+        onChange={(e) => {
+          void (async () => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (!file) return
+            await uploadFile(file)
+          })()
         }}
       />
 
@@ -438,7 +440,7 @@ export function MediaFieldPicker({
       {optimizeIndex != null && items[optimizeIndex] ? (
         <OptimizeImageDialog
           open
-          mediaIds={[items[optimizeIndex]!.id]}
+          mediaIds={[items[optimizeIndex].id]}
           onOpenChange={(next) => {
             if (!next) setOptimizeIndex(null)
           }}

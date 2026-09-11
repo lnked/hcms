@@ -81,8 +81,7 @@
 .dialog {
   max-width: 32rem;
   max-height: min(92dvh, 48rem);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden auto;
 }
 
 .abSection {

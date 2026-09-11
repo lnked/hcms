@@ -29,7 +29,7 @@ final class SpamGuard
      */
     public function assertCreateAllowed(Request $request, string $slug, array $settings, array $payload): void
     {
-        $spam = is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
+        $spam = \is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
 
         $perMin = max(0, (int) ($spam['rateLimitPerMinute'] ?? 0));
         if ($perMin > 0 && $this->rateLimitStore !== null) {
@@ -40,10 +40,10 @@ final class SpamGuard
             }
         }
 
-        $honeypot = is_string($spam['honeypotField'] ?? null) ? trim($spam['honeypotField']) : '';
-        if ($honeypot !== '' && array_key_exists($honeypot, $payload)) {
+        $honeypot = \is_string($spam['honeypotField'] ?? null) ? trim($spam['honeypotField']) : '';
+        if ($honeypot !== '' && \array_key_exists($honeypot, $payload)) {
             $bait = $payload[$honeypot];
-            $filled = is_string($bait) ? trim($bait) !== '' : ($bait !== null && $bait !== false && $bait !== 0 && $bait !== 0.0);
+            $filled = \is_string($bait) ? trim($bait) !== '' : ($bait !== null && $bait !== false && $bait !== 0 && $bait !== 0.0);
             if ($filled) {
                 throw new InvalidArgumentException('Spam check failed');
             }
@@ -63,7 +63,7 @@ final class SpamGuard
         $requireCaptcha = (bool) ($spam['requireCaptcha'] ?? false);
         if ($requireCaptcha) {
             $token = null;
-            if (isset($payload['captchaToken']) && is_string($payload['captchaToken'])) {
+            if (isset($payload['captchaToken']) && \is_string($payload['captchaToken'])) {
                 $token = $payload['captchaToken'];
             } elseif ($request->header('x-captcha-token') !== null) {
                 $token = $request->header('x-captcha-token');
@@ -85,11 +85,11 @@ final class SpamGuard
             }
         }
 
-        $blocklist = is_array($spam['blocklist'] ?? null) ? $spam['blocklist'] : [];
+        $blocklist = \is_array($spam['blocklist'] ?? null) ? $spam['blocklist'] : [];
         if ($blocklist !== []) {
             $text = mb_strtolower($this->flattenText($payload));
             foreach ($blocklist as $term) {
-                if (!is_string($term) || trim($term) === '') {
+                if (!\is_string($term) || trim($term) === '') {
                     continue;
                 }
                 if (str_contains($text, mb_strtolower(trim($term)))) {
@@ -117,7 +117,7 @@ final class SpamGuard
     {
         $parts = [];
         array_walk_recursive($payload, static function (mixed $value) use (&$parts): void {
-            if (is_string($value) || is_numeric($value)) {
+            if (\is_string($value) || is_numeric($value)) {
                 $parts[] = (string) $value;
             }
         });

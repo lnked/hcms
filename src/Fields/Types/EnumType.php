@@ -18,7 +18,7 @@ final class EnumType extends AbstractFieldType
 
     public function validateConfig(array $config): void
     {
-        if (!isset($config['options']) || !is_array($config['options']) || $config['options'] === []) {
+        if (!isset($config['options']) || !\is_array($config['options']) || $config['options'] === []) {
             throw new \InvalidArgumentException('Enum fields require non-empty options');
         }
     }

@@ -1,8 +1,8 @@
-import { ExternalLink } from 'lucide-react'
 import { clsx } from 'clsx'
+import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { relationId, type RelationTarget } from './useRelationLabels'
 import styles from './RelationCell.module.css'
+import { relationId, type RelationTarget } from './useRelationLabels'
 
 interface RelationCellProps {
   value: unknown

@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { clsx } from 'clsx'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -107,7 +107,7 @@ export function OptimizeImageDialog({
         setLastResult(result)
         onDone(result)
       } else {
-        const id = mediaIds[0]!
+        const id = mediaIds[0]
         const result = await api<OptimizeResult>(`/admin/api/media/${id}/optimize`, {
           method: 'POST',
           body: JSON.stringify(body),

@@ -129,10 +129,10 @@ final class ResourceApiService
      */
     private function normalizePayload(array $payload, array $resource, ?array $existing): array
     {
-        $slug = isset($payload['slug']) && is_string($payload['slug'])
+        $slug = isset($payload['slug']) && \is_string($payload['slug'])
             ? trim($payload['slug'])
             : (string) ($existing['slug'] ?? '');
-        $label = isset($payload['label']) && is_string($payload['label'])
+        $label = isset($payload['label']) && \is_string($payload['label'])
             ? trim($payload['label'])
             : (string) ($existing['label'] ?? '');
 
@@ -151,17 +151,17 @@ final class ResourceApiService
             throw new InvalidArgumentException('API slug already exists for this resource');
         }
 
-        $enabled = array_key_exists('enabled', $payload)
+        $enabled = \array_key_exists('enabled', $payload)
             ? (bool) $payload['enabled']
             : ($existing !== null ? (bool) (int) $existing['enabled'] : true);
 
-        if (isset($payload['methods']) && is_array($payload['methods'])) {
+        if (isset($payload['methods']) && \is_array($payload['methods'])) {
             $methodsRaw = $payload['methods'];
         } elseif ($existing !== null) {
-            $decoded = is_string($existing['methods_json'])
+            $decoded = \is_string($existing['methods_json'])
                 ? json_decode((string) $existing['methods_json'], true)
                 : $existing['methods_json'];
-            $methodsRaw = is_array($decoded) ? $decoded : ['GET'];
+            $methodsRaw = \is_array($decoded) ? $decoded : ['GET'];
         } else {
             $methodsRaw = ['GET'];
         }
@@ -169,31 +169,31 @@ final class ResourceApiService
 
         $fieldMap = $this->fieldMapForResource($resource);
         $fields = $this->normalizeFields(
-            array_key_exists('fields', $payload) ? $payload['fields'] : ($existing['fields_json'] ?? null),
+            \array_key_exists('fields', $payload) ? $payload['fields'] : ($existing['fields_json'] ?? null),
             $fieldMap,
         );
 
-        $joinsRaw = array_key_exists('joins', $payload)
+        $joinsRaw = \array_key_exists('joins', $payload)
             ? $payload['joins']
             : ($existing['joins_json'] ?? []);
-        if (is_string($joinsRaw)) {
+        if (\is_string($joinsRaw)) {
             $decodedJoins = json_decode($joinsRaw, true);
-            $joinsRaw = is_array($decodedJoins) ? $decodedJoins : [];
+            $joinsRaw = \is_array($decodedJoins) ? $decodedJoins : [];
         }
-        if (!is_array($joinsRaw)) {
+        if (!\is_array($joinsRaw)) {
             $joinsRaw = [];
         }
         $joins = $this->normalizeJoins($joinsRaw, $fieldMap);
         self::assertWriteConfig($methods, $fields, $joins, $fieldMap);
 
-        $settingsRaw = array_key_exists('settings', $payload)
+        $settingsRaw = \array_key_exists('settings', $payload)
             ? $payload['settings']
             : ($existing['settings_json'] ?? []);
-        if (is_string($settingsRaw)) {
+        if (\is_string($settingsRaw)) {
             $decodedSettings = json_decode($settingsRaw, true);
-            $settingsRaw = is_array($decodedSettings) ? $decodedSettings : [];
+            $settingsRaw = \is_array($decodedSettings) ? $decodedSettings : [];
         }
-        if (!is_array($settingsRaw)) {
+        if (!\is_array($settingsRaw)) {
             $settingsRaw = [];
         }
         $settings = self::normalizeSettings($settingsRaw);
@@ -219,14 +219,14 @@ final class ResourceApiService
         if ($fields === null) {
             return null;
         }
-        if (is_string($fields)) {
+        if (\is_string($fields)) {
             $decoded = json_decode($fields, true);
-            $fields = is_array($decoded) ? $decoded : null;
+            $fields = \is_array($decoded) ? $decoded : null;
             if ($fields === null) {
                 return null;
             }
         }
-        if (!is_array($fields)) {
+        if (!\is_array($fields)) {
             throw new InvalidArgumentException('fields must be an array or null');
         }
         if ($fields === []) {
@@ -235,7 +235,7 @@ final class ResourceApiService
 
         $out = [];
         foreach ($fields as $name) {
-            if (!is_string($name) || $name === '') {
+            if (!\is_string($name) || $name === '') {
                 throw new InvalidArgumentException('Invalid field name in fields list');
             }
             if ($name === 'id' || $name === 'createdAt' || $name === 'updatedAt'
@@ -245,7 +245,7 @@ final class ResourceApiService
             if (!isset($fieldMap[$name])) {
                 throw new InvalidArgumentException('Unknown field: ' . $name);
             }
-            $config = is_array($fieldMap[$name]['spec']['config'] ?? null)
+            $config = \is_array($fieldMap[$name]['spec']['config'] ?? null)
                 ? $fieldMap[$name]['spec']['config']
                 : [];
             if (($fieldMap[$name]['type'] ?? '') === 'relation'
@@ -259,7 +259,7 @@ final class ResourceApiService
     }
 
     /**
-     * @param list<mixed> $joins
+     * @param array<mixed> $joins
      * @param array<string, array<string, mixed>> $fieldMap
      * @return list<array{
      *   as: string,
@@ -275,20 +275,20 @@ final class ResourceApiService
         $out = [];
         $aliases = [];
         foreach ($joins as $join) {
-            if (!is_array($join)) {
+            if (!\is_array($join)) {
                 throw new InvalidArgumentException('Invalid join definition');
             }
-            $as = isset($join['as']) && is_string($join['as']) ? trim($join['as']) : '';
-            $relatedSlug = isset($join['relatedSlug']) && is_string($join['relatedSlug'])
+            $as = isset($join['as']) && \is_string($join['as']) ? trim($join['as']) : '';
+            $relatedSlug = isset($join['relatedSlug']) && \is_string($join['relatedSlug'])
                 ? trim($join['relatedSlug'])
                 : '';
-            $localField = isset($join['localField']) && is_string($join['localField'])
+            $localField = isset($join['localField']) && \is_string($join['localField'])
                 ? trim($join['localField'])
                 : '';
-            $foreignField = isset($join['foreignField']) && is_string($join['foreignField'])
+            $foreignField = isset($join['foreignField']) && \is_string($join['foreignField'])
                 ? trim($join['foreignField'])
                 : 'id';
-            $type = isset($join['type']) && is_string($join['type'])
+            $type = isset($join['type']) && \is_string($join['type'])
                 ? trim($join['type'])
                 : 'manyToOne';
 
@@ -318,15 +318,15 @@ final class ResourceApiService
 
             $relatedFieldMap = $this->fieldMapForResource($related);
             $joinFields = null;
-            if (array_key_exists('fields', $join)) {
+            if (\array_key_exists('fields', $join)) {
                 if ($join['fields'] === null) {
                     $joinFields = null;
-                } elseif (!is_array($join['fields'])) {
+                } elseif (!\is_array($join['fields'])) {
                     throw new InvalidArgumentException('join.fields must be an array or null');
                 } else {
                     $joinFields = [];
                     foreach ($join['fields'] as $name) {
-                        if (!is_string($name) || $name === '') {
+                        if (!\is_string($name) || $name === '') {
                             throw new InvalidArgumentException('Invalid join field name');
                         }
                         if ($name === 'id') {
@@ -372,12 +372,12 @@ final class ResourceApiService
         $rows = $this->fields->forContentType((int) $resource['content_type_id']);
         $map = [];
         foreach ($rows as $field) {
-            $spec = is_string($field['spec_json'])
+            $spec = \is_string($field['spec_json'])
                 ? json_decode((string) $field['spec_json'], true)
                 : $field['spec_json'];
             $map[(string) $field['name']] = [
                 'type' => $field['type'],
-                'spec' => is_array($spec) ? $spec : [],
+                'spec' => \is_array($spec) ? $spec : [],
             ];
         }
 
@@ -390,21 +390,21 @@ final class ResourceApiService
      */
     public static function normalizeSettings(array $settings): array
     {
-        $public = is_array($settings['public'] ?? null) ? $settings['public'] : [];
+        $public = \is_array($settings['public'] ?? null) ? $settings['public'] : [];
         $access = [];
         foreach (['read', 'create', 'update', 'delete'] as $action) {
-            $access[$action] = array_key_exists($action, $public) && $public[$action] !== null
+            $access[$action] = \array_key_exists($action, $public) && $public[$action] !== null
                 ? (bool) $public[$action]
                 : null;
         }
 
         return [
-            'pagination' => array_key_exists('pagination', $settings)
+            'pagination' => \array_key_exists('pagination', $settings)
                 ? (bool) $settings['pagination']
                 : true,
-            'search' => array_key_exists('search', $settings) ? (bool) $settings['search'] : true,
-            'sorting' => array_key_exists('sorting', $settings) ? (bool) $settings['sorting'] : true,
-            'filtering' => array_key_exists('filtering', $settings) ? (bool) $settings['filtering'] : true,
+            'search' => \array_key_exists('search', $settings) ? (bool) $settings['search'] : true,
+            'sorting' => \array_key_exists('sorting', $settings) ? (bool) $settings['sorting'] : true,
+            'filtering' => \array_key_exists('filtering', $settings) ? (bool) $settings['filtering'] : true,
             'public' => $access,
         ];
     }
@@ -415,20 +415,20 @@ final class ResourceApiService
      */
     public static function normalizeMethods(mixed $methods): array
     {
-        if (!is_array($methods)) {
+        if (!\is_array($methods)) {
             return ['GET'];
         }
 
         $out = [];
         foreach ($methods as $method) {
-            if (!is_string($method)) {
+            if (!\is_string($method)) {
                 continue;
             }
             $method = strtoupper(trim($method));
             if ($method === 'PUT') {
                 $method = 'PATCH';
             }
-            if (in_array($method, self::ALLOWED_METHODS, true)) {
+            if (\in_array($method, self::ALLOWED_METHODS, true)) {
                 $out[] = $method;
             }
         }
@@ -455,8 +455,8 @@ final class ResourceApiService
     {
         $out = [];
         foreach ($fieldMap as $name => $meta) {
-            $spec = is_array($meta['spec'] ?? null) ? $meta['spec'] : [];
-            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $spec = \is_array($meta['spec'] ?? null) ? $meta['spec'] : [];
+            $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
             if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
                 continue;
             }
@@ -479,13 +479,13 @@ final class ResourceApiService
     {
         $out = [];
         foreach (self::writableFieldNames($fieldMap) as $name) {
-            $spec = is_array($fieldMap[$name]['spec'] ?? null) ? $fieldMap[$name]['spec'] : [];
+            $spec = \is_array($fieldMap[$name]['spec'] ?? null) ? $fieldMap[$name]['spec'] : [];
             if (!($spec['required'] ?? false)) {
                 continue;
             }
-            $config = is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
             $derived = ($fieldMap[$name]['type'] ?? '') === 'slug'
-                && is_string($config['associatedWith'] ?? null)
+                && \is_string($config['associatedWith'] ?? null)
                 && $config['associatedWith'] !== '';
             if ($derived) {
                 continue;
@@ -512,7 +512,7 @@ final class ResourceApiService
         if ($joins !== []) {
             throw new InvalidArgumentException('Writes are not supported for APIs with joins');
         }
-        if (!in_array('POST', $methods, true) || $fields === null) {
+        if (!\in_array('POST', $methods, true) || $fields === null) {
             return;
         }
 
@@ -540,17 +540,17 @@ final class ResourceApiService
      */
     private function serialize(array $row, array $resource): array
     {
-        $methods = is_string($row['methods_json'])
+        $methods = \is_string($row['methods_json'])
             ? json_decode((string) $row['methods_json'], true)
             : $row['methods_json'];
         $fields = $row['fields_json'];
-        if (is_string($fields)) {
+        if (\is_string($fields)) {
             $fields = json_decode($fields, true);
         }
-        $joins = is_string($row['joins_json'])
+        $joins = \is_string($row['joins_json'])
             ? json_decode((string) $row['joins_json'], true)
             : $row['joins_json'];
-        $settings = is_string($row['settings_json'])
+        $settings = \is_string($row['settings_json'])
             ? json_decode((string) $row['settings_json'], true)
             : $row['settings_json'];
 
@@ -565,9 +565,9 @@ final class ResourceApiService
             'label' => (string) $row['label'],
             'enabled' => (bool) (int) $row['enabled'],
             'methods' => self::normalizeMethods($methods),
-            'fields' => is_array($fields) ? array_values(array_map('strval', $fields)) : null,
-            'joins' => is_array($joins) ? array_values($joins) : [],
-            'settings' => self::normalizeSettings(is_array($settings) ? $settings : []),
+            'fields' => \is_array($fields) ? array_values(array_map('strval', $fields)) : null,
+            'joins' => \is_array($joins) ? array_values($joins) : [],
+            'settings' => self::normalizeSettings(\is_array($settings) ? $settings : []),
             'path' => $base . '/' . $apiSlug,
             'createdAt' => (string) $row['created_at'],
             'updatedAt' => (string) $row['updated_at'],

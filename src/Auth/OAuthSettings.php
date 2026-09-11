@@ -132,16 +132,16 @@ final class OAuthSettings
     public function update(array $payload, string $appUrl): array
     {
         $this->ensureDefaults();
-        if (isset($payload['google']) && is_array($payload['google'])) {
+        if (isset($payload['google']) && \is_array($payload['google'])) {
             $current = $this->google();
             $incoming = $payload['google'];
-            if (array_key_exists('enabled', $incoming)) {
+            if (\array_key_exists('enabled', $incoming)) {
                 $current['enabled'] = (bool) $incoming['enabled'];
             }
-            if (isset($incoming['clientId']) && is_string($incoming['clientId'])) {
+            if (isset($incoming['clientId']) && \is_string($incoming['clientId'])) {
                 $current['clientId'] = trim($incoming['clientId']);
             }
-            if (isset($incoming['clientSecret']) && is_string($incoming['clientSecret']) && $incoming['clientSecret'] !== '') {
+            if (isset($incoming['clientSecret']) && \is_string($incoming['clientSecret']) && $incoming['clientSecret'] !== '') {
                 $current['clientSecret'] = trim($incoming['clientSecret']);
             }
             if ($current['enabled'] && ($current['clientId'] === '' || $current['clientSecret'] === '')) {
@@ -149,16 +149,16 @@ final class OAuthSettings
             }
             $this->settings->set(self::GOOGLE_KEY, $current);
         }
-        if (isset($payload['telegram']) && is_array($payload['telegram'])) {
+        if (isset($payload['telegram']) && \is_array($payload['telegram'])) {
             $current = $this->telegram();
             $incoming = $payload['telegram'];
-            if (array_key_exists('enabled', $incoming)) {
+            if (\array_key_exists('enabled', $incoming)) {
                 $current['enabled'] = (bool) $incoming['enabled'];
             }
-            if (isset($incoming['botUsername']) && is_string($incoming['botUsername'])) {
+            if (isset($incoming['botUsername']) && \is_string($incoming['botUsername'])) {
                 $current['botUsername'] = ltrim(trim($incoming['botUsername']), '@');
             }
-            if (isset($incoming['botToken']) && is_string($incoming['botToken']) && $incoming['botToken'] !== '') {
+            if (isset($incoming['botToken']) && \is_string($incoming['botToken']) && $incoming['botToken'] !== '') {
                 $current['botToken'] = trim($incoming['botToken']);
             }
             if ($current['enabled'] && ($current['botUsername'] === '' || $current['botToken'] === '')) {
@@ -200,14 +200,14 @@ final class OAuthSettings
     private function readGoogle(mixed $stored): array
     {
         $defaults = $this->googleDefaults();
-        if (!is_array($stored)) {
+        if (!\is_array($stored)) {
             return $defaults;
         }
 
         return [
             'enabled' => (bool) ($stored['enabled'] ?? false),
-            'clientId' => is_string($stored['clientId'] ?? null) ? trim($stored['clientId']) : '',
-            'clientSecret' => is_string($stored['clientSecret'] ?? null) ? $stored['clientSecret'] : '',
+            'clientId' => \is_string($stored['clientId'] ?? null) ? trim($stored['clientId']) : '',
+            'clientSecret' => \is_string($stored['clientSecret'] ?? null) ? $stored['clientSecret'] : '',
         ];
     }
 
@@ -217,22 +217,22 @@ final class OAuthSettings
     private function readTelegram(mixed $stored): array
     {
         $defaults = $this->telegramDefaults();
-        if (!is_array($stored)) {
+        if (!\is_array($stored)) {
             return $defaults;
         }
 
         return [
             'enabled' => (bool) ($stored['enabled'] ?? false),
-            'botUsername' => is_string($stored['botUsername'] ?? null)
+            'botUsername' => \is_string($stored['botUsername'] ?? null)
                 ? ltrim(trim($stored['botUsername']), '@')
                 : '',
-            'botToken' => is_string($stored['botToken'] ?? null) ? $stored['botToken'] : '',
+            'botToken' => \is_string($stored['botToken'] ?? null) ? $stored['botToken'] : '',
         ];
     }
 
     private function mask(string $secret): string
     {
-        $len = strlen($secret);
+        $len = \strlen($secret);
         if ($len <= 4) {
             return str_repeat('•', $len);
         }

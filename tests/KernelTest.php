@@ -12,7 +12,7 @@ final class KernelTest extends TestCase
 {
     public function testDocsAndHealthArePublic(): void
     {
-        $kernel = Kernel::boot(dirname(__DIR__));
+        $kernel = Kernel::boot(\dirname(__DIR__));
 
         $docs = $kernel->handle(new Request('GET', '/api/docs', [], [], null, '', '127.0.0.1', 'test'));
         $this->assertSame(200, $docs->status);
@@ -66,7 +66,7 @@ final class KernelTest extends TestCase
 
     public function testProtectedAdminApiRequiresToken(): void
     {
-        $kernel = Kernel::boot(dirname(__DIR__));
+        $kernel = Kernel::boot(\dirname(__DIR__));
         $response = $kernel->handle(new Request('GET', '/admin/api/auth/me', [], [], null, '', '127.0.0.1', 'test'));
 
         $this->assertContains($response->status, [401, 503]);
@@ -75,7 +75,7 @@ final class KernelTest extends TestCase
 
     public function testLoginWithoutInstallIsUnavailable(): void
     {
-        $kernel = Kernel::boot(dirname(__DIR__));
+        $kernel = Kernel::boot(\dirname(__DIR__));
         $response = $kernel->handle(new Request(
             'POST',
             '/admin/api/auth/login',
@@ -92,7 +92,7 @@ final class KernelTest extends TestCase
 
     public function testChangePasswordRequiresToken(): void
     {
-        $kernel = Kernel::boot(dirname(__DIR__));
+        $kernel = Kernel::boot(\dirname(__DIR__));
         $response = $kernel->handle(new Request(
             'POST',
             '/admin/api/auth/password',

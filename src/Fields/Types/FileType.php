@@ -23,11 +23,11 @@ final class FileType extends AbstractFieldType
 
     public function validateConfig(array $config): void
     {
-        if (array_key_exists('multiple', $config) && !is_bool($config['multiple'])) {
+        if (\array_key_exists('multiple', $config) && !\is_bool($config['multiple'])) {
             throw new InvalidArgumentException('file.multiple must be boolean');
         }
         $formats = $config['formats'] ?? [];
-        if (!is_array($formats)) {
+        if (!\is_array($formats)) {
             throw new InvalidArgumentException('file.formats must be an array');
         }
         MediaFieldConfig::normalizeFormats($formats, MediaFieldConfig::FILE_FORMATS);

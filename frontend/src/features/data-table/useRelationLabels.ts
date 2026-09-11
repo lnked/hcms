@@ -1,7 +1,7 @@
 import { useQueries } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { SchemaField } from '@/types/field'
 import type { EntryRow } from './DataTable'
+import type { SchemaField } from '@/types/field'
 
 /** Related resource plus the labels of the ids currently on screen. */
 export interface RelationTarget {

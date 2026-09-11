@@ -43,7 +43,7 @@ final class PhpCli
         self::push($out, $preferred);
         self::push($out, self::envValue('CMS_PHP_CLI'));
 
-        if (defined('PHP_BINARY')) {
+        if (\defined('PHP_BINARY')) {
             self::push($out, PHP_BINARY);
             foreach (self::binarySiblings(PHP_BINARY) as $sibling) {
                 self::push($out, $sibling);
@@ -105,7 +105,7 @@ final class PhpCli
             $siblings[] = $m[1] . 'php' . $suffix;
         }
         $replaced = preg_replace('#php-(?:fpm|cgi)#i', 'php', $binary);
-        if (is_string($replaced) && $replaced !== $binary) {
+        if (\is_string($replaced) && $replaced !== $binary) {
             $siblings[] = $replaced;
         }
 
@@ -114,12 +114,12 @@ final class PhpCli
 
     private static function envValue(string $key): ?string
     {
-        if (isset($_ENV[$key]) && is_string($_ENV[$key]) && $_ENV[$key] !== '') {
+        if (isset($_ENV[$key]) && \is_string($_ENV[$key]) && $_ENV[$key] !== '') {
             return $_ENV[$key];
         }
         $fromEnv = getenv($key);
 
-        return is_string($fromEnv) && $fromEnv !== '' ? $fromEnv : null;
+        return \is_string($fromEnv) && $fromEnv !== '' ? $fromEnv : null;
     }
 
     /**
@@ -131,7 +131,7 @@ final class PhpCli
             return;
         }
         $bin = trim($bin);
-        if ($bin === '' || in_array($bin, $out, true)) {
+        if ($bin === '' || \in_array($bin, $out, true)) {
             return;
         }
         $out[] = $bin;

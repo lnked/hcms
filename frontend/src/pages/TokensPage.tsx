@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { Check, Copy } from 'lucide-react'
-import { TableSkeleton } from '@/components/skeletons'
+import { useMemo, useRef, useState } from 'react'
 import { EmptyState } from '@/components/EmptyState'
+import { FieldError } from '@/components/FieldError'
+import { TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DatePickerField } from '@/components/ui/date-picker'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { DatePickerField } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -27,18 +28,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
-import { FieldError } from '@/components/FieldError'
 import { api } from '@/lib/api'
+import { copyToClipboard } from '@/lib/clipboard'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
-import { copyToClipboard } from '@/lib/clipboard'
-import type { Resource } from '@/types/resource'
 import {
   parseLines,
   TokenRestrictionsFields,
   type TokenRestrictions,
 } from './TokenRestrictionsFields'
 import styles from './TokensPage.module.css'
+import type { Resource } from '@/types/resource'
 
 interface TokenGrant {
   resourceId: number | null

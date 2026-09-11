@@ -16,7 +16,7 @@ export function onToast(listener: ToastListener): () => void {
   }
 }
 
-export function showToast(kind: ToastKind, message: string): void {
+function showToast(kind: ToastKind, message: string): void {
   const text = message.trim()
   if (!text) return
   const payload: ToastPayload = { kind, message: text }

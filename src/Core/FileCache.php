@@ -26,12 +26,12 @@ final class FileCache
         }
 
         $payload = json_decode($raw, true);
-        if (!is_array($payload) || !array_key_exists('value', $payload)) {
+        if (!\is_array($payload) || !\array_key_exists('value', $payload)) {
             return null;
         }
 
         $expiresAt = $payload['expires_at'] ?? null;
-        if (is_int($expiresAt) && $expiresAt < time()) {
+        if (\is_int($expiresAt) && $expiresAt < time()) {
             $this->forget($key);
 
             return null;

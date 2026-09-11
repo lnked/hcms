@@ -39,8 +39,3 @@
   min-width: 0;
   max-width: 100%;
 }
-
-.hugContainer {
-  width: fit-content;
-  max-width: 100%;
-}

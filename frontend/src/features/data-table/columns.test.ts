@@ -44,8 +44,8 @@ describe('resolveColumns', () => {
       { field: 'f0', visible: false },
     ])
     expect(resolved).toHaveLength(1)
-    expect(resolved[0].label).toBe('Custom')
-    expect(resolved[0].width).toBe(320)
+    expect(resolved[0]!.label).toBe('Custom')
+    expect(resolved[0]!.width).toBe(320)
   })
 
   it('skips fields the API never returns', () => {

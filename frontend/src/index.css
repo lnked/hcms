@@ -19,6 +19,9 @@
   --hcms-color-accent-foreground: #271fe0;
   --hcms-color-destructive: #d02b20;
   --hcms-color-success: #328048;
+  --hcms-color-warning: #b45309;
+  --hcms-color-warning-border: #f59e0b;
+  --hcms-color-warning-soft: #d97706;
   --hcms-color-border: #dcdce4;
   --hcms-color-input: #dcdce4;
   --hcms-color-ring: #4945ff;
@@ -82,6 +85,9 @@
   --hcms-color-accent-foreground: #ffffff;
   --hcms-color-destructive: #ee5e52;
   --hcms-color-success: #5cb176;
+  --hcms-color-warning: #fbbf24;
+  --hcms-color-warning-border: #f59e0b;
+  --hcms-color-warning-soft: #fbbf24;
   --hcms-color-border: #4a4a6a;
   --hcms-color-input: #4a4a6a;
   --hcms-color-ring: #7b79ff;
@@ -90,7 +96,6 @@
   --hcms-color-sidebar-border: #4a4a6a;
   --hcms-color-sidebar-accent: #32324d;
   --hcms-color-swagger: #85ea2d;
-
   --sh-class: #7ee787;
   --sh-identifier: #e6edf3;
   --sh-sign: #8b949e;

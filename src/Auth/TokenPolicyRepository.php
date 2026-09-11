@@ -74,12 +74,12 @@ final class TokenPolicyRepository
      */
     private static function decode(mixed $raw): array
     {
-        if (!is_string($raw) || $raw === '') {
+        if (!\is_string($raw) || $raw === '') {
             return [];
         }
 
         $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
+        if (!\is_array($decoded)) {
             return [];
         }
 
