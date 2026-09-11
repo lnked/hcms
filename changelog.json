@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.6",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Uptime KPI hint and selected target highlight",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Uptime: подсказка под KPI Uptime 24ч (средняя доступность / инциденты)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Uptime: выбранная цель — буллет и primary-фон строки"
+        }
+      ]
+    },
+    {
       "version": "0.62.5",
       "date": "2026-09-11",
       "channel": "stable",

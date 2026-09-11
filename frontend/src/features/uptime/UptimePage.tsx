@@ -378,8 +378,11 @@ export function UptimePage() {
           <CardHeader>
             <CardTitle className={clsx(styles.kpiLabel)}>{t('uptime.uptime24h')}</CardTitle>
           </CardHeader>
-          <CardContent className={clsx(styles.kpiValue)}>
-            {summary ? `${summary.uptimePercent24h}%` : '—'}
+          <CardContent>
+            <div className={clsx(styles.kpiValue)}>
+              {summary ? `${summary.uptimePercent24h}%` : '—'}
+            </div>
+            <p className={clsx(styles.kpiHint)}>{t('uptime.uptime24hHint')}</p>
           </CardContent>
         </Card>
         <Card>
@@ -415,94 +418,112 @@ export function UptimePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {targets.map((target) => (
-                    <TableRow
-                      key={target.id}
-                      className={clsx(selectedId === target.id && styles.rowSelected)}
-                    >
-                      <TableCell>
-                        <button
-                          type="button"
-                          className={clsx(styles.nameBtn)}
-                          onClick={() => setSelectedId(target.id)}
-                        >
-                          {target.name}
-                        </button>
-                        <div className={clsx(styles.mutedXs, styles.urlCell)} title={target.url}>
-                          {target.kind === 'self' ? t('uptime.kindSelf') : target.url}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant(target)}>
-                          {target.lastOk === null
-                            ? t('uptime.statusUnknown')
-                            : target.lastOk
-                              ? t('uptime.statusUp')
-                              : t('uptime.statusDown')}
-                        </Badge>
-                        {!target.enabled ? (
-                          <div className={clsx(styles.mutedXs)}>{t('uptime.disabled')}</div>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        {target.lastLatencyMs !== null ? `${target.lastLatencyMs}ms` : '—'}
-                      </TableCell>
-                      <TableCell className={clsx(styles.mutedXs)}>
-                        {target.lastCheckAt ?? '—'}
-                      </TableCell>
-                      <TableCell className={clsx(styles.alignRight)}>
-                        <div className={clsx(styles.rowActions)}>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t('uptime.checkNow')}
-                            title={t('uptime.checkNow')}
-                            onClick={() => checkNow.mutate(target.id)}
-                            disabled={checkNow.isPending && checkNow.variables === target.id}
-                          >
-                            <RefreshCw className={clsx(styles.icon)} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={t('common.edit')}
-                            title={t('common.edit')}
-                            onClick={() => openEdit(target)}
-                          >
-                            <Pencil className={clsx(styles.icon)} />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            aria-label={target.enabled ? t('uptime.disable') : t('uptime.enable')}
-                            title={target.enabled ? t('uptime.disable') : t('uptime.enable')}
-                            onClick={() => toggleEnabled.mutate(target)}
-                          >
-                            {target.enabled ? (
-                              <Ban className={clsx(styles.icon)} />
-                            ) : (
-                              <CircleCheck className={clsx(styles.icon)} />
-                            )}
-                          </Button>
-                          {target.kind !== 'self' ? (
+                  {targets.map((target) => {
+                    const isSelected = selectedId === target.id
+                    return (
+                      <TableRow
+                        key={target.id}
+                        className={clsx(isSelected && styles.rowSelected)}
+                        aria-selected={isSelected}
+                      >
+                        <TableCell>
+                          <div className={clsx(styles.nameCell)}>
+                            <span
+                              className={clsx(
+                                styles.selectBullet,
+                                isSelected && styles.selectBulletOn,
+                              )}
+                              aria-hidden
+                            />
+                            <div className={clsx(styles.nameBlock)}>
+                              <button
+                                type="button"
+                                className={clsx(styles.nameBtn)}
+                                onClick={() => setSelectedId(target.id)}
+                              >
+                                {target.name}
+                              </button>
+                              <div
+                                className={clsx(styles.mutedXs, styles.urlCell)}
+                                title={target.url}
+                              >
+                                {target.kind === 'self' ? t('uptime.kindSelf') : target.url}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={statusVariant(target)}>
+                            {target.lastOk === null
+                              ? t('uptime.statusUnknown')
+                              : target.lastOk
+                                ? t('uptime.statusUp')
+                                : t('uptime.statusDown')}
+                          </Badge>
+                          {!target.enabled ? (
+                            <div className={clsx(styles.mutedXs)}>{t('uptime.disabled')}</div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          {target.lastLatencyMs !== null ? `${target.lastLatencyMs}ms` : '—'}
+                        </TableCell>
+                        <TableCell className={clsx(styles.mutedXs)}>
+                          {target.lastCheckAt ?? '—'}
+                        </TableCell>
+                        <TableCell className={clsx(styles.alignRight)}>
+                          <div className={clsx(styles.rowActions)}>
                             <Button
                               size="icon"
                               variant="ghost"
-                              aria-label={t('common.delete')}
-                              title={t('common.delete')}
-                              onClick={() => {
-                                if (window.confirm(t('uptime.confirmDelete'))) {
-                                  remove.mutate(target.id)
-                                }
-                              }}
+                              aria-label={t('uptime.checkNow')}
+                              title={t('uptime.checkNow')}
+                              onClick={() => checkNow.mutate(target.id)}
+                              disabled={checkNow.isPending && checkNow.variables === target.id}
                             >
-                              <Trash2 className={clsx(styles.iconDanger)} />
+                              <RefreshCw className={clsx(styles.icon)} />
                             </Button>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label={t('common.edit')}
+                              title={t('common.edit')}
+                              onClick={() => openEdit(target)}
+                            >
+                              <Pencil className={clsx(styles.icon)} />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label={target.enabled ? t('uptime.disable') : t('uptime.enable')}
+                              title={target.enabled ? t('uptime.disable') : t('uptime.enable')}
+                              onClick={() => toggleEnabled.mutate(target)}
+                            >
+                              {target.enabled ? (
+                                <Ban className={clsx(styles.icon)} />
+                              ) : (
+                                <CircleCheck className={clsx(styles.icon)} />
+                              )}
+                            </Button>
+                            {target.kind !== 'self' ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                aria-label={t('common.delete')}
+                                title={t('common.delete')}
+                                onClick={() => {
+                                  if (window.confirm(t('uptime.confirmDelete'))) {
+                                    remove.mutate(target.id)
+                                  }
+                                }}
+                              >
+                                <Trash2 className={clsx(styles.iconDanger)} />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             )}

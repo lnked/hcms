@@ -843,6 +843,8 @@ export const ru: Record<MessageKey, string> = {
   'uptime.up': 'Up',
   'uptime.down': 'Down',
   'uptime.uptime24h': 'Uptime 24ч',
+  'uptime.uptime24hHint':
+    'Средняя доступность включённых целей за сутки (100% − доля времени в инцидентах).',
   'uptime.openIncidents': 'Открытые инциденты',
   'uptime.targets': 'Цели',
   'uptime.targetsHint': 'Выберите строку, чтобы увидеть историю даунтайма.',

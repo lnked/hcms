@@ -840,6 +840,8 @@ export const en = {
   'uptime.up': 'Up',
   'uptime.down': 'Down',
   'uptime.uptime24h': 'Uptime 24h',
+  'uptime.uptime24hHint':
+    'Average availability of enabled targets over 24h (100% − downtime from incidents).',
   'uptime.openIncidents': 'Open incidents',
   'uptime.targets': 'Targets',
   'uptime.targetsHint': 'Select a row to inspect downtime history.',

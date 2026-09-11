@@ -45,6 +45,13 @@
   line-height: 2rem;
   font-weight: 600;
 }
+.kpiHint {
+  margin: var(--hcms-SPx1) 0 0;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: var(--hcms-color-muted-foreground);
+}
 .layout {
   display: grid;
   gap: var(--hcms-SPx4);
@@ -73,7 +80,33 @@
   color: var(--hcms-color-destructive);
 }
 .rowSelected {
-  background-color: color-mix(in srgb, var(--hcms-color-muted) 40%, transparent);
+  background-color: color-mix(in srgb, var(--hcms-color-primary) 12%, transparent);
+}
+.rowSelected:hover {
+  background-color: color-mix(in srgb, var(--hcms-color-primary) 18%, transparent);
+}
+.nameCell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hcms-SPx2);
+}
+.nameBlock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.selectBullet {
+  flex-shrink: 0;
+  width: var(--hcms-SPx2);
+  height: var(--hcms-SPx2);
+  margin-top: 0.35rem;
+  border-radius: 999px;
+  background-color: transparent;
+  border: 1px solid var(--hcms-color-border);
+}
+.selectBulletOn {
+  border-color: var(--hcms-color-primary);
+  background-color: var(--hcms-color-primary);
 }
 .nameBtn {
   text-align: left;
