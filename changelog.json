@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.62.2",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Uptime cron UI cleanup",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Uptime: убран дубль подписи CLI/HTTP cron над CodeBlock"
+        }
+      ]
+    },
+    {
       "version": "0.62.1",
       "date": "2026-09-11",
       "channel": "stable",
