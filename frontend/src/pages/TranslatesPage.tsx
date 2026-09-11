@@ -29,12 +29,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import {
-  apiFieldErrors,
-  clearFieldError,
-  hasFieldError,
-  type FieldErrors,
-} from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showError, showSuccess } from '@/lib/toast'
 import styles from './TranslatesPage.module.css'
 

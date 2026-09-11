@@ -418,7 +418,9 @@ export function IntegrationsPage() {
                 {provider === 'mailgun' ? (
                   <div className={clsx(styles.grid2)}>
                     <div className={clsx(styles.field)}>
-                      <Label htmlFor="mailgun-domain">{t('integrations.email.mailgunDomain')}</Label>
+                      <Label htmlFor="mailgun-domain">
+                        {t('integrations.email.mailgunDomain')}
+                      </Label>
                       <Input
                         id="mailgun-domain"
                         value={mailgunDomain}
@@ -428,7 +430,9 @@ export function IntegrationsPage() {
                       />
                     </div>
                     <div className={clsx(styles.field)}>
-                      <Label htmlFor="mailgun-region">{t('integrations.email.mailgunRegion')}</Label>
+                      <Label htmlFor="mailgun-region">
+                        {t('integrations.email.mailgunRegion')}
+                      </Label>
                       <Select
                         id="mailgun-region"
                         value={mailgunRegion}
@@ -460,7 +464,11 @@ export function IntegrationsPage() {
                     autoComplete="email"
                   />
                 </div>
-                <Button type="submit" variant="outline" disabled={test.isPending || testTo.trim() === ''}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={test.isPending || testTo.trim() === ''}
+                >
                   {test.isPending
                     ? t('integrations.email.testing')
                     : t('integrations.email.sendTest')}
@@ -732,7 +740,11 @@ export function IntegrationsPage() {
                 onChange={setPlaygroundBody}
               />
             </div>
-            <Button type="submit" className={clsx(styles.playgroundRun)} disabled={runPlayground.isPending}>
+            <Button
+              type="submit"
+              className={clsx(styles.playgroundRun)}
+              disabled={runPlayground.isPending}
+            >
               {runPlayground.isPending
                 ? t('integrations.email.playground.running')
                 : t('integrations.email.playground.run')}

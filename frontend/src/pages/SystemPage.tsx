@@ -162,13 +162,14 @@ export function SystemPage() {
   const adminBaseQuery = useQuery({
     queryKey: queryKeys.settings.adminBase,
     queryFn: () =>
-      api<{ adminBase: string; uiBase: string; apiPrefix: string }>('/admin/api/settings/admin-base'),
+      api<{ adminBase: string; uiBase: string; apiPrefix: string }>(
+        '/admin/api/settings/admin-base',
+      ),
   })
   const [adminBaseDraft, setAdminBaseDraft] = useState<string | null>(null)
   const adminBaseValue = adminBaseDraft ?? adminBaseQuery.data?.adminBase ?? 'admin'
   const adminBasePreviewUi = adminBaseValue === '' ? '/' : `/${adminBaseValue}`
-  const adminBasePreviewApi =
-    adminBaseValue === '' ? '/admin/api' : `/${adminBaseValue}/api`
+  const adminBasePreviewApi = adminBaseValue === '' ? '/admin/api' : `/${adminBaseValue}/api`
 
   const saveAdminBase = useMutation({
     mutationFn: (adminBase: string) =>
