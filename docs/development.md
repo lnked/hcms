@@ -49,6 +49,8 @@ php cms uptime:check
 
 Альтернатива без CLI: `POST /admin/api/uptime/run` с admin Bearer. Status UI: `/admin/settings/uptime`.
 
+Без внешнего cron: soft cron гоняет due-пробы после `GET /admin/api/health` и при открытии Uptime/dashboard (throttle ~30с, shutdown).
+
 ## Admin styles (CSS Modules)
 
 Стили админки — CSS Modules рядом с компонентом: `ComponentName.module.css` (или `.module.scss`). Tailwind не используется.

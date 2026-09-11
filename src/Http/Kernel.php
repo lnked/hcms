@@ -106,6 +106,7 @@ use Cms\Uptime\UptimeCheckRepository;
 use Cms\Uptime\UptimeHeartbeatService;
 use Cms\Uptime\UptimeIncidentRepository;
 use Cms\Uptime\UptimeProbeService;
+use Cms\Uptime\UptimeScheduler;
 use Cms\Uptime\UptimeService;
 use Cms\Uptime\UptimeSettings;
 use Cms\Uptime\UptimeStatusService;
@@ -541,6 +542,8 @@ final class Kernel
         $webhookDispatcher = null;
         /** @var UptimeHeartbeatService|null $uptimeHeartbeat */
         $uptimeHeartbeat = null;
+        /** @var UptimeScheduler|null $uptimeScheduler */
+        $uptimeScheduler = null;
 
         if ($this->db !== null) {
             $system = new SystemController(
@@ -749,7 +752,6 @@ final class Kernel
                 $uptimeSettings,
                 $this->config->appUrl,
             );
-            $uptimeApi = new UptimeController($uptimeService, $audit);
             $uptimeHeartbeat = new UptimeHeartbeatService(
                 $uptimeTargets,
                 $uptimeChecks,
@@ -757,6 +759,13 @@ final class Kernel
                 $uptimeSettings,
                 $this->config->appUrl,
             );
+            $uptimeScheduler = new UptimeScheduler(
+                $this->paths,
+                $uptimeTargets,
+                $uptimeProbes,
+                $uptimeSettings,
+            );
+            $uptimeApi = new UptimeController($uptimeService, $audit, $uptimeScheduler);
 
             AdminResourceRoutes::register(
                 $this->router,
@@ -910,13 +919,21 @@ final class Kernel
             PublicApiRoutes::register($this->router, $publicApi, $publicInbound);
         }
 
-        $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context) use ($uptimeHeartbeat): Response {
+        $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context) use ($uptimeHeartbeat, $uptimeScheduler): Response {
             unset($request, $params, $context);
             if ($uptimeHeartbeat !== null && $this->installed) {
                 try {
                     $uptimeHeartbeat->touch();
                 } catch (Throwable) {
                     // Health must never fail because of uptime bookkeeping.
+                }
+            }
+            if ($uptimeScheduler !== null && $this->installed) {
+                try {
+                    // skipSelf: heartbeat covers CMS; probing self would recurse into health.
+                    $uptimeScheduler->scheduleAfterResponse(true);
+                } catch (Throwable) {
+                    // Soft cron must never break health.
                 }
             }
 

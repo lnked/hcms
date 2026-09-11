@@ -870,6 +870,11 @@ export const en = {
   'uptime.fieldExpected': 'Expected status',
   'uptime.fieldTimeout': 'Timeout (ms)',
   'uptime.fieldEnabled': 'Enabled',
+  'uptime.cronTitle': 'Automatic checks',
+  'uptime.cronHint':
+    'Soft cron is on: due targets are probed after /admin/api/health hits and when you open this page / the dashboard (throttled ~30s, after the response). For idle sites with no traffic, add a real server cron below.',
+  'uptime.cronCliLabel': 'CLI cron (recommended if the site is often idle)',
+  'uptime.cronHttpLabel': 'HTTP cron (admin Bearer token)',
   'webhooks.title': 'Webhooks',
   'webhooks.subtitle': 'Outbound HMAC-signed hooks for content changes.',
   'webhooks.create': 'Create webhook',

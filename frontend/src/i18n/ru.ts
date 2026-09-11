@@ -873,6 +873,11 @@ export const ru: Record<MessageKey, string> = {
   'uptime.fieldExpected': 'Ожидаемый статус',
   'uptime.fieldTimeout': 'Таймаут (мс)',
   'uptime.fieldEnabled': 'Включено',
+  'uptime.cronTitle': 'Автопроверка',
+  'uptime.cronHint':
+    'Soft cron включён: due-цели проверяются после hit’ов /admin/api/health и при открытии этой страницы / дашборда (throttle ~30с, после ответа). Если сайт часто без трафика — поставь настоящий cron ниже.',
+  'uptime.cronCliLabel': 'CLI cron (если сайт часто idle)',
+  'uptime.cronHttpLabel': 'HTTP cron (admin Bearer-токен)',
   'webhooks.title': 'Webhooks',
   'webhooks.subtitle': 'Исходящие HMAC-подписанные хуки на изменения контента.',
   'webhooks.create': 'Создать webhook',

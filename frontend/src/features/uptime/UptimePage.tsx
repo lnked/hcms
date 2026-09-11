@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { FieldError } from '@/components/FieldError'
+import { CodeBlock } from '@/components/CodeBlock'
 import { api } from '@/lib/api'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
@@ -251,6 +252,10 @@ export function UptimePage() {
 
   const editingSelf = isEdit && targets.find((row) => row.id === editingId)?.kind === 'self'
 
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://example.com'
+  const cronCli = `* * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1`
+  const cronHttp = `* * * * * curl -fsS -X POST \\\n  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\\n  ${baseUrl}/admin/api/uptime/run >/dev/null`
+
   return (
     <div className={clsx(styles.root)}>
       <div className={clsx(styles.pageHeader)}>
@@ -265,6 +270,19 @@ export function UptimePage() {
           <Button onClick={openCreate}>{t('uptime.addUrl')}</Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('uptime.cronTitle')}</CardTitle>
+          <CardDescription>{t('uptime.cronHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className={clsx(styles.cronStack)}>
+          <p className={clsx(styles.mutedXs)}>{t('uptime.cronCliLabel')}</p>
+          <CodeBlock code={cronCli} language="bash" label={t('uptime.cronCliLabel')} rows={2} />
+          <p className={clsx(styles.mutedXs)}>{t('uptime.cronHttpLabel')}</p>
+          <CodeBlock code={cronHttp} language="bash" label={t('uptime.cronHttpLabel')} rows={4} />
+        </CardContent>
+      </Card>
 
       <div className={clsx(styles.summaryGrid)}>
         <Card>

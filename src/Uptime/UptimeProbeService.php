@@ -30,12 +30,15 @@ final class UptimeProbeService
      *
      * @return list<array<string, mixed>>
      */
-    public function runDue(?string $now = null): array
+    public function runDue(?string $now = null, bool $skipSelf = false): array
     {
         $now ??= date('Y-m-d H:i:s');
         $results = [];
         foreach ($this->targets->all() as $target) {
             if (!(int) ($target['enabled'] ?? 0)) {
+                continue;
+            }
+            if ($skipSelf && ($target['kind'] ?? '') === 'self') {
                 continue;
             }
             if (!$this->isDue($target, $now)) {
@@ -46,6 +49,14 @@ final class UptimeProbeService
         $this->prune();
 
         return $results;
+    }
+
+    /**
+     * @param array<string, mixed> $target
+     */
+    public function isTargetDue(array $target, ?string $now = null): bool
+    {
+        return $this->isDue($target, $now ?? date('Y-m-d H:i:s'));
     }
 
     /**

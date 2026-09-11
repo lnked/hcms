@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.1",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Uptime soft cron",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Uptime soft cron: due-пробы после /admin/api/health и при открытии Uptime/dashboard (flock + throttle ~30с, shutdown)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Uptime: инструкция по CLI/HTTP cron и описание soft cron на странице Settings → Uptime"
+        }
+      ]
+    },
+    {
       "version": "0.62.0",
       "date": "2026-09-11",
       "channel": "stable",

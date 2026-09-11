@@ -8,6 +8,7 @@ use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Http\Request;
 use Cms\Http\Response;
+use Cms\Uptime\UptimeScheduler;
 use Cms\Uptime\UptimeService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -18,12 +19,14 @@ final class UptimeController
     public function __construct(
         private readonly UptimeService $uptime,
         private readonly AuditLogger $audit,
+        private readonly ?UptimeScheduler $scheduler = null,
     ) {
     }
 
     public function summary(Request $request, AuthContext $auth): Response
     {
         unset($request, $auth);
+        $this->scheduler?->scheduleAfterResponse(false);
 
         return Response::data($this->uptime->summary());
     }
@@ -31,6 +34,7 @@ final class UptimeController
     public function status(Request $request, AuthContext $auth): Response
     {
         unset($request, $auth);
+        $this->scheduler?->scheduleAfterResponse(false);
 
         return Response::data($this->uptime->statusPayload());
     }
