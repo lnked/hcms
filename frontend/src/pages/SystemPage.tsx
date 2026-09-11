@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { FormBlockSkeleton } from '@/components/skeletons'
@@ -297,10 +297,7 @@ export function SystemPage() {
         ? (live.error ?? t('system.updateFailed'))
         : (previewError ?? message)
 
-  const groupedChanges = useMemo(
-    () => (preview?.changes?.length ? groupChanges(preview.changes) : []),
-    [preview?.changes],
-  )
+  const groupedChanges = preview?.changes?.length ? groupChanges(preview.changes) : []
 
   const sectionHint =
     section === 'version'
