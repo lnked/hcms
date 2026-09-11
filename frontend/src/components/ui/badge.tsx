@@ -7,6 +7,7 @@ const variantClass = {
   secondary: styles.variantSecondary,
   outline: styles.variantOutline,
   destructive: styles.variantDestructive,
+  success: styles.variantSuccess,
 } as const
 
 export type BadgeVariant = keyof typeof variantClass

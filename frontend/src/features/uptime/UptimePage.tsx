@@ -97,15 +97,15 @@ function formatDuration(seconds: number | null, ongoingLabel: string): string {
   return rm > 0 ? `${h}h ${rm}m` : `${h}h`
 }
 
-function statusVariant(target: UptimeTarget): 'default' | 'secondary' | 'destructive' {
+function statusVariant(target: UptimeTarget): 'default' | 'secondary' | 'destructive' | 'success' {
   if (target.lastOk === null) return 'secondary'
-  return target.lastOk ? 'default' : 'destructive'
+  return target.lastOk ? 'success' : 'destructive'
 }
 
 function schedulerVariant(
   state: UptimeSchedulerHealth['state'],
-): 'default' | 'secondary' | 'destructive' {
-  if (state === 'ok') return 'default'
+): 'default' | 'secondary' | 'destructive' | 'success' {
+  if (state === 'ok') return 'success'
   if (state === 'stale') return 'destructive'
   return 'secondary'
 }
@@ -474,9 +474,7 @@ export function UptimePage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            aria-label={
-                              target.enabled ? t('uptime.disable') : t('uptime.enable')
-                            }
+                            aria-label={target.enabled ? t('uptime.disable') : t('uptime.enable')}
                             title={target.enabled ? t('uptime.disable') : t('uptime.enable')}
                             onClick={() => toggleEnabled.mutate(target)}
                           >

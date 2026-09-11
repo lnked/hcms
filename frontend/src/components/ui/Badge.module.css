@@ -32,3 +32,9 @@
   background-color: color-mix(in srgb, var(--hcms-color-destructive) 10%, transparent);
   color: var(--hcms-color-destructive);
 }
+
+.variantSuccess {
+  border-color: var(--hcms-color-success);
+  background-color: color-mix(in srgb, var(--hcms-color-success) 10%, transparent);
+  color: var(--hcms-color-success);
+}
