@@ -277,9 +277,7 @@ export function UptimePage() {
           <CardDescription>{t('uptime.cronHint')}</CardDescription>
         </CardHeader>
         <CardContent className={clsx(styles.cronStack)}>
-          <p className={clsx(styles.mutedXs)}>{t('uptime.cronCliLabel')}</p>
           <CodeBlock code={cronCli} language="bash" label={t('uptime.cronCliLabel')} rows={2} />
-          <p className={clsx(styles.mutedXs)}>{t('uptime.cronHttpLabel')}</p>
           <CodeBlock code={cronHttp} language="bash" label={t('uptime.cronHttpLabel')} rows={4} />
         </CardContent>
       </Card>
