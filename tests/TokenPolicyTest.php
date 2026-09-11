@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\Auth\TokenPolicy;
-use InvalidArgumentException;
+use Cms\Core\Exception\ValidationFailedException;
 use PHPUnit\Framework\TestCase;
 
 final class TokenPolicyTest extends TestCase
@@ -75,13 +75,13 @@ final class TokenPolicyTest extends TestCase
 
     public function testFromInputRejectsInvalidEntries(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         TokenPolicy::fromInput(['not a domain'], false, []);
     }
 
     public function testFromInputRejectsInvalidCidr(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         TokenPolicy::fromInput([], false, ['10.0.0.0/64']);
     }
 

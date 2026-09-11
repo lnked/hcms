@@ -18,6 +18,7 @@ final class Config
         public readonly string $dbPassword,
         public readonly string $dbCharset,
         public readonly string $githubRepo,
+        public readonly AdminBase $adminBase,
     ) {
     }
 
@@ -35,6 +36,7 @@ final class Config
             dbPassword: $env->get('DB_PASSWORD', '') ?? '',
             dbCharset: $env->get('DB_CHARSET', 'utf8mb4') ?? 'utf8mb4',
             githubRepo: $env->get('CMS_GITHUB_REPO', 'lnked/hcms') ?? 'lnked/hcms',
+            adminBase: AdminBase::fromEnv($env),
         );
     }
 

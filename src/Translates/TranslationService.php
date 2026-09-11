@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Translates;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Core\Settings;
 use InvalidArgumentException;
 use RuntimeException;
@@ -84,7 +85,8 @@ final class TranslationService
     public static function assertValidPath(string $path): void
     {
         if (!preg_match('#^/api(/v1)?/[a-z][a-z0-9_/-]{0,62}$#', $path)) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'path',
                 'path must match /api/{slug} or /api/v1/{slug} (lowercase, digits, _, -, /)',
             );
         }
@@ -105,15 +107,18 @@ final class TranslationService
     public function createLocale(array $payload): array
     {
         $code = isset($payload['code']) && \is_string($payload['code']) ? trim($payload['code']) : '';
-        if ($code === '' || !preg_match('/^[a-z]{2}(-[A-Za-z]{2})?$/', $code)) {
-            throw new InvalidArgumentException('code must be like en or en-US');
-        }
-        if ($this->locales->find($code) !== null) {
-            throw new InvalidArgumentException('locale already exists');
-        }
         $label = isset($payload['label']) && \is_string($payload['label']) ? trim($payload['label']) : '';
+        $fields = [];
+        if ($code === '' || !preg_match('/^[a-z]{2}(-[A-Za-z]{2})?$/', $code)) {
+            $fields['code'] = ['code must be like en or en-US'];
+        } elseif ($this->locales->find($code) !== null) {
+            $fields['code'] = ['locale already exists'];
+        }
         if ($label === '' || mb_strlen($label) > 191) {
-            throw new InvalidArgumentException('label is required (max 191)');
+            $fields['label'] = ['label is required (max 191)'];
+        }
+        if ($fields !== []) {
+            throw new ValidationFailedException('Validation failed', $fields);
         }
         $enabled = \array_key_exists('enabled', $payload) ? ((bool) $payload['enabled'] ? 1 : 0) : 1;
         $sortOrder = isset($payload['sortOrder']) && is_numeric($payload['sortOrder'])
@@ -147,7 +152,7 @@ final class TranslationService
         if (\array_key_exists('label', $payload)) {
             $label = \is_string($payload['label']) ? trim($payload['label']) : '';
             if ($label === '' || mb_strlen($label) > 191) {
-                throw new InvalidArgumentException('label is required (max 191)');
+                throw ValidationFailedException::field('label', 'label is required (max 191)');
             }
             $data['label'] = $label;
         }
@@ -231,10 +236,13 @@ final class TranslationService
     {
         $key = isset($payload['key']) && \is_string($payload['key']) ? trim($payload['key']) : '';
         if ($key === '' || !preg_match('/^[a-z][a-z0-9_.-]{0,190}$/', $key)) {
-            throw new InvalidArgumentException('key must match ^[a-z][a-z0-9_.-]{0,190}$');
+            throw ValidationFailedException::field(
+                'key',
+                'key must match ^[a-z][a-z0-9_.-]{0,190}$',
+            );
         }
         if ($this->translations->findByKey($key) !== null) {
-            throw new InvalidArgumentException('translation key already exists');
+            throw ValidationFailedException::field('key', 'translation key already exists');
         }
         $description = null;
         if (\array_key_exists('description', $payload)) {
@@ -243,7 +251,7 @@ final class TranslationService
                 $description = null;
             }
             if ($description !== null && mb_strlen($description) > 255) {
-                throw new InvalidArgumentException('description max 255');
+                throw ValidationFailedException::field('description', 'description max 255');
             }
         }
         $values = $this->normalizeValues($payload['values'] ?? []);
@@ -272,7 +280,7 @@ final class TranslationService
                 $description = null;
             }
             if ($description !== null && mb_strlen($description) > 255) {
-                throw new InvalidArgumentException('description max 255');
+                throw ValidationFailedException::field('description', 'description max 255');
             }
             $data['description'] = $description;
         }

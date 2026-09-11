@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Uptime;
 
+use Cms\Core\Exception\ValidationFailedException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -19,7 +20,7 @@ final class UptimeService
         private readonly UptimeProbeService $probes,
         private readonly UptimeStatusService $status,
         private readonly UptimeSettings $settings,
-        private readonly string $appUrl,
+        private readonly string $healthUrl,
     ) {
     }
 
@@ -44,7 +45,7 @@ final class UptimeService
      */
     public function listTargets(): array
     {
-        $this->targets->ensureSelf(rtrim($this->appUrl, '/') . '/admin/api/health');
+        $this->targets->ensureSelf($this->healthUrl);
 
         return array_map(
             static fn (array $row): array => self::serializeTarget($row),
@@ -156,7 +157,7 @@ final class UptimeService
      */
     public function runDue(): array
     {
-        $this->targets->ensureSelf(rtrim($this->appUrl, '/') . '/admin/api/health');
+        $this->targets->ensureSelf($this->healthUrl);
 
         return $this->probes->runDue();
     }
@@ -325,28 +326,32 @@ final class UptimeService
 
         if ($creating || \array_key_exists('name', $payload)) {
             if ($name === '' || \strlen($name) > 191) {
-                throw new InvalidArgumentException('name is required (1–191 chars)');
+                throw ValidationFailedException::field('name', 'name is required (1–191 chars)');
             }
         }
         if ($creating || \array_key_exists('url', $payload)) {
             if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $url)) {
-                throw new InvalidArgumentException('url must be a valid http(s) URL');
+                throw ValidationFailedException::field('url', 'url must be a valid http(s) URL');
             }
             if (\strlen($url) > 2048) {
-                throw new InvalidArgumentException('url is too long');
+                throw ValidationFailedException::field('url', 'url is too long');
             }
         }
         if (\array_key_exists('method', $payload) && !\in_array($methodRaw, ['GET', 'HEAD'], true)) {
-            throw new InvalidArgumentException('method must be GET or HEAD');
+            throw ValidationFailedException::field('method', 'method must be GET or HEAD');
         }
         if ($expected < 100 || $expected > 599) {
-            throw new InvalidArgumentException('expectedStatus must be 100–599');
+            throw ValidationFailedException::field('expectedStatus', 'expectedStatus must be 100–599');
         }
         if ($timeout < 500 || $timeout > UptimeSettings::MAX_TIMEOUT_MS) {
-            throw new InvalidArgumentException('timeoutMs must be 500–' . UptimeSettings::MAX_TIMEOUT_MS);
+            throw ValidationFailedException::field(
+                'timeoutMs',
+                'timeoutMs must be 500–' . UptimeSettings::MAX_TIMEOUT_MS,
+            );
         }
         if ($interval < UptimeSettings::MIN_INTERVAL_SECONDS || $interval > 86400) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'intervalSeconds',
                 'intervalSeconds must be ' . UptimeSettings::MIN_INTERVAL_SECONDS . '–86400',
             );
         }

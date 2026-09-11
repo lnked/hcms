@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -356,7 +357,7 @@ export function ResourcesPage() {
             <DialogTitle>{t('resources.package.importTitle')}</DialogTitle>
             <DialogDescription>{t('resources.package.importHint')}</DialogDescription>
           </DialogHeader>
-          <div className={styles.formStack}>
+          <Form className={styles.formStack} onSubmit={() => doImport.mutate()}>
             <div className={styles.field}>
               <Label>{t('resources.package.importFile')}</Label>
               <input
@@ -482,17 +483,17 @@ export function ResourcesPage() {
                 {t('common.cancel')}
               </Button>
               <Button
+                type="submit"
                 disabled={
                   doImport.isPending || (!importPackage && !importPaste.trim() && !importFile)
                 }
-                onClick={() => doImport.mutate()}
               >
                 {doImport.isPending
                   ? t('resources.package.importing')
                   : t('resources.package.importSubmit')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

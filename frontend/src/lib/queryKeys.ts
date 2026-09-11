@@ -23,5 +23,6 @@ export const queryKeys = {
   },
   settings: {
     apiAccess: ['settings-api-access'] as const,
+    adminBase: ['settings-admin-base'] as const,
   },
 }

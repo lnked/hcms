@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
 import { listableFields, mergeColumns } from './columns'
@@ -108,7 +109,7 @@ export function ColumnsDialog({
           <DialogTitle>{t('entries.columnsTitle')}</DialogTitle>
           <DialogDescription>{t('entries.columnsHint')}</DialogDescription>
         </DialogHeader>
-        <div className={clsx(styles.root)}>
+        <Form className={clsx(styles.root)} onSubmit={() => onSave(items)}>
           <ul className={clsx(styles.list)}>
             {items.map((item, index) => {
               const field = labels.get(item.field)
@@ -181,11 +182,11 @@ export function ColumnsDialog({
             <Button variant="outline" onClick={() => edit(mergeColumns(fields, undefined))}>
               {t('entries.columnsReset')}
             </Button>
-            <Button disabled={saving} onClick={() => onSave(items)}>
+            <Button type="submit" disabled={saving}>
               {saving ? t('common.saving') : t('common.save')}
             </Button>
           </div>
-        </div>
+        </Form>
       </DialogContent>
     </Dialog>
   )

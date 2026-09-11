@@ -5,6 +5,7 @@ import { FormBlockSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
@@ -95,7 +96,7 @@ export function OauthIntegrationsCard() {
             {query.error instanceof Error ? query.error.message : t('common.requestFailed')}
           </p>
         ) : (
-          <>
+          <Form className={clsx(styles.content)} onSubmit={() => save.mutate()}>
             <div className={clsx(styles.panel)}>
               <div className={clsx(styles.panelHeader)}>
                 <div>
@@ -234,15 +235,10 @@ export function OauthIntegrationsCard() {
               </div>
             </div>
 
-            <Button
-              type="button"
-              className={clsx(styles.save)}
-              disabled={save.isPending}
-              onClick={() => save.mutate()}
-            >
+            <Button type="submit" className={clsx(styles.save)} disabled={save.isPending}>
               {save.isPending ? t('common.saving') : t('common.save')}
             </Button>
-          </>
+          </Form>
         )}
       </CardContent>
     </Card>

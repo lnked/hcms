@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\KeyValues;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Core\Settings;
-use InvalidArgumentException;
 use RuntimeException;
 
 final class KeyValueService
@@ -85,7 +85,8 @@ final class KeyValueService
     public static function assertValidPath(string $path): void
     {
         if (!preg_match('#^/api(/v1)?/[a-z][a-z0-9_/-]{0,62}$#', $path)) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'path',
                 'path must match /api/{slug} or /api/v1/{slug} (lowercase, digits, _, -, /)',
             );
         }
@@ -123,10 +124,10 @@ final class KeyValueService
     {
         $key = $this->normalizeKey($payload);
         if ($this->entries->findByKey($key) !== null) {
-            throw new InvalidArgumentException('key already exists');
+            throw ValidationFailedException::field('key', 'key already exists');
         }
         if (!\array_key_exists('value', $payload)) {
-            throw new InvalidArgumentException('value is required');
+            throw ValidationFailedException::field('value', 'value is required');
         }
 
         return $this->serialize($this->entries->create([
@@ -205,7 +206,8 @@ final class KeyValueService
             ? trim($payload['key'])
             : '';
         if ($key === '' || !preg_match('/^[a-z][a-zA-Z0-9_]{0,63}$/', $key)) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'key',
                 'key must match ^[a-z][a-zA-Z0-9_]{0,63}$',
             );
         }
@@ -217,7 +219,7 @@ final class KeyValueService
     {
         $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($encoded === false) {
-            throw new InvalidArgumentException('value must be JSON-serializable');
+            throw ValidationFailedException::field('value', 'value must be JSON-serializable');
         }
 
         return $encoded;

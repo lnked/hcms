@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Auth;
 
+use Cms\Core\Exception\ValidationFailedException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -46,7 +47,7 @@ final class UsersService
     {
         $validated = self::validateCreate($payload);
         if ($this->users->findByEmail($validated['email']) !== null) {
-            throw new InvalidArgumentException('Email already exists');
+            throw ValidationFailedException::field('email', 'Email already exists');
         }
 
         $row = $this->users->create([
@@ -79,7 +80,7 @@ final class UsersService
         if (isset($validated['email']) && strcasecmp($validated['email'], (string) $existing['email']) !== 0) {
             $other = $this->users->findByEmail($validated['email']);
             if ($other !== null && (int) $other['id'] !== $id) {
-                throw new InvalidArgumentException('Email already exists');
+                throw ValidationFailedException::field('email', 'Email already exists');
             }
         }
 
@@ -273,19 +274,19 @@ final class UsersService
         $role = isset($payload['role']) && \is_string($payload['role']) ? trim($payload['role']) : RolePolicy::ADMIN;
 
         if ($name === '') {
-            throw new InvalidArgumentException('Name is required');
+            throw ValidationFailedException::field('name', 'Name is required');
         }
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('Valid email is required');
+            throw ValidationFailedException::field('email', 'Valid email is required');
         }
         if (!Password::meetsPolicy($password)) {
-            throw new InvalidArgumentException(Password::policyMessage());
+            throw ValidationFailedException::field('password', Password::policyMessage());
         }
         if (!\in_array($status, ['active', 'disabled'], true)) {
-            throw new InvalidArgumentException('Invalid status');
+            throw ValidationFailedException::field('status', 'Invalid status');
         }
         if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
-            throw new InvalidArgumentException('Invalid role');
+            throw ValidationFailedException::field('role', 'Invalid role');
         }
 
         return [
@@ -307,35 +308,35 @@ final class UsersService
         if (\array_key_exists('name', $payload)) {
             $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '') {
-                throw new InvalidArgumentException('Name is required');
+                throw ValidationFailedException::field('name', 'Name is required');
             }
             $out['name'] = $name;
         }
         if (\array_key_exists('email', $payload)) {
             $email = \is_string($payload['email']) ? trim($payload['email']) : '';
             if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                throw new InvalidArgumentException('Valid email is required');
+                throw ValidationFailedException::field('email', 'Valid email is required');
             }
             $out['email'] = strtolower($email);
         }
         if (\array_key_exists('password', $payload) && $payload['password'] !== null && $payload['password'] !== '') {
             $password = \is_string($payload['password']) ? $payload['password'] : '';
             if (!Password::meetsPolicy($password)) {
-                throw new InvalidArgumentException(Password::policyMessage());
+                throw ValidationFailedException::field('password', Password::policyMessage());
             }
             $out['password'] = $password;
         }
         if (\array_key_exists('status', $payload)) {
             $status = \is_string($payload['status']) ? trim($payload['status']) : '';
             if (!\in_array($status, ['active', 'disabled'], true)) {
-                throw new InvalidArgumentException('Invalid status');
+                throw ValidationFailedException::field('status', 'Invalid status');
             }
             $out['status'] = $status;
         }
         if (\array_key_exists('role', $payload)) {
             $role = \is_string($payload['role']) ? trim($payload['role']) : '';
             if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
-                throw new InvalidArgumentException('Invalid role');
+                throw ValidationFailedException::field('role', 'Invalid role');
             }
             $out['role'] = RolePolicy::normalize($role);
         }

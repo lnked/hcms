@@ -6,6 +6,7 @@ namespace Cms\Resources;
 
 use Cms\Content\ContentTypeRepository;
 use Cms\Content\Slug;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Core\MetadataCache;
 use Cms\Database\Connection;
 use InvalidArgumentException;
@@ -63,19 +64,22 @@ final class ResourceService
             : '/api/' . $slug;
 
         if ($label === '') {
-            throw new InvalidArgumentException('Label is required');
+            throw ValidationFailedException::field('label', 'Label is required');
         }
         if ($name === '') {
             $name = $slug;
         }
         if (!Slug::isValid($slug)) {
-            throw new InvalidArgumentException('Invalid slug. Use a-z, 0-9, underscore; start with a letter.');
+            throw ValidationFailedException::field(
+                'slug',
+                'Invalid slug. Use a-z, 0-9, underscore; start with a letter.',
+            );
         }
         if ($this->contentTypes->findBySlug($slug) !== null || $this->resources->findBySlug($slug) !== null) {
-            throw new InvalidArgumentException('Slug already exists');
+            throw ValidationFailedException::field('slug', 'Slug already exists');
         }
         if ($this->resources->findPublicKeyConflict($slug) !== null) {
-            throw new InvalidArgumentException('Slug conflicts with an existing endpoint');
+            throw ValidationFailedException::field('slug', 'Slug conflicts with an existing endpoint');
         }
         $this->assertEndpointAvailable($endpoint);
 
@@ -132,7 +136,7 @@ final class ResourceService
         if (isset($payload['status']) && \is_string($payload['status'])) {
             $status = $payload['status'];
             if (!\in_array($status, ['draft', 'published', 'archived'], true)) {
-                throw new InvalidArgumentException('Invalid status');
+                throw ValidationFailedException::field('status', 'Invalid status');
             }
             $update['status'] = $status;
         }
@@ -155,7 +159,11 @@ final class ResourceService
         if (isset($payload['label']) || isset($payload['description']) || isset($payload['name'])) {
             $ctUpdate = [];
             if (isset($payload['label']) && \is_string($payload['label'])) {
-                $ctUpdate['label'] = trim($payload['label']);
+                $label = trim($payload['label']);
+                if ($label === '') {
+                    throw ValidationFailedException::field('label', 'Label is required');
+                }
+                $ctUpdate['label'] = $label;
             }
             if (isset($payload['name']) && \is_string($payload['name'])) {
                 $ctUpdate['name'] = trim($payload['name']);
@@ -238,19 +246,23 @@ final class ResourceService
     private function assertEndpointAvailable(string $endpoint, ?int $exceptId = null): void
     {
         if (!self::isValidEndpoint($endpoint)) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'endpoint',
                 'Invalid endpoint. Use /api/{slug} or /api/v1/{slug} with a-z, 0-9, underscore or hyphen.',
             );
         }
         $key = self::publicKeyFromEndpoint($endpoint);
         if ($key === null) {
-            throw new InvalidArgumentException('Invalid endpoint');
+            throw ValidationFailedException::field('endpoint', 'Invalid endpoint');
         }
         if ($this->resources->findByEndpoint($endpoint, $exceptId) !== null) {
-            throw new InvalidArgumentException('Endpoint already exists');
+            throw ValidationFailedException::field('endpoint', 'Endpoint already exists');
         }
         if ($this->resources->findPublicKeyConflict($key, $exceptId) !== null) {
-            throw new InvalidArgumentException('Endpoint conflicts with another resource slug or endpoint');
+            throw ValidationFailedException::field(
+                'endpoint',
+                'Endpoint conflicts with another resource slug or endpoint',
+            );
         }
     }
 

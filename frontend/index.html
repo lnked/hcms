@@ -6,6 +6,13 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>HCMS Admin</title>
         <script>
+            window.__HCMS__ = window.__HCMS__ || {
+                adminBase: 'admin',
+                uiBase: '/admin',
+                apiPrefix: '/admin/api',
+            }
+        </script>
+        <script>
             ;(function () {
                 try {
                     var key = 'hcms.theme'

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { meetsPasswordPolicy } from '@/lib/password'
 import { showSuccess } from '@/lib/toast'
 import styles from './ChangePasswordDialog.module.css'
@@ -90,9 +90,10 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         // eslint-disable-next-line jsx-a11y/no-autofocus -- focus current password when dialog opens
         autoFocus
         value={current}
+        aria-invalid={hasFieldError(fieldErrors, 'currentPassword') || undefined}
         onChange={(value) => {
           setCurrent(value)
-          setFieldErrors({})
+          setFieldErrors((prev) => clearFieldError(prev, 'currentPassword'))
         }}
         required
       />
@@ -102,9 +103,10 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         id="account-new-password"
         label={t('account.newPassword')}
         value={next}
+        aria-invalid={hasFieldError(fieldErrors, 'newPassword') || undefined}
         onChange={(value) => {
           setNext(value)
-          setFieldErrors({})
+          setFieldErrors((prev) => clearFieldError(prev, 'newPassword'))
         }}
         allowGenerate
         showCopy
@@ -112,7 +114,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
         onRevealChange={setReveal}
         onGenerate={(password) => {
           setConfirm(password)
-          setFieldErrors({})
+          setFieldErrors((prev) => clearFieldError(prev, 'newPassword'))
         }}
         hint={t('account.passwordPolicy')}
         required

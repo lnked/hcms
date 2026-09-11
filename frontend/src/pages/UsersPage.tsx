@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -31,7 +32,7 @@ import { UserPermissionsDialog, UserResetPasswordDialog } from '@/features/accou
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './UsersPage.module.css'
 
@@ -282,13 +283,17 @@ export function UsersPage() {
             <DialogTitle>{t('users.createTitle')}</DialogTitle>
             <DialogDescription>{t('users.createHint')}</DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.form)}>
+          <Form className={clsx(styles.form)} onSubmit={() => create.mutate()}>
             <div className={clsx(styles.field)}>
               <Label htmlFor="user-name">{t('common.name')}</Label>
               <Input
                 id="user-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                }}
                 placeholder={t('users.placeholderName')}
               />
               <FieldError messages={fieldErrors.name} />
@@ -299,7 +304,11 @@ export function UsersPage() {
                 id="user-email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'email') || undefined}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'email'))
+                }}
                 placeholder="admin@example.com"
               />
               <FieldError messages={fieldErrors.email} />
@@ -308,7 +317,11 @@ export function UsersPage() {
               id="user-password"
               label={t('users.password')}
               value={password}
-              onChange={setPassword}
+              aria-invalid={hasFieldError(fieldErrors, 'password') || undefined}
+              onChange={(value) => {
+                setPassword(value)
+                setFieldErrors((prev) => clearFieldError(prev, 'password'))
+              }}
               placeholder={t('users.placeholderPassword')}
               allowGenerate
               showCopy
@@ -319,7 +332,11 @@ export function UsersPage() {
               <Select
                 id="user-role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as (typeof ROLES)[number])}
+                aria-invalid={hasFieldError(fieldErrors, 'role') || undefined}
+                onChange={(e) => {
+                  setRole(e.target.value as (typeof ROLES)[number])
+                  setFieldErrors((prev) => clearFieldError(prev, 'role'))
+                }}
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
@@ -330,13 +347,13 @@ export function UsersPage() {
               <FieldError messages={fieldErrors.role} />
             </div>
             <Button
+              type="submit"
               className={clsx(styles.fullWidth)}
               disabled={create.isPending || !name || !email || password.length < 8}
-              onClick={() => create.mutate()}
             >
               {create.isPending ? t('common.saving') : t('users.create')}
             </Button>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
 

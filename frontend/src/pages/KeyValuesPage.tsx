@@ -8,6 +8,7 @@ import { FieldError } from '@/components/FieldError'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './KeyValuesPage.module.css'
 
@@ -156,6 +157,7 @@ export function KeyValuesPage() {
     },
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setDialogOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['key-values'] })
     },
@@ -295,42 +297,48 @@ export function KeyValuesPage() {
             <CardTitle>{t('kv.apiTitle')}</CardTitle>
             <CardDescription>{t('kv.apiHint')}</CardDescription>
           </CardHeader>
-          <CardContent className={clsx(styles.apiForm)}>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={apiEnabled}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
-                id="kv-api-enabled"
-              />
-              <Label htmlFor="kv-api-enabled">{t('kv.apiEnabled')}</Label>
-            </div>
-            <div className={clsx(styles.field)}>
-              <Label htmlFor="kv-api-path">{t('kv.apiPath')}</Label>
-              <Input
-                id="kv-api-path"
-                value={apiPath}
-                onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
-              />
-              <FieldError messages={fieldErrors.path} />
-            </div>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={requireToken}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
-                id="kv-require-token"
-              />
-              <Label htmlFor="kv-require-token">{t('kv.requireToken')}</Label>
-            </div>
-            <CodeBlock code={curlExample} language="bash" label={t('kv.curlExample')} />
-            <p className={clsx(styles.hint)}>{t('kv.apiResponseHint')}</p>
-            <Button
-              size="sm"
-              className={clsx(styles.saveBtn)}
-              disabled={saveSettings.isPending}
-              onClick={() => saveSettings.mutate()}
-            >
-              {saveSettings.isPending ? t('common.saving') : t('common.save')}
-            </Button>
+          <CardContent>
+            <Form className={clsx(styles.apiForm)} onSubmit={() => saveSettings.mutate()}>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={apiEnabled}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
+                  id="kv-api-enabled"
+                />
+                <Label htmlFor="kv-api-enabled">{t('kv.apiEnabled')}</Label>
+              </div>
+              <div className={clsx(styles.field)}>
+                <Label htmlFor="kv-api-path">{t('kv.apiPath')}</Label>
+                <Input
+                  id="kv-api-path"
+                  value={apiPath}
+                  aria-invalid={hasFieldError(fieldErrors, 'path') || undefined}
+                  onChange={(e) => {
+                    setApiDraft((prev) => ({ ...prev, path: e.target.value }))
+                    setFieldErrors((prev) => clearFieldError(prev, 'path'))
+                  }}
+                />
+                <FieldError messages={fieldErrors.path} />
+              </div>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={requireToken}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
+                  id="kv-require-token"
+                />
+                <Label htmlFor="kv-require-token">{t('kv.requireToken')}</Label>
+              </div>
+              <CodeBlock code={curlExample} language="bash" label={t('kv.curlExample')} />
+              <p className={clsx(styles.hint)}>{t('kv.apiResponseHint')}</p>
+              <Button
+                type="submit"
+                size="sm"
+                className={clsx(styles.saveBtn)}
+                disabled={saveSettings.isPending}
+              >
+                {saveSettings.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </Form>
           </CardContent>
         </Card>
       )}
@@ -341,20 +349,33 @@ export function KeyValuesPage() {
             <DialogTitle>{editing ? t('kv.editTitle') : t('kv.createTitle')}</DialogTitle>
             <DialogDescription>{t('kv.formHint')}</DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.form)}>
+          <Form className={clsx(styles.form)} onSubmit={() => save.mutate()}>
             <div className={clsx(styles.field)}>
               <Label>{t('kv.key')}</Label>
               <Input
                 value={key}
                 disabled={!!editing}
-                onChange={(e) => setKey(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'key') || undefined}
+                onChange={(e) => {
+                  setKey(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'key'))
+                }}
                 placeholder="siteName"
               />
               <FieldError messages={fieldErrors.key} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('kv.value')}</Label>
-              <CodeBlock code={valueText} editable language="js" rows={8} onChange={setValueText} />
+              <CodeBlock
+                code={valueText}
+                editable
+                language="js"
+                rows={8}
+                onChange={(v) => {
+                  setValueText(v)
+                  setFieldErrors((prev) => clearFieldError(prev, 'value'))
+                }}
+              />
               <p className={clsx(styles.hint)}>{t('kv.valueHint')}</p>
               <FieldError messages={fieldErrors.value} />
             </div>
@@ -374,11 +395,11 @@ export function KeyValuesPage() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button disabled={save.isPending} onClick={() => save.mutate()}>
+              <Button type="submit" disabled={save.isPending}>
                 {save.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

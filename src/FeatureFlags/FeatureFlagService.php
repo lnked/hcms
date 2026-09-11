@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\FeatureFlags;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Core\Settings;
-use InvalidArgumentException;
 use RuntimeException;
 
 final class FeatureFlagService
@@ -86,7 +86,8 @@ final class FeatureFlagService
     public static function assertValidPath(string $path): void
     {
         if (!preg_match('#^/api(/v1)?/[a-z][a-z0-9_/-]{0,62}$#', $path)) {
-            throw new InvalidArgumentException(
+            throw ValidationFailedException::field(
+                'path',
                 'path must match /api/{slug} or /api/v1/{slug} (lowercase, digits, _, -, /)',
             );
         }
@@ -124,7 +125,7 @@ final class FeatureFlagService
     {
         $data = $this->normalizeCreate($payload);
         if ($this->flags->findByKey($data['flag_key']) !== null) {
-            throw new InvalidArgumentException('flag_key already exists');
+            throw ValidationFailedException::field('key', 'flag_key already exists');
         }
 
         return $this->serialize($this->flags->create($data));
@@ -240,26 +241,24 @@ final class FeatureFlagService
     {
         $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
         if ($name === '' || mb_strlen($name) > 191) {
-            throw new InvalidArgumentException('name is required (max 191)');
+            throw ValidationFailedException::field('name', 'name is required (max 191)');
         }
         $key = isset($payload['key']) && \is_string($payload['key'])
             ? trim($payload['key'])
             : (isset($payload['flagKey']) && \is_string($payload['flagKey']) ? trim($payload['flagKey']) : '');
         if ($key === '' || !preg_match('/^[a-z][a-zA-Z0-9_]{0,63}$/', $key)) {
-            throw new InvalidArgumentException(
-                'key must match ^[a-z][a-zA-Z0-9_]{0,63}$',
-            );
+            throw ValidationFailedException::field('key', 'key must match ^[a-z][a-zA-Z0-9_]{0,63}$');
         }
         $type = isset($payload['type']) && \is_string($payload['type']) ? trim($payload['type']) : '';
         if (!\in_array($type, self::TYPES, true)) {
-            throw new InvalidArgumentException('type must be boolean, integer, string, or object');
+            throw ValidationFailedException::field('type', 'type must be boolean, integer, string, or object');
         }
         if (!\array_key_exists('value', $payload)) {
-            throw new InvalidArgumentException('value is required');
+            throw ValidationFailedException::field('value', 'value is required');
         }
         $desc = $payload['description'] ?? null;
         if ($desc !== null && !\is_string($desc)) {
-            throw new InvalidArgumentException('description must be a string');
+            throw ValidationFailedException::field('description', 'description must be a string');
         }
         $description = $desc !== null ? trim($desc) : null;
         if ($description === '') {
@@ -302,7 +301,7 @@ final class FeatureFlagService
         if (\array_key_exists('name', $payload)) {
             $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '' || mb_strlen($name) > 191) {
-                throw new InvalidArgumentException('name is required (max 191)');
+                throw ValidationFailedException::field('name', 'name is required (max 191)');
             }
             $out['name'] = $name;
         }
@@ -310,7 +309,7 @@ final class FeatureFlagService
         if (\array_key_exists('type', $payload)) {
             $type = \is_string($payload['type']) ? trim($payload['type']) : '';
             if (!\in_array($type, self::TYPES, true)) {
-                throw new InvalidArgumentException('type must be boolean, integer, string, or object');
+                throw ValidationFailedException::field('type', 'type must be boolean, integer, string, or object');
             }
             $out['type'] = $type;
         }
@@ -325,7 +324,7 @@ final class FeatureFlagService
         if (\array_key_exists('description', $payload)) {
             $desc = $payload['description'];
             if ($desc !== null && !\is_string($desc)) {
-                throw new InvalidArgumentException('description must be a string');
+                throw ValidationFailedException::field('description', 'description must be a string');
             }
             $out['description'] = \is_string($desc) ? (trim($desc) !== '' ? trim($desc) : null) : null;
         }
@@ -364,18 +363,18 @@ final class FeatureFlagService
     {
         $ab = (bool) ($payload['abTest'] ?? $payload['ab_test'] ?? false);
         if ($ab && $type !== 'boolean') {
-            throw new InvalidArgumentException('A/B test is only supported for boolean flags');
+            throw ValidationFailedException::field('abTest', 'A/B test is only supported for boolean flags');
         }
         if (!$ab) {
             return ['ab_test' => 0, 'rollout_percent' => 100];
         }
         $percentRaw = $payload['rolloutPercent'] ?? $payload['rollout_percent'] ?? 50;
         if (!is_numeric($percentRaw)) {
-            throw new InvalidArgumentException('rolloutPercent must be an integer 0-100');
+            throw ValidationFailedException::field('rolloutPercent', 'rolloutPercent must be an integer 0-100');
         }
         $percent = (int) $percentRaw;
         if ($percent < 0 || $percent > 100) {
-            throw new InvalidArgumentException('rolloutPercent must be an integer 0-100');
+            throw ValidationFailedException::field('rolloutPercent', 'rolloutPercent must be an integer 0-100');
         }
 
         return [
@@ -388,14 +387,16 @@ final class FeatureFlagService
     {
         return match ($type) {
             'boolean' => (bool) $value,
-            'integer' => is_numeric($value) ? (int) $value : throw new InvalidArgumentException('value must be an integer'),
+            'integer' => is_numeric($value)
+                ? (int) $value
+                : throw ValidationFailedException::field('value', 'value must be an integer'),
             'string' => \is_string($value) || is_numeric($value)
                 ? (string) $value
-                : throw new InvalidArgumentException('value must be a string'),
+                : throw ValidationFailedException::field('value', 'value must be a string'),
             'object' => (\is_array($value) && (array_is_list($value) || $this->isAssoc($value)))
                 ? $value
-                : throw new InvalidArgumentException('value must be a JSON object or array'),
-            default => throw new InvalidArgumentException('Unknown type'),
+                : throw ValidationFailedException::field('value', 'value must be a JSON object or array'),
+            default => throw ValidationFailedException::field('type', 'Unknown type'),
         };
     }
 

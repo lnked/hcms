@@ -670,13 +670,21 @@ final class AdminResourceRoutes
 
             return $settingsController->apiAccess();
         });
+        $router->add('GET', '/admin/api/settings/admin-base', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+            unset($request, $params);
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $settingsController->adminBase();
+        });
         $router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
             unset($params);
             if ($context === null) {
                 return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
             }
 
-            return $settingsController->update($request);
+            return $settingsController->update($request, $context);
         });
 
         $router->add('GET', '/admin/api/integrations/email', function (Request $request, array $params, ?AuthContext $context) use ($integrations): Response {

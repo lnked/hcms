@@ -8,6 +8,7 @@ import { FieldError } from '@/components/FieldError'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,12 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import {
+  apiFieldErrors,
+  clearFieldError,
+  hasFieldError,
+  type FieldErrors,
+} from '@/lib/formErrors'
 import { showError, showSuccess } from '@/lib/toast'
 import styles from './TranslatesPage.module.css'
 
@@ -160,6 +166,7 @@ export function TranslatesPage() {
     },
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setKeyDialog(false)
       void queryClient.invalidateQueries({ queryKey: ['translations'] })
     },
@@ -179,6 +186,7 @@ export function TranslatesPage() {
       }),
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setLocaleDialog(false)
       setLocaleCode('')
       setLocaleLabel('')
@@ -219,6 +227,7 @@ export function TranslatesPage() {
       }),
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setApiDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['translations-settings'] })
     },
@@ -385,7 +394,15 @@ export function TranslatesPage() {
               <CardTitle>{t('translates.languagesTitle')}</CardTitle>
               <CardDescription>{t('translates.languagesHint')}</CardDescription>
             </div>
-            <Button size="sm" onClick={() => setLocaleDialog(true)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setLocaleCode('')
+                setLocaleLabel('')
+                setFieldErrors({})
+                setLocaleDialog(true)
+              }}
+            >
               {t('translates.addLocale')}
             </Button>
           </CardHeader>
@@ -464,41 +481,47 @@ export function TranslatesPage() {
             <CardTitle>{t('translates.apiTitle')}</CardTitle>
             <CardDescription>{t('translates.apiHint')}</CardDescription>
           </CardHeader>
-          <CardContent className={clsx(styles.apiForm)}>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={apiEnabled}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
-                id="tr-api-enabled"
-              />
-              <Label htmlFor="tr-api-enabled">{t('translates.apiEnabled')}</Label>
-            </div>
-            <div className={clsx(styles.field)}>
-              <Label htmlFor="tr-api-path">{t('translates.apiPath')}</Label>
-              <Input
-                id="tr-api-path"
-                value={apiPath}
-                onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
-              />
-              <FieldError messages={fieldErrors.path} />
-            </div>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={requireToken}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
-                id="tr-require-token"
-              />
-              <Label htmlFor="tr-require-token">{t('translates.requireToken')}</Label>
-            </div>
-            <CodeBlock code={curlExample} language="bash" label={t('translates.curlExample')} />
-            <Button
-              size="sm"
-              className={clsx(styles.saveBtn)}
-              disabled={saveSettings.isPending}
-              onClick={() => saveSettings.mutate()}
-            >
-              {saveSettings.isPending ? t('common.saving') : t('common.save')}
-            </Button>
+          <CardContent>
+            <Form className={clsx(styles.apiForm)} onSubmit={() => saveSettings.mutate()}>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={apiEnabled}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
+                  id="tr-api-enabled"
+                />
+                <Label htmlFor="tr-api-enabled">{t('translates.apiEnabled')}</Label>
+              </div>
+              <div className={clsx(styles.field)}>
+                <Label htmlFor="tr-api-path">{t('translates.apiPath')}</Label>
+                <Input
+                  id="tr-api-path"
+                  value={apiPath}
+                  aria-invalid={hasFieldError(fieldErrors, 'path') || undefined}
+                  onChange={(e) => {
+                    setApiDraft((prev) => ({ ...prev, path: e.target.value }))
+                    setFieldErrors((prev) => clearFieldError(prev, 'path'))
+                  }}
+                />
+                <FieldError messages={fieldErrors.path} />
+              </div>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={requireToken}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
+                  id="tr-require-token"
+                />
+                <Label htmlFor="tr-require-token">{t('translates.requireToken')}</Label>
+              </div>
+              <CodeBlock code={curlExample} language="bash" label={t('translates.curlExample')} />
+              <Button
+                type="submit"
+                size="sm"
+                className={clsx(styles.saveBtn)}
+                disabled={saveSettings.isPending}
+              >
+                {saveSettings.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </Form>
           </CardContent>
         </Card>
       ) : null}
@@ -511,20 +534,31 @@ export function TranslatesPage() {
             </DialogTitle>
             <DialogDescription>{t('translates.keyFormHint')}</DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.form)}>
+          <Form className={clsx(styles.form)} onSubmit={() => saveKey.mutate()}>
             <div className={clsx(styles.field)}>
               <Label>{t('translates.key')}</Label>
               <Input
                 value={trKey}
                 disabled={!!editingKey}
-                onChange={(e) => setTrKey(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'key') || undefined}
+                onChange={(e) => {
+                  setTrKey(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'key'))
+                }}
                 placeholder="amount.title"
               />
               <FieldError messages={fieldErrors.key} />
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.description')}</Label>
-              <Input value={trDesc} onChange={(e) => setTrDesc(e.target.value)} />
+              <Input
+                value={trDesc}
+                aria-invalid={hasFieldError(fieldErrors, 'description') || undefined}
+                onChange={(e) => {
+                  setTrDesc(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'description'))
+                }}
+              />
               <FieldError messages={fieldErrors.description} />
             </div>
             {enabledLocales.map((loc) => (
@@ -542,11 +576,11 @@ export function TranslatesPage() {
               <Button variant="outline" onClick={() => setKeyDialog(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button disabled={saveKey.isPending} onClick={() => saveKey.mutate()}>
+              <Button type="submit" disabled={saveKey.isPending}>
                 {saveKey.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -555,12 +589,16 @@ export function TranslatesPage() {
           <DialogHeader>
             <DialogTitle>{t('translates.addLocale')}</DialogTitle>
           </DialogHeader>
-          <div className={clsx(styles.form)}>
+          <Form className={clsx(styles.form)} onSubmit={() => createLocale.mutate()}>
             <div className={clsx(styles.field)}>
               <Label>{t('translates.code')}</Label>
               <Input
                 value={localeCode}
-                onChange={(e) => setLocaleCode(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'code') || undefined}
+                onChange={(e) => {
+                  setLocaleCode(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'code'))
+                }}
                 placeholder="de"
               />
               <FieldError messages={fieldErrors.code} />
@@ -569,7 +607,11 @@ export function TranslatesPage() {
               <Label>{t('common.name')}</Label>
               <Input
                 value={localeLabel}
-                onChange={(e) => setLocaleLabel(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'label') || undefined}
+                onChange={(e) => {
+                  setLocaleLabel(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'label'))
+                }}
                 placeholder="Deutsch"
               />
               <FieldError messages={fieldErrors.label} />
@@ -578,11 +620,11 @@ export function TranslatesPage() {
               <Button variant="outline" onClick={() => setLocaleDialog(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button disabled={createLocale.isPending} onClick={() => createLocale.mutate()}>
+              <Button type="submit" disabled={createLocale.isPending}>
                 {createLocale.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

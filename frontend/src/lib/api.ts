@@ -1,3 +1,4 @@
+import { adminPath, resolveApiPath } from '@/lib/adminBase'
 import { showError } from '@/lib/toast'
 
 const TOKEN_KEY = 'hcms_token'
@@ -54,9 +55,9 @@ let redirectingToLogin = false
 
 function isAuthChallengePath(requestPath: string): boolean {
   return (
-    requestPath.includes('/admin/api/auth/login') ||
-    requestPath.includes('/admin/api/auth/telegram') ||
-    requestPath.includes('/admin/api/auth/totp/complete')
+    requestPath.includes('/api/auth/login') ||
+    requestPath.includes('/api/auth/telegram') ||
+    requestPath.includes('/api/auth/totp/complete')
   )
 }
 
@@ -67,16 +68,16 @@ export function handleUnauthorized(requestPath: string): void {
   }
   clearToken()
   // Session probe — RequireAuth soft-navigates to /login.
-  if (requestPath.includes('/admin/api/auth/me')) {
+  if (requestPath.includes('/api/auth/me')) {
     return
   }
   const path = window.location.pathname
-  if (path === '/admin/login' || path.endsWith('/login') || redirectingToLogin) {
+  if (path === adminPath('/login') || path.endsWith('/login') || redirectingToLogin) {
     return
   }
   redirectingToLogin = true
   const next = `${path}${window.location.search}`
-  window.location.assign(`/admin/login?from=${encodeURIComponent(next)}`)
+  window.location.assign(`${adminPath('/login')}?from=${encodeURIComponent(next)}`)
 }
 
 export class ApiError extends Error {
@@ -92,7 +93,7 @@ export class ApiError extends Error {
 
 function shouldToastApiError(path: string, status: number, code: string): boolean {
   if (isAuthChallengePath(path)) return false
-  if (path.includes('/admin/api/auth/me')) return false
+  if (path.includes('/api/auth/me')) return false
   if (status === 401) return false
   if (code === 'TOTP_REQUIRED' || code === 'CAPTCHA_REQUIRED') return false
   return true
@@ -134,13 +135,15 @@ function throwApiError(
   message: string,
   fields: Record<string, string[]> = {},
 ): never {
-  if (shouldToastApiError(path, status, code)) {
+  // Field-level 422s are rendered under inputs — skip the global toast.
+  if (Object.keys(fields).length === 0 && shouldToastApiError(path, status, code)) {
     showError(message)
   }
   throw new ApiError(status, code, message, fields)
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const requestPath = resolveApiPath(path)
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
   const token = getToken()
@@ -153,7 +156,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   let response: Response
   try {
-    response = await fetch(path, { ...init, headers })
+    response = await fetch(requestPath, { ...init, headers })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Request failed'
     showError(message)
@@ -168,10 +171,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok || payload.error) {
     if (response.status === 401) {
-      handleUnauthorized(path)
+      handleUnauthorized(requestPath)
     }
     throwApiError(
-      path,
+      requestPath,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Request failed',
@@ -197,6 +200,7 @@ export async function apiPage<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T[]; meta: PageMeta }> {
+  const requestPath = resolveApiPath(path)
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
   const token = getToken()
@@ -209,7 +213,7 @@ export async function apiPage<T>(
 
   let response: Response
   try {
-    response = await fetch(path, { ...init, headers })
+    response = await fetch(requestPath, { ...init, headers })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Request failed'
     showError(message)
@@ -220,10 +224,10 @@ export async function apiPage<T>(
 
   if (!response.ok || payload.error) {
     if (response.status === 401) {
-      handleUnauthorized(path)
+      handleUnauthorized(requestPath)
     }
     throwApiError(
-      path,
+      requestPath,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Request failed',
@@ -242,6 +246,7 @@ export async function apiUpload<T>(
   fieldName = 'file',
   extraFields?: Record<string, string>,
 ): Promise<T> {
+  const requestPath = resolveApiPath(path)
   const headers = new Headers()
   headers.set('Accept', 'application/json')
   const token = getToken()
@@ -258,7 +263,7 @@ export async function apiUpload<T>(
 
   let response: Response
   try {
-    response = await fetch(path, { method: 'POST', headers, body })
+    response = await fetch(requestPath, { method: 'POST', headers, body })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload failed'
     showError(message)
@@ -269,10 +274,10 @@ export async function apiUpload<T>(
 
   if (!response.ok || payload.error) {
     if (response.status === 401) {
-      handleUnauthorized(path)
+      handleUnauthorized(requestPath)
     }
     throwApiError(
-      path,
+      requestPath,
       response.status,
       payload.error?.code ?? 'ERROR',
       payload.error?.message ?? 'Upload failed',

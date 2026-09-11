@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
@@ -157,7 +158,7 @@ function UserPermissionsForm({
   }
 
   return (
-    <div className={clsx(styles.root)}>
+    <Form className={clsx(styles.root)} onSubmit={() => save.mutate()}>
       <label className={clsx(styles.checkLabel)}>
         <input
           type="checkbox"
@@ -331,11 +332,11 @@ function UserPermissionsForm({
         <Button variant="outline" onClick={onClose}>
           {t('common.cancel')}
         </Button>
-        <Button disabled={save.isPending} onClick={() => save.mutate()}>
+        <Button type="submit" disabled={save.isPending}>
           {save.isPending ? t('common.saving') : t('common.save')}
         </Button>
       </div>
-    </div>
+    </Form>
   )
 }
 
@@ -410,7 +411,7 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
   })
 
   return (
-    <div className={clsx(styles.resetRoot)}>
+    <Form className={clsx(styles.resetRoot)} onSubmit={() => save.mutate()}>
       <PasswordField
         id="reset-password"
         label={t('users.password')}
@@ -421,13 +422,13 @@ function ResetPasswordForm({ userId, onClose }: { userId: number; onClose: () =>
         showCopy
       />
       <Button
+        type="submit"
         className={clsx(styles.fullWidth)}
         disabled={save.isPending || password.length < 8}
-        onClick={() => save.mutate()}
       >
         {save.isPending ? t('common.saving') : t('users.resetPassword')}
       </Button>
-    </div>
+    </Form>
   )
 }
 

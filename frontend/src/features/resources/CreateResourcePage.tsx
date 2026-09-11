@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './CreateResourcePage.module.css'
 import type { Resource } from '@/types/resource'
@@ -39,6 +39,7 @@ export function CreateResourcePage() {
 
   function onLabelChange(value: string) {
     setLabel(value)
+    setFieldErrors((prev) => clearFieldError(prev, 'label'))
     if (!slugTouched) {
       const next = slugify(name || value)
       setSlug(next)
@@ -50,6 +51,7 @@ export function CreateResourcePage() {
 
   function onNameChange(value: string) {
     setName(value)
+    setFieldErrors((prev) => clearFieldError(prev, 'name'))
     if (!slugTouched) {
       const next = slugify(value || label)
       setSlug(next)
@@ -106,6 +108,7 @@ export function CreateResourcePage() {
               <Input
                 id="label"
                 value={label}
+                aria-invalid={hasFieldError(fieldErrors, 'label') || undefined}
                 onChange={(e) => onLabelChange(e.target.value)}
                 placeholder="Articles"
                 required
@@ -117,6 +120,7 @@ export function CreateResourcePage() {
               <Input
                 id="name"
                 value={name}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
                 onChange={(e) => onNameChange(e.target.value)}
                 placeholder="articles"
               />
@@ -127,9 +131,11 @@ export function CreateResourcePage() {
               <Input
                 id="slug"
                 value={slug}
+                aria-invalid={hasFieldError(fieldErrors, 'slug') || undefined}
                 onChange={(e) => {
                   setSlugTouched(true)
                   setSlug(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'slug'))
                   if (!endpointTouched) {
                     setEndpoint(e.target.value ? `/api/${e.target.value}` : '')
                   }
@@ -144,9 +150,11 @@ export function CreateResourcePage() {
               <Input
                 id="endpoint"
                 value={endpoint}
+                aria-invalid={hasFieldError(fieldErrors, 'endpoint') || undefined}
                 onChange={(e) => {
                   setEndpointTouched(true)
                   setEndpoint(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'endpoint'))
                 }}
                 placeholder="/api/articles"
                 required
@@ -158,7 +166,11 @@ export function CreateResourcePage() {
               <Input
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'description') || undefined}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'description'))
+                }}
               />
               <FieldError messages={fieldErrors.description} />
             </div>

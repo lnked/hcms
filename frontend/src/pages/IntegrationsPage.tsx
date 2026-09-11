@@ -8,6 +8,7 @@ import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -319,133 +320,135 @@ export function IntegrationsPage() {
             </p>
           ) : (
             <>
-              <div className={clsx(styles.field)}>
-                <Label>{t('integrations.email.provider')}</Label>
-                <div className={clsx(styles.providerGrid)}>
-                  {PROVIDERS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setProvider(item.id)
-                        setApiKey('')
-                      }}
-                      className={clsx(
-                        provider === item.id ? styles.providerBtnActive : styles.providerBtn,
-                      )}
-                    >
-                      <div className={clsx(styles.providerTitle)}>{item.title}</div>
-                      <div className={clsx(styles.providerDesc)}>{t(item.descriptionKey)}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <label className={clsx(styles.checkRow)}>
-                <input
-                  type="checkbox"
-                  className={clsx(styles.checkInput)}
-                  checked={enabled}
-                  onChange={(e) => setEnabled(e.target.checked)}
-                />
-                <span>{t('integrations.email.enabled')}</span>
-              </label>
-
-              <div className={clsx(styles.grid2)}>
+              <Form className={clsx(styles.stackMd)} onSubmit={() => save.mutate()}>
                 <div className={clsx(styles.field)}>
-                  <Label htmlFor="email-from">{t('integrations.email.fromEmail')}</Label>
-                  <Input
-                    id="email-from"
-                    type="email"
-                    value={fromEmail}
-                    onChange={(e) => setFromEmail(e.target.value)}
-                    placeholder="noreply@example.com"
-                    autoComplete="off"
-                  />
+                  <Label>{t('integrations.email.provider')}</Label>
+                  <div className={clsx(styles.providerGrid)}>
+                    {PROVIDERS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setProvider(item.id)
+                          setApiKey('')
+                        }}
+                        className={clsx(
+                          provider === item.id ? styles.providerBtnActive : styles.providerBtn,
+                        )}
+                      >
+                        <div className={clsx(styles.providerTitle)}>{item.title}</div>
+                        <div className={clsx(styles.providerDesc)}>{t(item.descriptionKey)}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className={clsx(styles.field)}>
-                  <Label htmlFor="email-from-name">{t('integrations.email.fromName')}</Label>
-                  <Input
-                    id="email-from-name"
-                    value={fromName}
-                    onChange={(e) => setFromName(e.target.value)}
-                    placeholder="HCMS"
-                    autoComplete="off"
-                  />
-                </div>
-                <div className={clsx(styles.field)}>
-                  <Label htmlFor="email-quota">{t('integrations.email.dailyQuota')}</Label>
-                  <Input
-                    id="email-quota"
-                    type="number"
-                    min={0}
-                    value={dailyQuota}
-                    onChange={(e) => setDailyQuota(Number(e.target.value) || 0)}
-                  />
-                </div>
-                <div className={clsx(styles.field)}>
-                  <Label htmlFor="email-domains">{t('integrations.email.allowedDomains')}</Label>
-                  <Input
-                    id="email-domains"
-                    value={allowedDomains}
-                    onChange={(e) => setAllowedDomains(e.target.value)}
-                    placeholder="example.com, client.org"
-                  />
-                </div>
-              </div>
 
-              <div className={clsx(styles.field)}>
-                <Label htmlFor="email-api-key">{t('integrations.email.apiKey')}</Label>
-                <Input
-                  id="email-api-key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={
-                    query.data?.providers[provider]?.apiKeyConfigured
-                      ? t('integrations.email.apiKeyKeep', {
-                          masked: query.data.providers[provider].apiKeyMasked ?? '••••',
-                        })
-                      : apiKeyPlaceholder(provider)
-                  }
-                  autoComplete="new-password"
-                />
-                <p className={clsx(styles.hint)}>{t('integrations.email.apiKeyHint')}</p>
-              </div>
+                <label className={clsx(styles.checkRow)}>
+                  <input
+                    type="checkbox"
+                    className={clsx(styles.checkInput)}
+                    checked={enabled}
+                    onChange={(e) => setEnabled(e.target.checked)}
+                  />
+                  <span>{t('integrations.email.enabled')}</span>
+                </label>
 
-              {provider === 'mailgun' ? (
                 <div className={clsx(styles.grid2)}>
                   <div className={clsx(styles.field)}>
-                    <Label htmlFor="mailgun-domain">{t('integrations.email.mailgunDomain')}</Label>
+                    <Label htmlFor="email-from">{t('integrations.email.fromEmail')}</Label>
                     <Input
-                      id="mailgun-domain"
-                      value={mailgunDomain}
-                      onChange={(e) => setMailgunDomain(e.target.value)}
-                      placeholder="mg.example.com"
+                      id="email-from"
+                      type="email"
+                      value={fromEmail}
+                      onChange={(e) => setFromEmail(e.target.value)}
+                      placeholder="noreply@example.com"
                       autoComplete="off"
                     />
                   </div>
                   <div className={clsx(styles.field)}>
-                    <Label htmlFor="mailgun-region">{t('integrations.email.mailgunRegion')}</Label>
-                    <Select
-                      id="mailgun-region"
-                      value={mailgunRegion}
-                      onChange={(e) => setMailgunRegion(e.target.value === 'eu' ? 'eu' : 'us')}
-                    >
-                      <option value="us">{t('integrations.email.mailgunRegionUs')}</option>
-                      <option value="eu">{t('integrations.email.mailgunRegionEu')}</option>
-                    </Select>
+                    <Label htmlFor="email-from-name">{t('integrations.email.fromName')}</Label>
+                    <Input
+                      id="email-from-name"
+                      value={fromName}
+                      onChange={(e) => setFromName(e.target.value)}
+                      placeholder="HCMS"
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className={clsx(styles.field)}>
+                    <Label htmlFor="email-quota">{t('integrations.email.dailyQuota')}</Label>
+                    <Input
+                      id="email-quota"
+                      type="number"
+                      min={0}
+                      value={dailyQuota}
+                      onChange={(e) => setDailyQuota(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className={clsx(styles.field)}>
+                    <Label htmlFor="email-domains">{t('integrations.email.allowedDomains')}</Label>
+                    <Input
+                      id="email-domains"
+                      value={allowedDomains}
+                      onChange={(e) => setAllowedDomains(e.target.value)}
+                      placeholder="example.com, client.org"
+                    />
                   </div>
                 </div>
-              ) : null}
 
-              <div className={clsx(styles.actionsRow)}>
-                <Button disabled={save.isPending} onClick={() => save.mutate()}>
-                  {save.isPending ? t('common.saving') : t('common.save')}
-                </Button>
-              </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="email-api-key">{t('integrations.email.apiKey')}</Label>
+                  <Input
+                    id="email-api-key"
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={
+                      query.data?.providers[provider]?.apiKeyConfigured
+                        ? t('integrations.email.apiKeyKeep', {
+                            masked: query.data.providers[provider].apiKeyMasked ?? '••••',
+                          })
+                        : apiKeyPlaceholder(provider)
+                    }
+                    autoComplete="new-password"
+                  />
+                  <p className={clsx(styles.hint)}>{t('integrations.email.apiKeyHint')}</p>
+                </div>
 
-              <div className={clsx(styles.testSection)}>
+                {provider === 'mailgun' ? (
+                  <div className={clsx(styles.grid2)}>
+                    <div className={clsx(styles.field)}>
+                      <Label htmlFor="mailgun-domain">{t('integrations.email.mailgunDomain')}</Label>
+                      <Input
+                        id="mailgun-domain"
+                        value={mailgunDomain}
+                        onChange={(e) => setMailgunDomain(e.target.value)}
+                        placeholder="mg.example.com"
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className={clsx(styles.field)}>
+                      <Label htmlFor="mailgun-region">{t('integrations.email.mailgunRegion')}</Label>
+                      <Select
+                        id="mailgun-region"
+                        value={mailgunRegion}
+                        onChange={(e) => setMailgunRegion(e.target.value === 'eu' ? 'eu' : 'us')}
+                      >
+                        <option value="us">{t('integrations.email.mailgunRegionUs')}</option>
+                        <option value="eu">{t('integrations.email.mailgunRegionEu')}</option>
+                      </Select>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={clsx(styles.actionsRow)}>
+                  <Button type="submit" disabled={save.isPending}>
+                    {save.isPending ? t('common.saving') : t('common.save')}
+                  </Button>
+                </div>
+              </Form>
+
+              <Form className={clsx(styles.testSection)} onSubmit={() => test.mutate()}>
                 <div className={clsx(styles.field)}>
                   <Label htmlFor="email-test-to">{t('integrations.email.testTo')}</Label>
                   <Input
@@ -457,16 +460,12 @@ export function IntegrationsPage() {
                     autoComplete="email"
                   />
                 </div>
-                <Button
-                  variant="outline"
-                  disabled={test.isPending || testTo.trim() === ''}
-                  onClick={() => test.mutate()}
-                >
+                <Button type="submit" variant="outline" disabled={test.isPending || testTo.trim() === ''}>
                   {test.isPending
                     ? t('integrations.email.testing')
                     : t('integrations.email.sendTest')}
                 </Button>
-              </div>
+              </Form>
             </>
           )}
         </CardContent>
@@ -578,7 +577,7 @@ export function IntegrationsPage() {
           )}
 
           {editingId !== null ? (
-            <div className={clsx(styles.editPanel)}>
+            <Form className={clsx(styles.editPanel)} onSubmit={() => saveApi.mutate()}>
               <div className={clsx(styles.grid2Sm)}>
                 <div className={clsx(styles.field)}>
                   <Label htmlFor="email-api-slug">{t('common.slug')}</Label>
@@ -665,8 +664,8 @@ export function IntegrationsPage() {
               <p className={clsx(styles.hint)}>{t('integrations.email.apis.varsHint')}</p>
               <div className={clsx(styles.actionsRow)}>
                 <Button
+                  type="submit"
                   disabled={saveApi.isPending || !draft.slug.trim() || !draft.label.trim()}
-                  onClick={() => saveApi.mutate()}
                 >
                   {saveApi.isPending ? t('common.saving') : t('common.save')}
                 </Button>
@@ -680,7 +679,7 @@ export function IntegrationsPage() {
                   {t('common.cancel')}
                 </Button>
               </div>
-            </div>
+            </Form>
           ) : null}
         </CardContent>
       </Card>
@@ -690,61 +689,59 @@ export function IntegrationsPage() {
           <CardTitle>{t('integrations.email.playground.title')}</CardTitle>
           <CardDescription>{t('integrations.email.playground.hint')}</CardDescription>
         </CardHeader>
-        <CardContent className={clsx(styles.stack)}>
-          <div className={clsx(styles.grid2Sm)}>
-            <div className={clsx(styles.field)}>
-              <Label htmlFor="email-pg-path">{t('integrations.email.playground.path')}</Label>
-              <Select
-                id="email-pg-path"
-                value={playgroundPath}
-                onChange={(e) => setPlaygroundPath(e.target.value)}
-              >
-                {pathOptions.map((path) => (
-                  <option key={path} value={path}>
-                    {path}
-                  </option>
-                ))}
-                {!pathOptions.includes(playgroundPath) ? (
-                  <option value={playgroundPath}>{playgroundPath}</option>
-                ) : null}
-              </Select>
+        <CardContent>
+          <Form className={clsx(styles.stack)} onSubmit={() => runPlayground.mutate()}>
+            <div className={clsx(styles.grid2Sm)}>
+              <div className={clsx(styles.field)}>
+                <Label htmlFor="email-pg-path">{t('integrations.email.playground.path')}</Label>
+                <Select
+                  id="email-pg-path"
+                  value={playgroundPath}
+                  onChange={(e) => setPlaygroundPath(e.target.value)}
+                >
+                  {pathOptions.map((path) => (
+                    <option key={path} value={path}>
+                      {path}
+                    </option>
+                  ))}
+                  {!pathOptions.includes(playgroundPath) ? (
+                    <option value={playgroundPath}>{playgroundPath}</option>
+                  ) : null}
+                </Select>
+              </div>
+              <div className={clsx(styles.field)}>
+                <Label htmlFor="email-pg-token">{t('integrations.email.playground.token')}</Label>
+                <Input
+                  id="email-pg-token"
+                  type="password"
+                  value={playgroundToken}
+                  onChange={(e) => setPlaygroundToken(e.target.value)}
+                  placeholder="hcms_…"
+                  autoComplete="off"
+                />
+              </div>
             </div>
             <div className={clsx(styles.field)}>
-              <Label htmlFor="email-pg-token">{t('integrations.email.playground.token')}</Label>
-              <Input
-                id="email-pg-token"
-                type="password"
-                value={playgroundToken}
-                onChange={(e) => setPlaygroundToken(e.target.value)}
-                placeholder="hcms_…"
-                autoComplete="off"
+              <CodeBlock
+                id="email-pg-body"
+                label={t('integrations.email.playground.body')}
+                code={playgroundBody}
+                language="js"
+                editable
+                rows={10}
+                onChange={setPlaygroundBody}
               />
             </div>
-          </div>
-          <div className={clsx(styles.field)}>
-            <CodeBlock
-              id="email-pg-body"
-              label={t('integrations.email.playground.body')}
-              code={playgroundBody}
-              language="js"
-              editable
-              rows={10}
-              onChange={setPlaygroundBody}
-            />
-          </div>
-          <Button
-            className={clsx(styles.playgroundRun)}
-            disabled={runPlayground.isPending}
-            onClick={() => runPlayground.mutate()}
-          >
-            {runPlayground.isPending
-              ? t('integrations.email.playground.running')
-              : t('integrations.email.playground.run')}
-          </Button>
-          {playgroundResult ? <CodeBlock code={playgroundResult} language="js" /> : null}
-          {runPlayground.error instanceof ApiError ? (
-            <p className={clsx(styles.error)}>{runPlayground.error.message}</p>
-          ) : null}
+            <Button type="submit" className={clsx(styles.playgroundRun)} disabled={runPlayground.isPending}>
+              {runPlayground.isPending
+                ? t('integrations.email.playground.running')
+                : t('integrations.email.playground.run')}
+            </Button>
+            {playgroundResult ? <CodeBlock code={playgroundResult} language="js" /> : null}
+            {runPlayground.error instanceof ApiError ? (
+              <p className={clsx(styles.error)}>{runPlayground.error.message}</p>
+            ) : null}
+          </Form>
         </CardContent>
       </Card>
     </div>

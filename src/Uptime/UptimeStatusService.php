@@ -16,7 +16,7 @@ final class UptimeStatusService
         private readonly UptimeTargetRepository $targets,
         private readonly UptimeIncidentRepository $incidents,
         private readonly UptimeSettings $settings,
-        private readonly string $appUrl,
+        private readonly string $healthUrl,
     ) {
     }
 
@@ -25,7 +25,7 @@ final class UptimeStatusService
      */
     public function summary(): array
     {
-        $this->targets->ensureSelf(rtrim($this->appUrl, '/') . '/admin/api/health');
+        $this->targets->ensureSelf($this->healthUrl);
         $all = $this->targets->all();
         $up = 0;
         $down = 0;
@@ -59,7 +59,7 @@ final class UptimeStatusService
      */
     public function status(): array
     {
-        $this->targets->ensureSelf(rtrim($this->appUrl, '/') . '/admin/api/health');
+        $this->targets->ensureSelf($this->healthUrl);
         $all = $this->targets->all();
         $targets = array_map(
             static fn (array $row): array => UptimeService::serializeTarget($row),

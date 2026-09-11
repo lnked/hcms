@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.62.8",
+      "date": "2026-09-12",
+      "channel": "stable",
+      "title": "Configurable admin base path + form field errors",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "CMS_ADMIN_BASE: UI на /admin|/panel|/ (корень); API под тем же префиксом, кроме корня — там /admin/api; System + install"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "GET/PATCH settings adminBase (owner); OAuth/uptime/health URLs следуют apiPrefix; legacy /admin/* → 301"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Формы админки: валидация через error.fields + FieldError/красный бордер вместо toast-only"
+        }
+      ]
+    },
+    {
       "version": "0.62.7",
       "date": "2026-09-12",
       "channel": "stable",

@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -293,7 +294,7 @@ export function ResourceCustomApisPanel({
         )}
 
         {editingId !== null ? (
-          <div className={styles.editor}>
+          <Form className={styles.editor} onSubmit={() => save.mutate()}>
             <div className={styles.grid2}>
               <div className={styles.field}>
                 <Label htmlFor="custom-api-label">{t('common.label')}</Label>
@@ -555,14 +556,14 @@ export function ResourceCustomApisPanel({
             </div>
 
             <div className={styles.editorActions}>
-              <Button disabled={save.isPending || saveBlocked} onClick={() => save.mutate()}>
+              <Button type="submit" disabled={save.isPending || saveBlocked}>
                 {save.isPending ? t('common.saving') : t('common.save')}
               </Button>
               <Button variant="outline" onClick={() => setEditingId(null)}>
                 {t('common.cancel')}
               </Button>
             </div>
-          </div>
+          </Form>
         ) : null}
       </CardContent>
     </Card>

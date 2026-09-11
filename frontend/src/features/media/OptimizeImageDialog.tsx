@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -134,7 +135,12 @@ export function OptimizeImageDialog({
           <DialogDescription>{t('media.optimizeDescription')}</DialogDescription>
         </DialogHeader>
 
-        <div className={clsx(styles.form)}>
+        <Form
+          className={clsx(styles.form)}
+          onSubmit={() => {
+            void submit()
+          }}
+        >
           <div className={clsx(styles.field)}>
             <Label>{t('media.optimizeQuality')}</Label>
             <div className={clsx(styles.presets)}>
@@ -243,15 +249,11 @@ export function OptimizeImageDialog({
             >
               {t('common.cancel')}
             </Button>
-            <Button
-              type="button"
-              disabled={busy || mediaIds.length === 0}
-              onClick={() => void submit()}
-            >
+            <Button type="submit" disabled={busy || mediaIds.length === 0}>
               {busy ? t('media.optimizing') : t('media.optimize')}
             </Button>
           </div>
-        </div>
+        </Form>
       </DialogContent>
     </Dialog>
   )

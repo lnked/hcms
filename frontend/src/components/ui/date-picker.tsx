@@ -69,7 +69,11 @@ export function DatePickerField({
         aria-invalid={ariaInvalid}
         onChange={(next) => onChange(fromCalendarValue(next, granularity))}
       >
-        <Group id={id} className={cn(controlFieldClass, controlHugClass, styles.group, className)}>
+        <Group
+          id={id}
+          className={cn(controlFieldClass, controlHugClass, styles.group, className)}
+          aria-invalid={ariaInvalid}
+        >
           <DateInput className={styles.dateInput}>
             {(segment) => <DateSegment segment={segment} className={styles.segment} />}
           </DateInput>

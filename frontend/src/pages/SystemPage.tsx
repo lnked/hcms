@@ -6,6 +6,7 @@ import { LanguageSelect } from '@/components/LanguageSelect'
 import { FormBlockSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuthMe } from '@/hooks/useAcl'
@@ -156,6 +157,33 @@ export function SystemPage() {
   const apiAccess = useQuery({
     queryKey: queryKeys.settings.apiAccess,
     queryFn: () => api<ApiAccessSettings>('/admin/api/settings/api-access'),
+  })
+
+  const adminBaseQuery = useQuery({
+    queryKey: queryKeys.settings.adminBase,
+    queryFn: () =>
+      api<{ adminBase: string; uiBase: string; apiPrefix: string }>('/admin/api/settings/admin-base'),
+  })
+  const [adminBaseDraft, setAdminBaseDraft] = useState<string | null>(null)
+  const adminBaseValue = adminBaseDraft ?? adminBaseQuery.data?.adminBase ?? 'admin'
+  const adminBasePreviewUi = adminBaseValue === '' ? '/' : `/${adminBaseValue}`
+  const adminBasePreviewApi =
+    adminBaseValue === '' ? '/admin/api' : `/${adminBaseValue}/api`
+
+  const saveAdminBase = useMutation({
+    mutationFn: (adminBase: string) =>
+      api<{ adminBase: { adminBase: string; uiBase: string; apiPrefix: string } }>(
+        '/admin/api/settings',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ adminBase }),
+        },
+      ),
+    onSuccess: (data) => {
+      showSuccess(t('system.adminBaseSaved'))
+      const ui = data.adminBase.uiBase
+      window.location.assign(ui === '' ? '/settings/system' : `${ui}/settings/system`)
+    },
   })
 
   const live = status.data
@@ -326,6 +354,53 @@ export function SystemPage() {
             onChange={onLanguageChange}
             className={clsx(saveLanguage.isPending && styles.pending)}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('system.adminBaseTitle')}</CardTitle>
+          <CardDescription>{t('system.adminBaseHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className={clsx(styles.stackMd)}>
+          {adminBaseQuery.isLoading || !adminBaseQuery.data ? (
+            <FormBlockSkeleton fields={2} />
+          ) : (
+            <>
+              <div className={clsx(styles.langContent)}>
+                <Label htmlFor="admin-base">{t('system.adminBaseLabel')}</Label>
+                <Input
+                  id="admin-base"
+                  value={adminBaseValue}
+                  placeholder={t('system.adminBasePlaceholder')}
+                  disabled={!isOwner || saveAdminBase.isPending}
+                  onChange={(e) =>
+                    setAdminBaseDraft(e.target.value.trim().replace(/^\/+/, '').toLowerCase())
+                  }
+                />
+                <p className={clsx(styles.hint)}>
+                  {t('system.adminBasePreview', {
+                    ui: adminBasePreviewUi,
+                    api: adminBasePreviewApi,
+                  })}
+                </p>
+                {!isOwner ? (
+                  <p className={clsx(styles.hint)}>{t('system.adminBaseOwnerOnly')}</p>
+                ) : null}
+              </div>
+              <Button
+                type="button"
+                disabled={
+                  !isOwner ||
+                  saveAdminBase.isPending ||
+                  adminBaseValue === (adminBaseQuery.data.adminBase ?? 'admin')
+                }
+                onClick={() => saveAdminBase.mutate(adminBaseValue)}
+              >
+                {t('system.adminBaseSave')}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 

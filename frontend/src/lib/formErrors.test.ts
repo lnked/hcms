@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/lib/api'
 import {
   apiFieldErrors,
+  clearFieldError,
   firstFieldError,
   hasFieldError,
   normalizeFieldErrors,
@@ -35,5 +36,12 @@ describe('formErrors', () => {
     expect(hasFieldError(errors, 'slug')).toBe(true)
     expect(hasFieldError(errors, 'label')).toBe(false)
     expect(firstFieldError(errors, 'slug')).toBe('taken')
+  })
+
+  it('clearFieldError drops one key and preserves reference when absent', () => {
+    const errors = { slug: ['taken'], label: ['required'] }
+    expect(clearFieldError(errors, 'missing')).toBe(errors)
+    expect(clearFieldError(errors, 'slug')).toEqual({ label: ['required'] })
+    expect(clearFieldError(errors, 'slug')).not.toBe(errors)
   })
 })

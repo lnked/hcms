@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Cms\Tests;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\FeatureFlags\FeatureFlagService;
 use Cms\KeyValues\KeyValueService;
 use Cms\Translates\TranslationService;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class FeatureTranslatesServiceTest extends TestCase
@@ -21,7 +21,7 @@ final class FeatureTranslatesServiceTest extends TestCase
 
     public function testFeaturePathValidationRejectsBad(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         FeatureFlagService::assertValidPath('/wrong');
     }
 
@@ -106,5 +106,18 @@ final class FeatureTranslatesServiceTest extends TestCase
         $this->assertLessThan(140, $hitsA);
         $this->assertGreaterThan(40, $hitsB);
         $this->assertLessThan(140, $hitsB);
+    }
+
+    public function testTranslatesPathValidationRejectsBad(): void
+    {
+        $this->expectException(\Cms\Core\Exception\ValidationFailedException::class);
+        TranslationService::assertValidPath('/wrong');
+    }
+
+    public function testTranslatesPathValidationAccepts(): void
+    {
+        TranslationService::assertValidPath('/api/translates');
+        TranslationService::assertValidPath('/api/v1/i18n');
+        $this->addToAssertionCount(1);
     }
 }

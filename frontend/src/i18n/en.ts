@@ -248,6 +248,9 @@ export const en = {
     'Point the hosting document root at this folder. Admin URL will be {admin}, not {nested}.',
   'install.publicDirHintInside':
     'Installer is already inside {folder}: public files stay here, src/vendor/storage move one level above.',
+  'install.adminBase': 'Admin URL path',
+  'install.adminBaseHint':
+    'Segment after the host: admin → /admin, panel → /panel, leave empty for site root (admin API stays at /admin/api).',
   'install.adminName': 'Name',
   'install.install': 'Install',
   'install.installing': 'Installing…',
@@ -1020,6 +1023,15 @@ export const en = {
   'system.apiAccessSaved': 'API access settings saved',
   'system.apiAccessSave': 'Save API access',
   'system.apiAccessLoading': 'Loading…',
+  'system.adminBaseTitle': 'Admin base path',
+  'system.adminBaseHint':
+    'URL segment for the admin UI. Empty = site root. Admin API follows the same prefix, except root UI keeps /admin/api. Assets stay under /admin/assets. Update OAuth redirect URIs after changing. Owner only.',
+  'system.adminBaseLabel': 'Path segment',
+  'system.adminBasePlaceholder': 'admin',
+  'system.adminBasePreview': 'UI: {ui} · API: {api}',
+  'system.adminBaseSaved': 'Admin base saved — redirecting…',
+  'system.adminBaseSave': 'Save admin path',
+  'system.adminBaseOwnerOnly': 'Only the owner can change the admin path.',
   'system.update': 'Update',
   'system.updateHint':
     'Pick a newer release, download the zip (sha256), preserve .env / uploads / lock, run pending SQL migrations.',

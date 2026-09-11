@@ -37,3 +37,13 @@ export function firstFieldError(errors: FieldErrors, key: string): string | unde
 export function hasFieldError(errors: FieldErrors, key: string): boolean {
   return (errors[key]?.length ?? 0) > 0
 }
+
+/** Drop one key; returns same reference if unchanged. */
+export function clearFieldError(errors: FieldErrors, key: string): FieldErrors {
+  if (!errors[key]) {
+    return errors
+  }
+  const next = { ...errors }
+  delete next[key]
+  return next
+}

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cms\Uptime;
 
 /**
- * Passive heartbeat for the self HCMS target via /admin/api/health.
+ * Passive heartbeat for the self HCMS target via admin health endpoint.
  */
 final class UptimeHeartbeatService
 {
@@ -14,7 +14,7 @@ final class UptimeHeartbeatService
         private readonly UptimeCheckRepository $checks,
         private readonly UptimeIncidentRepository $incidents,
         private readonly UptimeSettings $settings,
-        private readonly string $appUrl,
+        private readonly string $healthUrl,
     ) {
     }
 
@@ -25,8 +25,7 @@ final class UptimeHeartbeatService
     public function touch(?string $now = null): void
     {
         $now ??= date('Y-m-d H:i:s');
-        $healthUrl = rtrim($this->appUrl, '/') . '/admin/api/health';
-        $self = $this->targets->ensureSelf($healthUrl);
+        $self = $this->targets->ensureSelf($this->healthUrl);
 
         $last = $self['last_heartbeat_at'] ?? null;
         $stale = $this->settings->heartbeatStaleSeconds();

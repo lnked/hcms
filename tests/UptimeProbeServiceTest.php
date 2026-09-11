@@ -148,7 +148,7 @@ final class UptimeProbeServiceTest extends TestCase
             $this->checks,
             $this->incidents,
             $uptimeSettings,
-            'http://127.0.0.1:8080',
+            'http://127.0.0.1:8080/admin/api/health',
         );
         $heartbeat->touch('2026-01-01 09:10:00');
 

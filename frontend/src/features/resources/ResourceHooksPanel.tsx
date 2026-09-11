@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -28,7 +29,7 @@ import {
 import styles from '@/features/webhooks/WebhooksPage.module.css'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 
 type HookPhase = 'before_create' | 'after_create'
@@ -114,6 +115,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
       }),
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       invalidate()
     },
@@ -136,6 +138,7 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
       }),
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setOpen(false)
       invalidate()
     },
@@ -351,13 +354,24 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               {isEdit ? t('hooks.editHint') : t('hooks.createHint')}
             </DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.stackMd)}>
+          <Form
+            className={clsx(styles.stackMd)}
+            onSubmit={() =>
+              isEdit && editingId !== null
+                ? updateMutation.mutate(editingId)
+                : createMutation.mutate()
+            }
+          >
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-name">{t('common.name')}</Label>
               <Input
                 id="hook-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                }}
                 placeholder={t('hooks.placeholderName')}
               />
               <FieldError messages={fieldErrors.name} />
@@ -367,7 +381,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               <Select
                 id="hook-phase"
                 value={phase}
-                onChange={(e) => setPhase(e.target.value as HookPhase)}
+                aria-invalid={hasFieldError(fieldErrors, 'phase') || undefined}
+                onChange={(e) => {
+                  setPhase(e.target.value as HookPhase)
+                  setFieldErrors((prev) => clearFieldError(prev, 'phase'))
+                }}
               >
                 <option value="before_create">before_create</option>
                 <option value="after_create">after_create</option>
@@ -376,7 +394,15 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="hook-url">{t('hooks.url')}</Label>
-              <Input id="hook-url" value={url} onChange={(e) => setUrl(e.target.value)} />
+              <Input
+                id="hook-url"
+                value={url}
+                aria-invalid={hasFieldError(fieldErrors, 'url') || undefined}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'url'))
+                }}
+              />
               <FieldError messages={fieldErrors.url} />
             </div>
             <div className={clsx(styles.stackXs)}>
@@ -386,7 +412,10 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => setSecret(randomSecret())}
+                  onClick={() => {
+                    setSecret(randomSecret())
+                    setFieldErrors((prev) => clearFieldError(prev, 'secret'))
+                  }}
                 >
                   {t('hooks.regenerateSecret')}
                 </Button>
@@ -394,7 +423,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               <Input
                 id="hook-secret"
                 value={secret}
-                onChange={(e) => setSecret(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'secret') || undefined}
+                onChange={(e) => {
+                  setSecret(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'secret'))
+                }}
                 placeholder={isEdit ? t('hooks.secretKeep') : undefined}
               />
               <FieldError messages={fieldErrors.secret} />
@@ -405,7 +438,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
                 id="hook-timeout"
                 type="number"
                 value={timeoutMs}
-                onChange={(e) => setTimeoutMs(Number(e.target.value) || 3000)}
+                aria-invalid={hasFieldError(fieldErrors, 'timeoutMs') || undefined}
+                onChange={(e) => {
+                  setTimeoutMs(Number(e.target.value) || 3000)
+                  setFieldErrors((prev) => clearFieldError(prev, 'timeoutMs'))
+                }}
               />
               <FieldError messages={fieldErrors.timeoutMs} />
             </div>
@@ -414,7 +451,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               <Select
                 id="hook-on-failure"
                 value={onFailure}
-                onChange={(e) => setOnFailure(e.target.value as 'reject' | 'continue')}
+                aria-invalid={hasFieldError(fieldErrors, 'onFailure') || undefined}
+                onChange={(e) => {
+                  setOnFailure(e.target.value as 'reject' | 'continue')
+                  setFieldErrors((prev) => clearFieldError(prev, 'onFailure'))
+                }}
               >
                 <option value="reject">reject</option>
                 <option value="continue">continue</option>
@@ -426,7 +467,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               <Select
                 id="hook-status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'disabled')}
+                aria-invalid={hasFieldError(fieldErrors, 'status') || undefined}
+                onChange={(e) => {
+                  setStatus(e.target.value as 'active' | 'disabled')
+                  setFieldErrors((prev) => clearFieldError(prev, 'status'))
+                }}
               >
                 <option value="active">{t('hooks.active')}</option>
                 <option value="disabled">{t('hooks.disabled')}</option>
@@ -437,18 +482,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button
-                onClick={() =>
-                  isEdit && editingId !== null
-                    ? updateMutation.mutate(editingId)
-                    : createMutation.mutate()
-                }
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

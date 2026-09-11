@@ -4,6 +4,7 @@ import { FieldError } from '@/components/FieldError'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n, type Locale } from '@/i18n'
@@ -25,6 +26,7 @@ export function InstallPage() {
   const [status, setStatus] = useState<InstallStatus | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [adminUrl, setAdminUrl] = useState('/admin')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [db, setDb] = useState({
     host: '127.0.0.1',
@@ -39,6 +41,7 @@ export function InstallPage() {
     url: window.location.origin,
     timezone: 'UTC',
     publicDir: 'public',
+    adminBase: 'admin',
   })
   const [admin, setAdmin] = useState({
     name: '',
@@ -167,13 +170,16 @@ export function InstallPage() {
     }
     setMessage(t('install.installing'))
     try {
-      await installApi('complete', {
+      const result = await installApi<{ ok?: boolean; adminUrl?: string }>('complete', {
         database: db,
         application: { ...app, language: locale },
         administrator: admin,
       })
-      // Previous install's admin token is dead — don't carry it into /admin.
+      // Previous install's admin token is dead — don't carry it into the panel.
       clearToken()
+      if (typeof result.adminUrl === 'string' && result.adminUrl !== '') {
+        setAdminUrl(result.adminUrl)
+      }
       setDone(true)
     } catch (err) {
       if (err instanceof ApiError && Object.keys(err.fields).length > 0) {
@@ -196,7 +202,7 @@ export function InstallPage() {
           <CardContent>
             <Button
               onClick={() => {
-                window.location.href = '/admin'
+                window.location.href = adminUrl
               }}
             >
               {t('install.openAdmin')}
@@ -258,7 +264,14 @@ export function InstallPage() {
           ) : null}
 
           {step === 1 ? (
-            <>
+            <Form
+              className={styles.content}
+              onSubmit={() => {
+                if (!validateDatabase()) return
+                setFieldErrors({})
+                setStep(2)
+              }}
+            >
               {dbFields.map(([key, labelKey]) => (
                 <div key={key} className={styles.field}>
                   <Label>{t(labelKey)}</Label>
@@ -281,22 +294,20 @@ export function InstallPage() {
                 <Button type="button" variant="outline" onClick={() => void testConnection()}>
                   {t('install.testConnection')}
                 </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (!validateDatabase()) return
-                    setFieldErrors({})
-                    setStep(2)
-                  }}
-                >
-                  {t('common.continue')}
-                </Button>
+                <Button type="submit">{t('common.continue')}</Button>
               </div>
-            </>
+            </Form>
           ) : null}
 
           {step === 2 ? (
-            <>
+            <Form
+              className={styles.content}
+              onSubmit={() => {
+                if (!validateApplication()) return
+                setFieldErrors({})
+                setStep(3)
+              }}
+            >
               <div className={styles.field}>
                 <Label>{t('install.appName')}</Label>
                 <Input
@@ -360,25 +371,31 @@ export function InstallPage() {
                   {status?.insideWebRoot
                     ? t('install.publicDirHintInside', { folder: app.publicDir })
                     : t('install.publicDirHint', {
-                        admin: '/admin',
+                        admin: app.adminBase ? `/${app.adminBase}` : '/',
                         nested: `/${app.publicDir}/admin`,
                       })}
                 </p>
               </div>
-              <Button
-                onClick={() => {
-                  if (!validateApplication()) return
-                  setFieldErrors({})
-                  setStep(3)
-                }}
-              >
-                {t('common.continue')}
-              </Button>
-            </>
+              <div className={styles.field}>
+                <Label>{t('install.adminBase')}</Label>
+                <Input
+                  value={app.adminBase}
+                  aria-invalid={Boolean(fieldErrors.adminBase?.length)}
+                  onChange={(e) => {
+                    clearError('adminBase')
+                    setApp({ ...app, adminBase: e.target.value.trim().replace(/^\/+/, '') })
+                  }}
+                  placeholder="admin"
+                />
+                <FieldError messages={fieldErrors.adminBase} />
+                <p className={styles.hint}>{t('install.adminBaseHint')}</p>
+              </div>
+              <Button type="submit">{t('common.continue')}</Button>
+            </Form>
           ) : null}
 
           {step === 3 ? (
-            <>
+            <Form className={styles.content} onSubmit={() => void complete()}>
               <div className={styles.field}>
                 <Label>{t('install.adminName')}</Label>
                 <Input
@@ -430,8 +447,8 @@ export function InstallPage() {
                 />
                 <FieldError messages={fieldErrors.passwordConfirm} />
               </div>
-              <Button onClick={() => void complete()}>{t('install.install')}</Button>
-            </>
+              <Button type="submit">{t('install.install')}</Button>
+            </Form>
           ) : null}
 
           {message ? <p className={styles.muted}>{message}</p> : null}

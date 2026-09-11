@@ -200,4 +200,18 @@ final class Request
             $this->userAgent,
         );
     }
+
+    public function withPath(string $path): self
+    {
+        return new self(
+            $this->method,
+            self::normalizePath($path),
+            $this->query,
+            $this->headers,
+            $this->body,
+            $this->rawBody,
+            $this->ip,
+            $this->userAgent,
+        );
+    }
 }

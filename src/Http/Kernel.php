@@ -264,16 +264,28 @@ final class Kernel
 
     private function dispatch(Request $request): Response
     {
+        $adminBase = $this->config->adminBase;
+
         if (!$this->installed) {
             if ($request->path === '/') {
                 return is_file($this->paths->adminIndex())
-                    ? Response::redirect('/admin/install')
+                    ? Response::redirect($adminBase->path('/install'))
                     : Response::redirect('/install.php');
             }
         }
 
-        if ($this->isSpaPath($request->path)) {
+        $legacy = $adminBase->legacyRedirect($request->path);
+        if ($legacy !== null && $legacy !== $request->path) {
+            return Response::redirect($legacy, 301);
+        }
+
+        if ($adminBase->isSpaPath($request->path)) {
             return $this->spa();
+        }
+
+        $canonicalPath = $adminBase->canonicalize($request->path);
+        if ($canonicalPath !== $request->path) {
+            $request = $request->withPath($canonicalPath);
         }
 
         if ($this->runtimeSettings !== null) {
@@ -508,6 +520,7 @@ final class Kernel
                 new CurlHttpClient(),
                 $this->config->appUrl,
                 $this->config->appSecret,
+                $this->config->adminBase,
             )
             : null;
         $auth = $this->tokens !== null && $this->loginGuard !== null && $this->audit !== null
@@ -705,7 +718,11 @@ final class Kernel
                 $audit,
             );
 
-            $settingsController = new SettingsController(new Settings($this->db));
+            $settingsController = new SettingsController(
+                new Settings($this->db),
+                $this->paths,
+                $this->config->adminBase,
+            );
             $settings = new Settings($this->db);
             $emailIntegration = new EmailIntegration($settings);
             $integrations = new IntegrationsController(
@@ -718,6 +735,7 @@ final class Kernel
                 $this->audit ?? new AuditLogger($this->db),
                 new OAuthSettings($settings),
                 $this->config->appUrl,
+                $this->config->adminBase,
             );
 
             $featureFlags = new FeatureFlagsController(
@@ -742,11 +760,12 @@ final class Kernel
             $uptimeIncidents = new UptimeIncidentRepository($this->db);
             $uptimeSettings = new UptimeSettings($settings);
             $uptimeProbes = new UptimeProbeService($uptimeTargets, $uptimeChecks, $uptimeIncidents, $uptimeSettings);
+            $healthUrl = $this->config->adminBase->healthUrl($this->config->appUrl);
             $uptimeStatus = new UptimeStatusService(
                 $uptimeTargets,
                 $uptimeIncidents,
                 $uptimeSettings,
-                $this->config->appUrl,
+                $healthUrl,
             );
             $uptimeService = new UptimeService(
                 $uptimeTargets,
@@ -755,14 +774,14 @@ final class Kernel
                 $uptimeProbes,
                 $uptimeStatus,
                 $uptimeSettings,
-                $this->config->appUrl,
+                $healthUrl,
             );
             $uptimeHeartbeat = new UptimeHeartbeatService(
                 $uptimeTargets,
                 $uptimeChecks,
                 $uptimeIncidents,
                 $uptimeSettings,
-                $this->config->appUrl,
+                $healthUrl,
             );
             $uptimeScheduler = new UptimeScheduler(
                 $this->paths,
@@ -1019,11 +1038,6 @@ final class Kernel
         return null;
     }
 
-    private function isSpaPath(string $path): bool
-    {
-        return $path === '/admin' || (str_starts_with($path, '/admin/') && !str_starts_with($path, '/admin/api'));
-    }
-
     private function spa(): Response
     {
         $index = (new AdminUiPublisher($this->paths))->resolveIndex();
@@ -1037,7 +1051,24 @@ final class Kernel
                 ->withHeaders($noCache);
         }
 
-        return Response::html((string) file_get_contents($index))->withHeaders($noCache);
+        $html = (string) file_get_contents($index);
+        $html = $this->injectAdminRuntimeConfig($html);
+
+        return Response::html($html)->withHeaders($noCache);
+    }
+
+    private function injectAdminRuntimeConfig(string $html): string
+    {
+        $json = json_encode(
+            $this->config->adminBase->toPublicArray(),
+            JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+        );
+        $script = '<script>window.__HCMS__=' . $json . ';</script>';
+        if (stripos($html, '</head>') !== false) {
+            return (string) preg_replace('/<\/head>/i', $script . '</head>', $html, 1);
+        }
+
+        return $script . $html;
     }
 
     public function installer(): Installer

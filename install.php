@@ -157,8 +157,8 @@ function cms_install_api(string $root, string $autoload, string $lock, string $a
                 if (is_file($lock)) {
                     cms_install_send(403, ['error' => ['code' => 'INSTALLED', 'message' => 'CMS is already installed']]);
                 }
-                $installer->complete(is_array($requestBody) ? $requestBody : []);
-                cms_install_send(200, ['ok' => true, 'adminUrl' => '/admin']);
+                $adminUrl = $installer->complete(is_array($requestBody) ? $requestBody : []);
+                cms_install_send(200, ['ok' => true, 'adminUrl' => $adminUrl]);
             }
 
             cms_install_send(400, ['error' => ['code' => 'BAD_REQUEST', 'message' => 'Unknown action']]);
@@ -804,7 +804,7 @@ function cms_install_html(): string
         <div class="done-panel">
           <h2>Installation completed</h2>
           <p class="status muted">CMS is ready.</p>
-          <a href="/admin" onclick="try{sessionStorage.removeItem('hcms_token')}catch(e){}">Open Admin Panel</a>
+          <a id="openAdmin" href="/admin" onclick="try{sessionStorage.removeItem('hcms_token')}catch(e){}">Open Admin Panel</a>
         </div>
       </div>
     </div>
@@ -1224,7 +1224,7 @@ function cms_install_html(): string
           { pct: 70, label: 'Migrating…', indeterminate: true },
           { pct: 90, label: 'Creating admin…', indeterminate: true }
         ]);
-        await api('complete', {
+        const installed = await api('complete', {
           database: db(),
           application: {
             name: $('appName').value,
@@ -1240,6 +1240,10 @@ function cms_install_html(): string
             passwordConfirm: $('admPass2').value
           }
         });
+        if (installed && installed.adminUrl) {
+          const link = $('openAdmin');
+          if (link) link.setAttribute('href', installed.adminUrl);
+        }
         try { sessionStorage.removeItem('hcms_token'); } catch (e) {}
         clearInterval(progressTimer);
         setProgress('instProgress', 'instFill', 'instLabel', 100, 'Done');

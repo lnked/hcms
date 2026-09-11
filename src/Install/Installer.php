@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Install;
 
 use Cms\Auth\Password;
+use Cms\Core\AdminBase;
 use Cms\Core\Locale;
 use Cms\Core\Paths;
 use Cms\Core\Version;
@@ -144,8 +145,9 @@ final class Installer
 
     /**
      * @param array<string, mixed> $payload
+     * @return string Admin UI URL path (e.g. /admin, /panel, /)
      */
-    public function complete(array $payload): void
+    public function complete(array $payload): string
     {
         if ($this->isInstalled()) {
             throw new RuntimeException('Already installed');
@@ -194,6 +196,14 @@ final class Installer
                 ? $app['publicDir']
                 : 'public',
         );
+        $adminBaseRaw = isset($app['adminBase']) && \is_string($app['adminBase'])
+            ? $app['adminBase']
+            : 'admin';
+        $adminBaseParsed = AdminBase::tryNormalize($adminBaseRaw);
+        if ($adminBaseParsed['ok'] === false) {
+            throw new ValidationException(['adminBase' => [$adminBaseParsed['error']]]);
+        }
+        $adminBase = AdminBase::fromRaw($adminBaseRaw);
 
         $paths = $this->preparePublicLayout($publicDir);
         $publicDir = $paths->publicDir;
@@ -227,6 +237,7 @@ final class Installer
             'app.language' => $language,
             'app.version' => Version::current(),
             'app.public_dir' => $publicDir,
+            'app.admin_base' => $adminBase->segment(),
             'api.base_url' => $appUrl . '/api',
             'api.access' => [
                 'unrestricted' => true,
@@ -296,11 +307,13 @@ final class Installer
             );
         }
 
-        $this->writeEnv($db, $appUrl, $secret, $publicDir);
+        $this->writeEnv($db, $appUrl, $secret, $publicDir, $adminBase);
         $this->writeRootHtaccess($publicDir);
         $this->writeWebHtaccess($publicDir);
         $this->writeStorageHtaccess();
         $this->writeLock();
+
+        return $adminBase->path();
     }
 
     public function runMigrations(Connection $connection): void
@@ -377,7 +390,7 @@ final class Installer
     /**
      * @param array{host: string, port: int, database: string, username: string, password: string, charset: string} $db
      */
-    private function writeEnv(array $db, string $appUrl, string $secret, string $publicDir): void
+    private function writeEnv(array $db, string $appUrl, string $secret, string $publicDir, AdminBase $adminBase): void
     {
         $contents = implode("\n", [
             'APP_ENV=production',
@@ -394,6 +407,7 @@ final class Installer
             '',
             'CMS_GITHUB_REPO=lnked/hcms',
             'CMS_PUBLIC_DIR=' . $publicDir,
+            'CMS_ADMIN_BASE=' . $adminBase->segment(),
             '',
         ]);
 

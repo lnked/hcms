@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Auth;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Database\Connection;
 use Cms\Resources\ResourceRepository;
 use DateTimeImmutable;
@@ -72,7 +73,7 @@ final class ApiTokenService
     {
         $name = isset($payload['name']) && \is_string($payload['name']) ? trim($payload['name']) : '';
         if ($name === '') {
-            throw new InvalidArgumentException('Name is required');
+            throw ValidationFailedException::field('name', 'Name is required');
         }
 
         $expiresAt = null;
@@ -82,7 +83,7 @@ final class ApiTokenService
 
         $grantInput = $payload['grants'] ?? [];
         if (!\is_array($grantInput)) {
-            throw new InvalidArgumentException('grants must be an array');
+            throw ValidationFailedException::field('grants', 'grants must be an array');
         }
         $normalized = $this->normalizeGrants($grantInput);
         $integrationGrants = $this->normalizeIntegrationGrants($payload['integrationGrants'] ?? []);
@@ -123,7 +124,7 @@ final class ApiTokenService
         if (\array_key_exists('name', $payload)) {
             $name = \is_string($payload['name']) ? trim($payload['name']) : '';
             if ($name === '') {
-                throw new InvalidArgumentException('Name is required');
+                throw ValidationFailedException::field('name', 'Name is required');
             }
             $sets[] = 'name = :name';
             $params['name'] = $name;
@@ -148,7 +149,7 @@ final class ApiTokenService
         if (\array_key_exists('grants', $payload)) {
             $grantInput = $payload['grants'];
             if (!\is_array($grantInput)) {
-                throw new InvalidArgumentException('grants must be an array');
+                throw ValidationFailedException::field('grants', 'grants must be an array');
             }
             $this->grants->replace($id, $this->normalizeGrants($grantInput));
         }
@@ -251,7 +252,7 @@ final class ApiTokenService
             if (\array_key_exists('resourceId', $item) && $item['resourceId'] !== null && $item['resourceId'] !== '') {
                 $resourceId = (int) $item['resourceId'];
                 if ($this->resources->find($resourceId) === null) {
-                    throw new InvalidArgumentException('Unknown resourceId: ' . $resourceId);
+                    throw ValidationFailedException::field('grants', 'Unknown resourceId: ' . $resourceId);
                 }
             }
             $out[] = [
@@ -285,7 +286,10 @@ final class ApiTokenService
                 ? trim($item['integrationKey'])
                 : '';
             if ($key === '' || !\in_array($key, $allowed, true)) {
-                throw new InvalidArgumentException('Unknown integrationKey: ' . $key);
+                throw ValidationFailedException::field(
+                    'integrationGrants',
+                    'Unknown integrationKey: ' . $key,
+                );
             }
             $out[] = [
                 'integrationKey' => $key,

@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Translates\TranslationService;
@@ -41,6 +42,8 @@ final class TranslatesController
             );
 
             return Response::data($created, 201);
+        } catch (ValidationFailedException $e) {
+            return $this->validationError($e);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }
@@ -53,6 +56,8 @@ final class TranslatesController
             $this->audit->log($request, 'locale.updated', $auth->userId(), 'locale', $code);
 
             return Response::data($updated);
+        } catch (ValidationFailedException $e) {
+            return $this->validationError($e);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -120,6 +125,8 @@ final class TranslatesController
             );
 
             return Response::data($created, 201);
+        } catch (ValidationFailedException $e) {
+            return $this->validationError($e);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }
@@ -132,6 +139,8 @@ final class TranslatesController
             $this->audit->log($request, 'translation.updated', $auth->userId(), 'translation', (string) $id);
 
             return Response::data($updated);
+        } catch (ValidationFailedException $e) {
+            return $this->validationError($e);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -172,6 +181,8 @@ final class TranslatesController
             );
 
             return Response::data($saved);
+        } catch (ValidationFailedException $e) {
+            return $this->validationError($e);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         }
@@ -278,5 +289,10 @@ final class TranslatesController
         }
 
         return $keys === [] ? null : array_values(array_unique($keys));
+    }
+
+    private function validationError(ValidationFailedException $e): Response
+    {
+        return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
     }
 }

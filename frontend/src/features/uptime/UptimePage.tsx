@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -28,8 +29,9 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { getApiPrefix } from '@/lib/adminBase'
 import { formatDateValue } from '@/lib/dateFormat'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './UptimePage.module.css'
 
@@ -288,7 +290,7 @@ export function UptimePage() {
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://example.com'
   const cronCliCmd = `cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1`
-  const cronHttpCmd = `curl -fsS -X POST \\\n  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\\n  ${baseUrl}/admin/api/uptime/run >/dev/null`
+  const cronHttpCmd = `curl -fsS -X POST \\\n  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\\n  ${baseUrl}${getApiPrefix()}/uptime/run >/dev/null`
   const cronCli = `* * * * * ${cronCliCmd}`
   const cronHttp = `* * * * * ${cronHttpCmd}`
 
@@ -587,10 +589,24 @@ export function UptimePage() {
             <DialogTitle>{isEdit ? t('uptime.editUrl') : t('uptime.addUrl')}</DialogTitle>
             <DialogDescription>{t('uptime.formHint')}</DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.formGrid)}>
+          <Form
+            className={clsx(styles.formGrid)}
+            onSubmit={() => {
+              if (isEdit && editingId !== null) update.mutate(editingId)
+              else create.mutate()
+            }}
+          >
             <div className={clsx(styles.formRow)}>
               <Label htmlFor="uptime-name">{t('uptime.fieldName')}</Label>
-              <Input id="uptime-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                id="uptime-name"
+                value={name}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                }}
+              />
               <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.formRow)}>
@@ -598,7 +614,11 @@ export function UptimePage() {
               <Input
                 id="uptime-url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'url') || undefined}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'url'))
+                }}
                 disabled={editingSelf}
               />
               <FieldError messages={fieldErrors.url} />
@@ -610,7 +630,11 @@ export function UptimePage() {
                 type="number"
                 min={30}
                 value={intervalSeconds}
-                onChange={(e) => setIntervalSeconds(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'intervalSeconds') || undefined}
+                onChange={(e) => {
+                  setIntervalSeconds(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'intervalSeconds'))
+                }}
               />
               <FieldError messages={fieldErrors.intervalSeconds} />
             </div>
@@ -623,7 +647,11 @@ export function UptimePage() {
                   min={100}
                   max={599}
                   value={expectedStatus}
-                  onChange={(e) => setExpectedStatus(e.target.value)}
+                  aria-invalid={hasFieldError(fieldErrors, 'expectedStatus') || undefined}
+                  onChange={(e) => {
+                    setExpectedStatus(e.target.value)
+                    setFieldErrors((prev) => clearFieldError(prev, 'expectedStatus'))
+                  }}
                 />
                 <FieldError messages={fieldErrors.expectedStatus} />
               </div>
@@ -636,7 +664,11 @@ export function UptimePage() {
                 min={500}
                 max={15000}
                 value={timeoutMs}
-                onChange={(e) => setTimeoutMs(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'timeoutMs') || undefined}
+                onChange={(e) => {
+                  setTimeoutMs(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'timeoutMs'))
+                }}
               />
               <FieldError messages={fieldErrors.timeoutMs} />
             </div>
@@ -654,17 +686,11 @@ export function UptimePage() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button
-                onClick={() => {
-                  if (isEdit && editingId !== null) update.mutate(editingId)
-                  else create.mutate()
-                }}
-                disabled={create.isPending || update.isPending}
-              >
+              <Button type="submit" disabled={create.isPending || update.isPending}>
                 {t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

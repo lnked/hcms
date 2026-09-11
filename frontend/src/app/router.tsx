@@ -8,6 +8,7 @@ import { OAuthCompletePage } from '@/features/auth/OAuthCompletePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RequireSection } from '@/features/auth/RequireSection'
 import { InstallPage } from '@/features/install/InstallPage'
+import { getAdminBasename } from '@/lib/adminBase'
 import type { AdminRole, AdminSection } from '@/lib/rbac'
 
 /**
@@ -87,7 +88,7 @@ function withSection(section: AdminSection, minRole: AdminRole | undefined, page
 
 export function AppRouter() {
   return (
-    <BrowserRouter basename="/admin">
+    <BrowserRouter basename={getAdminBasename() || undefined}>
       <TrailingSlashRedirect />
       <AppToast />
       <Routes>

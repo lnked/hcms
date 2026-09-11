@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -30,7 +31,7 @@ import {
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { copyToClipboard } from '@/lib/clipboard'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import {
   parseLines,
@@ -404,13 +405,26 @@ export function TokensPage() {
               <Button onClick={() => setOpen(false)}>{t('common.done')}</Button>
             </div>
           ) : (
-            <div className={clsx(styles.stackMd)}>
+            <Form
+              className={clsx(styles.stackMd)}
+              onSubmit={() => {
+                if (isEdit) {
+                  if (editingId !== null) update.mutate(editingId)
+                } else {
+                  create.mutate()
+                }
+              }}
+            >
               <div className={clsx(styles.stackXs)}>
                 <Label htmlFor="token-name">{t('common.name')}</Label>
                 <Input
                   id="token-name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                  }}
                   placeholder={t('tokens.placeholderName')}
                 />
                 <FieldError messages={fieldErrors.name} />
@@ -422,7 +436,11 @@ export function TokensPage() {
                   value={expiresAt}
                   granularity="minute"
                   format="DD.MM.YYYY HH:mm"
-                  onChange={(next) => setExpiresAt(next ?? '')}
+                  aria-invalid={hasFieldError(fieldErrors, 'expiresAt') || undefined}
+                  onChange={(next) => {
+                    setExpiresAt(next ?? '')
+                    setFieldErrors((prev) => clearFieldError(prev, 'expiresAt'))
+                  }}
                 />
                 <FieldError messages={fieldErrors.expiresAt} />
               </div>
@@ -522,21 +540,16 @@ export function TokensPage() {
                   {t('common.cancel')}
                 </Button>
                 {isEdit ? (
-                  <Button
-                    disabled={!name.trim() || busy}
-                    onClick={() => {
-                      if (editingId !== null) update.mutate(editingId)
-                    }}
-                  >
+                  <Button type="submit" disabled={!name.trim() || busy}>
                     {update.isPending ? t('common.saving') : t('common.save')}
                   </Button>
                 ) : (
-                  <Button disabled={!name.trim() || busy} onClick={() => create.mutate()}>
+                  <Button type="submit" disabled={!name.trim() || busy}>
                     {create.isPending ? t('common.creating') : t('common.create')}
                   </Button>
                 )}
               </div>
-            </div>
+            </Form>
           )}
         </DialogContent>
       </Dialog>

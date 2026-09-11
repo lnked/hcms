@@ -7,6 +7,7 @@ namespace Cms\Http\Controllers;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\UserAclGuard;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Database\MigrationService;
 use Cms\Http\Request;
 use Cms\Http\Response;
@@ -67,6 +68,8 @@ final class ResourceController
             );
 
             return Response::data($resource, 201);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -87,6 +90,8 @@ final class ResourceController
             );
 
             return Response::data($resource);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {
@@ -118,6 +123,8 @@ final class ResourceController
             ], $id);
 
             return Response::data($resource);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
             return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
         } catch (RuntimeException $e) {

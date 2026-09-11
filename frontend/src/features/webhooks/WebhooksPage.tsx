@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './WebhooksPage.module.css'
 import type { Resource } from '@/types/resource'
@@ -233,6 +234,7 @@ export function WebhooksPage() {
 
   function toggleEvent(event: WebhookEvent) {
     setEvents((prev) => (prev.includes(event) ? prev.filter((e) => e !== event) : [...prev, event]))
+    setFieldErrors((prev) => clearFieldError(prev, 'events'))
   }
 
   const busy = create.isPending || update.isPending
@@ -414,13 +416,26 @@ export function WebhooksPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className={clsx(styles.stackMd)}>
+          <Form
+            className={clsx(styles.stackMd)}
+            onSubmit={() => {
+              if (isEdit) {
+                if (editingId !== null) update.mutate(editingId)
+              } else {
+                create.mutate()
+              }
+            }}
+          >
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-name">{t('common.name')}</Label>
               <Input
                 id="webhook-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                }}
                 placeholder={t('webhooks.placeholderName')}
               />
               <FieldError messages={fieldErrors.name} />
@@ -430,7 +445,11 @@ export function WebhooksPage() {
               <Input
                 id="webhook-url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'url') || undefined}
+                onChange={(e) => {
+                  setUrl(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'url'))
+                }}
                 placeholder="https://example.com/hooks/hcms"
               />
               <FieldError messages={fieldErrors.url} />
@@ -443,7 +462,10 @@ export function WebhooksPage() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => setSecret(randomSecret())}
+                    onClick={() => {
+                      setSecret(randomSecret())
+                      setFieldErrors((prev) => clearFieldError(prev, 'secret'))
+                    }}
                   >
                     {t('webhooks.regenerateSecret')}
                   </Button>
@@ -452,7 +474,11 @@ export function WebhooksPage() {
               <Input
                 id="webhook-secret"
                 value={secret}
-                onChange={(e) => setSecret(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'secret') || undefined}
+                onChange={(e) => {
+                  setSecret(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'secret'))
+                }}
                 placeholder={isEdit ? t('webhooks.secretKeep') : undefined}
               />
               <FieldError messages={fieldErrors.secret} />
@@ -478,9 +504,11 @@ export function WebhooksPage() {
               <Select
                 id="webhook-resource"
                 value={resourceId ?? ''}
+                aria-invalid={hasFieldError(fieldErrors, 'resourceId') || undefined}
                 onChange={(e) => {
                   const value = e.target.value
                   setResourceId(value === '' ? null : Number(value))
+                  setFieldErrors((prev) => clearFieldError(prev, 'resourceId'))
                 }}
               >
                 <option value="">{t('webhooks.allResources')}</option>
@@ -497,7 +525,11 @@ export function WebhooksPage() {
               <Select
                 id="webhook-status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value === 'disabled' ? 'disabled' : 'active')}
+                aria-invalid={hasFieldError(fieldErrors, 'status') || undefined}
+                onChange={(e) => {
+                  setStatus(e.target.value === 'disabled' ? 'disabled' : 'active')
+                  setFieldErrors((prev) => clearFieldError(prev, 'status'))
+                }}
               >
                 <option value="active">{t('webhooks.active')}</option>
                 <option value="disabled">{t('webhooks.disabled')}</option>
@@ -510,23 +542,21 @@ export function WebhooksPage() {
               </Button>
               {isEdit ? (
                 <Button
+                  type="submit"
                   disabled={!name.trim() || !url.trim() || events.length === 0 || busy}
-                  onClick={() => {
-                    if (editingId !== null) update.mutate(editingId)
-                  }}
                 >
                   {update.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               ) : (
                 <Button
+                  type="submit"
                   disabled={!name.trim() || !url.trim() || events.length === 0 || busy}
-                  onClick={() => create.mutate()}
                 >
                   {create.isPending ? t('common.creating') : t('common.create')}
                 </Button>
               )}
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -28,7 +29,7 @@ import {
 import styles from '@/features/webhooks/WebhooksPage.module.css'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, hasFieldError, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showError, showSuccess } from '@/lib/toast'
 import type { Resource } from '@/types/resource'
 
@@ -389,7 +390,7 @@ export function InboundEndpointsPage() {
               {isEdit ? t('inbound.editHint') : t('inbound.createHint')}
             </DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.stackMd)}>
+          <Form className={clsx(styles.stackMd)} onSubmit={save}>
             <div className={clsx(styles.stackXs)}>
               <Label htmlFor="inbound-label">{t('common.name')}</Label>
               <Input
@@ -398,10 +399,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'label') || undefined}
                 onChange={(e) => {
                   setLabel(e.target.value)
-                  setFieldErrors((prev) => {
-                    const { label: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'label'))
                 }}
               />
               <FieldError messages={fieldErrors.label} />
@@ -414,10 +412,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'slug') || undefined}
                 onChange={(e) => {
                   setSlug(e.target.value)
-                  setFieldErrors((prev) => {
-                    const { slug: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'slug'))
                 }}
               />
               <FieldError messages={fieldErrors.slug} />
@@ -430,10 +425,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'targetUrl') || undefined}
                 onChange={(e) => {
                   setTargetUrl(e.target.value)
-                  setFieldErrors((prev) => {
-                    const { targetUrl: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'targetUrl'))
                 }}
                 placeholder="https://hooks.example.com/contact"
               />
@@ -457,10 +449,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'secret') || undefined}
                 onChange={(e) => {
                   setSecret(e.target.value)
-                  setFieldErrors((prev) => {
-                    const { secret: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'secret'))
                 }}
                 placeholder={isEdit ? t('inbound.secretKeep') : undefined}
               />
@@ -475,10 +464,7 @@ export function InboundEndpointsPage() {
                 onChange={(e) => {
                   const value = e.target.value
                   setPersistResourceId(value === '' ? null : Number(value))
-                  setFieldErrors((prev) => {
-                    const { persistResourceId: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'persistResourceId'))
                 }}
               >
                 <option value="">{t('inbound.noPersist')}</option>
@@ -498,10 +484,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'fieldMap') || undefined}
                 onChange={(e) => {
                   setFieldMapText(e.target.value)
-                  setFieldErrors((prev) => {
-                    const { fieldMap: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'fieldMap'))
                 }}
                 placeholder='{"email":"email","name":"full_name"}'
               />
@@ -516,10 +499,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'timeoutMs') || undefined}
                 onChange={(e) => {
                   setTimeoutMs(Number(e.target.value) || 5000)
-                  setFieldErrors((prev) => {
-                    const { timeoutMs: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'timeoutMs'))
                 }}
               />
               <FieldError messages={fieldErrors.timeoutMs} />
@@ -532,10 +512,7 @@ export function InboundEndpointsPage() {
                 aria-invalid={hasFieldError(fieldErrors, 'onFailure') || undefined}
                 onChange={(e) => {
                   setOnFailure(e.target.value as 'reject' | 'continue')
-                  setFieldErrors((prev) => {
-                    const { onFailure: _, ...rest } = prev
-                    return rest
-                  })
+                  setFieldErrors((prev) => clearFieldError(prev, 'onFailure'))
                 }}
               >
                 <option value="reject">reject</option>
@@ -558,14 +535,11 @@ export function InboundEndpointsPage() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button
-                onClick={save}
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

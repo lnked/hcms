@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Auth;
 
+use Cms\Core\AdminBase;
 use Cms\Http\HttpClient;
 
 final class OAuthService
@@ -14,6 +15,8 @@ final class OAuthService
     private const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
     private const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
+    private readonly AdminBase $adminBase;
+
     public function __construct(
         private readonly OAuthSettings $settings,
         private readonly UserIdentityStore $identities,
@@ -21,17 +24,19 @@ final class OAuthService
         private readonly HttpClient $http,
         private readonly string $appUrl,
         private readonly string $appSecret,
+        ?AdminBase $adminBase = null,
     ) {
+        $this->adminBase = $adminBase ?? AdminBase::default();
     }
 
     public function redirectUri(): string
     {
-        return rtrim($this->appUrl, '/') . '/admin/api/auth/google/callback';
+        return rtrim($this->appUrl, '/') . $this->adminBase->apiPrefix() . '/auth/google/callback';
     }
 
     public function completeUrl(): string
     {
-        return rtrim($this->appUrl, '/') . '/admin/oauth/complete';
+        return rtrim($this->appUrl, '/') . $this->adminBase->path('/oauth/complete');
     }
 
     /**

@@ -28,6 +28,7 @@ type PasswordFieldProps = {
   onRevealChange?: (reveal: boolean) => void
   hint?: string
   className?: string
+  'aria-invalid'?: boolean
 }
 
 export function PasswordField({
@@ -46,6 +47,7 @@ export function PasswordField({
   onRevealChange,
   hint,
   className,
+  'aria-invalid': ariaInvalid,
 }: PasswordFieldProps) {
   const { t } = useI18n()
   const [revealInternal, setRevealInternal] = useState(false)
@@ -86,6 +88,7 @@ export function PasswordField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           required={required}
+          aria-invalid={ariaInvalid}
         />
         <div className={styles.trailing}>
           {copyEnabled ? (

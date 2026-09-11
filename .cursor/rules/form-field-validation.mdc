@@ -1,0 +1,62 @@
+---
+description: Admin form validation UX — field errors, red borders, no toast when fields present
+globs: frontend/src/**/*.{tsx,ts},src/**/*.{php}
+alwaysApply: false
+---
+
+# Form field validation
+
+Empty/invalid submit must highlight fields, not only a toast.
+
+## Frontend (admin forms)
+
+1. State: `FieldErrors` + `onError: (err) => setFieldErrors(apiFieldErrors(err))`.
+2. Under each validated control: `<FieldError messages={fieldErrors.x} />`.
+3. Control: `aria-invalid={hasFieldError(fieldErrors, 'x') || undefined}` — red border comes from `Control.module.css` (`.shell[aria-invalid='true']`).
+4. On change: `setFieldErrors((prev) => clearFieldError(prev, 'x'))`.
+5. Clear `fieldErrors` when opening a create/edit dialog and on successful save.
+6. Do **not** call `showError` for field-level 422 — `api.ts` already skips toast when `error.fields` is non-empty.
+
+```tsx
+<Input
+  value={name}
+  aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+  onChange={(e) => {
+    setName(e.target.value)
+    setFieldErrors((prev) => clearFieldError(prev, 'name'))
+  }}
+/>
+<FieldError messages={fieldErrors.name} />
+```
+
+Helpers: `@/lib/formErrors` — `apiFieldErrors`, `hasFieldError`, `clearFieldError`.  
+Reference UIs: `InboundEndpointsPage`, `TranslatesPage`, `InstallPage`, `FormRenderer`.
+
+## Backend (API)
+
+Form validation → `ValidationFailedException::field('name', '…')` (or multi-field ctor), **not** bare `InvalidArgumentException` for input fields.
+
+Controllers that catch validation must pass fields:
+
+```php
+} catch (ValidationFailedException $e) {
+    return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+}
+```
+
+Catch `ValidationFailedException` **before** `RuntimeException` (it extends RuntimeException).
+
+Non-field errors (not found, forbidden, “max targets”) stay message-only / proper HTTP codes — toast is fine.
+
+## Don't
+
+```tsx
+// ❌ toast-only, no fields / no aria-invalid
+onError: (err) => showError(err.message)
+```
+
+```php
+// ❌ 422 without fields — UI cannot mark the input
+throw new InvalidArgumentException('Name is required');
+return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+```

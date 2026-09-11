@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -97,186 +98,188 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
         <CardTitle>{t('resources.settings.title')}</CardTitle>
         <CardDescription>{t('resources.settings.hint')}</CardDescription>
       </CardHeader>
-      <CardContent className={styles.stack}>
-        {isPublicWriteUnprotected(settings) ? (
-          <p className={styles.warning}>{t('resources.settings.unprotectedWarning')}</p>
-        ) : null}
-        <div className={styles.grid2}>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.apiEnabled}
-              onChange={(e) => patch({ apiEnabled: e.target.checked })}
-            />
-            {t('resources.settings.apiEnabled')}
-          </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.pagination}
-              onChange={(e) => patch({ pagination: e.target.checked })}
-            />
-            {t('resources.settings.pagination')}
-          </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.search}
-              onChange={(e) => patch({ search: e.target.checked })}
-            />
-            {t('resources.settings.search')}
-          </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.sorting}
-              onChange={(e) => patch({ sorting: e.target.checked })}
-            />
-            {t('resources.settings.sorting')}
-          </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.filtering}
-              onChange={(e) => patch({ filtering: e.target.checked })}
-            />
-            {t('resources.settings.filtering')}
-          </label>
-        </div>
-
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>{t('resources.settings.publicAccess')}</p>
+      <CardContent>
+        <Form className={styles.stack} onSubmit={() => save.mutate()}>
+          {isPublicWriteUnprotected(settings) ? (
+            <p className={styles.warning}>{t('resources.settings.unprotectedWarning')}</p>
+          ) : null}
           <div className={styles.grid2}>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"
-                checked={settings.public.read}
-                onChange={(e) => patchPublic('read', e.target.checked)}
+                checked={settings.apiEnabled}
+                onChange={(e) => patch({ apiEnabled: e.target.checked })}
               />
-              {t('resources.settings.publicRead')}
+              {t('resources.settings.apiEnabled')}
             </label>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"
-                checked={settings.public.create}
-                onChange={(e) => patchPublic('create', e.target.checked)}
+                checked={settings.pagination}
+                onChange={(e) => patch({ pagination: e.target.checked })}
               />
-              {t('resources.settings.publicCreate')}
+              {t('resources.settings.pagination')}
             </label>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"
-                checked={settings.public.update}
-                onChange={(e) => patchPublic('update', e.target.checked)}
+                checked={settings.search}
+                onChange={(e) => patch({ search: e.target.checked })}
               />
-              {t('resources.settings.publicUpdate')}
+              {t('resources.settings.search')}
             </label>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"
-                checked={settings.public.delete}
-                onChange={(e) => patchPublic('delete', e.target.checked)}
+                checked={settings.sorting}
+                onChange={(e) => patch({ sorting: e.target.checked })}
               />
-              {t('resources.settings.publicDelete')}
+              {t('resources.settings.sorting')}
+            </label>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={settings.filtering}
+                onChange={(e) => patch({ filtering: e.target.checked })}
+              />
+              {t('resources.settings.filtering')}
             </label>
           </div>
-        </div>
 
-        <div className={styles.section}>
-          <p className={styles.sectionTitle}>{t('resources.settings.spamTitle')}</p>
-          <p className={styles.hint}>{t('resources.settings.spamHint')}</p>
-          <div className={styles.grid2}>
-            <div className={styles.field}>
-              <Label htmlFor="honeypot">{t('resources.settings.honeypot')}</Label>
-              <Input
-                id="honeypot"
-                value={settings.spam?.honeypotField ?? ''}
-                onChange={(e) => patchSpam({ honeypotField: e.target.value })}
-                placeholder="website"
-              />
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('resources.settings.publicAccess')}</p>
+            <div className={styles.grid2}>
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={settings.public.read}
+                  onChange={(e) => patchPublic('read', e.target.checked)}
+                />
+                {t('resources.settings.publicRead')}
+              </label>
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={settings.public.create}
+                  onChange={(e) => patchPublic('create', e.target.checked)}
+                />
+                {t('resources.settings.publicCreate')}
+              </label>
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={settings.public.update}
+                  onChange={(e) => patchPublic('update', e.target.checked)}
+                />
+                {t('resources.settings.publicUpdate')}
+              </label>
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={settings.public.delete}
+                  onChange={(e) => patchPublic('delete', e.target.checked)}
+                />
+                {t('resources.settings.publicDelete')}
+              </label>
             </div>
-            <div className={styles.field}>
-              <Label htmlFor="min-submit">{t('resources.settings.minSubmitMs')}</Label>
-              <Input
-                id="min-submit"
-                type="number"
-                min={0}
-                value={settings.spam?.minSubmitMs ?? 0}
-                onChange={(e) => patchSpam({ minSubmitMs: Number(e.target.value) || 0 })}
-              />
+          </div>
+
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('resources.settings.spamTitle')}</p>
+            <p className={styles.hint}>{t('resources.settings.spamHint')}</p>
+            <div className={styles.grid2}>
+              <div className={styles.field}>
+                <Label htmlFor="honeypot">{t('resources.settings.honeypot')}</Label>
+                <Input
+                  id="honeypot"
+                  value={settings.spam?.honeypotField ?? ''}
+                  onChange={(e) => patchSpam({ honeypotField: e.target.value })}
+                  placeholder="website"
+                />
+              </div>
+              <div className={styles.field}>
+                <Label htmlFor="min-submit">{t('resources.settings.minSubmitMs')}</Label>
+                <Input
+                  id="min-submit"
+                  type="number"
+                  min={0}
+                  value={settings.spam?.minSubmitMs ?? 0}
+                  onChange={(e) => patchSpam({ minSubmitMs: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div className={styles.field}>
+                <Label htmlFor="spam-rl">{t('resources.settings.rateLimitPerMinute')}</Label>
+                <Input
+                  id="spam-rl"
+                  type="number"
+                  min={0}
+                  value={settings.spam?.rateLimitPerMinute ?? 0}
+                  onChange={(e) => patchSpam({ rateLimitPerMinute: Number(e.target.value) || 0 })}
+                />
+              </div>
+              <div className={styles.field}>
+                <Label htmlFor="max-links">{t('resources.settings.maxLinks')}</Label>
+                <Input
+                  id="max-links"
+                  type="number"
+                  min={0}
+                  value={settings.spam?.maxLinks ?? 0}
+                  onChange={(e) => patchSpam({ maxLinks: Number(e.target.value) || 0 })}
+                />
+              </div>
             </div>
-            <div className={styles.field}>
-              <Label htmlFor="spam-rl">{t('resources.settings.rateLimitPerMinute')}</Label>
-              <Input
-                id="spam-rl"
-                type="number"
-                min={0}
-                value={settings.spam?.rateLimitPerMinute ?? 0}
-                onChange={(e) => patchSpam({ rateLimitPerMinute: Number(e.target.value) || 0 })}
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={settings.spam?.requireCaptcha ?? false}
+                onChange={(e) => patchSpam({ requireCaptcha: e.target.checked })}
               />
-            </div>
+              {t('resources.settings.requireCaptcha')}
+            </label>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={settings.spam?.rejectDuplicates ?? true}
+                onChange={(e) => patchSpam({ rejectDuplicates: e.target.checked })}
+              />
+              {t('resources.settings.rejectDuplicates')}
+            </label>
             <div className={styles.field}>
-              <Label htmlFor="max-links">{t('resources.settings.maxLinks')}</Label>
+              <Label htmlFor="blocklist">{t('resources.settings.blocklist')}</Label>
               <Input
-                id="max-links"
-                type="number"
-                min={0}
-                value={settings.spam?.maxLinks ?? 0}
-                onChange={(e) => patchSpam({ maxLinks: Number(e.target.value) || 0 })}
+                id="blocklist"
+                value={(settings.spam?.blocklist ?? []).join(', ')}
+                onChange={(e) =>
+                  patchSpam({
+                    blocklist: e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  })
+                }
+                placeholder="casino, crypto"
               />
             </div>
           </div>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.spam?.requireCaptcha ?? false}
-              onChange={(e) => patchSpam({ requireCaptcha: e.target.checked })}
-            />
-            {t('resources.settings.requireCaptcha')}
-          </label>
-          <label className={styles.checkLabel}>
-            <input
-              type="checkbox"
-              checked={settings.spam?.rejectDuplicates ?? true}
-              onChange={(e) => patchSpam({ rejectDuplicates: e.target.checked })}
-            />
-            {t('resources.settings.rejectDuplicates')}
-          </label>
-          <div className={styles.field}>
-            <Label htmlFor="blocklist">{t('resources.settings.blocklist')}</Label>
-            <Input
-              id="blocklist"
-              value={(settings.spam?.blocklist ?? []).join(', ')}
-              onChange={(e) =>
-                patchSpam({
-                  blocklist: e.target.value
-                    .split(',')
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              placeholder="casino, crypto"
-            />
+
+          <div className={styles.deleteStrategy}>
+            <Label htmlFor="delete-strategy">{t('resources.settings.deleteStrategy')}</Label>
+            <Select
+              id="delete-strategy"
+              value={settings.deleteStrategy}
+              onChange={(e) => setDeleteStrategy(e.target.value === 'soft' ? 'soft' : 'hard')}
+            >
+              <option value="hard">{t('resources.settings.deleteHard')}</option>
+              <option value="soft">{t('resources.settings.deleteSoft')}</option>
+            </Select>
           </div>
-        </div>
 
-        <div className={styles.deleteStrategy}>
-          <Label htmlFor="delete-strategy">{t('resources.settings.deleteStrategy')}</Label>
-          <Select
-            id="delete-strategy"
-            value={settings.deleteStrategy}
-            onChange={(e) => setDeleteStrategy(e.target.value === 'soft' ? 'soft' : 'hard')}
-          >
-            <option value="hard">{t('resources.settings.deleteHard')}</option>
-            <option value="soft">{t('resources.settings.deleteSoft')}</option>
-          </Select>
-        </div>
-
-        <div className={styles.footer}>
-          <Button disabled={save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? t('common.saving') : t('common.save')}
-          </Button>
-        </div>
+          <div className={styles.footer}>
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? t('common.saving') : t('common.save')}
+            </Button>
+          </div>
+        </Form>
       </CardContent>
     </Card>
   )

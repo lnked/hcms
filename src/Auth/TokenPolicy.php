@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Cms\Auth;
 
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Http\OriginMatcher;
 use Cms\Security\IpMatcher;
-use InvalidArgumentException;
 
 /**
  * Per-token usage restrictions: browser origins and source IPs.
@@ -37,7 +37,7 @@ final class TokenPolicy
     }
 
     /**
-     * @throws InvalidArgumentException
+     * @throws ValidationFailedException
      */
     public static function fromInput(mixed $origins, mixed $requireOrigin, mixed $ips): self
     {
@@ -92,7 +92,7 @@ final class TokenPolicy
 
     /**
      * @return list<string>
-     * @throws InvalidArgumentException
+     * @throws ValidationFailedException
      */
     private static function normalizeOrigins(mixed $input): array
     {
@@ -106,7 +106,7 @@ final class TokenPolicy
 
     /**
      * @return list<string>
-     * @throws InvalidArgumentException
+     * @throws ValidationFailedException
      */
     private static function normalizeIps(mixed $input): array
     {
@@ -121,7 +121,7 @@ final class TokenPolicy
     /**
      * @param callable(string): ?string $normalizer
      * @return list<string>
-     * @throws InvalidArgumentException
+     * @throws ValidationFailedException
      */
     private static function normalizeList(
         mixed $input,
@@ -133,27 +133,30 @@ final class TokenPolicy
             return [];
         }
         if (!\is_array($input)) {
-            throw new InvalidArgumentException($field . ' must be an array');
+            throw ValidationFailedException::field($field, $field . ' must be an array');
         }
 
         $out = [];
         foreach ($input as $item) {
             if (!\is_string($item)) {
-                throw new InvalidArgumentException($field . ' entries must be strings');
+                throw ValidationFailedException::field($field, $field . ' entries must be strings');
             }
             if (trim($item) === '') {
                 continue;
             }
             $normalized = $normalizer($item);
             if ($normalized === null) {
-                throw new InvalidArgumentException($errorPrefix . trim($item));
+                throw ValidationFailedException::field($field, $errorPrefix . trim($item));
             }
             $out[] = $normalized;
         }
 
         $unique = array_values(array_unique($out));
         if (\count($unique) > self::MAX_ENTRIES) {
-            throw new InvalidArgumentException($field . ' allows at most ' . self::MAX_ENTRIES . ' entries');
+            throw ValidationFailedException::field(
+                $field,
+                $field . ' allows at most ' . self::MAX_ENTRIES . ' entries',
+            );
         }
 
         return $unique;

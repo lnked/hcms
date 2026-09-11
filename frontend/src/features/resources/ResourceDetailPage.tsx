@@ -6,6 +6,7 @@ import { DetailPageSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { ResourceApiPlayground } from '@/features/resources/ResourceApiPlayground'
 import { ResourceCustomApisPanel } from '@/features/resources/ResourceCustomApisPanel'
 import { ResourceEntriesPanel } from '@/features/resources/ResourceEntriesPanel'
@@ -257,28 +258,30 @@ export function ResourceDetailPage() {
 
       {tab === 'schema' ? (
         <Card>
-          <CardHeader className={styles.schemaHeader}>
-            <div>
-              <CardTitle>{t('resources.schema')}</CardTitle>
-              <CardDescription>{t('resources.schemaHint')}</CardDescription>
-            </div>
-            <Button
-              disabled={
-                !schemaDirty || saveSchema.isPending || !canResourceAction(resourceId, 'update')
-              }
-              onClick={() => saveSchema.mutate()}
-            >
-              {saveSchema.isPending ? t('common.saving') : t('resources.saveSchema')}
-            </Button>
-          </CardHeader>
-          <CardContent className={styles.schemaBody}>
-            <SchemaBuilder
-              schema={schema}
-              onChange={(next) => {
-                setDraftSchema(next)
-              }}
-            />
-          </CardContent>
+          <Form onSubmit={() => saveSchema.mutate()}>
+            <CardHeader className={styles.schemaHeader}>
+              <div>
+                <CardTitle>{t('resources.schema')}</CardTitle>
+                <CardDescription>{t('resources.schemaHint')}</CardDescription>
+              </div>
+              <Button
+                type="submit"
+                disabled={
+                  !schemaDirty || saveSchema.isPending || !canResourceAction(resourceId, 'update')
+                }
+              >
+                {saveSchema.isPending ? t('common.saving') : t('resources.saveSchema')}
+              </Button>
+            </CardHeader>
+            <CardContent className={styles.schemaBody}>
+              <SchemaBuilder
+                schema={schema}
+                onChange={(next) => {
+                  setDraftSchema(next)
+                }}
+              />
+            </CardContent>
+          </Form>
         </Card>
       ) : null}
 

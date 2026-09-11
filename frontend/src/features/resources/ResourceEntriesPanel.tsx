@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -579,7 +580,7 @@ export function ResourceEntriesPanel({
           ) : editingId !== null && !editing ? (
             <p className={styles.statusError}>{t('entries.notFound')}</p>
           ) : (
-            <>
+            <Form onSubmit={() => save.mutate()}>
               <FormRenderer
                 key={editingId ?? 'new'}
                 fields={fields}
@@ -595,11 +596,11 @@ export function ResourceEntriesPanel({
                 <Button variant="outline" onClick={closeEntry}>
                   {t('common.cancel')}
                 </Button>
-                <Button disabled={save.isPending} onClick={() => save.mutate()}>
+                <Button type="submit" disabled={save.isPending}>
                   {save.isPending ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
-            </>
+            </Form>
           )}
         </DialogContent>
       </Dialog>
@@ -610,7 +611,7 @@ export function ResourceEntriesPanel({
             <DialogTitle>{t('entries.exportTitle')}</DialogTitle>
             <DialogDescription>{t('entries.exportHint')}</DialogDescription>
           </DialogHeader>
-          <div className={styles.stack}>
+          <Form className={styles.stack} onSubmit={() => doExport.mutate()}>
             <div className={styles.field}>
               <Label htmlFor="export-format">{t('entries.format')}</Label>
               <Select
@@ -670,13 +671,13 @@ export function ResourceEntriesPanel({
                 {t('common.cancel')}
               </Button>
               <Button
+                type="submit"
                 disabled={doExport.isPending || (!exportAll && exportFields.length === 0)}
-                onClick={() => doExport.mutate()}
               >
                 {doExport.isPending ? t('entries.exporting') : t('entries.download')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
 
@@ -686,7 +687,7 @@ export function ResourceEntriesPanel({
             <DialogTitle>{t('entries.importTitle')}</DialogTitle>
             <DialogDescription>{t('entries.importHint')}</DialogDescription>
           </DialogHeader>
-          <div className={styles.stack}>
+          <Form className={styles.stack} onSubmit={() => doImport.mutate()}>
             <div className={styles.field}>
               <Label htmlFor="import-format">{t('entries.format')}</Label>
               <Select
@@ -796,11 +797,11 @@ export function ResourceEntriesPanel({
               <Button variant="outline" onClick={() => setImportOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button disabled={doImport.isPending} onClick={() => doImport.mutate()}>
+              <Button type="submit" disabled={doImport.isPending}>
                 {doImport.isPending ? t('entries.importing') : t('entries.importSubmit')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
 

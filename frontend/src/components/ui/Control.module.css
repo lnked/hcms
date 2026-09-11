@@ -24,6 +24,14 @@
   opacity: 0.5;
 }
 
+.shell[aria-invalid='true'] {
+  border-color: var(--hcms-color-destructive);
+}
+
+.shell[aria-invalid='true']:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--hcms-color-destructive) 35%, transparent);
+}
+
 .field {
   height: var(--hcms-SPx9);
   padding: var(--hcms-SPx1) var(--hcms-SPx3);

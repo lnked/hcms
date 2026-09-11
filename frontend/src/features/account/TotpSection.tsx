@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label'
 import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { queryKeys } from '@/lib/queryKeys'
 import { showSuccess } from '@/lib/toast'
 import styles from './TotpSection.module.css'
@@ -159,9 +159,14 @@ function TotpSetupForm({ onDone }: { onDone: () => void }) {
           // eslint-disable-next-line jsx-a11y/no-autofocus -- focus TOTP code when enabling
           autoFocus
           value={code}
+          aria-invalid={
+            hasFieldError(fieldErrors, 'totpCode') ||
+            hasFieldError(fieldErrors, 'code') ||
+            undefined
+          }
           onChange={(e) => {
             setCode(e.target.value)
-            setFieldErrors({})
+            setFieldErrors((prev) => clearFieldError(clearFieldError(prev, 'totpCode'), 'code'))
           }}
           placeholder={t('login.totp')}
           inputMode="numeric"
@@ -246,9 +251,10 @@ function TotpDisableForm({ onDone }: { onDone: () => void }) {
           // eslint-disable-next-line jsx-a11y/no-autofocus -- focus password when disabling TOTP
           autoFocus
           value={password}
+          aria-invalid={hasFieldError(fieldErrors, 'password') || undefined}
           onChange={(e) => {
             setPassword(e.target.value)
-            setFieldErrors({})
+            setFieldErrors((prev) => clearFieldError(prev, 'password'))
           }}
           required
         />

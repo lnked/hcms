@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
@@ -51,7 +52,7 @@ export function ApiAccessForm({ initial }: { initial: ApiAccessSettings }) {
   })
 
   return (
-    <>
+    <Form className={clsx(styles.root)} onSubmit={() => saveApiAccess.mutate()}>
       <label className={clsx(styles.checkRow)}>
         <input
           type="checkbox"
@@ -74,10 +75,10 @@ export function ApiAccessForm({ initial }: { initial: ApiAccessSettings }) {
         </div>
       ) : null}
       {isDirty ? (
-        <Button disabled={saveApiAccess.isPending} onClick={() => saveApiAccess.mutate()}>
+        <Button type="submit" disabled={saveApiAccess.isPending}>
           {saveApiAccess.isPending ? t('common.saving') : t('system.apiAccessSave')}
         </Button>
       ) : null}
-    </>
+    </Form>
   )
 }

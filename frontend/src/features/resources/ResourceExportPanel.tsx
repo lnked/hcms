@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { useI18n } from '@/i18n'
 import { ApiError, getToken, handleUnauthorized } from '@/lib/api'
 import { showError } from '@/lib/toast'
@@ -64,30 +65,32 @@ export function ResourceExportPanel({ resource }: ResourceExportPanelProps) {
         <CardDescription>{t('resources.package.exportHint')}</CardDescription>
       </CardHeader>
       <CardContent className={styles.stack}>
-        <label className={styles.checkLabel} htmlFor="resource-export-include-data">
-          <input
-            id="resource-export-include-data"
-            type="checkbox"
-            className={styles.checkbox}
-            checked={includeData}
-            disabled={resource.status !== 'published'}
-            onChange={(e) => {
-              setIncludeData(e.target.checked)
-              setError(null)
-            }}
-          />
-          <span className={styles.labelStrong}>{t('resources.package.includeData')}</span>
-        </label>
-        <p className={styles.hint}>{t('resources.package.includeDataHint')}</p>
+        <Form className={styles.stack} onSubmit={() => doExport.mutate()}>
+          <label className={styles.checkLabel} htmlFor="resource-export-include-data">
+            <input
+              id="resource-export-include-data"
+              type="checkbox"
+              className={styles.checkbox}
+              checked={includeData}
+              disabled={resource.status !== 'published'}
+              onChange={(e) => {
+                setIncludeData(e.target.checked)
+                setError(null)
+              }}
+            />
+            <span className={styles.labelStrong}>{t('resources.package.includeData')}</span>
+          </label>
+          <p className={styles.hint}>{t('resources.package.includeDataHint')}</p>
 
-        <div className={styles.actions}>
-          <Button onClick={() => doExport.mutate()} disabled={doExport.isPending}>
-            {doExport.isPending
-              ? t('resources.package.exporting')
-              : t('resources.package.download')}
-          </Button>
-          {error ? <p className={styles.error}>{error}</p> : null}
-        </div>
+          <div className={styles.actions}>
+            <Button type="submit" disabled={doExport.isPending}>
+              {doExport.isPending
+                ? t('resources.package.exporting')
+                : t('resources.package.download')}
+            </Button>
+            {error ? <p className={styles.error}>{error}</p> : null}
+          </div>
+        </Form>
       </CardContent>
     </Card>
   )

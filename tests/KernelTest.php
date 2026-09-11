@@ -44,6 +44,33 @@ final class KernelTest extends TestCase
 
             $this->assertSame(200, $response->status);
             $this->assertSame('no-cache', $response->headers['Cache-Control'] ?? null);
+            $this->assertStringContainsString('window.__HCMS__=', $response->body);
+            $this->assertStringContainsString('"adminBase":"admin"', $response->body);
+        } finally {
+            $this->removeDir($root);
+        }
+    }
+
+    public function testCustomAdminBaseSpaAndApiRewrite(): void
+    {
+        $root = sys_get_temp_dir() . '/hcms-kernel-base-' . bin2hex(random_bytes(4));
+        mkdir($root . '/public/admin/assets', 0775, true);
+        file_put_contents($root . '/.env', "CMS_ADMIN_BASE=panel\nAPP_SECRET=\nDB_DATABASE=\n");
+        file_put_contents($root . '/public/admin/index.html', '<html><head></head><body>ok</body></html>');
+
+        try {
+            $kernel = Kernel::boot($root);
+            $spa = $kernel->handle(new Request('GET', '/panel/resources', [], [], null, '', '127.0.0.1', 'test'));
+            $this->assertSame(200, $spa->status);
+            $this->assertStringContainsString('"uiBase":"/panel"', $spa->body);
+            $this->assertStringContainsString('"apiPrefix":"/panel/api"', $spa->body);
+
+            $legacy = $kernel->handle(new Request('GET', '/admin/login', [], [], null, '', '127.0.0.1', 'test'));
+            $this->assertSame(301, $legacy->status);
+            $this->assertSame('/panel/login', $legacy->headers['Location'] ?? null);
+
+            $health = $kernel->handle(new Request('GET', '/panel/api/health', [], [], null, '', '127.0.0.1', 'test'));
+            $this->assertSame(200, $health->status);
         } finally {
             $this->removeDir($root);
         }

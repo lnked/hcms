@@ -190,7 +190,7 @@ function cliUptimeCheck(Paths $paths, Config $config, bool $installed): void
     $checks = new UptimeCheckRepository($db);
     $incidents = new UptimeIncidentRepository($db);
     $uptimeSettings = new UptimeSettings($settings);
-    $healthUrl = rtrim($config->appUrl, '/') . '/admin/api/health';
+    $healthUrl = $config->adminBase->healthUrl($config->appUrl);
     $targets->ensureSelf($healthUrl);
 
     $probe = new UptimeProbeService($targets, $checks, $incidents, $uptimeSettings);

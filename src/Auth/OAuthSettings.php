@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Auth;
 
+use Cms\Core\AdminBase;
 use Cms\Core\Settings;
 use InvalidArgumentException;
 
@@ -63,13 +64,14 @@ final class OAuthSettings
      *   }
      * }
      */
-    public function publicConfig(string $appUrl): array
+    public function publicConfig(string $appUrl, ?AdminBase $adminBase = null): array
     {
         $this->ensureDefaults();
         $google = $this->google();
         $telegram = $this->telegram();
         $secretConfigured = $google['clientSecret'] !== '';
         $tokenConfigured = $telegram['botToken'] !== '';
+        $base = $adminBase ?? AdminBase::default();
 
         return [
             'google' => [
@@ -77,7 +79,7 @@ final class OAuthSettings
                 'clientId' => $google['clientId'],
                 'clientSecretConfigured' => $secretConfigured,
                 'clientSecretMasked' => $secretConfigured ? $this->mask($google['clientSecret']) : null,
-                'redirectUri' => rtrim($appUrl, '/') . '/admin/api/auth/google/callback',
+                'redirectUri' => rtrim($appUrl, '/') . $base->apiPrefix() . '/auth/google/callback',
             ],
             'telegram' => [
                 'enabled' => $telegram['enabled'],
@@ -129,7 +131,7 @@ final class OAuthSettings
      *   }
      * }
      */
-    public function update(array $payload, string $appUrl): array
+    public function update(array $payload, string $appUrl, ?AdminBase $adminBase = null): array
     {
         $this->ensureDefaults();
         if (isset($payload['google']) && \is_array($payload['google'])) {
@@ -167,7 +169,7 @@ final class OAuthSettings
             $this->settings->set(self::TELEGRAM_KEY, $current);
         }
 
-        return $this->publicConfig($appUrl);
+        return $this->publicConfig($appUrl, $adminBase);
     }
 
     /**

@@ -251,6 +251,9 @@ export const ru: Record<MessageKey, string> = {
     'Укажите document root хостинга на эту папку. URL админки будет {admin}, а не {nested}.',
   'install.publicDirHintInside':
     'Установка уже внутри {folder}: публичные файлы останутся здесь, src/vendor/storage поднимутся на уровень выше.',
+  'install.adminBase': 'URL-путь админки',
+  'install.adminBaseHint':
+    'Сегмент после хоста: admin → /admin, panel → /panel, пусто — корень сайта (admin API остаётся /admin/api).',
   'install.adminName': 'Имя',
   'install.install': 'Установить',
   'install.installing': 'Установка…',
@@ -1022,6 +1025,15 @@ export const ru: Record<MessageKey, string> = {
   'system.apiAccessSaved': 'Настройки доступа к API сохранены',
   'system.apiAccessSave': 'Сохранить доступ к API',
   'system.apiAccessLoading': 'Загрузка…',
+  'system.adminBaseTitle': 'Базовый путь админки',
+  'system.adminBaseHint':
+    'Сегмент URL панели. Пусто = корень сайта. Admin API идёт под тем же префиксом, кроме корня — там API остаётся /admin/api. Ассеты всегда /admin/assets. После смены обнови OAuth redirect URI. Только owner.',
+  'system.adminBaseLabel': 'Сегмент пути',
+  'system.adminBasePlaceholder': 'admin',
+  'system.adminBasePreview': 'UI: {ui} · API: {api}',
+  'system.adminBaseSaved': 'Базовый путь сохранён — редирект…',
+  'system.adminBaseSave': 'Сохранить путь админки',
+  'system.adminBaseOwnerOnly': 'Менять путь админки может только owner.',
   'system.update': 'Обновление',
   'system.updateHint':
     'Выберите более новую версию, скачайте zip (sha256), сохраните .env / uploads / lock, примените SQL-миграции.',

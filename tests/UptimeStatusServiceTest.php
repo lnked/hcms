@@ -60,7 +60,7 @@ final class UptimeStatusServiceTest extends TestCase
             new UptimeTargetRepository($db),
             new UptimeIncidentRepository($db),
             new UptimeSettings(new Settings($db)),
-            'http://localhost',
+            'http://localhost/admin/api/health',
         );
     }
 

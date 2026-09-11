@@ -7,6 +7,7 @@ namespace Cms\Http\Controllers;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Auth\OAuthSettings;
+use Cms\Core\AdminBase;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Integrations\IntegrationApiService;
@@ -19,6 +20,8 @@ use Throwable;
 
 final class IntegrationsController
 {
+    private readonly AdminBase $adminBase;
+
     public function __construct(
         private readonly EmailIntegration $email,
         private readonly Mailer $mailer,
@@ -26,7 +29,9 @@ final class IntegrationsController
         private readonly AuditLogger $audit,
         private readonly OAuthSettings $oauth,
         private readonly string $appUrl,
+        ?AdminBase $adminBase = null,
     ) {
+        $this->adminBase = $adminBase ?? AdminBase::default();
     }
 
     public function getEmail(Request $request, AuthContext $auth): Response
@@ -179,14 +184,14 @@ final class IntegrationsController
         unset($request, $auth);
         $this->oauth->ensureDefaults();
 
-        return Response::data($this->oauth->publicConfig($this->appUrl));
+        return Response::data($this->oauth->publicConfig($this->appUrl, $this->adminBase));
     }
 
     public function updateOauth(Request $request, AuthContext $auth): Response
     {
         try {
             $this->oauth->ensureDefaults();
-            $updated = $this->oauth->update($request->json(), $this->appUrl);
+            $updated = $this->oauth->update($request->json(), $this->appUrl, $this->adminBase);
             $this->audit->log(
                 $request,
                 'integration.oauth.updated',

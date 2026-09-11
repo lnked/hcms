@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -207,79 +208,87 @@ export function ResourceApiPlayground({
           </p>
         ) : null}
 
-        <div className={styles.methodGrid}>
-          <div className={styles.field}>
-            <Label htmlFor="api-method">{t('resources.playground.method')}</Label>
-            <Select
-              id="api-method"
-              value={method}
-              onChange={(e) => setMethod(e.target.value as HttpMethod)}
-            >
-              {METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </Select>
+        <Form
+          className={styles.stack}
+          onSubmit={() => {
+            void send()
+          }}
+        >
+          <div className={styles.methodGrid}>
+            <div className={styles.field}>
+              <Label htmlFor="api-method">{t('resources.playground.method')}</Label>
+              <Select
+                id="api-method"
+                value={method}
+                onChange={(e) => setMethod(e.target.value as HttpMethod)}
+              >
+                {METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className={styles.field}>
+              <Label htmlFor="api-path">{t('resources.playground.path')}</Label>
+              <Input
+                id="api-path"
+                className={styles.mono}
+                value={path}
+                onChange={(e) => {
+                  setPath(e.target.value)
+                  setMessage(null)
+                }}
+              />
+            </div>
           </div>
-          <div className={styles.field}>
-            <Label htmlFor="api-path">{t('resources.playground.path')}</Label>
-            <Input
-              id="api-path"
-              className={styles.mono}
-              value={path}
-              onChange={(e) => {
-                setPath(e.target.value)
-                setMessage(null)
-              }}
-            />
-          </div>
-        </div>
 
-        <div className={styles.field}>
-          <Label htmlFor="api-query">{t('resources.playground.query')}</Label>
-          <Textarea
-            id="api-query"
-            className={styles.queryArea}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="limit=20&sort=id"
-          />
-        </div>
-
-        {method === 'POST' || method === 'PATCH' ? (
           <div className={styles.field}>
-            <Label htmlFor="api-body">{t('resources.playground.body')}</Label>
+            <Label htmlFor="api-query">{t('resources.playground.query')}</Label>
             <Textarea
-              id="api-body"
-              className={styles.bodyArea}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
+              id="api-query"
+              className={styles.queryArea}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="limit=20&sort=id"
             />
           </div>
-        ) : null}
 
-        <div className={styles.actions}>
-          <Button
-            disabled={!pathDirty || saveEndpoint.isPending}
-            onClick={() => saveEndpoint.mutate()}
-          >
-            {saveEndpoint.isPending ? t('common.saving') : t('resources.playground.savePath')}
-          </Button>
-          <Button disabled={sending} onClick={() => void send()}>
-            {sending ? t('resources.playground.sending') : t('resources.playground.send')}
-          </Button>
-          <Button variant="outline" onClick={() => void copyUrl()}>
-            {copied ? t('resources.playground.copied') : t('resources.playground.copyUrl')}
-          </Button>
-          <Button variant="outline" onClick={() => void copyFetch()}>
-            {copiedFetch ? t('resources.fetchExampleCopied') : t('resources.fetchExampleCopy')}
-          </Button>
-          <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
-            {t('resources.openDocs')}
-          </Button>
-          {message ? <p className={styles.message}>{message}</p> : null}
-        </div>
+          {method === 'POST' || method === 'PATCH' ? (
+            <div className={styles.field}>
+              <Label htmlFor="api-body">{t('resources.playground.body')}</Label>
+              <Textarea
+                id="api-body"
+                className={styles.bodyArea}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+              />
+            </div>
+          ) : null}
+
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              disabled={!pathDirty || saveEndpoint.isPending}
+              onClick={() => saveEndpoint.mutate()}
+            >
+              {saveEndpoint.isPending ? t('common.saving') : t('resources.playground.savePath')}
+            </Button>
+            <Button type="submit" disabled={sending}>
+              {sending ? t('resources.playground.sending') : t('resources.playground.send')}
+            </Button>
+            <Button variant="outline" onClick={() => void copyUrl()}>
+              {copied ? t('resources.playground.copied') : t('resources.playground.copyUrl')}
+            </Button>
+            <Button variant="outline" onClick={() => void copyFetch()}>
+              {copiedFetch ? t('resources.fetchExampleCopied') : t('resources.fetchExampleCopy')}
+            </Button>
+            <Button variant="outline" onClick={() => window.open('/api/docs', '_blank')}>
+              {t('resources.openDocs')}
+            </Button>
+            {message ? <p className={styles.message}>{message}</p> : null}
+          </div>
+        </Form>
 
         {status !== null ? (
           <div className={styles.response}>

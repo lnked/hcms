@@ -478,6 +478,7 @@ php scripts/verify-tree.php
 - Релиз/публикация — только после зелёного CI: см. `.cursor/rules/pre-release-ci-loop.mdc`. Порядок: код → push → ждать CI → `npm run release`.
 - Не удалять и не перезаписывать незакоммиченные правки пользователя.
 - Проверять результат HTTP-вызовов по факту (`GET`), а не по коду ответа предыдущего шага.
+- **Формы админки:** валидация через `error.fields` + красный бордер/`FieldError`, не toast-only — см. `.cursor/rules/form-field-validation.mdc`.
 
 ## 11. Карта документации
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Cms\Tests;
 
 use Cms\Auth\UsersService;
-use InvalidArgumentException;
+use Cms\Core\Exception\ValidationFailedException;
 use PHPUnit\Framework\TestCase;
 
 final class UsersServiceTest extends TestCase
@@ -20,7 +20,7 @@ final class UsersServiceTest extends TestCase
         $this->assertSame('ada@example.com', $ok['email']);
         $this->assertSame('active', $ok['status']);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         UsersService::validateCreate([
             'name' => 'Ada',
             'email' => 'not-an-email',
@@ -33,13 +33,13 @@ final class UsersServiceTest extends TestCase
         $partial = UsersService::validateUpdate(['status' => 'disabled']);
         $this->assertSame(['status' => 'disabled'], $partial);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         UsersService::validateUpdate(['status' => 'banned']);
     }
 
     public function testValidateCreateRejectsShortPassword(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationFailedException::class);
         UsersService::validateCreate([
             'name' => 'Ada',
             'email' => 'ada@example.com',

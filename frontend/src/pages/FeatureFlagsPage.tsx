@@ -9,6 +9,7 @@ import { FieldError } from '@/components/FieldError'
 import { TableSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Form } from '@/components/ui/form'
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,7 @@ import {
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { configString } from '@/lib/coerce'
-import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { apiFieldErrors, clearFieldError, hasFieldError, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './FeatureFlagsPage.module.css'
 
@@ -204,6 +205,7 @@ export function FeatureFlagsPage() {
     },
     onSuccess: () => {
       showSuccess(t('common.saved'))
+      setFieldErrors({})
       setDialogOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['feature-flags'] })
     },
@@ -363,41 +365,47 @@ export function FeatureFlagsPage() {
             <CardTitle>{t('flags.apiTitle')}</CardTitle>
             <CardDescription>{t('flags.apiHint')}</CardDescription>
           </CardHeader>
-          <CardContent className={clsx(styles.apiForm)}>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={apiEnabled}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
-                id="flags-api-enabled"
-              />
-              <Label htmlFor="flags-api-enabled">{t('flags.apiEnabled')}</Label>
-            </div>
-            <div className={clsx(styles.field)}>
-              <Label htmlFor="flags-api-path">{t('flags.apiPath')}</Label>
-              <Input
-                id="flags-api-path"
-                value={apiPath}
-                onChange={(e) => setApiDraft((prev) => ({ ...prev, path: e.target.value }))}
-              />
-              <FieldError messages={fieldErrors.path} />
-            </div>
-            <div className={clsx(styles.switchRow)}>
-              <Switch
-                checked={requireToken}
-                onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
-                id="flags-require-token"
-              />
-              <Label htmlFor="flags-require-token">{t('flags.requireToken')}</Label>
-            </div>
-            <CodeBlock code={curlExample} language="bash" label={t('flags.curlExample')} />
-            <Button
-              size="sm"
-              className={clsx(styles.saveBtn)}
-              disabled={saveSettings.isPending}
-              onClick={() => saveSettings.mutate()}
-            >
-              {saveSettings.isPending ? t('common.saving') : t('common.save')}
-            </Button>
+          <CardContent>
+            <Form className={clsx(styles.apiForm)} onSubmit={() => saveSettings.mutate()}>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={apiEnabled}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, enabled: v }))}
+                  id="flags-api-enabled"
+                />
+                <Label htmlFor="flags-api-enabled">{t('flags.apiEnabled')}</Label>
+              </div>
+              <div className={clsx(styles.field)}>
+                <Label htmlFor="flags-api-path">{t('flags.apiPath')}</Label>
+                <Input
+                  id="flags-api-path"
+                  value={apiPath}
+                  aria-invalid={hasFieldError(fieldErrors, 'path') || undefined}
+                  onChange={(e) => {
+                    setApiDraft((prev) => ({ ...prev, path: e.target.value }))
+                    setFieldErrors((prev) => clearFieldError(prev, 'path'))
+                  }}
+                />
+                <FieldError messages={fieldErrors.path} />
+              </div>
+              <div className={clsx(styles.switchRow)}>
+                <Switch
+                  checked={requireToken}
+                  onCheckedChange={(v) => setApiDraft((prev) => ({ ...prev, requireToken: v }))}
+                  id="flags-require-token"
+                />
+                <Label htmlFor="flags-require-token">{t('flags.requireToken')}</Label>
+              </div>
+              <CodeBlock code={curlExample} language="bash" label={t('flags.curlExample')} />
+              <Button
+                type="submit"
+                size="sm"
+                className={clsx(styles.saveBtn)}
+                disabled={saveSettings.isPending}
+              >
+                {saveSettings.isPending ? t('common.saving') : t('common.save')}
+              </Button>
+            </Form>
           </CardContent>
         </Card>
       )}
@@ -408,14 +416,21 @@ export function FeatureFlagsPage() {
             <DialogTitle>{editing ? t('flags.editTitle') : t('flags.createTitle')}</DialogTitle>
             <DialogDescription>{t('flags.formHint')}</DialogDescription>
           </DialogHeader>
-          <div className={clsx(styles.form)}>
+          <Form className={clsx(styles.form)} onSubmit={() => save.mutate()}>
             <div className={clsx(styles.switchRow)}>
               <Switch checked={enabled} onCheckedChange={setEnabled} id="flag-enabled" />
               <Label htmlFor="flag-enabled">{t('flags.enabled')}</Label>
             </div>
             <div className={clsx(styles.field)}>
               <Label>{t('flags.name')}</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                value={name}
+                aria-invalid={hasFieldError(fieldErrors, 'name') || undefined}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'name'))
+                }}
+              />
               <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.field)}>
@@ -423,7 +438,11 @@ export function FeatureFlagsPage() {
               <Input
                 value={key}
                 disabled={!!editing}
-                onChange={(e) => setKey(e.target.value)}
+                aria-invalid={hasFieldError(fieldErrors, 'key') || undefined}
+                onChange={(e) => {
+                  setKey(e.target.value)
+                  setFieldErrors((prev) => clearFieldError(prev, 'key'))
+                }}
                 placeholder="enabledNews"
               />
               <FieldError messages={fieldErrors.key} />
@@ -532,11 +551,11 @@ export function FeatureFlagsPage() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button disabled={save.isPending || !!jsonError} onClick={() => save.mutate()}>
+              <Button type="submit" disabled={save.isPending || !!jsonError}>
                 {save.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
-          </div>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
