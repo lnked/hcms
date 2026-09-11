@@ -18,7 +18,8 @@ export const queryKeys = {
     version: ['system-version'] as const,
     stats: ['system-stats'] as const,
     updateStatus: ['update-status'] as const,
-    updatePreview: ['update-preview'] as const,
+    updatePreview: (direction: 'upgrade' | 'downgrade', version: string | null) =>
+      ['update-preview', direction, version] as const,
   },
   settings: {
     apiAccess: ['settings-api-access'] as const,

@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.62.7",
+      "date": "2026-09-12",
+      "channel": "stable",
+      "title": "System update version picker and downgrade",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "System → Update: селект целевой версии (upgrade-only) и дельта changelog с промежуточными релизами"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "System → Downgrade: откат на более старый релиз с обязательным ack (миграции БД не откатываются)"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "POST /admin/api/system/update/preview|run принимают version + direction; скачивание zip по тегу релиза"
+        }
+      ]
+    },
+    {
       "version": "0.62.6",
       "date": "2026-09-11",
       "channel": "stable",

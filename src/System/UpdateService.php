@@ -70,30 +70,61 @@ final class UpdateService
     /**
      * @return array<string, mixed>
      */
-    public function preview(): array
+    public function preview(?string $targetVersion = null, string $direction = 'upgrade'): array
     {
+        $direction = $direction === 'downgrade' ? 'downgrade' : 'upgrade';
         $manifest = $this->latest->fetch();
         $check = $this->summarize($manifest);
         $from = (string) $check['current'];
-        $to = \is_string($check['latest'] ?? null) ? (string) $check['latest'] : $from;
-
-        // The local changelog stops at the installed version, so notes about an
-        // update can only come from the manifest; the local file is the fallback
-        // for older manifests that ship none.
-        $releases = ReleaseNotes::fromManifest($manifest);
-        if ($releases === []) {
-            $releases = $this->changelog->since($from);
+        $latest = \is_string($check['latest'] ?? null) ? (string) $check['latest'] : null;
+        $releases = $this->releaseCatalog($manifest);
+        $upgrades = $this->filterVersions($releases, $from, 'upgrade');
+        $downgrades = $this->filterVersions($releases, $from, 'downgrade');
+        if ($latest !== null && Version::isGreater($latest, $from) && !\in_array($latest, $upgrades, true)) {
+            array_unshift($upgrades, $latest);
         }
-        $delta = ReleaseNotes::delta($releases, $from, $to);
+
+        $available = $direction === 'downgrade' ? $downgrades : $upgrades;
+        $target = $targetVersion !== null ? trim($targetVersion) : '';
+        if ($target === '') {
+            $target = $direction === 'upgrade' && $latest !== null && Version::isGreater($latest, $from)
+                ? $latest
+                : '';
+        }
+
+        $updateAvailable = false;
+        $to = $from;
+        if ($target !== '') {
+            if (!\in_array($target, $available, true)) {
+                throw new RuntimeException(
+                    $direction === 'downgrade'
+                        ? 'Version is not available for downgrade: ' . $target
+                        : 'Version is not available for upgrade: ' . $target,
+                );
+            }
+            $to = $target;
+            $updateAvailable = $direction === 'downgrade'
+                ? Version::compare($to, $from) < 0
+                : Version::isGreater($to, $from);
+        }
+
+        // Upgrade: notes arriving (from → to). Downgrade: notes being undone (to → from).
+        $delta = $direction === 'downgrade'
+            ? ReleaseNotes::delta($releases, $to, $from)
+            : ReleaseNotes::delta($releases, $from, $to);
 
         return [
             'from' => $from,
             'to' => $to,
-            'updateAvailable' => (bool) $check['updateAvailable'],
+            'direction' => $direction,
+            'latest' => $latest,
+            'availableVersions' => $available,
+            'updateAvailable' => $updateAvailable,
             'changes' => $delta['changes'],
             'hasBreaking' => $delta['hasBreaking'],
             'migrationNotes' => $delta['migrationNotes'],
             'backupReady' => (bool) $check['backupReady'],
+            'requiresDowngradeAck' => $direction === 'downgrade' && $updateAvailable,
         ];
     }
 
@@ -116,20 +147,31 @@ final class UpdateService
      *
      * @return array<string, mixed>
      */
-    public function queue(bool $acknowledgeBreaking = false): array
-    {
+    public function queue(
+        bool $acknowledgeBreaking = false,
+        ?string $targetVersion = null,
+        string $direction = 'upgrade',
+        bool $acknowledgeDowngrade = false,
+    ): array {
         $lock = $this->paths->storage() . '/update.lock';
         if (is_file($lock)) {
             throw new RuntimeException('Update already running');
         }
         $this->preflight();
 
-        $preview = $this->preview();
+        $preview = $this->preview($targetVersion, $direction);
         if (!($preview['updateAvailable'] ?? false)) {
-            throw new RuntimeException('No update available');
+            throw new RuntimeException(
+                ($preview['direction'] ?? 'upgrade') === 'downgrade'
+                    ? 'No downgrade target selected'
+                    : 'No update available',
+            );
         }
         if (($preview['hasBreaking'] ?? false) && !$acknowledgeBreaking) {
             throw new RuntimeException('Breaking changes require acknowledgeBreaking=true');
+        }
+        if (($preview['requiresDowngradeAck'] ?? false) && !$acknowledgeDowngrade) {
+            throw new RuntimeException('Downgrade requires acknowledgeDowngrade=true');
         }
 
         if (!@file_put_contents($lock, (string) getmypid())) {
@@ -139,6 +181,7 @@ final class UpdateService
         $job = [
             'from' => (string) $preview['from'],
             'to' => (string) $preview['to'],
+            'direction' => (string) $preview['direction'],
         ];
         $jobFile = $this->jobFile();
         if (@file_put_contents($jobFile, json_encode($job, JSON_UNESCAPED_SLASHES)) === false) {
@@ -150,6 +193,7 @@ final class UpdateService
         $this->writeStatus('running', 'starting', null, [
             'from' => $job['from'],
             'to' => $job['to'],
+            'direction' => $job['direction'],
         ]);
 
         return $this->status();
@@ -222,12 +266,17 @@ final class UpdateService
             (new AdminUiPublisher($this->paths))->publishFromReleaseTree();
             $this->syncStorageGuards($workDir);
 
-            $this->writeStatus('running', 'migrate', null, $progress);
-            $this->runPendingMigrations();
+            $direction = isset($job['direction']) && \is_string($job['direction']) ? $job['direction'] : 'upgrade';
+            // Downgrade does not reverse SQL migrations — schema stays forward-compatible only.
+            if ($direction !== 'downgrade') {
+                $this->writeStatus('running', 'migrate', null, $progress);
+                $this->runPendingMigrations();
+            }
 
             $this->writeStatus('done', 'verify', null, [
                 'from' => $from,
                 'to' => Version::current(),
+                'direction' => $direction,
                 'backup' => $backupDir,
             ]);
         } catch (\Throwable $e) {
@@ -477,12 +526,75 @@ final class UpdateService
      *
      * @return array<string, mixed>
      */
-    public function run(bool $acknowledgeBreaking = false): array
-    {
-        $this->queue($acknowledgeBreaking);
+    public function run(
+        bool $acknowledgeBreaking = false,
+        ?string $targetVersion = null,
+        string $direction = 'upgrade',
+        bool $acknowledgeDowngrade = false,
+    ): array {
+        $this->queue($acknowledgeBreaking, $targetVersion, $direction, $acknowledgeDowngrade);
         $this->continueInBackground();
 
         return $this->status();
+    }
+
+    /**
+     * Merge remote manifest notes with the local changelog (for downgrade targets).
+     *
+     * @param array<string, mixed>|null $manifest
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function releaseCatalog(?array $manifest): array
+    {
+        $byVersion = [];
+        foreach (ReleaseNotes::fromManifest($manifest) as $release) {
+            $byVersion[(string) $release['version']] = $release;
+        }
+        foreach ($this->changelog->all() as $release) {
+            $version = (string) ($release['version'] ?? '');
+            if ($version === '' || isset($byVersion[$version])) {
+                continue;
+            }
+            $byVersion[$version] = $release;
+        }
+
+        $releases = array_values($byVersion);
+        usort(
+            $releases,
+            static fn (array $a, array $b): int => Version::compare((string) $b['version'], (string) $a['version']),
+        );
+
+        return $releases;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $releases
+     *
+     * @return list<string>
+     */
+    private function filterVersions(array $releases, string $current, string $direction): array
+    {
+        $versions = [];
+        foreach ($releases as $release) {
+            $version = (string) ($release['version'] ?? '');
+            if ($version === '') {
+                continue;
+            }
+            $cmp = Version::compare($version, $current);
+            if ($direction === 'downgrade') {
+                if ($cmp < 0) {
+                    $versions[] = $version;
+                }
+            } elseif ($cmp > 0) {
+                $versions[] = $version;
+            }
+        }
+
+        $versions = array_values(array_unique($versions));
+        usort($versions, static fn (string $a, string $b): int => Version::compare($b, $a));
+
+        return $versions;
     }
 
     private function jobFile(): string
@@ -552,14 +664,29 @@ final class UpdateService
 
     private function downloadRelease(string $version): string
     {
-        $base = 'https://github.com/' . $this->config->githubRepo . '/releases/latest/download/';
-        $manifest = $this->httpJson($base . 'latest.json');
+        $repo = $this->config->githubRepo;
+        $latestManifest = $this->latest->fetch();
+        $latestVersion = \is_array($latestManifest) && isset($latestManifest['version']) && \is_string($latestManifest['version'])
+            ? $latestManifest['version']
+            : null;
+        $useLatestChannel = $latestVersion !== null && Version::compare($version, $latestVersion) === 0;
+
+        $manifestUrl = $useLatestChannel
+            ? 'https://github.com/' . $repo . '/releases/latest/download/latest.json'
+            : 'https://github.com/' . $repo . '/releases/download/v' . $version . '/latest.json';
+        $manifest = $this->httpJson($manifestUrl);
+        $resolved = isset($manifest['version']) && \is_string($manifest['version']) ? $manifest['version'] : '';
+        if ($resolved !== '' && Version::compare($resolved, $version) !== 0) {
+            throw new RuntimeException('Release manifest version mismatch: expected ' . $version . ', got ' . $resolved);
+        }
+
+        $tagBase = 'https://github.com/' . $repo . '/releases/download/v' . $version . '/';
         $zipUrl = isset($manifest['zip']) && \is_string($manifest['zip'])
             ? $manifest['zip']
-            : $base . 'cms-' . $version . '.zip';
+            : $tagBase . 'cms-' . $version . '.zip';
         $expected = isset($manifest['sha256']) && \is_string($manifest['sha256'])
             ? strtolower(trim(preg_replace('/\s.*/', '', $manifest['sha256']) ?? $manifest['sha256']))
-            : strtolower(trim($this->httpText($base . 'cms-' . $version . '.zip.sha256')));
+            : strtolower(trim($this->httpText($tagBase . 'cms-' . $version . '.zip.sha256')));
 
         $tmp = $this->paths->storage() . '/cms-update-' . $version . '.zip';
         $body = $this->httpText($zipUrl);

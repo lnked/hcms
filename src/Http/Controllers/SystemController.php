@@ -206,12 +206,24 @@ final class SystemController
 
     public function updatePreview(Request $request, AuthContext $auth): Response
     {
-        unset($request, $auth);
+        unset($auth);
         if ($this->updates === null) {
             return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
         }
+        try {
+            $payload = $request->json();
+            $version = isset($payload['version']) && \is_string($payload['version']) ? trim($payload['version']) : null;
+            if ($version === '') {
+                $version = null;
+            }
+            $direction = isset($payload['direction']) && \is_string($payload['direction'])
+                ? $payload['direction']
+                : 'upgrade';
 
-        return Response::data($this->updates->preview());
+            return Response::data($this->updates->preview($version, $direction));
+        } catch (RuntimeException $e) {
+            return Response::error('UPDATE_ERROR', $e->getMessage(), 400);
+        }
     }
 
     public function updateStatus(Request $request, AuthContext $auth): Response
@@ -231,8 +243,17 @@ final class SystemController
             return Response::error('SERVICE_UNAVAILABLE', 'Updater unavailable', 503);
         }
         try {
-            $ack = (bool) ($request->json()['acknowledgeBreaking'] ?? false);
-            $status = $this->updates->queue($ack);
+            $payload = $request->json();
+            $ack = (bool) ($payload['acknowledgeBreaking'] ?? false);
+            $ackDowngrade = (bool) ($payload['acknowledgeDowngrade'] ?? false);
+            $version = isset($payload['version']) && \is_string($payload['version']) ? trim($payload['version']) : null;
+            if ($version === '') {
+                $version = null;
+            }
+            $direction = isset($payload['direction']) && \is_string($payload['direction'])
+                ? $payload['direction']
+                : 'upgrade';
+            $status = $this->updates->queue($ack, $version, $direction, $ackDowngrade);
             $updates = $this->updates;
             register_shutdown_function(static function () use ($updates): void {
                 $updates->continueInBackground();

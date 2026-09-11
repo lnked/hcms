@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { FormBlockSkeleton } from '@/components/skeletons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
 import { api } from '@/lib/api'
@@ -16,19 +17,25 @@ import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
 import styles from './SystemPage.module.css'
 import type { SystemVersion } from '@/types/system'
 
+interface UpdateChange {
+  version: string
+  type: string
+  area?: string
+  text: string
+  migration?: string
+}
+
 interface UpdatePreview {
   from: string
   to: string
+  direction: 'upgrade' | 'downgrade'
+  latest: string | null
+  availableVersions: string[]
   updateAvailable: boolean
   hasBreaking: boolean
   backupReady: boolean
-  changes: Array<{
-    version: string
-    type: string
-    area?: string
-    text: string
-    migration?: string
-  }>
+  requiresDowngradeAck?: boolean
+  changes: UpdateChange[]
   migrationNotes: string[]
 }
 
@@ -39,6 +46,7 @@ interface UpdateStatus {
   error: string | null
   from?: string
   to?: string
+  direction?: string
 }
 
 const UPDATE_STEPS = [
@@ -61,10 +69,25 @@ function stepLabelKey(step: string): MessageKey {
   return `system.step.${step}` as MessageKey
 }
 
-type SystemSection = 'version' | 'update'
+type SystemSection = 'version' | 'update' | 'downgrade'
 
 function parseSection(value: string | null): SystemSection {
-  return value === 'update' ? 'update' : 'version'
+  if (value === 'update' || value === 'downgrade') return value
+  return 'version'
+}
+
+function groupChanges(changes: UpdateChange[]): Array<{ version: string; items: UpdateChange[] }> {
+  const order: string[] = []
+  const map = new Map<string, UpdateChange[]>()
+  for (const change of changes) {
+    const version = change.version || '?'
+    if (!map.has(version)) {
+      map.set(version, [])
+      order.push(version)
+    }
+    map.get(version)!.push(change)
+  }
+  return order.map((version) => ({ version, items: map.get(version) ?? [] }))
 }
 
 export function SystemPage() {
@@ -72,12 +95,19 @@ export function SystemPage() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const section = parseSection(searchParams.get('section'))
+  const direction: 'upgrade' | 'downgrade' = section === 'downgrade' ? 'downgrade' : 'upgrade'
   const [ackBreaking, setAckBreaking] = useState(false)
+  const [ackDowngrade, setAckDowngrade] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [trackUpdate, setTrackUpdate] = useState(false)
   const [previewAckAt, setPreviewAckAt] = useState(0)
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null)
 
   function setSection(next: SystemSection) {
+    setSelectedVersion(null)
+    setAckBreaking(false)
+    setAckDowngrade(false)
+    setMessage(null)
     setSearchParams(
       (prev) => {
         const params = new URLSearchParams(prev)
@@ -132,25 +162,36 @@ export function SystemPage() {
   const isUpdating =
     live?.state === 'running' || (trackUpdate && live?.state !== 'done' && live?.state !== 'failed')
 
+  const releaseSection = section === 'update' || section === 'downgrade'
   const previewQuery = useQuery({
-    queryKey: queryKeys.system.updatePreview,
+    queryKey: queryKeys.system.updatePreview(direction, selectedVersion),
     queryFn: () =>
-      api<UpdatePreview>('/admin/api/system/update/preview', { method: 'POST', body: '{}' }),
-    enabled: section === 'update' && !isUpdating,
+      api<UpdatePreview>('/admin/api/system/update/preview', {
+        method: 'POST',
+        body: JSON.stringify({
+          direction,
+          ...(selectedVersion ? { version: selectedVersion } : {}),
+        }),
+      }),
+    enabled: releaseSection && !isUpdating,
     staleTime: 0,
     refetchOnMount: 'always',
   })
 
   const preview = previewQuery.data ?? null
 
-  if (
-    section === 'update' &&
-    previewQuery.isSuccess &&
-    previewQuery.dataUpdatedAt !== previewAckAt
-  ) {
+  if (releaseSection && previewQuery.isSuccess && previewQuery.dataUpdatedAt !== previewAckAt) {
     setPreviewAckAt(previewQuery.dataUpdatedAt)
     setAckBreaking(false)
+    setAckDowngrade(false)
     setMessage(null)
+    if (selectedVersion === null) {
+      if (previewQuery.data.updateAvailable && previewQuery.data.to) {
+        setSelectedVersion(previewQuery.data.to)
+      } else if (previewQuery.data.availableVersions.length > 0) {
+        setSelectedVersion(previewQuery.data.availableVersions[0] ?? null)
+      }
+    }
   }
 
   useEffect(() => {
@@ -168,7 +209,12 @@ export function SystemPage() {
     mutationFn: () =>
       api<UpdateStatus>('/admin/api/system/update/run', {
         method: 'POST',
-        body: JSON.stringify({ acknowledgeBreaking: ackBreaking }),
+        body: JSON.stringify({
+          direction,
+          version: selectedVersion ?? preview?.to,
+          acknowledgeBreaking: ackBreaking,
+          acknowledgeDowngrade: ackDowngrade,
+        }),
       }),
     onSuccess: (data) => {
       setTrackUpdate(true)
@@ -204,8 +250,14 @@ export function SystemPage() {
   const isOwner = me.data?.role === 'owner'
   const canUpdate = Boolean(preview?.updateAvailable && preview.backupReady)
   const needsAck = Boolean(preview?.hasBreaking)
+  const needsDowngradeAck = Boolean(preview?.requiresDowngradeAck)
   const runDisabled =
-    !isOwner || !canUpdate || (needsAck && !ackBreaking) || runUpdate.isPending || isUpdating
+    !isOwner ||
+    !canUpdate ||
+    (needsAck && !ackBreaking) ||
+    (needsDowngradeAck && !ackDowngrade) ||
+    runUpdate.isPending ||
+    isUpdating
   const na = t('system.na')
   const accessKey = apiAccess.data
     ? `${apiAccess.data.unrestricted}:${apiAccess.data.allowedOrigins.join('|')}`
@@ -219,6 +271,10 @@ export function SystemPage() {
   const currentStep = live?.step ?? 'starting'
   const progress = Math.min(100, Math.max(0, live?.progress ?? (live?.state === 'done' ? 100 : 0)))
   const currentStepIndex = isUpdateStep(currentStep) ? UPDATE_STEPS.indexOf(currentStep) : 0
+  const visibleSteps =
+    (live?.direction ?? direction) === 'downgrade'
+      ? UPDATE_STEPS.filter((step) => step !== 'migrate')
+      : UPDATE_STEPS
   const stepText =
     currentStep === 'error' ||
     currentStep === 'rolled_back' ||
@@ -228,7 +284,7 @@ export function SystemPage() {
       : t('system.updating')
 
   const previewError =
-    section === 'update' && previewQuery.isError
+    releaseSection && previewQuery.isError
       ? previewQuery.error instanceof Error
         ? previewQuery.error.message
         : t('system.previewFailed')
@@ -240,6 +296,21 @@ export function SystemPage() {
       : trackUpdate && live?.state === 'failed'
         ? (live.error ?? t('system.updateFailed'))
         : (previewError ?? message)
+
+  const groupedChanges = useMemo(
+    () => (preview?.changes?.length ? groupChanges(preview.changes) : []),
+    [preview?.changes],
+  )
+
+  const sectionHint =
+    section === 'version'
+      ? t('system.versionHint')
+      : section === 'downgrade'
+        ? t('system.downgradeHint')
+        : t('system.updateHint')
+
+  const versions = preview?.availableVersions ?? []
+  const selectValue = selectedVersion ?? preview?.to ?? ''
 
   return (
     <div className={clsx(styles.root)}>
@@ -278,7 +349,7 @@ export function SystemPage() {
       <Card id="system-release">
         <CardHeader className={clsx(styles.cardHeaderStack)}>
           <div className={clsx(styles.tabs)}>
-            {(['version', 'update'] as SystemSection[]).map((item) => (
+            {(['version', 'update', 'downgrade'] as SystemSection[]).map((item) => (
               <Button
                 key={item}
                 size="sm"
@@ -286,16 +357,18 @@ export function SystemPage() {
                 onClick={() => setSection(item)}
                 className={clsx(styles.tabBtn, section !== item && styles.tabBtnIdle)}
               >
-                {item === 'version' ? t('system.version') : t('system.update')}
+                {item === 'version'
+                  ? t('system.version')
+                  : item === 'update'
+                    ? t('system.update')
+                    : t('system.downgrade')}
                 {item === 'update' && data?.updateAvailable ? (
                   <span className={clsx(styles.dot)} title={t('common.updateAvailable')} />
                 ) : null}
               </Button>
             ))}
           </div>
-          <CardDescription>
-            {section === 'version' ? t('system.versionHint') : t('system.updateHint')}
-          </CardDescription>
+          <CardDescription>{sectionHint}</CardDescription>
         </CardHeader>
         {section === 'version' ? (
           <CardContent className={clsx(styles.infoContent)}>
@@ -312,6 +385,26 @@ export function SystemPage() {
           </CardContent>
         ) : (
           <CardContent className={clsx(styles.stackMd)}>
+            {versions.length > 0 ? (
+              <div className={clsx(styles.versionPick)}>
+                <Label htmlFor="system-target-version">{t('system.selectVersion')}</Label>
+                <Select
+                  id="system-target-version"
+                  value={selectValue}
+                  disabled={checking || isUpdating}
+                  onChange={(e) => setSelectedVersion(e.target.value || null)}
+                  containerClassName={styles.versionSelect}
+                >
+                  {versions.map((version) => (
+                    <option key={version} value={version}>
+                      v{version}
+                      {preview?.latest === version ? ` (${t('system.latestTag')})` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
+
             <div className={clsx(styles.actionsRow)}>
               <Button
                 variant="outline"
@@ -323,8 +416,12 @@ export function SystemPage() {
               {preview?.updateAvailable ? (
                 <Button disabled={runDisabled} onClick={() => runUpdate.mutate()}>
                   {isUpdating || runUpdate.isPending
-                    ? t('system.updating')
-                    : t('system.updateTo', { version: preview.to })}
+                    ? direction === 'downgrade'
+                      ? t('system.downgrading')
+                      : t('system.updating')
+                    : direction === 'downgrade'
+                      ? t('system.downgradeTo', { version: preview.to })
+                      : t('system.updateTo', { version: preview.to })}
                 </Button>
               ) : null}
             </div>
@@ -353,10 +450,11 @@ export function SystemPage() {
                 </div>
                 <p className={clsx(styles.muted)}>{stepText}</p>
                 <ol className={clsx(styles.stepList)}>
-                  {UPDATE_STEPS.map((step, index) => {
+                  {visibleSteps.map((step) => {
+                    const stepIndex = UPDATE_STEPS.indexOf(step)
                     const done =
                       live?.state === 'done' ||
-                      (isUpdateStep(currentStep) && index < currentStepIndex)
+                      (isUpdateStep(currentStep) && stepIndex < currentStepIndex)
                     const active = currentStep === step && live?.state === 'running'
                     return (
                       <li
@@ -410,20 +508,48 @@ export function SystemPage() {
               </div>
             ) : null}
 
-            {preview && !preview.updateAvailable ? (
-              <p className={clsx(styles.muted)}>{t('system.latestRelease')}</p>
+            {needsDowngradeAck ? (
+              <div className={clsx(styles.breakingBox)}>
+                <label className={clsx(styles.checkRow)}>
+                  <input
+                    type="checkbox"
+                    checked={ackDowngrade}
+                    onChange={(e) => setAckDowngrade(e.target.checked)}
+                  />
+                  {t('system.ackDowngrade')}
+                </label>
+              </div>
             ) : null}
 
-            {preview?.changes && preview.changes.length > 0 ? (
+            {preview && !preview.updateAvailable ? (
+              <p className={clsx(styles.muted)}>
+                {direction === 'downgrade'
+                  ? t('system.noDowngradeVersions')
+                  : versions.length === 0
+                    ? t('system.latestRelease')
+                    : t('system.noUpgradeVersions')}
+              </p>
+            ) : null}
+
+            {groupedChanges.length > 0 ? (
               <div className={clsx(styles.delta)}>
-                <p className={clsx(styles.deltaTitle)}>{t('system.changelogDelta')}</p>
-                <ul className={clsx(styles.deltaList)}>
-                  {preview.changes.map((c, i) => (
-                    <li key={i}>
-                      <span className={clsx(styles.monoXs)}>[{c.type}]</span> {c.text}
-                    </li>
+                <p className={clsx(styles.deltaTitle)}>
+                  {direction === 'downgrade' ? t('system.changelogUndo') : t('system.changelogDelta')}
+                </p>
+                <div className={clsx(styles.deltaList)}>
+                  {groupedChanges.map((group) => (
+                    <div key={group.version} className={clsx(styles.deltaGroup)}>
+                      <p className={clsx(styles.deltaVersion)}>v{group.version}</p>
+                      <ul className={clsx(styles.deltaGroupList)}>
+                        {group.items.map((c, i) => (
+                          <li key={`${group.version}-${i}`}>
+                            <span className={clsx(styles.monoXs)}>[{c.type}]</span> {c.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             ) : null}
 

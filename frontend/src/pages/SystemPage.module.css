@@ -216,15 +216,46 @@
 }
 
 .deltaList {
-  max-height: 12rem;
+  max-height: 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  overflow: auto;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.deltaGroup {
   display: flex;
   flex-direction: column;
   gap: var(--hcms-SPx1);
-  overflow: auto;
-  color: var(--hcms-color-muted-foreground);
+}
+
+.deltaVersion {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--hcms-color-foreground);
+}
+
+.deltaGroupList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.versionPick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  max-width: 20rem;
+}
+
+.versionSelect {
+  width: 100%;
 }
 
 .statusMsg {
