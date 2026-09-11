@@ -531,7 +531,9 @@ export function SystemPage() {
             {groupedChanges.length > 0 ? (
               <div className={clsx(styles.delta)}>
                 <p className={clsx(styles.deltaTitle)}>
-                  {direction === 'downgrade' ? t('system.changelogUndo') : t('system.changelogDelta')}
+                  {direction === 'downgrade'
+                    ? t('system.changelogUndo')
+                    : t('system.changelogDelta')}
                 </p>
                 <div className={clsx(styles.deltaList)}>
                   {groupedChanges.map((group) => (

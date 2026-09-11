@@ -1053,8 +1053,7 @@ export const ru: Record<MessageKey, string> = {
   'system.breakingTitle': 'Breaking-изменения в этом обновлении',
   'system.migration': 'Миграция: {text}',
   'system.ackBreaking': 'Я понимаю breaking-изменения',
-  'system.ackDowngrade':
-    'Понимаю: откат версии не откатывает схему БД и может сломать сайт',
+  'system.ackDowngrade': 'Понимаю: откат версии не откатывает схему БД и может сломать сайт',
   'system.latestRelease': 'У вас последняя версия.',
   'system.changelogDelta': 'Дельта changelog',
   'system.changelogUndo': 'Изменения, которые будут отменены в коде',
