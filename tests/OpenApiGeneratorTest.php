@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Tests;
 
+use Cms\Core\AdminBase;
 use Cms\Core\Config;
 use Cms\Core\Version;
 use Cms\Database\Connection;
@@ -92,6 +93,7 @@ final class OpenApiGeneratorTest extends TestCase
             dbPassword: '',
             dbCharset: 'utf8mb4',
             githubRepo: 'lnked/hcms',
+            adminBase: AdminBase::default(),
         );
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Tests;
 
+use Cms\Core\AdminBase;
 use Cms\Core\Config;
 use Cms\Core\Exception\NotFoundException;
 use Cms\Core\Exception\ValidationFailedException;
@@ -33,6 +34,7 @@ final class ExceptionHandlerTest extends TestCase
                 dbPassword: '',
                 dbCharset: 'utf8mb4',
                 githubRepo: 'lnked/hcms',
+                adminBase: AdminBase::default(),
             ),
             new Paths($root),
         );
