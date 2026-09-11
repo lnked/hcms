@@ -129,6 +129,7 @@ php cms status                 # version / installed / publicDir / кол-во �
 php cms migrate                # миграция всех published ресурсов
 php cms migrate --resource=1 [--confirm-destructive]
 php cms cache:clear            # сбросить MetadataCache
+php cms uptime:check           # HTTP-пробы due uptime-целей (cron)
 ```
 
 ---

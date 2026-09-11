@@ -8,6 +8,7 @@ use Cms\Core\Env;
 use Cms\Core\FileCache;
 use Cms\Core\MetadataCache;
 use Cms\Core\Paths;
+use Cms\Core\Settings;
 use Cms\Core\Version;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
@@ -16,6 +17,11 @@ use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldTypeRegistry;
 use Cms\Fields\SqlTypeMapper;
 use Cms\Resources\ResourceRepository;
+use Cms\Uptime\UptimeCheckRepository;
+use Cms\Uptime\UptimeIncidentRepository;
+use Cms\Uptime\UptimeProbeService;
+use Cms\Uptime\UptimeSettings;
+use Cms\Uptime\UptimeTargetRepository;
 
 $root = __DIR__;
 require $root . '/vendor/autoload.php';
@@ -36,6 +42,7 @@ try {
         'status' => cliStatus($paths, $config, $installed),
         'cache:clear' => cliCacheClear($paths),
         'migrate' => cliMigrate($paths, $config, $installed, $options),
+        'uptime:check' => cliUptimeCheck($paths, $config, $installed),
         null, '', 'help', '--help', '-h' => cliHelp(),
         default => throw new RuntimeException('Unknown command: ' . $command),
     };
@@ -76,6 +83,7 @@ Usage:
   php cms status
   php cms migrate [--resource=ID]
   php cms cache:clear
+  php cms uptime:check
 
 TXT;
 }
@@ -165,4 +173,40 @@ function cliDb(Config $config): Connection
         'password' => $config->dbPassword,
         'charset' => $config->dbCharset,
     ]);
+}
+
+function cliUptimeCheck(Paths $paths, Config $config, bool $installed): void
+{
+    unset($paths);
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+
+    $db = cliDb($config);
+    $settings = new Settings($db);
+    $targets = new UptimeTargetRepository($db);
+    $checks = new UptimeCheckRepository($db);
+    $incidents = new UptimeIncidentRepository($db);
+    $uptimeSettings = new UptimeSettings($settings);
+    $healthUrl = rtrim($config->appUrl, '/') . '/admin/api/health';
+    $targets->ensureSelf($healthUrl);
+
+    $probe = new UptimeProbeService($targets, $checks, $incidents, $uptimeSettings);
+    $results = $probe->runDue();
+    if ($results === []) {
+        echo 'No due uptime targets.' . PHP_EOL;
+
+        return;
+    }
+
+    foreach ($results as $result) {
+        $status = !empty($result['ok']) ? 'ok' : 'fail';
+        $latency = isset($result['latencyMs']) ? (string) $result['latencyMs'] . 'ms' : 'n/a';
+        $name = (string) ($result['name'] ?? '');
+        $error = isset($result['error']) && is_string($result['error']) && $result['error'] !== ''
+            ? ' — ' . $result['error']
+            : '';
+        echo $status . "\t" . $name . "\t" . $latency . $error . PHP_EOL;
+    }
+    echo 'Checked: ' . count($results) . PHP_EOL;
 }

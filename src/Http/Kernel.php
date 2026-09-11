@@ -73,6 +73,7 @@ use Cms\Http\Controllers\SettingsController;
 use Cms\Http\Controllers\SystemController;
 use Cms\Http\Controllers\TokensController;
 use Cms\Http\Controllers\TranslatesController;
+use Cms\Http\Controllers\UptimeController;
 use Cms\Http\Controllers\UsersController;
 use Cms\Http\Controllers\WebhooksController;
 use Cms\Install\Installer;
@@ -101,6 +102,14 @@ use Cms\System\UpdateService;
 use Cms\Translates\LocaleRepository;
 use Cms\Translates\TranslationRepository;
 use Cms\Translates\TranslationService;
+use Cms\Uptime\UptimeCheckRepository;
+use Cms\Uptime\UptimeHeartbeatService;
+use Cms\Uptime\UptimeIncidentRepository;
+use Cms\Uptime\UptimeProbeService;
+use Cms\Uptime\UptimeService;
+use Cms\Uptime\UptimeSettings;
+use Cms\Uptime\UptimeStatusService;
+use Cms\Uptime\UptimeTargetRepository;
 use Cms\Webhooks\WebhookDispatcher;
 use Cms\Webhooks\WebhookRepository;
 use Cms\Webhooks\WebhookService;
@@ -530,6 +539,8 @@ final class Kernel
 
         /** @var WebhookDispatcher|null $webhookDispatcher */
         $webhookDispatcher = null;
+        /** @var UptimeHeartbeatService|null $uptimeHeartbeat */
+        $uptimeHeartbeat = null;
 
         if ($this->db !== null) {
             $system = new SystemController(
@@ -723,6 +734,30 @@ final class Kernel
                 $audit,
             );
 
+            $uptimeTargets = new UptimeTargetRepository($this->db);
+            $uptimeChecks = new UptimeCheckRepository($this->db);
+            $uptimeIncidents = new UptimeIncidentRepository($this->db);
+            $uptimeSettings = new UptimeSettings($settings);
+            $uptimeProbes = new UptimeProbeService($uptimeTargets, $uptimeChecks, $uptimeIncidents, $uptimeSettings);
+            $uptimeStatus = new UptimeStatusService($uptimeTargets, $uptimeIncidents, $this->config->appUrl);
+            $uptimeService = new UptimeService(
+                $uptimeTargets,
+                $uptimeChecks,
+                $uptimeIncidents,
+                $uptimeProbes,
+                $uptimeStatus,
+                $uptimeSettings,
+                $this->config->appUrl,
+            );
+            $uptimeApi = new UptimeController($uptimeService, $audit);
+            $uptimeHeartbeat = new UptimeHeartbeatService(
+                $uptimeTargets,
+                $uptimeChecks,
+                $uptimeIncidents,
+                $uptimeSettings,
+                $this->config->appUrl,
+            );
+
             AdminResourceRoutes::register(
                 $this->router,
                 $resources,
@@ -743,6 +778,7 @@ final class Kernel
             );
             FeatureTranslatesRoutes::registerAdmin($this->router, $featureFlags, $translatesApi);
             KeyValuesRoutes::registerAdmin($this->router, $keyValuesApi);
+            UptimeRoutes::register($this->router, $uptimeApi);
         }
 
         $this->router->add('GET', '/api/openapi.json', function (Request $request, array $params, ?AuthContext $context) use ($docs): Response {
@@ -874,8 +910,15 @@ final class Kernel
             PublicApiRoutes::register($this->router, $publicApi, $publicInbound);
         }
 
-        $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context): Response {
+        $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context) use ($uptimeHeartbeat): Response {
             unset($request, $params, $context);
+            if ($uptimeHeartbeat !== null && $this->installed) {
+                try {
+                    $uptimeHeartbeat->touch();
+                } catch (Throwable) {
+                    // Health must never fail because of uptime bookkeeping.
+                }
+            }
 
             return Response::data(['ok' => true, 'installed' => $this->installed]);
         }, true);

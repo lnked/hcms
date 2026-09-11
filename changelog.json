@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.62.0",
+      "date": "2026-09-11",
+      "channel": "stable",
+      "title": "Uptime monitoring",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Uptime: Settings → Uptime — CRUD внешних URL, статус self-HCMS, инциденты с длительностью; виджет на дашборде; миграция 021"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Admin API /admin/api/uptime/* (summary, targets, checks, incidents, run); heartbeat на GET /admin/api/health"
+        },
+        {
+          "type": "added",
+          "area": "cli",
+          "text": "php cms uptime:check — due HTTP-пробы для cron; POST /admin/api/uptime/run для hosting cron"
+        }
+      ]
+    },
+    {
       "version": "0.61.0",
       "date": "2026-09-11",
       "channel": "stable",

@@ -12,6 +12,7 @@ export type AdminSection =
   | 'tokens'
   | 'webhooks'
   | 'inbound'
+  | 'uptime'
   | 'feature-flags'
   | 'key-values'
   | 'translates'
@@ -32,6 +33,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'tokens',
   'webhooks',
   'inbound',
+  'uptime',
   'feature-flags',
   'key-values',
   'translates',
@@ -141,6 +143,7 @@ export function sectionForPath(pathname: string): AdminSection | null {
   if (path.startsWith('/settings/tokens')) return 'tokens'
   if (path.startsWith('/settings/webhooks')) return 'webhooks'
   if (path.startsWith('/settings/inbound')) return 'inbound'
+  if (path.startsWith('/settings/uptime')) return 'uptime'
   if (path.startsWith('/settings/feature-flags')) return 'feature-flags'
   if (path.startsWith('/settings/key-values')) return 'key-values'
   if (path.startsWith('/settings/translates')) return 'translates'

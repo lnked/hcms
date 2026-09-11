@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/i18n'
 import { DashboardPage } from './DashboardPage'
@@ -8,6 +9,17 @@ vi.mock('@/lib/api', () => ({
   api: vi.fn(async (path: string) => {
     if (path === '/admin/api/system/stats') {
       return { resources: 3, records: 10, apiRequests: 42, apiKeys: 2 }
+    }
+    if (path === '/admin/api/uptime/summary') {
+      return {
+        up: 2,
+        down: 0,
+        unknown: 0,
+        total: 2,
+        uptimePercent24h: 100,
+        uptimePercent7d: 99.9,
+        openIncidents: 0,
+      }
     }
     if (path.includes('/system/stats/timeseries')) {
       // Keep charts on skeleton — Recharts needs layout in jsdom.
@@ -29,7 +41,9 @@ describe('DashboardPage', () => {
     render(
       <I18nProvider initialLocale="en">
         <QueryClientProvider client={client}>
-          <DashboardPage />
+          <MemoryRouter>
+            <DashboardPage />
+          </MemoryRouter>
         </QueryClientProvider>
       </I18nProvider>,
     )
@@ -40,5 +54,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('API requests')).toBeInTheDocument()
     expect(screen.getByText('API keys')).toBeInTheDocument()
     expect(await screen.findByText('3')).toBeInTheDocument()
+    expect(await screen.findByText('Uptime')).toBeInTheDocument()
+    expect(await screen.findByText('100% (24h)')).toBeInTheDocument()
   })
 })

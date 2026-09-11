@@ -1,0 +1,538 @@
+import { useMemo, useState } from 'react'
+import { clsx } from 'clsx'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { TableSkeleton } from '@/components/skeletons'
+import { EmptyState } from '@/components/EmptyState'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { FieldError } from '@/components/FieldError'
+import { api } from '@/lib/api'
+import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
+import { showSuccess } from '@/lib/toast'
+import { useI18n } from '@/i18n'
+import styles from './UptimePage.module.css'
+
+interface UptimeTarget {
+  id: number
+  name: string
+  url: string
+  kind: 'external' | 'self'
+  method: string
+  expectedStatus: number
+  timeoutMs: number
+  intervalSeconds: number
+  enabled: boolean
+  lastCheckAt: string | null
+  lastOk: boolean | null
+  lastStatusCode: number | null
+  lastLatencyMs: number | null
+  lastError: string | null
+  lastHeartbeatAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+interface UptimeIncident {
+  id: number
+  targetId: number
+  startedAt: string
+  endedAt: string | null
+  durationSeconds: number | null
+  reason: string | null
+}
+
+interface UptimeSummary {
+  up: number
+  down: number
+  unknown: number
+  total: number
+  uptimePercent24h: number
+  uptimePercent7d: number
+  openIncidents: number
+}
+
+interface UptimeStatusPayload {
+  summary: UptimeSummary
+  targets: UptimeTarget[]
+}
+
+function formatDuration(seconds: number | null, ongoingLabel: string): string {
+  if (seconds === null) return ongoingLabel
+  if (seconds < 60) return `${seconds}s`
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  if (m < 60) return s > 0 ? `${m}m ${s}s` : `${m}m`
+  const h = Math.floor(m / 60)
+  const rm = m % 60
+  return rm > 0 ? `${h}h ${rm}m` : `${h}h`
+}
+
+function statusVariant(target: UptimeTarget): 'default' | 'secondary' | 'destructive' {
+  if (target.lastOk === null) return 'secondary'
+  return target.lastOk ? 'default' : 'destructive'
+}
+
+export function UptimePage() {
+  const { t } = useI18n()
+  const queryClient = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [name, setName] = useState('')
+  const [url, setUrl] = useState('')
+  const [intervalSeconds, setIntervalSeconds] = useState('60')
+  const [expectedStatus, setExpectedStatus] = useState('200')
+  const [timeoutMs, setTimeoutMs] = useState('5000')
+  const [enabled, setEnabled] = useState(true)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  const isEdit = editingId !== null
+
+  const statusQuery = useQuery({
+    queryKey: ['uptime-status'],
+    queryFn: () => api<UptimeStatusPayload>('/admin/api/uptime/status'),
+  })
+
+  const incidents = useQuery({
+    queryKey: ['uptime-incidents', selectedId],
+    queryFn: () =>
+      api<UptimeIncident[]>(`/admin/api/uptime/targets/${selectedId}/incidents?limit=50`),
+    enabled: selectedId !== null,
+  })
+
+  const targets = statusQuery.data?.targets ?? []
+  const summary = statusQuery.data?.summary
+  const selected = useMemo(
+    () => targets.find((row) => row.id === selectedId) ?? null,
+    [targets, selectedId],
+  )
+
+  function resetForm() {
+    setEditingId(null)
+    setName('')
+    setUrl('')
+    setIntervalSeconds('60')
+    setExpectedStatus('200')
+    setTimeoutMs('5000')
+    setEnabled(true)
+    setFieldErrors({})
+  }
+
+  function openCreate() {
+    resetForm()
+    setOpen(true)
+  }
+
+  function openEdit(target: UptimeTarget) {
+    setEditingId(target.id)
+    setName(target.name)
+    setUrl(target.url)
+    setIntervalSeconds(String(target.intervalSeconds))
+    setExpectedStatus(String(target.expectedStatus))
+    setTimeoutMs(String(target.timeoutMs))
+    setEnabled(target.enabled)
+    setFieldErrors({})
+    setOpen(true)
+  }
+
+  const create = useMutation({
+    mutationFn: () =>
+      api<UptimeTarget>('/admin/api/uptime/targets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          url,
+          intervalSeconds: Number(intervalSeconds),
+          expectedStatus: Number(expectedStatus),
+          timeoutMs: Number(timeoutMs),
+          enabled,
+        }),
+      }),
+    onSuccess: (data) => {
+      showSuccess(t('common.saved'))
+      setOpen(false)
+      resetForm()
+      setSelectedId(data.id)
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+    },
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
+  })
+
+  const update = useMutation({
+    mutationFn: (id: number) => {
+      const target = targets.find((row) => row.id === id)
+      const body: Record<string, unknown> = {
+        name,
+        intervalSeconds: Number(intervalSeconds),
+        timeoutMs: Number(timeoutMs),
+        enabled,
+      }
+      if (target?.kind !== 'self') {
+        body.url = url
+        body.expectedStatus = Number(expectedStatus)
+      }
+      return api<UptimeTarget>(`/admin/api/uptime/targets/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      })
+    },
+    onSuccess: () => {
+      showSuccess(t('common.saved'))
+      setOpen(false)
+      resetForm()
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+    },
+    onError: (err) => setFieldErrors(apiFieldErrors(err)),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: number) => api<void>(`/admin/api/uptime/targets/${id}`, { method: 'DELETE' }),
+    onSuccess: (_data, id) => {
+      if (selectedId === id) setSelectedId(null)
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+    },
+  })
+
+  const toggleEnabled = useMutation({
+    mutationFn: (target: UptimeTarget) =>
+      api<UptimeTarget>(`/admin/api/uptime/targets/${target.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled: !target.enabled }),
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+    },
+  })
+
+  const checkNow = useMutation({
+    mutationFn: (id: number) =>
+      api<unknown>(`/admin/api/uptime/targets/${id}/check`, { method: 'POST' }),
+    onSuccess: (_data, id) => {
+      showSuccess(t('uptime.checked'))
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-incidents', id] })
+    },
+  })
+
+  const runAll = useMutation({
+    mutationFn: () => api<{ checked: number }>('/admin/api/uptime/run', { method: 'POST' }),
+    onSuccess: (data) => {
+      showSuccess(t('uptime.runDone', { count: String(data.checked) }))
+      void queryClient.invalidateQueries({ queryKey: ['uptime-status'] })
+      void queryClient.invalidateQueries({ queryKey: ['uptime-summary'] })
+      if (selectedId !== null) {
+        void queryClient.invalidateQueries({ queryKey: ['uptime-incidents', selectedId] })
+      }
+    },
+  })
+
+  const editingSelf = isEdit && targets.find((row) => row.id === editingId)?.kind === 'self'
+
+  return (
+    <div className={clsx(styles.root)}>
+      <div className={clsx(styles.pageHeader)}>
+        <div>
+          <h1 className={clsx(styles.title)}>{t('uptime.title')}</h1>
+          <p className={clsx(styles.subtitle)}>{t('uptime.subtitle')}</p>
+        </div>
+        <div className={clsx(styles.headerActions)}>
+          <Button variant="outline" onClick={() => runAll.mutate()} disabled={runAll.isPending}>
+            {t('uptime.runAll')}
+          </Button>
+          <Button onClick={openCreate}>{t('uptime.addUrl')}</Button>
+        </div>
+      </div>
+
+      <div className={clsx(styles.summaryGrid)}>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx(styles.kpiLabel)}>{t('uptime.up')}</CardTitle>
+          </CardHeader>
+          <CardContent className={clsx(styles.kpiValue)}>{summary?.up ?? '—'}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx(styles.kpiLabel)}>{t('uptime.down')}</CardTitle>
+          </CardHeader>
+          <CardContent className={clsx(styles.kpiValue)}>{summary?.down ?? '—'}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx(styles.kpiLabel)}>{t('uptime.uptime24h')}</CardTitle>
+          </CardHeader>
+          <CardContent className={clsx(styles.kpiValue)}>
+            {summary ? `${summary.uptimePercent24h}%` : '—'}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className={clsx(styles.kpiLabel)}>{t('uptime.openIncidents')}</CardTitle>
+          </CardHeader>
+          <CardContent className={clsx(styles.kpiValue)}>
+            {summary?.openIncidents ?? '—'}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className={clsx(styles.layout)}>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('uptime.targets')}</CardTitle>
+            <CardDescription>{t('uptime.targetsHint')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statusQuery.isLoading ? (
+              <TableSkeleton rows={4} />
+            ) : targets.length === 0 ? (
+              <EmptyState title={t('uptime.empty')} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('uptime.colName')}</TableHead>
+                    <TableHead>{t('uptime.colStatus')}</TableHead>
+                    <TableHead>{t('uptime.colLatency')}</TableHead>
+                    <TableHead>{t('uptime.colLastCheck')}</TableHead>
+                    <TableHead className={clsx(styles.alignRight)}>{t('common.actions')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {targets.map((target) => (
+                    <TableRow
+                      key={target.id}
+                      className={clsx(selectedId === target.id && styles.rowSelected)}
+                    >
+                      <TableCell>
+                        <button
+                          type="button"
+                          className={clsx(styles.nameBtn)}
+                          onClick={() => setSelectedId(target.id)}
+                        >
+                          {target.name}
+                        </button>
+                        <div className={clsx(styles.mutedXs, styles.urlCell)} title={target.url}>
+                          {target.kind === 'self' ? t('uptime.kindSelf') : target.url}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant(target)}>
+                          {target.lastOk === null
+                            ? t('uptime.statusUnknown')
+                            : target.lastOk
+                              ? t('uptime.statusUp')
+                              : t('uptime.statusDown')}
+                        </Badge>
+                        {!target.enabled ? (
+                          <div className={clsx(styles.mutedXs)}>{t('uptime.disabled')}</div>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        {target.lastLatencyMs !== null ? `${target.lastLatencyMs}ms` : '—'}
+                      </TableCell>
+                      <TableCell className={clsx(styles.mutedXs)}>
+                        {target.lastCheckAt ?? '—'}
+                      </TableCell>
+                      <TableCell className={clsx(styles.alignRight)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => checkNow.mutate(target.id)}
+                          disabled={checkNow.isPending}
+                        >
+                          {t('uptime.checkNow')}
+                        </Button>{' '}
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(target)}>
+                          {t('common.edit')}
+                        </Button>{' '}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => toggleEnabled.mutate(target)}
+                        >
+                          {target.enabled ? t('uptime.disable') : t('uptime.enable')}
+                        </Button>{' '}
+                        {target.kind !== 'self' ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (window.confirm(t('uptime.confirmDelete'))) {
+                                remove.mutate(target.id)
+                              }
+                            }}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('uptime.incidents')}</CardTitle>
+            <CardDescription>{selected ? selected.name : t('uptime.selectTarget')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {selectedId === null ? (
+              <EmptyState title={t('uptime.selectTarget')} />
+            ) : incidents.isLoading ? (
+              <TableSkeleton rows={4} />
+            ) : (incidents.data ?? []).length === 0 ? (
+              <EmptyState title={t('uptime.noIncidents')} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t('uptime.colStarted')}</TableHead>
+                    <TableHead>{t('uptime.colEnded')}</TableHead>
+                    <TableHead>{t('uptime.colDuration')}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(incidents.data ?? []).map((incident) => (
+                    <TableRow key={incident.id}>
+                      <TableCell>
+                        <div className={clsx(styles.incidentMeta)}>
+                          <span>{incident.startedAt}</span>
+                          {incident.reason ? (
+                            <span className={clsx(styles.mutedXs)}>{incident.reason}</span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>{incident.endedAt ?? t('uptime.ongoing')}</TableCell>
+                      <TableCell>
+                        {formatDuration(incident.durationSeconds, t('uptime.ongoing'))}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next) resetForm()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isEdit ? t('uptime.editUrl') : t('uptime.addUrl')}</DialogTitle>
+            <DialogDescription>{t('uptime.formHint')}</DialogDescription>
+          </DialogHeader>
+          <div className={clsx(styles.formGrid)}>
+            <div className={clsx(styles.formRow)}>
+              <Label htmlFor="uptime-name">{t('uptime.fieldName')}</Label>
+              <Input id="uptime-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <FieldError error={fieldErrors.name} />
+            </div>
+            <div className={clsx(styles.formRow)}>
+              <Label htmlFor="uptime-url">{t('uptime.fieldUrl')}</Label>
+              <Input
+                id="uptime-url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                disabled={editingSelf}
+              />
+              <FieldError error={fieldErrors.url} />
+            </div>
+            <div className={clsx(styles.formRow)}>
+              <Label htmlFor="uptime-interval">{t('uptime.fieldInterval')}</Label>
+              <Input
+                id="uptime-interval"
+                type="number"
+                min={30}
+                value={intervalSeconds}
+                onChange={(e) => setIntervalSeconds(e.target.value)}
+              />
+              <FieldError error={fieldErrors.intervalSeconds} />
+            </div>
+            {!editingSelf ? (
+              <div className={clsx(styles.formRow)}>
+                <Label htmlFor="uptime-expected">{t('uptime.fieldExpected')}</Label>
+                <Input
+                  id="uptime-expected"
+                  type="number"
+                  min={100}
+                  max={599}
+                  value={expectedStatus}
+                  onChange={(e) => setExpectedStatus(e.target.value)}
+                />
+                <FieldError error={fieldErrors.expectedStatus} />
+              </div>
+            ) : null}
+            <div className={clsx(styles.formRow)}>
+              <Label htmlFor="uptime-timeout">{t('uptime.fieldTimeout')}</Label>
+              <Input
+                id="uptime-timeout"
+                type="number"
+                min={500}
+                max={15000}
+                value={timeoutMs}
+                onChange={(e) => setTimeoutMs(e.target.value)}
+              />
+              <FieldError error={fieldErrors.timeoutMs} />
+            </div>
+            <label className={clsx(styles.formRow)}>
+              <span>
+                <input
+                  type="checkbox"
+                  checked={enabled}
+                  onChange={(e) => setEnabled(e.target.checked)}
+                />{' '}
+                {t('uptime.fieldEnabled')}
+              </span>
+            </label>
+            <div className={clsx(styles.formActions)}>
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (isEdit && editingId !== null) update.mutate(editingId)
+                  else create.mutate()
+                }}
+                disabled={create.isPending || update.isPending}
+              >
+                {t('common.save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

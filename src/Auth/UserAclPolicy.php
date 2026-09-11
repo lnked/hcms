@@ -21,6 +21,7 @@ final class UserAclPolicy
         'tokens',
         'webhooks',
         'inbound',
+        'uptime',
         'feature-flags',
         'key-values',
         'translates',
@@ -166,6 +167,12 @@ final class UserAclPolicy
         }
         if (str_starts_with($path, '/admin/api/inbound-endpoints')) {
             return 'inbound';
+        }
+        if ($path === '/admin/api/uptime/summary') {
+            return 'dashboard';
+        }
+        if (str_starts_with($path, '/admin/api/uptime')) {
+            return 'uptime';
         }
         if (str_starts_with($path, '/admin/api/feature-flags')) {
             return 'feature-flags';

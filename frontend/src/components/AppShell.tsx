@@ -22,6 +22,7 @@ import {
   Users,
   Webhook,
   Inbox,
+  HeartPulse,
   X,
 } from 'lucide-react'
 import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
@@ -320,6 +321,13 @@ export function AppShell() {
         label: t('nav.inbound'),
         icon: Inbox,
         section: 'inbound',
+        minRole: 'admin' as const,
+      },
+      {
+        to: '/settings/uptime',
+        label: t('nav.uptime'),
+        icon: HeartPulse,
+        section: 'uptime',
         minRole: 'admin' as const,
       },
       {

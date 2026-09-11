@@ -64,6 +64,9 @@ const InboundEndpointsPage = lazy(() =>
     default: m.InboundEndpointsPage,
   })),
 )
+const UptimePage = lazy(() =>
+  import('@/features/uptime/UptimePage').then((m) => ({ default: m.UptimePage })),
+)
 const FeatureFlagsPage = lazy(() =>
   import('@/pages/FeatureFlagsPage').then((m) => ({ default: m.FeatureFlagsPage })),
 )
@@ -132,6 +135,10 @@ export function AppRouter() {
             <Route
               path="settings/inbound"
               element={withSection('inbound', 'admin', <InboundEndpointsPage />)}
+            />
+            <Route
+              path="settings/uptime"
+              element={withSection('uptime', 'admin', <UptimePage />)}
             />
             <Route
               path="settings/feature-flags"

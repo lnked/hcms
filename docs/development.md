@@ -39,6 +39,16 @@ composer qa && npm run qa
 
 Frontend собирается в `public/admin/` (`base: /admin/`).
 
+## Uptime checks (cron)
+
+```bash
+php cms uptime:check
+# crontab, каждую минуту:
+# * * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1
+```
+
+Альтернатива без CLI: `POST /admin/api/uptime/run` с admin Bearer. Status UI: `/admin/settings/uptime`.
+
 ## Admin styles (CSS Modules)
 
 Стили админки — CSS Modules рядом с компонентом: `ComponentName.module.css` (или `.module.scss`). Tailwind не используется.

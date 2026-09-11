@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { api, apiPage } from '@/lib/api'
 import type { PathCount } from './DashboardCharts'
@@ -78,6 +79,16 @@ interface ApiErrorRow {
   createdAt: string
 }
 
+interface UptimeSummary {
+  up: number
+  down: number
+  unknown: number
+  total: number
+  uptimePercent24h: number
+  uptimePercent7d: number
+  openIncidents: number
+}
+
 const DASHBOARD_DAYS = 14
 
 export function DashboardPage() {
@@ -97,6 +108,10 @@ export function DashboardPage() {
   const auditQuery = useQuery({
     queryKey: ['dashboard-audit'],
     queryFn: () => apiPage<AuditRow>('/admin/api/logs/audit?page=1&limit=5'),
+  })
+  const uptimeQuery = useQuery({
+    queryKey: ['uptime-summary'],
+    queryFn: () => api<UptimeSummary>('/admin/api/uptime/summary'),
   })
   const errorDetailsQuery = useQuery({
     queryKey: ['dashboard-error-details', errorPath, errorPage, DASHBOARD_DAYS],
@@ -155,6 +170,40 @@ export function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className={clsx(styles.cardTitle)}>{t('dashboard.uptime')}</CardTitle>
+          <p className={clsx(styles.cardHint)}>
+            <Link to="/settings/uptime" className={clsx(styles.uptimeLink)}>
+              {t('dashboard.uptimeLink')}
+            </Link>
+          </p>
+        </CardHeader>
+        <CardContent>
+          {uptimeQuery.isLoading ? (
+            <Skeleton className={clsx(styles.skeletonKpi)} />
+          ) : uptimeQuery.data ? (
+            <div className={clsx(styles.uptimeRow)}>
+              <span className={clsx(styles.kpiValue)}>
+                {t('dashboard.uptimePercent', {
+                  pct: String(uptimeQuery.data.uptimePercent24h),
+                })}
+              </span>
+              <span className={clsx(styles.cardHint)}>
+                {uptimeQuery.data.total === 0 || uptimeQuery.data.up + uptimeQuery.data.down === 0
+                  ? t('dashboard.uptimeUnknown')
+                  : t('dashboard.uptimeUpDown', {
+                      up: String(uptimeQuery.data.up),
+                      down: String(uptimeQuery.data.down),
+                    })}
+              </span>
+            </div>
+          ) : (
+            '—'
+          )}
+        </CardContent>
+      </Card>
 
       <div className={clsx(styles.chartsGrid)}>
         <Card>
