@@ -134,6 +134,18 @@
   padding: var(--hcms-SPx3);
 }
 
+.grantToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.selectGrow {
+  min-width: 12rem;
+  flex: 1;
+}
+
 .flagRow {
   display: flex;
   flex-wrap: wrap;

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { formatDateValue } from '@/lib/dateFormat'
 import { apiFieldErrors, type FieldErrors } from '@/lib/formErrors'
 import { showSuccess } from '@/lib/toast'
 import styles from './UptimePage.module.css'
@@ -70,9 +71,18 @@ interface UptimeSummary {
   openIncidents: number
 }
 
+interface UptimeSchedulerHealth {
+  state: 'ok' | 'stale' | 'never' | 'idle'
+  softCronEnabled: boolean
+  lastCheckAt: string | null
+  overdueCount: number
+  enabledCount: number
+}
+
 interface UptimeStatusPayload {
   summary: UptimeSummary
   targets: UptimeTarget[]
+  scheduler: UptimeSchedulerHealth
 }
 
 function formatDuration(seconds: number | null, ongoingLabel: string): string {
@@ -89,6 +99,27 @@ function formatDuration(seconds: number | null, ongoingLabel: string): string {
 function statusVariant(target: UptimeTarget): 'default' | 'secondary' | 'destructive' {
   if (target.lastOk === null) return 'secondary'
   return target.lastOk ? 'default' : 'destructive'
+}
+
+function schedulerVariant(
+  state: UptimeSchedulerHealth['state'],
+): 'default' | 'secondary' | 'destructive' {
+  if (state === 'ok') return 'default'
+  if (state === 'stale') return 'destructive'
+  return 'secondary'
+}
+
+function schedulerLabelKey(
+  state: UptimeSchedulerHealth['state'],
+):
+  | 'uptime.schedulerOk'
+  | 'uptime.schedulerStale'
+  | 'uptime.schedulerNever'
+  | 'uptime.schedulerIdle' {
+  if (state === 'ok') return 'uptime.schedulerOk'
+  if (state === 'stale') return 'uptime.schedulerStale'
+  if (state === 'never') return 'uptime.schedulerNever'
+  return 'uptime.schedulerIdle'
 }
 
 export function UptimePage() {
@@ -110,6 +141,7 @@ export function UptimePage() {
   const statusQuery = useQuery({
     queryKey: ['uptime-status'],
     queryFn: () => api<UptimeStatusPayload>('/admin/api/uptime/status'),
+    refetchInterval: 30_000,
   })
 
   const incidents = useQuery({
@@ -121,6 +153,7 @@ export function UptimePage() {
 
   const targets = useMemo(() => statusQuery.data?.targets ?? [], [statusQuery.data?.targets])
   const summary = statusQuery.data?.summary
+  const scheduler = statusQuery.data?.scheduler
   const selected = useMemo(
     () => targets.find((row) => row.id === selectedId) ?? null,
     [targets, selectedId],
@@ -273,10 +306,41 @@ export function UptimePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('uptime.cronTitle')}</CardTitle>
-          <CardDescription>{t('uptime.cronHint')}</CardDescription>
+          <div className={clsx(styles.cronHeader)}>
+            <div>
+              <CardTitle>{t('uptime.cronTitle')}</CardTitle>
+              <CardDescription>{t('uptime.cronHint')}</CardDescription>
+            </div>
+            {scheduler ? (
+              <Badge variant={schedulerVariant(scheduler.state)}>
+                {t(schedulerLabelKey(scheduler.state))}
+              </Badge>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className={clsx(styles.cronStack)}>
+          {scheduler ? (
+            <div className={clsx(styles.schedulerMeta)}>
+              <span className={clsx(styles.mutedXs)}>
+                {scheduler.softCronEnabled
+                  ? t('uptime.schedulerSoftOn')
+                  : t('uptime.schedulerSoftOff')}
+              </span>
+              <span className={clsx(styles.mutedXs)}>
+                {t('uptime.schedulerLastCheck', {
+                  time:
+                    formatDateValue(scheduler.lastCheckAt, 'DD.MM.YYYY HH:mm:ss') ??
+                    t('uptime.statusUnknown'),
+                })}
+              </span>
+              {scheduler.overdueCount > 0 ? (
+                <span className={clsx(styles.mutedXs)}>
+                  {t('uptime.schedulerOverdue', { count: String(scheduler.overdueCount) })}
+                </span>
+              ) : null}
+              <span className={clsx(styles.mutedXs)}>{t('uptime.schedulerHint')}</span>
+            </div>
+          ) : null}
           <CodeBlock code={cronCli} language="bash" label={t('uptime.cronCliLabel')} rows={2} />
           <CodeBlock code={cronHttp} language="bash" label={t('uptime.cronHttpLabel')} rows={4} />
         </CardContent>

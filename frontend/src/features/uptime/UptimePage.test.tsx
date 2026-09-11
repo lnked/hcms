@@ -40,6 +40,13 @@ vi.mock('@/lib/api', () => ({
             updatedAt: '2026-01-01 12:00:00',
           },
         ],
+        scheduler: {
+          state: 'ok',
+          softCronEnabled: true,
+          lastCheckAt: '2026-01-01 12:00:00',
+          overdueCount: 0,
+          enabledCount: 1,
+        },
       }
     }
     if (path === '/admin/api/uptime/targets' && init?.method === 'POST') {
@@ -91,6 +98,7 @@ describe('UptimePage', () => {
 
     expect(await screen.findByText('Docs')).toBeInTheDocument()
     expect(screen.getByText('https://example.com')).toBeInTheDocument()
+    expect(screen.getByText('Running')).toBeInTheDocument()
     expect(api).toHaveBeenCalledWith('/admin/api/uptime/status')
   })
 })

@@ -41,15 +41,36 @@ Frontend собирается в `public/admin/` (`base: /admin/`).
 
 ## Uptime checks (cron)
 
+UI: `/admin/settings/uptime`. Каждый тик прогоняет **due**-цели (enabled + истёк `intervalSeconds`), пишет checks, открывает/закрывает incidents. Уведомлений нет — только БД + UI.
+
+### Soft cron (по умолчанию)
+
+Due-пробы после `GET /admin/api/health` и при открытии Uptime/dashboard (throttle ~30с, после HTTP-ответа). Внешний cron нужен, если сайт часто idle и health никто не дергает.
+
+В UI (`/admin/settings/uptime`) badge **Running / Stale / Never** — свежесть проб vs `2× interval`, не факт установки crontab.
+
+### CLI cron (предпочтительно на VPS)
+
 ```bash
 php cms uptime:check
 # crontab, каждую минуту:
-# * * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1
+* * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1
 ```
 
-Альтернатива без CLI: `POST /admin/api/uptime/run` с admin Bearer. Status UI: `/admin/settings/uptime`.
+### HTTP cron (shared hosting без CLI)
 
-Без внешнего cron: soft cron гоняет due-пробы после `GET /admin/api/health` и при открытии Uptime/dashboard (throttle ~30с, shutdown).
+Нужен **admin** Bearer из `POST /admin/api/auth/login` (`remember: true` → длинный TTL). Токен из Tokens (`type=api`) даёт `403 Admin token required`.
+
+```bash
+# один раз — сохранить токен
+curl -fsS -X POST https://example.com/admin/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"…","remember":true}'
+
+# crontab, каждую минуту:
+* * * * * curl -fsS -X POST -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  https://example.com/admin/api/uptime/run >/dev/null
+```
 
 ## Admin styles (CSS Modules)
 

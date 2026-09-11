@@ -132,6 +132,8 @@ php cms cache:clear            # сбросить MetadataCache
 php cms uptime:check           # HTTP-пробы due uptime-целей (cron)
 ```
 
+Uptime без shell: `POST /admin/api/uptime/run` с **admin** Bearer (login / `remember: true`). API-токен из Tokens → `403 Admin token required`. Soft cron и примеры crontab: [`docs/development.md`](docs/development.md#uptime-checks-cron).
+
 ---
 
 ## 2. Аутентификация

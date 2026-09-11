@@ -441,26 +441,37 @@ export function TokensPage() {
                 </div>
                 {grants.map((grant, index) => (
                   <div key={index} className={clsx(styles.grantCard)}>
-                    <Select
-                      value={grant.resourceId ?? ''}
-                      onChange={(e) => {
-                        const value = e.target.value
-                        setGrants((rows) =>
-                          rows.map((row, i) =>
-                            i === index
-                              ? { ...row, resourceId: value === '' ? null : Number(value) }
-                              : row,
-                          ),
-                        )
-                      }}
-                    >
-                      <option value="">{t('tokens.allResources')}</option>
-                      {(resources.data ?? []).map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.label} ({r.slug})
-                        </option>
-                      ))}
-                    </Select>
+                    <div className={clsx(styles.grantToolbar)}>
+                      <Select
+                        containerClassName={clsx(styles.selectGrow)}
+                        value={grant.resourceId ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setGrants((rows) =>
+                            rows.map((row, i) =>
+                              i === index
+                                ? { ...row, resourceId: value === '' ? null : Number(value) }
+                                : row,
+                            ),
+                          )
+                        }}
+                      >
+                        <option value="">{t('tokens.allResources')}</option>
+                        {(resources.data ?? []).map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.label} ({r.slug})
+                          </option>
+                        ))}
+                      </Select>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setGrants((rows) => rows.filter((_, i) => i !== index))}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                    </div>
                     <div className={clsx(styles.flagRow)}>
                       {(
                         [

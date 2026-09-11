@@ -742,7 +742,12 @@ final class Kernel
             $uptimeIncidents = new UptimeIncidentRepository($this->db);
             $uptimeSettings = new UptimeSettings($settings);
             $uptimeProbes = new UptimeProbeService($uptimeTargets, $uptimeChecks, $uptimeIncidents, $uptimeSettings);
-            $uptimeStatus = new UptimeStatusService($uptimeTargets, $uptimeIncidents, $this->config->appUrl);
+            $uptimeStatus = new UptimeStatusService(
+                $uptimeTargets,
+                $uptimeIncidents,
+                $uptimeSettings,
+                $this->config->appUrl,
+            );
             $uptimeService = new UptimeService(
                 $uptimeTargets,
                 $uptimeChecks,

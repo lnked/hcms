@@ -9,9 +9,13 @@ namespace Cms\Uptime;
  */
 final class UptimeStatusService
 {
+    /** Stale if no check within interval × this factor (covers soft/external cron jitter). */
+    private const STALE_INTERVAL_FACTOR = 2;
+
     public function __construct(
         private readonly UptimeTargetRepository $targets,
         private readonly UptimeIncidentRepository $incidents,
+        private readonly UptimeSettings $settings,
         private readonly string $appUrl,
     ) {
     }
@@ -56,14 +60,85 @@ final class UptimeStatusService
     public function status(): array
     {
         $this->targets->ensureSelf(rtrim($this->appUrl, '/') . '/admin/api/health');
+        $all = $this->targets->all();
         $targets = array_map(
             static fn (array $row): array => UptimeService::serializeTarget($row),
-            $this->targets->all(),
+            $all,
         );
 
         return [
             'summary' => $this->summary(),
             'targets' => $targets,
+            'scheduler' => $this->schedulerHealth($all),
+        ];
+    }
+
+    /**
+     * Infer whether automatic probes are keeping pace (soft cron and/or system cron).
+     * Cannot detect crontab presence — only freshness of checks vs intervals.
+     *
+     * @param list<array<string, mixed>> $all
+     * @return array{
+     *     state: 'ok'|'stale'|'never'|'idle',
+     *     softCronEnabled: bool,
+     *     lastCheckAt: ?string,
+     *     overdueCount: int,
+     *     enabledCount: int
+     * }
+     */
+    public function schedulerHealth(array $all): array
+    {
+        $enabled = array_values(array_filter(
+            $all,
+            static fn (array $t): bool => (int) ($t['enabled'] ?? 0) === 1,
+        ));
+        $softCronEnabled = $this->settings->softCronEnabled();
+        if ($enabled === []) {
+            return [
+                'state' => 'idle',
+                'softCronEnabled' => $softCronEnabled,
+                'lastCheckAt' => null,
+                'overdueCount' => 0,
+                'enabledCount' => 0,
+            ];
+        }
+
+        $now = time();
+        $overdue = 0;
+        $lastCheckTs = null;
+        $checked = 0;
+        foreach ($enabled as $target) {
+            $interval = max(
+                UptimeSettings::MIN_INTERVAL_SECONDS,
+                (int) ($target['interval_seconds'] ?? UptimeSettings::DEFAULT_INTERVAL_SECONDS),
+            );
+            $last = $target['last_check_at'] ?? null;
+            if ($last === null || $last === '') {
+                ++$overdue;
+                continue;
+            }
+            $ts = strtotime((string) $last);
+            if ($ts === false) {
+                ++$overdue;
+                continue;
+            }
+            ++$checked;
+            if ($lastCheckTs === null || $ts > $lastCheckTs) {
+                $lastCheckTs = $ts;
+            }
+            if (($now - $ts) > ($interval * self::STALE_INTERVAL_FACTOR)) {
+                ++$overdue;
+            }
+        }
+
+        $state = $checked === 0 ? 'never' : ($overdue > 0 ? 'stale' : 'ok');
+
+        return [
+            'state' => $state,
+            'softCronEnabled' => $softCronEnabled,
+            'lastCheckAt' => $lastCheckTs !== null ? date('Y-m-d H:i:s', $lastCheckTs) : null,
+            'overdueCount' => $overdue,
+            'enabledCount' => \count($enabled),
         ];
     }
 
