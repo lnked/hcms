@@ -649,6 +649,24 @@ function cms_install_html(): string
       z-index: 20;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .check-opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 16px 0 4px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    .check-opt input {
+      width: auto;
+      margin: 2px 0 0;
+      accent-color: var(--teal);
+      flex-shrink: 0;
+    }
+    .hint-inline { color: var(--muted); font-weight: 400; }
     .done-panel { text-align: center; padding: 12px 0 4px; }
     .done-panel h2 { color: var(--ok); font-size: 1.45rem; }
     .done-panel a {
@@ -791,6 +809,10 @@ function cms_install_html(): string
         </div>
         <label for="admPass2">Confirm</label><input id="admPass2" type="password" autocomplete="new-password"/>
         <p class="field-error" id="errAdmPass2"></p>
+        <label class="check-opt" for="optTelemetry">
+          <input type="checkbox" id="optTelemetry" checked/>
+          <span>Share anonymous install stats <span class="hint-inline">(version, PHP, OS — no personal data)</span></span>
+        </label>
         <div class="row-actions">
           <button type="button" id="btnInstall">Install</button>
         </div>
@@ -1238,7 +1260,9 @@ function cms_install_html(): string
             email: $('admEmail').value,
             password: $('admPass').value,
             passwordConfirm: $('admPass2').value
-          }
+          },
+          telemetry: !!$('optTelemetry').checked,
+          telemetrySource: 'wizard'
         });
         if (installed && installed.adminUrl) {
           const link = $('openAdmin');

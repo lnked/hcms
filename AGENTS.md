@@ -95,7 +95,9 @@ curl -s -X POST "$BASE/install.php?action=complete" \
 
 Что делает `complete`: пишет `.env` (в т.ч. генерирует `APP_SECRET`), **дропает существующие `cms_*` таблицы**,
 прогоняет `database/migrations/*.sql`, создаёт владельца с ролью `owner`, засеивает `cms_settings`,
-ставит `storage/installed.lock`. После этого любой `action` кроме `status` отвечает `403 INSTALLED`.
+ставит `storage/installed.lock`. После успеха — анонимный ping установки (version/PHP/OS); opt-out:
+`"telemetry": false` или `HCMS_TELEMETRY=0`. См. [`docs/install-telemetry.md`](docs/install-telemetry.md).
+После этого любой `action` кроме `status` отвечает `403 INSTALLED`.
 
 Пароль админа — минимум 8 символов, `password === passwordConfirm`, иначе `422` с `error.fields`.
 
@@ -499,4 +501,6 @@ php scripts/verify-tree.php
 | [`docs/integrations-email.md`](docs/integrations-email.md) | Resend / Postmark / Mailgun |
 | [`docs/openapi.md`](docs/openapi.md) | генерация OpenAPI |
 | [`docs/recovery.md`](docs/recovery.md) | обновление и восстановление |
+| [`docs/landing-downloads.md`](docs/landing-downloads.md) | счётчик скачиваний на лендинге |
+| [`docs/install-telemetry.md`](docs/install-telemetry.md) | анонимный ping успешных установок |
 | [`examples/react`](examples/react) | консьюмер публичного API |

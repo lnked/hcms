@@ -313,6 +313,8 @@ final class Installer
         $this->writeStorageHtaccess();
         $this->writeLock();
 
+        InstallTelemetry::schedule($payload);
+
         return $adminBase->path();
     }
 

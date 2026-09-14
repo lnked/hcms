@@ -55,6 +55,8 @@ Admin URL: **`/admin`** (не `/public_html/admin`).
 
 Если клонировал репозиторий и `src/bootstrap.php` есть на диске, шаг Download не качает GitHub.
 
+После `complete` инсталлятор может отправить анонимный ping (version / PHP / OS). Opt-out и приёмник: [install-telemetry.md](install-telemetry.md).
+
 ```bash
 composer install
 npm run build --prefix frontend
