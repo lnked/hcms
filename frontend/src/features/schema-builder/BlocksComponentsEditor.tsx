@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useI18n } from '@/i18n'
 import { slugifyIdentifier } from '@/lib/slugify'
-import type { FieldTypeName, SchemaField } from '@/types/field'
 import styles from './BlocksComponentsEditor.module.css'
+import type { FieldTypeName, SchemaField } from '@/types/field'
 
 export type BlockNestedField = {
   name: string

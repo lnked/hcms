@@ -16,8 +16,8 @@ import { useI18n } from '@/i18n'
 import { clearFieldError, hasFieldError } from '@/lib/formErrors'
 import { WEBHOOK_EVENTS, WEBHOOK_PRESETS, type WebhookPresetId } from './presets'
 import styles from './WebhooksPage.module.css'
-import type { Resource } from '@/types/resource'
 import type { useWebhookForm } from './useWebhookForm'
+import type { Resource } from '@/types/resource'
 
 type WebhookForm = ReturnType<typeof useWebhookForm>
 

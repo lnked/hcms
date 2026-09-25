@@ -1,6 +1,6 @@
 import { clsx } from 'clsx'
 import { ChevronDown, ChevronUp, Copy, Trash2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -135,14 +135,20 @@ export function BlocksEditor({
   const components = resolveComponentDefs(field)
   const types = Object.keys(components)
   const blocks = parseBlocks(value)
-  const clientIdsRef = useRef<string[]>([])
+  const [clientIds, setClientIds] = useState<string[]>(() =>
+    Array.from({ length: blocks.length }, () => newClientId()),
+  )
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
-  while (clientIdsRef.current.length < blocks.length) {
-    clientIdsRef.current.push(newClientId())
-  }
-  if (clientIdsRef.current.length > blocks.length) {
-    clientIdsRef.current = clientIdsRef.current.slice(0, blocks.length)
+  if (clientIds.length !== blocks.length) {
+    const next =
+      clientIds.length < blocks.length
+        ? [
+            ...clientIds,
+            ...Array.from({ length: blocks.length - clientIds.length }, () => newClientId()),
+          ]
+        : clientIds.slice(0, blocks.length)
+    setClientIds(next)
   }
 
   function updateAt(index: number, nextValues: EntryValues) {
@@ -161,19 +167,20 @@ export function BlocksEditor({
     if (tmp === undefined || other === undefined) return
     next[index] = other
     next[to] = tmp
-    const ids = [...clientIdsRef.current]
-    const idTmp = ids[index]
-    const idOther = ids[to]
-    if (idTmp !== undefined && idOther !== undefined) {
+    setClientIds((prev) => {
+      const ids = [...prev]
+      const idTmp = ids[index]
+      const idOther = ids[to]
+      if (idTmp === undefined || idOther === undefined) return prev
       ids[index] = idOther
       ids[to] = idTmp
-      clientIdsRef.current = ids
-    }
+      return ids
+    })
     onChange(next)
   }
 
   function removeAt(index: number) {
-    clientIdsRef.current = clientIdsRef.current.filter((_, i) => i !== index)
+    setClientIds((prev) => prev.filter((_, i) => i !== index))
     onChange(blocks.filter((_, i) => i !== index))
   }
 
@@ -183,16 +190,18 @@ export function BlocksEditor({
     const copy = { ...block }
     const next = [...blocks]
     next.splice(index + 1, 0, copy)
-    const ids = [...clientIdsRef.current]
-    ids.splice(index + 1, 0, newClientId())
-    clientIdsRef.current = ids
+    setClientIds((prev) => {
+      const ids = [...prev]
+      ids.splice(index + 1, 0, newClientId())
+      return ids
+    })
     onChange(next)
   }
 
   function add(type: string) {
     const def = components[type]
     const specs = def?.fields ?? []
-    clientIdsRef.current = [...clientIdsRef.current, newClientId()]
+    setClientIds((prev) => [...prev, newClientId()])
     onChange([...blocks, { type, ...emptyValues(specs) }])
   }
 
@@ -206,7 +215,7 @@ export function BlocksEditor({
         const def = components[block.type]
         const specs = def?.fields ?? []
         const unknown = !def
-        const clientId = clientIdsRef.current[index] ?? `${block.type}-${index}`
+        const clientId = clientIds[index] ?? `${field.name}-${index}`
         const isCollapsed = collapsed[clientId] === true
         const { type: _type, ...fieldValues } = block
         const blockErrors = sliceFieldErrors(errors, `${field.name}.${index}`)

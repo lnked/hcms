@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/table'
 import { useI18n } from '@/i18n'
 import styles from './WebhooksPage.module.css'
-import type { UseQueryResult } from '@tanstack/react-query'
 import type { WebhookDelivery } from './presets'
+import type { UseQueryResult } from '@tanstack/react-query'
 
 export function WebhookDeliveriesCard({
   deliveries,

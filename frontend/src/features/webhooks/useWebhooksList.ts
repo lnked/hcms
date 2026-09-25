@@ -3,8 +3,8 @@ import { useMemo, useState } from 'react'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Resource } from '@/types/resource'
 import type { Webhook, WebhookDelivery } from './presets'
+import type { Resource } from '@/types/resource'
 
 export function useWebhooksList() {
   const { t } = useI18n()

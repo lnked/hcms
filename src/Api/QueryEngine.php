@@ -1136,4 +1136,3 @@ final class QueryEngine
         return 'en';
     }
 }
-
