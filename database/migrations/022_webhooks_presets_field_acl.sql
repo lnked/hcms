@@ -1,5 +1,3 @@
--- Webhook revalidation presets + fine-grained ACL columns.
-
 ALTER TABLE cms_webhooks
     ADD COLUMN preset VARCHAR(32) NULL AFTER status,
     ADD COLUMN payload_mode VARCHAR(32) NOT NULL DEFAULT 'hcms' AFTER preset,

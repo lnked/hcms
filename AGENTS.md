@@ -487,6 +487,7 @@ Data backups (БД+media, cloud/SFTP): раздел **Backups** в админк�
 - Не удалять и не перезаписывать незакоммиченные правки пользователя.
 - Проверять результат HTTP-вызовов по факту (`GET`), а не по коду ответа предыдущего шага.
 - **Формы админки:** валидация через `error.fields` + красный бордер/`FieldError`, не toast-only — см. `.cursor/rules/form-field-validation.mdc`.
+- **Двойные запросы:** после правок раздела проверить Network (один GET на endpoint при первом paint). Не `invalidate` по префиксу sibling-ключей и не invalidate idle-статусов в `useEffect` — см. `.cursor/rules/no-duplicate-queries.mdc`.
 
 ## 11. Карта документации
 

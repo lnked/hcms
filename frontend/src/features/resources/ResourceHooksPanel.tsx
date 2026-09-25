@@ -96,7 +96,11 @@ export function ResourceHooksPanel({ resourceId }: { resourceId: number }) {
   })
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ['resource-hooks', resourceId] })
+    // exact: avoid also refetching [... , selectedId, 'deliveries']
+    void queryClient.invalidateQueries({
+      queryKey: ['resource-hooks', resourceId],
+      exact: true,
+    })
   }
 
   const createMutation = useMutation({

@@ -27,8 +27,8 @@ final class PendingMigrations
             }
             $sql = (string) file_get_contents($file);
             foreach (explode(';', $sql) as $raw) {
-                $statement = trim($raw);
-                if ($statement === '' || str_starts_with($statement, '--')) {
+                $statement = self::stripLeadingSqlComments(trim($raw));
+                if ($statement === '') {
                     continue;
                 }
                 try {
@@ -51,10 +51,33 @@ final class PendingMigrations
         // Outside .sql on purpose: update runs PendingMigrations from a stale
         // in-request class after swap, so ADD COLUMN in 013.sql 1060's when the
         // column already exists from a previous failed attempt.
+        // Also repairs installs where a leading `--` comment made the old
+        // `str_starts_with($statement, '--')` skip the whole first ALTER and still mark the file applied.
         self::ensureAclEnabledColumn($db);
         self::ensureMediaUploadedByColumn($db);
+        self::ensureWebhookPresetColumns($db);
+        self::ensureFieldAclColumns($db);
         self::repairMediaColumns($db, $settings);
         self::backfillMediaRefs($db, $settings);
+    }
+
+    /**
+     * Drop full-line `--` comments so a header comment does not make the whole
+     * statement look like a comment (and get skipped).
+     */
+    public static function stripLeadingSqlComments(string $statement): string
+    {
+        $lines = preg_split('/\R/', $statement) ?: [];
+        $kept = [];
+        foreach ($lines as $line) {
+            $trimmed = ltrim($line);
+            if ($trimmed === '' || str_starts_with($trimmed, '--')) {
+                continue;
+            }
+            $kept[] = $line;
+        }
+
+        return trim(implode("\n", $kept));
     }
 
     public static function ensureAclEnabledColumn(Connection $db): void
@@ -112,6 +135,66 @@ final class PendingMigrations
             $db->execRaw('ALTER TABLE cms_media ADD KEY idx_cms_media_uploaded_by (uploaded_by)');
         } catch (Throwable) {
             // Index may already exist from 014.sql
+        }
+    }
+
+    public static function ensureWebhookPresetColumns(Connection $db): void
+    {
+        self::ensureColumn(
+            $db,
+            'cms_webhooks',
+            'preset',
+            'ALTER TABLE cms_webhooks ADD COLUMN preset VARCHAR(32) NULL AFTER status',
+        );
+        self::ensureColumn(
+            $db,
+            'cms_webhooks',
+            'payload_mode',
+            "ALTER TABLE cms_webhooks ADD COLUMN payload_mode VARCHAR(32) NOT NULL DEFAULT 'hcms' AFTER preset",
+        );
+        self::ensureColumn(
+            $db,
+            'cms_webhooks',
+            'headers_json',
+            'ALTER TABLE cms_webhooks ADD COLUMN headers_json JSON NULL AFTER payload_mode',
+        );
+    }
+
+    public static function ensureFieldAclColumns(Connection $db): void
+    {
+        self::ensureColumn(
+            $db,
+            'cms_user_resource_grants',
+            'field_acl_json',
+            'ALTER TABLE cms_user_resource_grants ADD COLUMN field_acl_json JSON NULL AFTER tabs_json',
+        );
+        self::ensureColumn(
+            $db,
+            'cms_user_resource_grants',
+            'own_entries_only',
+            'ALTER TABLE cms_user_resource_grants ADD COLUMN own_entries_only TINYINT(1) NOT NULL DEFAULT 0 AFTER field_acl_json',
+        );
+    }
+
+    private static function ensureColumn(Connection $db, string $table, string $column, string $alterSql): void
+    {
+        $row = $db->selectOne(
+            "SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table
+               AND COLUMN_NAME = :column",
+            ['table' => $table, 'column' => $column],
+        );
+        if ($row !== null && (int) $row['c'] > 0) {
+            return;
+        }
+
+        try {
+            $db->execRaw($alterSql);
+        } catch (Throwable $e) {
+            if (!self::isIgnorableMigrationError($alterSql, $e)) {
+                throw $e;
+            }
         }
     }
 

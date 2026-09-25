@@ -258,8 +258,7 @@ export function AppShell() {
   const version = useQuery({
     queryKey: queryKeys.system.version,
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 60_000,
   })
   const me = useAuthMe()
 

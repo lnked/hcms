@@ -1,0 +1,55 @@
+---
+description: Admin sections must not fire duplicate React Query requests on mount
+globs: frontend/src/**/*.{tsx,ts}
+alwaysApply: true
+---
+
+# No duplicate queries (admin sections)
+
+After adding or changing an admin section, verify Network: each distinct endpoint fires **once** on first paint (ignore React StrictMode doubles in local `npm run dev`).
+
+## Checklist on every section change
+
+1. Open the route → DevTools Network → filter XHR/fetch.
+2. Count GETs: one per `useQuery` / intentional prefetch. No identical URL twice in the same burst.
+3. Mutations may invalidate — only the intended keys, not siblings.
+
+## Anti-patterns
+
+```tsx
+// ❌ BAD — prefix match also refetches status + cloud
+queryKey: ['backups']
+queryKey: ['backups', 'status']
+invalidateQueries({ queryKey: ['backups'] })
+
+// ❌ BAD — idle "done" invalidates on every visit
+useEffect(() => {
+  if (status === 'done') void queryClient.invalidateQueries({ queryKey: ['backups'] })
+}, [status])
+
+// ❌ BAD — layout already owns the key; page forces a second hit
+// AppShell: queryKey version + refetchOnMount: 'always'
+// Page: same key + refetchOnMount: 'always'
+```
+
+```tsx
+// ✅ GOOD — sibling keys under a namespace
+queryKey: ['backups', 'list']
+queryKey: ['backups', 'status']
+invalidateQueries({ queryKey: ['backups', 'list'] })
+
+// ✅ GOOD — or exact match for the list only
+invalidateQueries({ queryKey: ['webhooks'], exact: true })
+
+// ✅ GOOD — invalidate list only on transition, not idle state
+if (state === 'done' && (prev === 'running' || prev === 'queued')) {
+  void queryClient.invalidateQueries({ queryKey: ['backups', 'list'] })
+}
+```
+
+## Rules of thumb
+
+- Prefer `['domain', 'list']` / `['domain', 'detail', id]` over a bare `['domain']` when children share the prefix.
+- Shared shell queries (`system-version`, `auth-me`): page must **reuse** the key without `refetchOnMount: 'always'` / `gcTime: 0` unless freshness is required and the shell does not own it.
+- Do not `invalidateQueries` in `useEffect` on stable success/idle flags.
+- Same `queryKey` in two mounted components is fine (RQ dedupes); different keys hitting the same URL is not.

@@ -7,7 +7,7 @@
     <title>HCMS — a ready-made admin for your SPA</title>
       <meta
       name="description"
-      content="Self-hosted headless CMS: visual schema, REST + OpenAPI, drop-in /admin, feature flags with A/B, translates API, media optimize, OAuth, roles, anti-spam forms. MIT, PHP 8.3+."
+      content="Self-hosted headless CMS: schema → REST + OpenAPI, live preview, backups, ISR webhooks, field ACL, @hcms/sdk, feature flags, OAuth. MIT, PHP 8.3+."
     />
     <link rel="canonical" href="https://2js.ru/" />
     <link rel="alternate" hreflang="en" href="https://2js.ru/" />
@@ -22,7 +22,7 @@
     <meta property="og:title" content="HCMS — a ready-made admin for your SPA" />
     <meta
       property="og:description"
-      content="Schema → REST, OpenAPI, CRUD. Feature flags + A/B, translates, media with warm-cache. OAuth, roles, anti-spam. Your SPA stays the frontend."
+      content="Schema → REST, OpenAPI, CRUD. Live preview, data backups, ISR presets, field/row ACL, SDK. Your SPA stays the frontend."
     />
     <meta property="og:url" content="https://2js.ru/" />
     <meta property="og:image" content="https://2js.ru/og.png" />
@@ -34,7 +34,7 @@
     <meta name="twitter:title" content="HCMS — a ready-made admin for your SPA" />
     <meta
       name="twitter:description"
-      content="Schema → REST, OpenAPI, CRUD. Feature flags + A/B, translates, media warm-cache. OAuth, roles, anti-spam."
+      content="Schema → REST, OpenAPI, CRUD. Live preview, backups, ISR presets, field ACL, SDK. OAuth, roles, anti-spam."
     />
     <meta name="twitter:image" content="https://2js.ru/og.png" />
     <script type="application/ld+json">
@@ -46,7 +46,7 @@
         "operatingSystem": "PHP 8.3+, MySQL / MariaDB",
         "url": "https://2js.ru/",
         "downloadUrl": "https://2js.ru/download",
-        "description": "Self-hosted headless CMS with drop-in admin, schema builder, REST, OpenAPI, feature flags with A/B rollout, translates API, and media optimize.",
+        "description": "Self-hosted headless CMS with drop-in admin, schema builder, REST, OpenAPI, live preview, data backups, ISR webhooks, field ACL, and @hcms/sdk.",
         "license": "https://opensource.org/licenses/MIT",
         "offers": {
           "@type": "Offer",
@@ -71,6 +71,7 @@
       <div class="wrap nav-inner">
         <a class="logo" href="./">HCMS</a>
         <nav class="nav-links" aria-label="Primary">
+          <a href="#whats-new" data-i18n="nav.whatsNew">What's new</a>
           <a href="#features" data-i18n="nav.features">Features</a>
           <a href="#install" data-i18n="nav.install">Install</a>
           <a href="https://github.com/lnked/hcms/tree/main/docs" target="_blank" rel="noopener">Docs</a>
@@ -95,7 +96,7 @@
         <div class="hero-copy">
           <h1 data-i18n="hero.title">A ready-made admin for your SPA</h1>
           <p class="sub" data-i18n="hero.sub">
-            Describe the schema. Get REST, OpenAPI, CRUD, feature flags, and translates. Your SPA stays the frontend.
+            Describe the schema. Get REST, OpenAPI, CRUD, live preview, backups, and an SDK. Your SPA stays the frontend.
           </p>
           <div class="hero-cta" id="hero-cta">
             <a
@@ -184,6 +185,8 @@
           <span data-i18n="pill.roles">Roles</span>
           <span data-i18n="pill.flags">Feature flags</span>
           <span data-i18n="pill.i18n">i18n API</span>
+          <span data-i18n="pill.backups">Backups</span>
+          <span data-i18n="pill.sdk">SDK</span>
         </div>
       </section>
 
@@ -213,6 +216,73 @@
               your SPA.
             </p>
           </article>
+        </div>
+      </section>
+
+      <section class="section" id="whats-new">
+        <div class="wrap">
+          <p class="eyebrow" data-i18n="wn.eyebrow">What's new</p>
+          <h2 data-i18n="wn.title">Shipped in 0.62 — preview to backups</h2>
+          <p class="lead" data-i18n="wn.lead">
+            Product cut for a modern headless CMS on PHP: live preview, content features, ISR webhooks, fine-grained ACL,
+            data backups, and an official SDK.
+          </p>
+          <div class="cards cards-wide">
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c1.tag">0.62.11</p>
+              <h3 data-i18n="wn.c1.title">Live Preview &amp; cache headers</h3>
+              <p data-i18n="wn.c1.body">
+                Draft-safe preview tokens for the SPA, Cache-Control + Surrogate-Key on public GET — ready for CDN/ISR.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c2.tag">0.62.11</p>
+              <h3 data-i18n="wn.c2.title">M2M, blocks, workflows, locales</h3>
+              <p data-i18n="wn.c2.body">
+                manyToMany / oneToOne, typed blocks field, entry status workflow, and content locale columns with
+                ?locale= fallback.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c3.tag">0.62.11</p>
+              <h3 data-i18n="wn.c3.title">@hcms/sdk + typegen</h3>
+              <p data-i18n-html="wn.c3.body">
+                Thin TypeScript client and <code>hcms-types</code> CLI from OpenAPI — ship typed SPA calls without a second
+                schema DSL.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c4.tag">0.62.12</p>
+              <h3 data-i18n="wn.c4.title">Event Bus &amp; ISR presets</h3>
+              <p data-i18n="wn.c4.body">
+                Internal Event Bus; webhook templates for Vercel, Netlify, Cloudflare, and Fastly revalidation.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c5.tag">0.62.12–15</p>
+              <h3 data-i18n="wn.c5.title">Field/row ACL &amp; admin sections</h3>
+              <p data-i18n="wn.c5.body">
+                Per-grant fieldAcl and ownEntriesOnly. Owner hides admin sections and picks the post-login home.
+              </p>
+            </article>
+            <article class="card">
+              <p class="card-tag" data-i18n="wn.c6.tag">0.62.0 / .13</p>
+              <h3 data-i18n="wn.c6.title">Uptime + data backups</h3>
+              <p data-i18n="wn.c6.body">
+                URL/self health probes with soft cron. DB + media snapshots, restore, and push to Google / Yandex /
+                Dropbox / SFTP.
+              </p>
+            </article>
+          </div>
+          <p class="wn-more">
+            <a
+              href="https://github.com/lnked/hcms/blob/main/changelog.json"
+              target="_blank"
+              rel="noopener"
+              data-i18n="wn.changelog"
+              >Full changelog on GitHub →</a
+            >
+          </p>
         </div>
       </section>
 
@@ -377,7 +447,7 @@
               <h3 data-i18n="team.c2.title">Roles people understand</h3>
               <p data-i18n="team.c2.body">
                 Invite a content manager to edit entries — or give view-only access to the admin. Owner keeps schema,
-                users, and system. Per-resource ACL on top.
+                users, and system. Field/row ACL and per-resource grants on top.
               </p>
             </article>
             <article class="card">
@@ -401,7 +471,8 @@
             <article class="card">
               <h3 data-i18n="s2.c1.title">Field types that cover real apps</h3>
               <p data-i18n="s2.c1.body">
-                String, richtext, relation, media, slug, enum, json, dates — publish and get a migration.
+                String, richtext, relation (M2M / oneToOne), blocks, media, slug, enum, json, dates — publish and get a
+                migration.
               </p>
             </article>
             <article class="card">
@@ -443,7 +514,10 @@
             </article>
             <article class="card">
               <h3 data-i18n="s3.c3.title">Relations &amp; revisions</h3>
-              <p data-i18n="s3.c3.body">Link entries, keep history, export/import resource packages.</p>
+              <p data-i18n="s3.c3.body">
+                manyToOne / manyToMany / oneToOne, entry revisions, workflow status, locale siblings, package
+                export/import.
+              </p>
             </article>
           </div>
         </div>
@@ -487,7 +561,7 @@
               <h3 data-i18n="s5.c1.title">Editor, viewer, owner</h3>
               <p data-i18n="s5.c1.body">
                 Content managers edit entries; viewers only browse the admin. Owner → admin → editor → viewer, plus
-                per-resource ACL.
+                field/row ACL and per-resource grants.
               </p>
             </article>
             <article class="card">
@@ -498,8 +572,10 @@
               </p>
             </article>
             <article class="card">
-              <h3 data-i18n="s5.c3.title">HMAC webhooks</h3>
-              <p data-i18n="s5.c3.body">Ping your SPA or workers on content changes. Retries included.</p>
+              <h3 data-i18n="s5.c3.title">HMAC webhooks + ISR</h3>
+              <p data-i18n="s5.c3.body">
+                Event Bus listeners with retries. Presets for Vercel / Netlify / Cloudflare / Fastly revalidation.
+              </p>
             </article>
           </div>
         </div>
@@ -607,12 +683,13 @@
           <div>
             <div class="logo">HCMS</div>
             <p data-i18n="footer.blurb">
-              API-first headless CMS. Schema, flags, translates, media — REST and admin out. MIT.
+              API-first headless CMS. Schema, preview, backups, ISR webhooks, ACL, SDK — REST and admin out. MIT.
             </p>
           </div>
           <div>
             <h4 data-i18n="footer.product">Product</h4>
             <ul>
+              <li><a href="#whats-new" data-i18n="nav.whatsNew">What's new</a></li>
               <li><a href="#why" data-i18n="nav.why">Why</a></li>
               <li><a href="#compare" data-i18n="nav.compare">Compare</a></li>
               <li><a href="#features" data-i18n="nav.features">Features</a></li>

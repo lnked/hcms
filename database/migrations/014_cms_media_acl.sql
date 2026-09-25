@@ -1,4 +1,3 @@
--- Media ownership + usage index for ACL-scoped media library.
 ALTER TABLE cms_media
     ADD COLUMN uploaded_by BIGINT UNSIGNED NULL AFTER created_at,
     ADD KEY idx_cms_media_uploaded_by (uploaded_by);

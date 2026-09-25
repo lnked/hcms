@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.62.18",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Webhook migration repair + fewer duplicate admin GETs",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "system",
+          "text": "PendingMigrations skipped ALTER after a leading -- comment (022 webhooks presets); ensureWebhookPresetColumns repairs already-broken installs"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "Backups page no longer double-fetches list/status/cloud on idle done status; sibling query keys + transition-only invalidate"
+        },
+        {
+          "type": "fixed",
+          "area": "admin",
+          "text": "exact invalidate for webhooks/inbound/hooks; AppShell/System share version query without forced remount refetch"
+        },
+        {
+          "type": "changed",
+          "area": "landing",
+          "text": "What's new section for 0.62 (preview, backups, ISR, ACL, SDK); updated hero copy and pills"
+        }
+      ]
+    },
+    {
       "version": "0.62.17",
       "date": "2026-09-25",
       "channel": "stable",

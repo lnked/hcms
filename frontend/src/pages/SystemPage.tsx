@@ -131,12 +131,11 @@ export function SystemPage() {
     return () => window.cancelAnimationFrame(id)
   }, [section, searchParams])
 
+  // Reuse AppShell's version query — do not force refetchOnMount/gcTime:0
+  // (that double-hits /admin/api/system/version when this page mounts).
   const query = useQuery({
     queryKey: queryKeys.system.version,
     queryFn: () => api<SystemVersion>('/admin/api/system/version'),
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
   })
 
   const status = useQuery({

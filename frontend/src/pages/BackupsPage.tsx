@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { HardDrive, Cloud } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
 import { FormBlockSkeleton, TableSkeleton } from '@/components/skeletons'
@@ -122,7 +122,7 @@ export function BackupsPage() {
   }
 
   const listQuery = useQuery({
-    queryKey: ['backups'],
+    queryKey: ['backups', 'list'],
     queryFn: () => api<BackupItem[]>('/admin/api/backups'),
   })
 
@@ -141,6 +141,7 @@ export function BackupsPage() {
   })
 
   const retention = retentionDraft ?? cloudQuery.data?.retention ?? 10
+  const prevStatusRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     const connected = params.get('connected')
@@ -180,9 +181,16 @@ export function BackupsPage() {
     }
   }, [params, queryClient, setParams, t])
 
+  // Only refresh the list when a job finishes — not on every visit while state is already "done".
+  // Prefix invalidate on ['backups'] would also refetch status + cloud.
   useEffect(() => {
-    if (statusQuery.data?.state === 'done') {
-      void queryClient.invalidateQueries({ queryKey: ['backups'] })
+    const state = statusQuery.data?.state
+    const prev = prevStatusRef.current
+    if (state === 'done' && (prev === 'running' || prev === 'queued')) {
+      void queryClient.invalidateQueries({ queryKey: ['backups', 'list'] })
+    }
+    if (state !== undefined) {
+      prevStatusRef.current = state
     }
   }, [statusQuery.data?.state, queryClient])
 
@@ -199,7 +207,7 @@ export function BackupsPage() {
     mutationFn: (id: string) => api(`/admin/api/backups/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       showSuccess(t('backups.deleted'))
-      void queryClient.invalidateQueries({ queryKey: ['backups'] })
+      void queryClient.invalidateQueries({ queryKey: ['backups', 'list'] })
     },
   })
 
@@ -211,7 +219,7 @@ export function BackupsPage() {
       }),
     onSuccess: () => {
       showSuccess(t('backups.restored'))
-      void queryClient.invalidateQueries({ queryKey: ['backups'] })
+      void queryClient.invalidateQueries({ queryKey: ['backups', 'list'] })
     },
   })
 

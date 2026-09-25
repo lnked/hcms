@@ -199,7 +199,7 @@ export function WebhooksPage() {
       setOpen(false)
       resetForm()
       setSelectedId(data.id)
-      void queryClient.invalidateQueries({ queryKey: ['webhooks'] })
+      void queryClient.invalidateQueries({ queryKey: ['webhooks'], exact: true })
     },
     onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
@@ -215,7 +215,7 @@ export function WebhooksPage() {
       setFieldErrors({})
       setOpen(false)
       resetForm()
-      void queryClient.invalidateQueries({ queryKey: ['webhooks'] })
+      void queryClient.invalidateQueries({ queryKey: ['webhooks'], exact: true })
     },
     onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
@@ -224,7 +224,7 @@ export function WebhooksPage() {
     mutationFn: (id: number) => api<void>(`/admin/api/webhooks/${id}`, { method: 'DELETE' }),
     onSuccess: (_data, id) => {
       if (selectedId === id) setSelectedId(null)
-      void queryClient.invalidateQueries({ queryKey: ['webhooks'] })
+      void queryClient.invalidateQueries({ queryKey: ['webhooks'], exact: true })
     },
   })
 
@@ -236,7 +236,7 @@ export function WebhooksPage() {
           status: hook.status === 'active' ? 'disabled' : 'active',
         }),
       }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['webhooks'] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['webhooks'], exact: true }),
   })
 
   const test = useMutation({

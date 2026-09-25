@@ -102,7 +102,8 @@ export function InboundEndpointsPage() {
   })
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ['inbound-endpoints'] })
+    // exact: avoid also refetching ['inbound-endpoints', id, 'deliveries']
+    void queryClient.invalidateQueries({ queryKey: ['inbound-endpoints'], exact: true })
   }
 
   const parseFieldMap = (): Record<string, string> | null => {

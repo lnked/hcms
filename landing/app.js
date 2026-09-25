@@ -11,6 +11,7 @@ const I18N = {
   en: {
     'skip': 'Skip to content',
     'nav.features': 'Features',
+    'nav.whatsNew': "What's new",
     'nav.install': 'Install',
     'nav.preview': 'Admin preview',
     'nav.why': 'Why',
@@ -19,7 +20,7 @@ const I18N = {
     'nav.cta': 'Get install.php',
     'hero.title': 'A ready-made admin for your SPA',
     'hero.sub':
-      'Describe the schema. Get REST, OpenAPI, CRUD, feature flags, and translates. Your SPA stays the frontend.',
+      'Describe the schema. Get REST, OpenAPI, CRUD, live preview, backups, and an SDK. Your SPA stays the frontend.',
     'hero.download': 'Download install.php',
     'hero.github': 'View on GitHub',
     'hero.copy': 'Copy',
@@ -31,6 +32,8 @@ const I18N = {
     'pill.roles': 'Roles',
     'pill.flags': 'Feature flags',
     'pill.i18n': 'i18n API',
+    'pill.backups': 'Backups',
+    'pill.sdk': 'SDK',
     'pill.dark': 'Dark mode',
     'pill.host': 'Self-host',
     'trust.deps': 'Zero runtime deps',
@@ -82,15 +85,45 @@ const I18N = {
       'Google and Telegram login plus TOTP 2FA. Owners stay on password; editors can connect social accounts.',
     'team.c2.title': 'Roles people understand',
     'team.c2.body':
-      'Invite a content manager to edit entries — or give view-only access to the admin. Owner keeps schema, users, and system. Per-resource ACL on top.',
+      'Invite a content manager to edit entries — or give view-only access to the admin. Owner keeps schema, users, and system. Field/row ACL and per-resource grants on top.',
     'team.c3.title': 'Forms & email ready',
     'team.c3.body':
       'Anti-spam on public create: honeypot, timing, captcha, blocklist. Send via Resend, Postmark, or Mailgun.',
+    'wn.eyebrow': "What's new",
+    'wn.title': 'Shipped in 0.62 — preview to backups',
+    'wn.lead':
+      'Product cut for a modern headless CMS on PHP: live preview, content features, ISR webhooks, fine-grained ACL, data backups, and an official SDK.',
+    'wn.c1.tag': '0.62.11',
+    'wn.c1.title': 'Live Preview & cache headers',
+    'wn.c1.body':
+      'Draft-safe preview tokens for the SPA, Cache-Control + Surrogate-Key on public GET — ready for CDN/ISR.',
+    'wn.c2.tag': '0.62.11',
+    'wn.c2.title': 'M2M, blocks, workflows, locales',
+    'wn.c2.body':
+      'manyToMany / oneToOne, typed blocks field, entry status workflow, and content locale columns with ?locale= fallback.',
+    'wn.c3.tag': '0.62.11',
+    'wn.c3.title': '@hcms/sdk + typegen',
+    'wn.c3.body':
+      'Thin TypeScript client and <code>hcms-types</code> CLI from OpenAPI — ship typed SPA calls without a second schema DSL.',
+    'wn.c4.tag': '0.62.12',
+    'wn.c4.title': 'Event Bus & ISR presets',
+    'wn.c4.body':
+      'Internal Event Bus; webhook templates for Vercel, Netlify, Cloudflare, and Fastly revalidation.',
+    'wn.c5.tag': '0.62.12–15',
+    'wn.c5.title': 'Field/row ACL & admin sections',
+    'wn.c5.body':
+      'Per-grant fieldAcl and ownEntriesOnly. Owner hides admin sections and picks the post-login home.',
+    'wn.c6.tag': '0.62.0 / .13',
+    'wn.c6.title': 'Uptime + data backups',
+    'wn.c6.body':
+      'URL/self health probes with soft cron. DB + media snapshots, restore, and push to Google / Yandex / Dropbox / SFTP.',
+    'wn.changelog': 'Full changelog on GitHub →',
     's2.eyebrow': 'Build APIs fast',
     's2.title': 'From content type to live /api/{slug}',
     's2.lead': 'Schema is the source of truth for SQL, validation, REST, Admin UI, and OpenAPI.',
     's2.c1.title': 'Field types that cover real apps',
-    's2.c1.body': 'String, richtext, relation, media, slug, enum, json, dates — publish and get a migration.',
+    's2.c1.body':
+      'String, richtext, relation (M2M / oneToOne), blocks, media, slug, enum, json, dates — publish and get a migration.',
     's2.c2.title': 'Query the way you expect',
     's2.c2.body':
       'Per-resource pagination, search, sort, and filter. Custom resource APIs for read and write projections.',
@@ -106,7 +139,8 @@ const I18N = {
     's3.c2.title': 'Rich text & tables',
     's3.c2.body': 'Markdown for editors. Typed column filters, bulk delete, and relation labels in the list view.',
     's3.c3.title': 'Relations & revisions',
-    's3.c3.body': 'Link entries, keep history, export/import resource packages.',
+    's3.c3.body':
+      'manyToOne / manyToMany / oneToOne, entry revisions, workflow status, locale siblings, package export/import.',
     's4.eyebrow': 'Deploy anywhere',
     's4.title': 'One file. Any PHP host.',
     's4.lead': 'No Cloud upsell. Self-host, update in-app, roll back if a swap dies mid-flight.',
@@ -122,12 +156,13 @@ const I18N = {
     's5.lead': 'Auth is Bearer-only. The rest ships in core.',
     's5.c1.title': 'Editor, viewer, owner',
     's5.c1.body':
-      'Content managers edit entries; viewers only browse the admin. Owner → admin → editor → viewer, plus per-resource ACL.',
+      'Content managers edit entries; viewers only browse the admin. Owner → admin → editor → viewer, plus field/row ACL and per-resource grants.',
     's5.c2.title': 'OAuth + TOTP',
     's5.c2.body':
       'Google / Telegram and authenticator apps. Captcha, IP blocks, token origin/IP limits — no security plugin hunt.',
-    's5.c3.title': 'HMAC webhooks',
-    's5.c3.body': 'Ping your SPA or workers on content changes. Retries included.',
+    's5.c3.title': 'HMAC webhooks + ISR',
+    's5.c3.body':
+      'Event Bus listeners with retries. Presets for Vercel / Netlify / Cloudflare / Fastly revalidation.',
     'why.eyebrow': 'Why HCMS',
     'why.title': 'You shipped the SPA. Then you rebuilt the CMS.',
     'why.lead': 'CRUD, migrations, admin UI, OpenAPI — again. HCMS closes that gap on any PHP host.',
@@ -174,17 +209,18 @@ const I18N = {
     'cta.title': 'Two commands. Admin on your PHP host.',
     'cta.body': 'Latest zip from GitHub. Admin at /admin, API at /api. MIT.',
     'footer.blurb':
-      'API-first headless CMS. Schema, flags, translates, media — REST and admin out. MIT.',
+      'API-first headless CMS. Schema, preview, backups, ISR webhooks, ACL, SDK — REST and admin out. MIT.',
     'footer.product': 'Product',
     'footer.source': 'Source',
     'announce':
-      'HCMS {version} is out — MIT, PHP 8.3, zero runtime deps. <a href="{url}" target="_blank" rel="noopener">Release notes</a>',
+      'HCMS {version}: live preview, backups, ISR presets, field ACL, SDK. <a href="{url}" target="_blank" rel="noopener">Release notes</a>',
     'counter.plural': 'download|downloads|downloads',
     'title': 'HCMS — a ready-made admin for your SPA',
   },
   ru: {
     'skip': 'К содержимому',
     'nav.features': 'Возможности',
+    'nav.whatsNew': 'Что нового',
     'nav.install': 'Установка',
     'nav.preview': 'Превью админки',
     'nav.why': 'Зачем',
@@ -193,7 +229,7 @@ const I18N = {
     'nav.cta': 'Скачать install.php',
     'hero.title': 'Готовая админка для вашего SPA',
     'hero.sub':
-      'Опиши схему — получи REST, OpenAPI, CRUD, feature flags и translates. Фронт остаётся фронтом.',
+      'Опиши схему — получи REST, OpenAPI, CRUD, live preview, бэкапы и SDK. Фронт остаётся фронтом.',
     'hero.download': 'Скачать install.php',
     'hero.github': 'Код на GitHub',
     'hero.copy': 'Копировать',
@@ -205,6 +241,8 @@ const I18N = {
     'pill.roles': 'Роли',
     'pill.flags': 'Feature flags',
     'pill.i18n': 'i18n API',
+    'pill.backups': 'Бэкапы',
+    'pill.sdk': 'SDK',
     'pill.dark': 'Тёмная тема',
     'pill.host': 'Self-host',
     'trust.deps': 'Без runtime-зависимостей',
@@ -256,15 +294,45 @@ const I18N = {
       'Google и Telegram плюс TOTP 2FA. Владелец на пароле; редакторы могут подключить соцвход.',
     'team.c2.title': 'Роли без жаргона',
     'team.c2.body':
-      'Выдай контент-менеджеру доступ к записям — или только просмотр админки. Схема, пользователи и система остаются у владельца. Сверху — ACL на ресурсы.',
+      'Выдай контент-менеджеру доступ к записям — или только просмотр админки. Схема, пользователи и система остаются у владельца. Сверху — field/row ACL и гранты на ресурсы.',
     'team.c3.title': 'Формы и email',
     'team.c3.body':
       'Антиспам на public.create: honeypot, тайминг, капча, блоклист. Отправка через Resend, Postmark или Mailgun.',
+    'wn.eyebrow': 'Что нового',
+    'wn.title': 'В 0.62 — от preview до бэкапов',
+    'wn.lead':
+      'Продуктовый срез современной headless CMS на PHP: live preview, контент-фичи, ISR-вебхуки, fine-grained ACL, бэкапы данных и официальный SDK.',
+    'wn.c1.tag': '0.62.11',
+    'wn.c1.title': 'Live Preview и cache headers',
+    'wn.c1.body':
+      'Preview-токены для SPA без публикации, Cache-Control + Surrogate-Key на публичном GET — под CDN/ISR.',
+    'wn.c2.tag': '0.62.11',
+    'wn.c2.title': 'M2M, blocks, workflow, локали',
+    'wn.c2.body':
+      'manyToMany / oneToOne, типизированный blocks, статус workflow, колонки locale и ?locale= с fallback.',
+    'wn.c3.tag': '0.62.11',
+    'wn.c3.title': '@hcms/sdk + typegen',
+    'wn.c3.body':
+      'Тонкий TypeScript-клиент и CLI <code>hcms-types</code> из OpenAPI — типизированные вызовы SPA без второго DSL схемы.',
+    'wn.c4.tag': '0.62.12',
+    'wn.c4.title': 'Event Bus и ISR-пресеты',
+    'wn.c4.body':
+      'Внутренний Event Bus; шаблоны вебхуков для revalidation на Vercel, Netlify, Cloudflare и Fastly.',
+    'wn.c5.tag': '0.62.12–15',
+    'wn.c5.title': 'Field/row ACL и секции админки',
+    'wn.c5.body':
+      'fieldAcl и ownEntriesOnly на грантах. Owner скрывает секции админки и выбирает home после логина.',
+    'wn.c6.tag': '0.62.0 / .13',
+    'wn.c6.title': 'Uptime и бэкапы данных',
+    'wn.c6.body':
+      'Пробы URL/self health с soft cron. Снимки БД + media, restore и push в Google / Яндекс / Dropbox / SFTP.',
+    'wn.changelog': 'Полный changelog на GitHub →',
     's2.eyebrow': 'API за минуты',
     's2.title': 'От типа контента до живого /api/{slug}',
     's2.lead': 'Схема — source of truth для SQL, валидации, REST, админки и OpenAPI.',
     's2.c1.title': 'Типы полей под реальные приложения',
-    's2.c1.body': 'String, richtext, relation, media, slug, enum, json, даты — опубликовал и получил миграцию.',
+    's2.c1.body':
+      'String, richtext, relation (M2M / oneToOne), blocks, media, slug, enum, json, даты — опубликовал и получил миграцию.',
     's2.c2.title': 'Запросы как ожидаешь',
     's2.c2.body':
       'Пагинация, поиск, сорт и фильтры на ресурс. Кастомные resource API — на чтение и на запись.',
@@ -281,7 +349,8 @@ const I18N = {
     's3.c2.body':
       'Markdown для редакторов. Типизированные фильтры колонок, bulk delete и подписи связей в списке.',
     's3.c3.title': 'Связи и ревизии',
-    's3.c3.body': 'Связи записей, история, экспорт/импорт пакетов ресурсов.',
+    's3.c3.body':
+      'manyToOne / manyToMany / oneToOne, ревизии, workflow-статус, locale-siblings, экспорт/импорт пакетов.',
     's4.eyebrow': 'Куда угодно',
     's4.title': 'Один файл. Любой PHP-хостинг.',
     's4.lead': 'Без Cloud. Self-host, обновление из админки, откат если swap оборвался.',
@@ -297,12 +366,13 @@ const I18N = {
     's5.lead': 'Auth только Bearer. Остальное уже в core.',
     's5.c1.title': 'Editor, viewer, owner',
     's5.c1.body':
-      'Контент-менеджер правит записи; viewer только смотрит админку. Owner → admin → editor → viewer, плюс ACL на ресурс.',
+      'Контент-менеджер правит записи; viewer только смотрит админку. Owner → admin → editor → viewer, плюс field/row ACL и гранты на ресурс.',
     's5.c2.title': 'OAuth + TOTP',
     's5.c2.body':
       'Google / Telegram и authenticator. Капча, IP-блоки, лимиты токена по origin/IP — без охоты за security-плагином.',
-    's5.c3.title': 'HMAC webhooks',
-    's5.c3.body': 'Пингуй SPA или воркеры при изменении контента. Ретраи в комплекте.',
+    's5.c3.title': 'HMAC webhooks + ISR',
+    's5.c3.body':
+      'Слушатели Event Bus с ретраями. Пресеты revalidation для Vercel / Netlify / Cloudflare / Fastly.',
     'why.eyebrow': 'Зачем HCMS',
     'why.title': 'SPA уже есть. CMS ты снова пишешь сам.',
     'why.lead': 'CRUD, миграции, админка, OpenAPI — по кругу. HCMS закрывает дыру на любом PHP-хосте.',
@@ -349,11 +419,11 @@ const I18N = {
     'cta.title': 'Две команды. Админка на твоём PHP-хосте.',
     'cta.body': 'Latest zip с GitHub. Админка /admin, API /api. MIT.',
     'footer.blurb':
-      'API-first headless CMS. Схема, флаги, translates, медиа — REST и админка на выходе. MIT.',
+      'API-first headless CMS. Схема, preview, бэкапы, ISR-вебхуки, ACL, SDK — REST и админка на выходе. MIT.',
     'footer.product': 'Продукт',
     'footer.source': 'Исходники',
     'announce':
-      'HCMS {version} — MIT, PHP 8.3, без runtime-зависимостей. <a href="{url}" target="_blank" rel="noopener">Релиз</a>',
+      'HCMS {version}: live preview, бэкапы, ISR-пресеты, field ACL, SDK. <a href="{url}" target="_blank" rel="noopener">Релиз</a>',
     'counter.plural': 'скачивание|скачивания|скачиваний',
     'title': 'HCMS — готовая админка для вашего SPA',
   },
