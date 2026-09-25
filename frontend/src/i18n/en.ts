@@ -529,7 +529,8 @@ export const en = {
   'entries.blocksNoComponents': 'No block components configured in the schema.',
   'entries.blocksEmptyComponent': 'This component has no nested fields.',
   'entries.blocksUnknownType': 'Unknown type',
-  'entries.blocksUnknownTypeHint': 'This block type is no longer in the schema. Remove it or restore the component.',
+  'entries.blocksUnknownTypeHint':
+    'This block type is no longer in the schema. Remove it or restore the component.',
   'entries.status': 'Status',
   'entries.statusUpdated': 'Status updated',
   'entries.submitReview': 'Submit for review',

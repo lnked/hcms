@@ -522,7 +522,8 @@ export const ru: Record<MessageKey, string> = {
   'entries.addTranslationShort': 'Добавить…',
   'entries.translationCreated': 'Перевод создан',
   'entries.noLocales': 'Языки не настроены',
-  'entries.noLocalesHint': 'Добавьте и включите локали, прежде чем создавать локализованные записи.',
+  'entries.noLocalesHint':
+    'Добавьте и включите локали, прежде чем создавать локализованные записи.',
   'entries.configureLocales': 'Настроить языки',
   'entries.blocksAdd': 'Добавить блок',
   'entries.blocksAddPlaceholder': 'Выберите тип блока…',

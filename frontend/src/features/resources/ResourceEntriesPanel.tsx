@@ -170,11 +170,14 @@ export function ResourceEntriesPanel({
     : ''
 
   const createLocaleValue =
-    createLocale !== '' ? createLocale : activeListLocale !== '' ? activeListLocale : defaultLocaleCode
+    createLocale !== ''
+      ? createLocale
+      : activeListLocale !== ''
+        ? activeListLocale
+        : defaultLocaleCode
 
   const localesReady = !localizationEnabled || localesQuery.isFetched
-  const noLocalesConfigured =
-    localizationEnabled && localesReady && enabledLocales.length === 0
+  const noLocalesConfigured = localizationEnabled && localesReady && enabledLocales.length === 0
 
   const { list } = useResourceEntriesList({
     resourceId,

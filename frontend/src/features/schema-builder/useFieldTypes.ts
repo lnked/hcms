@@ -1,11 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
-import {
-  FIELD_TYPES,
-  type FieldTypeDescriptor,
-  type FieldTypeName,
-} from '@/types/field'
+import { FIELD_TYPES, type FieldTypeDescriptor, type FieldTypeName } from '@/types/field'
 
 export function useFieldTypes() {
   const fieldTypesQuery = useQuery({

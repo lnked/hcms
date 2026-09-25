@@ -227,9 +227,7 @@ export function BlocksComponentsEditor({
                 />
                 <Select
                   value={nf.type}
-                  onChange={(e) =>
-                    updateNested(type, ni, { type: e.target.value, config: {} })
-                  }
+                  onChange={(e) => updateNested(type, ni, { type: e.target.value, config: {} })}
                 >
                   {fieldTypes.map((ft) => (
                     <option key={ft} value={ft}>
