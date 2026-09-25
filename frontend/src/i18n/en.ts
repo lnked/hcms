@@ -597,6 +597,9 @@ export const en = {
 
   'schema.fields': 'Fields',
   'schema.addField': 'Add field',
+  'schema.pluginConfig': 'Plugin config (JSON)',
+  'schema.pluginConfigHint':
+    'Raw config for custom field types. Invalid JSON is ignored until valid.',
   'schema.reorder': 'Drag to reorder',
   'schema.empty': 'No fields yet. Add string, email, enum and more.',
   'schema.untitled': 'Untitled',

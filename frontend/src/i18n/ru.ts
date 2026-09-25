@@ -601,6 +601,9 @@ export const ru: Record<MessageKey, string> = {
 
   'schema.fields': 'Поля',
   'schema.addField': 'Добавить поле',
+  'schema.pluginConfig': 'Конфиг плагина (JSON)',
+  'schema.pluginConfigHint':
+    'Сырой config для кастомных типов. Невалидный JSON игнорируется, пока не станет валидным.',
   'schema.reorder': 'Перетащите для сортировки',
   'schema.empty': 'Полей пока нет. Добавьте string, email, enum и другие.',
   'schema.untitled': 'Без названия',
