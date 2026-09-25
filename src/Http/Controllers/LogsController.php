@@ -92,11 +92,11 @@ final class LogsController
         $ip = isset($payload['ip']) && \is_string($payload['ip']) ? trim($payload['ip']) : '';
         $reason = isset($payload['reason']) && \is_string($payload['reason']) ? trim($payload['reason']) : 'manual';
         $ttl = isset($payload['ttlSeconds']) ? (int) $payload['ttlSeconds'] : 3600;
-        if ($ip === '' || IpMatcher::normalizePattern($ip) === null) {
+        $normalized = IpMatcher::normalizePattern($ip);
+        if ($ip === '' || $normalized === null) {
             return Response::error('VALIDATION_ERROR', 'Valid IP or CIDR is required', 422);
         }
-        $normalized = IpMatcher::normalizePattern($ip);
-        $ip = $normalized ?? $ip;
+        $ip = $normalized;
         $expires = $ttl > 0 ? date('Y-m-d H:i:s', time() + $ttl) : null;
         $id = $this->ipBlocks->block($ip, $reason !== '' ? $reason : 'manual', $expires, $auth->userId());
         $this->auditLogger?->log($request, 'security.ip_blocked', $auth->userId(), 'ip', $ip, [

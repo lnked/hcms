@@ -287,14 +287,6 @@ final class PublicApiController
     }
 
     /**
-     * @param array<string, mixed> $payload
-     */
-    private function guardAnonymousCreate(Request $request, string $slug, array &$payload): void
-    {
-        $this->guardAnonymousWrite($request, $slug, 'create', $payload);
-    }
-
-    /**
      * @param array<string, mixed> $data
      */
     private function dispatchWebhook(string $event, Request $request, string $slug, ?string $apiSlug, array $data): void
