@@ -44,6 +44,7 @@ export const ru: Record<MessageKey, string> = {
   'common.language': 'Язык',
   'common.updateAvailable': 'Доступно обновление',
   'common.requestFailed': 'Ошибка запроса',
+  'common.error': 'Что-то пошло не так',
   'common.saveFailed': 'Не удалось сохранить',
   'common.saved': 'Сохранено',
   'common.createFailed': 'Не удалось создать',

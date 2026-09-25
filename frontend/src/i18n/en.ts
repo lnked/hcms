@@ -40,6 +40,7 @@ export const en = {
   'common.language': 'Language',
   'common.updateAvailable': 'Update available',
   'common.requestFailed': 'Request failed',
+  'common.error': 'Something went wrong',
   'common.saveFailed': 'Save failed',
   'common.saved': 'Saved',
   'common.createFailed': 'Create failed',
