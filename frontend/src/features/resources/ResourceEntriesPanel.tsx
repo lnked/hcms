@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { Columns3, Eye, History, Link2, MessageSquare, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { EmptyState } from '@/components/EmptyState'
 import { TableSkeleton } from '@/components/skeletons'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
@@ -24,6 +25,7 @@ import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { EntryCommentsPanel } from '@/features/resources/EntryCommentsPanel'
+import { EntryLocaleToolbar } from '@/features/resources/EntryLocaleToolbar'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useResourceEntriesList } from '@/features/resources/useResourceEntriesList'
 import { useI18n } from '@/i18n'
@@ -108,6 +110,7 @@ export function ResourceEntriesPanel({
   const [sort, setSort] = useState('id')
   const [filters, setFilters] = useState<Record<string, string>>({})
   const [listLocale, setListLocale] = useState('')
+  const [createLocale, setCreateLocale] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [revisionsOpen, setRevisionsOpen] = useState(false)
@@ -165,6 +168,13 @@ export function ResourceEntriesPanel({
       ? listLocale
       : defaultLocaleCode
     : ''
+
+  const createLocaleValue =
+    createLocale !== '' ? createLocale : activeListLocale !== '' ? activeListLocale : defaultLocaleCode
+
+  const localesReady = !localizationEnabled || localesQuery.isFetched
+  const noLocalesConfigured =
+    localizationEnabled && localesReady && enabledLocales.length === 0
 
   const { list } = useResourceEntriesList({
     resourceId,
@@ -334,8 +344,8 @@ export function ResourceEntriesPanel({
       return api<EntryRow>(`/admin/api/resources/${resourceId}/entries`, {
         method: 'POST',
         body: JSON.stringify(
-          localizationEnabled && activeListLocale !== ''
-            ? { ...values, locale: activeListLocale }
+          localizationEnabled && createLocaleValue !== ''
+            ? { ...values, locale: createLocaleValue }
             : values,
         ),
       })
@@ -552,113 +562,139 @@ export function ResourceEntriesPanel({
           <Button variant="outline" onClick={openExport}>
             {t('entries.export')}
           </Button>
-          <Button onClick={() => openEntry('new')}>{t('entries.new')}</Button>
+          <Button
+            onClick={() => {
+              setCreateLocale(activeListLocale)
+              openEntry('new')
+            }}
+            disabled={noLocalesConfigured}
+          >
+            {t('entries.new')}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className={styles.stack}>
-        <form
-          className={styles.searchForm}
-          onSubmit={(e) => {
-            e.preventDefault()
-            setPage(1)
-            setSearch(searchInput.trim())
-          }}
-        >
-          {localizationEnabled ? (
-            <Select
-              aria-label={t('entries.localeFilter')}
-              value={activeListLocale}
-              onChange={(e) => {
-                setListLocale(e.target.value)
+        {noLocalesConfigured ? (
+          <EmptyState
+            title={t('entries.noLocales')}
+            description={t('entries.noLocalesHint')}
+            action={
+              <Link
+                to="/settings/translates?section=languages"
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                {t('entries.configureLocales')}
+              </Link>
+            }
+          />
+        ) : (
+          <>
+            <form
+              className={styles.searchForm}
+              onSubmit={(e) => {
+                e.preventDefault()
                 setPage(1)
-                setSelectedIds([])
+                setSearch(searchInput.trim())
               }}
             >
-              {enabledLocales.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label} ({l.code})
-                </option>
-              ))}
-            </Select>
-          ) : null}
-          <Input
-            placeholder={t('entries.searchPlaceholder')}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className={styles.searchInput}
-          />
-          <Button type="submit" variant="outline">
-            {t('common.search')}
-          </Button>
-        </form>
+              {localizationEnabled && enabledLocales.length > 0 ? (
+                <Select
+                  aria-label={t('entries.localeFilter')}
+                  value={activeListLocale}
+                  onChange={(e) => {
+                    setListLocale(e.target.value)
+                    setPage(1)
+                    setSelectedIds([])
+                  }}
+                >
+                  {enabledLocales.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label} ({l.code})
+                    </option>
+                  ))}
+                </Select>
+              ) : null}
+              <Input
+                placeholder={t('entries.searchPlaceholder')}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className={styles.searchInput}
+              />
+              <Button type="submit" variant="outline">
+                {t('common.search')}
+              </Button>
+            </form>
 
-        {list.isLoading ? (
-          <TableSkeleton columns={Math.max(3, fields.length + 2)} rows={8} />
-        ) : list.isError ? (
-          <p className={styles.error}>
-            {list.error instanceof Error ? list.error.message : t('entries.loadFailed')}
-          </p>
-        ) : (
-          <DataTable
-            fields={fields}
-            columns={listColumns}
-            relations={relations}
-            rows={rows}
-            sort={sort}
-            onSort={(next) => {
-              setSort(next)
-              setPage(1)
-            }}
-            filters={filters}
-            onFilterChange={(field, value) => {
-              setFilters((prev) => ({ ...prev, [field]: value }))
-              setPage(1)
-              setSelectedIds([])
-            }}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            editHref={(row) => entryPath(String(row.id))}
-            onDelete={(row) => {
-              if (confirm(t('entries.deleteConfirm', { id: row.id }))) remove.mutate(row)
-            }}
-          />
+            {list.isLoading ? (
+              <TableSkeleton columns={Math.max(3, fields.length + 2)} rows={8} />
+            ) : list.isError ? (
+              <p className={styles.error}>
+                {list.error instanceof Error ? list.error.message : t('entries.loadFailed')}
+              </p>
+            ) : (
+              <DataTable
+                fields={fields}
+                columns={listColumns}
+                relations={relations}
+                rows={rows}
+                showLocale={localizationEnabled}
+                sort={sort}
+                onSort={(next) => {
+                  setSort(next)
+                  setPage(1)
+                }}
+                filters={filters}
+                onFilterChange={(field, value) => {
+                  setFilters((prev) => ({ ...prev, [field]: value }))
+                  setPage(1)
+                  setSelectedIds([])
+                }}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
+                editHref={(row) => entryPath(String(row.id))}
+                onDelete={(row) => {
+                  if (confirm(t('entries.deleteConfirm', { id: row.id }))) remove.mutate(row)
+                }}
+              />
+            )}
+
+            {meta ? (
+              <div className={styles.pagination}>
+                <span>
+                  {t('common.pageOfTotal', {
+                    page: meta.page,
+                    totalPages: meta.totalPages,
+                    total: meta.total,
+                  })}
+                </span>
+                <div className={styles.paginationActions}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page <= 1}
+                    onClick={() => {
+                      setPage((p) => Math.max(1, p - 1))
+                      setSelectedIds([])
+                    }}
+                  >
+                    {t('common.prev')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={page >= meta.totalPages}
+                    onClick={() => {
+                      setPage((p) => p + 1)
+                      setSelectedIds([])
+                    }}
+                  >
+                    {t('common.next')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </>
         )}
-
-        {meta ? (
-          <div className={styles.pagination}>
-            <span>
-              {t('common.pageOfTotal', {
-                page: meta.page,
-                totalPages: meta.totalPages,
-                total: meta.total,
-              })}
-            </span>
-            <div className={styles.paginationActions}>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => {
-                  setPage((p) => Math.max(1, p - 1))
-                  setSelectedIds([])
-                }}
-              >
-                {t('common.prev')}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= meta.totalPages}
-                onClick={() => {
-                  setPage((p) => p + 1)
-                  setSelectedIds([])
-                }}
-              >
-                {t('common.next')}
-              </Button>
-            </div>
-          </div>
-        ) : null}
       </CardContent>
 
       <Dialog
@@ -695,45 +731,16 @@ export function ResourceEntriesPanel({
               )}
               <div className={styles.entryToolbarActions}>
                 {localizationEnabled && editing ? (
-                  <>
-                    <Select
-                      aria-label={t('entries.locale')}
-                      value={entryLocale}
-                      disabled={translationsQuery.isLoading || siblingLocales.length === 0}
-                      onChange={(e) => {
-                        const next = siblingLocales.find((s) => s.locale === e.target.value)
-                        if (next) void navigate(entryPath(String(next.id)))
-                      }}
-                    >
-                      {siblingLocales.map((s) => {
-                        const label =
-                          enabledLocales.find((l) => l.code === s.locale)?.label ?? s.locale
-                        return (
-                          <option key={s.id} value={s.locale}>
-                            {label} ({s.locale})
-                          </option>
-                        )
-                      })}
-                    </Select>
-                    {missingLocales.length > 0 ? (
-                      <Select
-                        aria-label={t('entries.addTranslation')}
-                        value=""
-                        disabled={createTranslation.isPending}
-                        onChange={(e) => {
-                          const code = e.target.value
-                          if (code) createTranslation.mutate(code)
-                        }}
-                      >
-                        <option value="">{t('entries.addTranslation')}</option>
-                        {missingLocales.map((l) => (
-                          <option key={l.code} value={l.code}>
-                            {l.label} ({l.code})
-                          </option>
-                        ))}
-                      </Select>
-                    ) : null}
-                  </>
+                  <EntryLocaleToolbar
+                    currentLocale={entryLocale}
+                    locales={enabledLocales}
+                    siblings={siblingLocales}
+                    missingLocales={missingLocales}
+                    loading={translationsQuery.isLoading}
+                    adding={createTranslation.isPending}
+                    onSwitch={(id) => void navigate(entryPath(String(id)))}
+                    onAdd={(code) => createTranslation.mutate(code)}
+                  />
                 ) : null}
                 <Button
                   type="button"
@@ -825,7 +832,25 @@ export function ResourceEntriesPanel({
           ) : editingId !== null && !editing ? (
             <p className={styles.statusError}>{t('entries.notFound')}</p>
           ) : (
-            <Form onSubmit={() => save.mutate()}>
+            <Form className={styles.stack} onSubmit={() => save.mutate()}>
+              {creating && localizationEnabled && enabledLocales.length > 0 ? (
+                <div className={styles.field}>
+                  <Label htmlFor="entry-create-locale">{t('entries.createLocale')}</Label>
+                  <Select
+                    id="entry-create-locale"
+                    aria-label={t('entries.createLocale')}
+                    value={createLocaleValue}
+                    onChange={(e) => setCreateLocale(e.target.value)}
+                  >
+                    {enabledLocales.map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.label} ({l.code})
+                      </option>
+                    ))}
+                  </Select>
+                  <p className={styles.hint}>{t('entries.createLocaleHint')}</p>
+                </div>
+              ) : null}
               <FormRenderer
                 key={editingId ?? 'new'}
                 fields={fields}

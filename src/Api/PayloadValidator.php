@@ -7,6 +7,7 @@ namespace Cms\Api;
 use Cms\Content\UrlSlug;
 use Cms\Core\Exception\ValidationFailedException;
 use Cms\Fields\FieldTypeRegistry;
+use Cms\Fields\Types\BlocksType;
 use Cms\Media\MediaValue;
 use InvalidArgumentException;
 
@@ -213,11 +214,12 @@ final class PayloadValidator
                 throw ValidationFailedException::field($name, 'Invalid block at index ' . $i);
             }
             $type = isset($block['type']) && \is_string($block['type']) ? $block['type'] : '';
-            if ($type === '' || !isset($components[$type]) || !\is_array($components[$type])) {
+            $componentFields = BlocksType::fieldsForComponent($components, $type);
+            if ($type === '' || $componentFields === null) {
                 throw ValidationFailedException::field($name . '.' . $i . '.type', 'Unknown block type: ' . $type);
             }
             $normalized = ['type' => $type];
-            foreach ($components[$type] as $field) {
+            foreach ($componentFields as $field) {
                 if (!\is_array($field)) {
                     continue;
                 }

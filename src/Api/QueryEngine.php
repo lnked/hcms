@@ -12,8 +12,6 @@ use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldTypeRegistry;
 use Cms\Media\MediaRefService;
-use Cms\Media\MediaService;
-use Cms\Media\MediaValue;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourceRepository;
@@ -23,6 +21,14 @@ use RuntimeException;
 
 final class QueryEngine
 {
+    private readonly QueryFilterBuilder $filters;
+
+    private readonly EntrySerializer $serializer;
+
+    private readonly PayloadValidator $validator;
+
+    private readonly ManyToManySync $manyToMany;
+
     public function __construct(
         private readonly Connection $db,
         private readonly ResourceRepository $resources,
@@ -32,6 +38,14 @@ final class QueryEngine
         private readonly string $appUrl = 'http://localhost',
         private readonly ?FieldTypeRegistry $fieldTypes = null,
     ) {
+        $this->filters = new QueryFilterBuilder();
+        $this->manyToMany = new ManyToManySync($this->db);
+        $this->serializer = new EntrySerializer(
+            $this->db,
+            $this->appUrl,
+            fn (string $slug, string $field, int $leftId): array => $this->manyToMany->loadIds($slug, $field, $leftId),
+        );
+        $this->validator = new PayloadValidator($this->fieldTypes);
     }
 
     /**
@@ -56,19 +70,26 @@ final class QueryEngine
 
         $where = ['`deleted_at` IS NULL'];
         $params = [];
-        $this->applyFeatureFilters($query, $settings, $public, $where, $params);
+        $this->filters->applyFeatureFilters(
+            $query,
+            $settings,
+            $public,
+            $where,
+            $params,
+            $this->defaultLocaleCode(),
+        );
         if (isset($options['ownCreatedBy']) && (int) $options['ownCreatedBy'] > 0) {
             $where[] = '`created_by` = :own_created_by';
             $params['own_created_by'] = (int) $options['ownCreatedBy'];
         }
         if (!$public || ($settings['filtering'] ?? true)) {
-            $this->applyFilters($query, $fieldMap, $where, $params);
-        } elseif ($this->hasFilterParams($query)) {
+            $this->filters->applyFilters($query, $fieldMap, $where, $params);
+        } elseif ($this->filters->hasFilterParams($query)) {
             throw new InvalidArgumentException('Filtering is disabled for this resource');
         }
         $searchScoreSql = null;
         if (!$public || ($settings['search'] ?? true)) {
-            $searchScoreSql = $this->applySearch($query, $fieldMap, $where, $params);
+            $searchScoreSql = $this->filters->applySearch($query, $fieldMap, $where, $params);
         } elseif (($query['search'] ?? '') !== '') {
             throw new InvalidArgumentException('Search is disabled for this resource');
         }
@@ -78,9 +99,9 @@ final class QueryEngine
             if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
                 throw new InvalidArgumentException('Sorting is disabled for this resource');
             }
-            $orderSql = $this->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
+            $orderSql = $this->filters->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
         } else {
-            $orderSql = $this->orderSql($query, $fieldMap, $searchScoreSql);
+            $orderSql = $this->filters->orderSql($query, $fieldMap, $searchScoreSql);
         }
 
         $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
@@ -92,7 +113,7 @@ final class QueryEngine
         );
 
         return [
-            'data' => array_map(fn (array $row): array => $this->serialize($row, $fieldMap, $slug), $rows),
+            'data' => array_map(fn (array $row): array => $this->serializer->serialize($row, $fieldMap, $slug), $rows),
             'meta' => [
                 'page' => $page,
                 'limit' => $limit,
@@ -207,7 +228,7 @@ final class QueryEngine
             'SELECT * FROM `' . $table . '` WHERE `deleted_at` IS NULL ORDER BY `id` ASC',
         );
 
-        return array_map(fn (array $row): array => $this->serialize($row, $fieldMap, $slug), $rows);
+        return array_map(fn (array $row): array => $this->serializer->serialize($row, $fieldMap, $slug), $rows);
     }
 
     /**
@@ -233,7 +254,7 @@ final class QueryEngine
             throw new NotFoundException('Resource not found');
         }
 
-        return $this->serialize($row, $fieldMap, $slug);
+        return $this->serializer->serialize($row, $fieldMap, $slug);
     }
 
     /**
@@ -249,7 +270,7 @@ final class QueryEngine
         $settings = $this->settingsOf($resource);
         [$payload, $system] = $this->extractSystemFields($payload, $settings);
         $validated = $this->validatePayload($payload, $fieldMap, false);
-        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        [$data, $m2m] = $this->manyToMany->extract($validated, $fieldMap);
         $data = [...$data, ...$system];
         $actorId = $this->actorUserId($options);
         if ($actorId !== null) {
@@ -257,7 +278,7 @@ final class QueryEngine
             $data['updated_by'] = $actorId;
         }
         $id = $this->insertRow($table, $data);
-        $this->syncManyToMany($slug, $id, $m2m);
+        $this->manyToMany->sync($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -342,7 +363,7 @@ final class QueryEngine
             throw ValidationFailedException::field('locale', 'Translation for this locale already exists');
         }
 
-        $source = $this->serialize($row, $fieldMap, $slug);
+        $source = $this->serializer->serialize($row, $fieldMap, $slug);
         $payload = $this->translationSeedFromSource($source, $fieldMap, $locale);
         $payload['locale'] = $locale;
         $payload['translationGroupId'] = $group;
@@ -407,7 +428,7 @@ final class QueryEngine
         $settings = $this->settingsOf($resource);
         [$payload, $system] = $this->extractSystemFields($payload, $settings, true);
         $validated = $this->validatePayload($payload, $fieldMap, true);
-        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        [$data, $m2m] = $this->manyToMany->extract($validated, $fieldMap);
         $data = [...$data, ...$system];
         $actorId = $this->actorUserId($options);
         if ($actorId !== null) {
@@ -416,7 +437,7 @@ final class QueryEngine
         if ($data !== []) {
             $this->updateRow($table, $id, $data);
         }
-        $this->syncManyToMany($slug, $id, $m2m);
+        $this->manyToMany->sync($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -435,7 +456,7 @@ final class QueryEngine
         $this->deleteRow($table, $id, $settings);
         if ($hard) {
             $this->clearMediaRefs($resource, $id);
-            $this->clearManyToMany($slug, $id, $fieldMap);
+            $this->manyToMany->clear($slug, $id, $fieldMap);
         }
     }
 
@@ -461,13 +482,13 @@ final class QueryEngine
         $where = ['`deleted_at` IS NULL'];
         $params = [];
         if (!$public || ($settings['filtering'] ?? true)) {
-            $this->applyFilters($query, $fieldMap, $where, $params);
-        } elseif ($this->hasFilterParams($query)) {
+            $this->filters->applyFilters($query, $fieldMap, $where, $params);
+        } elseif ($this->filters->hasFilterParams($query)) {
             throw new InvalidArgumentException('Filtering is disabled for this resource');
         }
         $searchScoreSql = null;
         if (!$public || ($settings['search'] ?? true)) {
-            $searchScoreSql = $this->applySearch($query, $fieldMap, $where, $params);
+            $searchScoreSql = $this->filters->applySearch($query, $fieldMap, $where, $params);
         } elseif (($query['search'] ?? '') !== '') {
             throw new InvalidArgumentException('Search is disabled for this resource');
         }
@@ -477,9 +498,9 @@ final class QueryEngine
             if (isset($query['sort']) && $query['sort'] !== '' && $query['sort'] !== 'id') {
                 throw new InvalidArgumentException('Sorting is disabled for this resource');
             }
-            $orderSql = $this->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
+            $orderSql = $this->filters->orderSqlWithSearchScore('`id` ASC', $searchScoreSql);
         } else {
-            $orderSql = $this->orderSql($query, $fieldMap, $searchScoreSql);
+            $orderSql = $this->filters->orderSql($query, $fieldMap, $searchScoreSql);
         }
 
         $countRow = $this->db->selectOne('SELECT COUNT(*) AS c FROM `' . $table . '`' . $whereSql, $params);
@@ -493,7 +514,7 @@ final class QueryEngine
         );
 
         $data = array_map(
-            fn (array $row): array => $this->serializeCustom($row, $fieldMap, $api),
+            fn (array $row): array => $this->serializer->serializeCustom($row, $fieldMap, $api),
             $rows,
         );
         $this->attachJoins($data, $rows, $api);
@@ -529,9 +550,9 @@ final class QueryEngine
     {
         [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'POST', $options);
         $validated = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, false);
-        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        [$data, $m2m] = $this->manyToMany->extract($validated, $fieldMap);
         $id = $this->insertRow($table, $data);
-        $this->syncManyToMany($slug, $id, $m2m);
+        $this->manyToMany->sync($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
@@ -547,11 +568,11 @@ final class QueryEngine
         [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'PATCH', $options);
         $this->requireRow($table, $id);
         $validated = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, true);
-        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        [$data, $m2m] = $this->manyToMany->extract($validated, $fieldMap);
         if ($data !== []) {
             $this->updateRow($table, $id, $data);
         }
-        $this->syncManyToMany($slug, $id, $m2m);
+        $this->manyToMany->sync($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
@@ -568,7 +589,7 @@ final class QueryEngine
         $this->deleteRow($table, $id, $settings);
         if ($hard) {
             $this->clearMediaRefs($resource, $id);
-            $this->clearManyToMany($slug, $id, $fieldMap);
+            $this->manyToMany->clear($slug, $id, $fieldMap);
         }
     }
 
@@ -614,7 +635,7 @@ final class QueryEngine
             throw new NotFoundException('Resource not found');
         }
 
-        $items = [$this->serializeCustom($row, $fieldMap, $api)];
+        $items = [$this->serializer->serializeCustom($row, $fieldMap, $api)];
         $this->attachJoins($items, [$row], $api);
 
         return $items[0];
@@ -725,62 +746,6 @@ final class QueryEngine
     }
 
     /**
-     * @param array<string, mixed> $row
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @param array<string, mixed> $api
-     * @return array<string, mixed>
-     */
-    private function serializeCustom(array $row, array $fieldMap, array $api): array
-    {
-        $out = ['id' => (int) $row['id']];
-        $whitelist = $api['fields'];
-        $mediaCache = [];
-        if ($whitelist === null) {
-            $out['createdAt'] = $row['created_at'] ?? null;
-            $out['updatedAt'] = $row['updated_at'] ?? null;
-            foreach ($fieldMap as $name => $meta) {
-                $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-                if (($meta['type'] ?? '') === 'relation' && \in_array(($config['cardinality'] ?? 'manyToOne'), ['oneToMany', 'manyToMany'], true)) {
-                    continue;
-                }
-                if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
-                    continue;
-                }
-                $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
-            }
-
-            return $out;
-        }
-
-        foreach ($whitelist as $name) {
-            if (!isset($fieldMap[$name])) {
-                continue;
-            }
-            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $fieldMap[$name], $mediaCache);
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param array<string, mixed> $meta
-     * @param array<int, array<string, mixed>> $mediaCache
-     */
-    private function serializeFieldValue(mixed $value, array $meta, array &$mediaCache): mixed
-    {
-        $type = (string) ($meta['type'] ?? '');
-        $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-        if ($type === 'relation' && $value !== null) {
-            return (int) $value;
-        }
-        if (($type === 'image' || $type === 'file') && $value !== null && $value !== '') {
-            return $this->serializeMediaField($value, (bool) ($config['multiple'] ?? false), $mediaCache);
-        }
-
-        return $value;
-    }
-
-    /**
      * @param list<array<string, mixed>> $items
      * @param list<array<string, mixed>> $rows
      * @param array<string, mixed> $api
@@ -838,7 +803,7 @@ final class QueryEngine
                 );
                 foreach ($relatedRows as $relatedRow) {
                     $key = (string) ($relatedRow[$foreignField] ?? '');
-                    $relatedByKey[$key] = $this->serializeRelated($relatedRow, $relatedFieldMap, $join['fields'] ?? null);
+                    $relatedByKey[$key] = $this->serializer->serializeRelated($relatedRow, $relatedFieldMap, $join['fields'] ?? null);
                 }
             }
 
@@ -849,43 +814,6 @@ final class QueryEngine
                     : ($relatedByKey[(string) $fk] ?? null);
             }
         }
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @param list<string>|null $fields
-     * @return array<string, mixed>
-     */
-    private function serializeRelated(array $row, array $fieldMap, ?array $fields): array
-    {
-        $out = ['id' => (int) $row['id']];
-        $mediaCache = [];
-        if ($fields === null) {
-            $out['createdAt'] = $row['created_at'] ?? null;
-            $out['updatedAt'] = $row['updated_at'] ?? null;
-            foreach ($fieldMap as $name => $meta) {
-                $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-                if (($meta['type'] ?? '') === 'relation' && \in_array(($config['cardinality'] ?? 'manyToOne'), ['oneToMany', 'manyToMany'], true)) {
-                    continue;
-                }
-                if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
-                    continue;
-                }
-                $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
-            }
-
-            return $out;
-        }
-
-        foreach ($fields as $name) {
-            if (!isset($fieldMap[$name])) {
-                continue;
-            }
-            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $fieldMap[$name], $mediaCache);
-        }
-
-        return $out;
     }
 
     /**
@@ -978,20 +906,6 @@ final class QueryEngine
             return;
         }
         $this->mediaRefs->clearEntry((int) $resource['id'], $entryId);
-    }
-
-    /**
-     * @param array<string, string> $query
-     */
-    private function hasFilterParams(array $query): bool
-    {
-        foreach ($query as $key => $_) {
-            if (str_starts_with($key, 'filter[')) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -1144,230 +1058,7 @@ final class QueryEngine
      */
     private function validatePayload(array $payload, array $fieldMap, bool $partial): array
     {
-        return (new PayloadValidator($this->fieldTypes))->validate($payload, $fieldMap, $partial);
-    }
-
-    /**
-     * @param array<string, string> $query
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @param list<string> $where
-     * @param array<string, mixed> $params
-     */
-    private function applyFilters(array $query, array $fieldMap, array &$where, array &$params): void
-    {
-        foreach ($query as $key => $value) {
-            if (!str_starts_with($key, 'filter[') || !str_ends_with($key, ']')) {
-                continue;
-            }
-            $inner = substr($key, 7, -1);
-            if (str_contains($inner, '][')) {
-                [$field, $op] = explode('][', $inner, 2);
-            } else {
-                $field = $inner;
-                $op = 'eq';
-            }
-            if (!isset($fieldMap[$field]) || !($fieldMap[$field]['spec']['filterable'] ?? false)) {
-                throw new InvalidArgumentException('Field not filterable: ' . $field);
-            }
-            $param = 'f_' . \count($params);
-            match ($op) {
-                'eq' => [$where[], $params[$param]] = ['`' . $field . '` = :' . $param, $value],
-                'neq' => [$where[], $params[$param]] = ['`' . $field . '` <> :' . $param, $value],
-                'gt' => [$where[], $params[$param]] = ['`' . $field . '` > :' . $param, $value],
-                'gte' => [$where[], $params[$param]] = ['`' . $field . '` >= :' . $param, $value],
-                'lt' => [$where[], $params[$param]] = ['`' . $field . '` < :' . $param, $value],
-                'lte' => [$where[], $params[$param]] = ['`' . $field . '` <= :' . $param, $value],
-                'contains' => [$where[], $params[$param]] = ['`' . $field . '` LIKE :' . $param, '%' . $value . '%'],
-                'startsWith' => [$where[], $params[$param]] = ['`' . $field . '` LIKE :' . $param, $value . '%'],
-                'endsWith' => [$where[], $params[$param]] = ['`' . $field . '` LIKE :' . $param, '%' . $value],
-                'in' => $this->applyIn($field, $value, $where, $params),
-                default => throw new InvalidArgumentException('Unknown filter operator: ' . $op),
-            };
-        }
-    }
-
-    /**
-     * @param list<string> $where
-     * @param array<string, mixed> $params
-     */
-    private function applyIn(string $field, string $value, array &$where, array &$params): void
-    {
-        $parts = array_values(array_filter(array_map('trim', explode(',', $value)), static fn (string $v): bool => $v !== ''));
-        if ($parts === []) {
-            throw new InvalidArgumentException('Empty in filter');
-        }
-        $placeholders = [];
-        foreach ($parts as $i => $part) {
-            $param = 'in_' . \count($params) . '_' . $i;
-            $placeholders[] = ':' . $param;
-            $params[$param] = $part;
-        }
-        $where[] = '`' . $field . '` IN (' . implode(', ', $placeholders) . ')';
-    }
-
-    /**
-     * Tokenized OR search across searchable fields; returns relevance score SQL (or null).
-     *
-     * @param array<string, string> $query
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @param list<string> $where
-     * @param array<string, mixed> $params
-     */
-    private function applySearch(array $query, array $fieldMap, array &$where, array &$params): ?string
-    {
-        $search = trim((string) ($query['search'] ?? ''));
-        if ($search === '') {
-            return null;
-        }
-
-        $fields = [];
-        foreach ($fieldMap as $name => $meta) {
-            if ($meta['spec']['searchable'] ?? false) {
-                $fields[] = $name;
-            }
-        }
-        if ($fields === []) {
-            return null;
-        }
-
-        $tokens = SearchTokenizer::tokens($search);
-        if ($tokens === []) {
-            $tokens = [mb_strtolower($search, 'UTF-8')];
-        }
-
-        $tokenMatches = [];
-        foreach ($tokens as $token) {
-            $fieldParts = [];
-            foreach ($fields as $name) {
-                $param = 's_' . \count($params);
-                $fieldParts[] = '`' . $name . '` LIKE :' . $param . " ESCAPE '\\\\'";
-                $params[$param] = $this->likeContains($token);
-            }
-            $tokenMatches[] = '(' . implode(' OR ', $fieldParts) . ')';
-        }
-
-        $where[] = '(' . implode(' OR ', $tokenMatches) . ')';
-
-        $scoreParts = [];
-        foreach ($tokenMatches as $matchSql) {
-            $scoreParts[] = '(CASE WHEN ' . $matchSql . ' THEN 1 ELSE 0 END)';
-        }
-
-        return '(' . implode(' + ', $scoreParts) . ')';
-    }
-
-    private function likeContains(string $value): string
-    {
-        $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
-
-        return '%' . $escaped . '%';
-    }
-
-    /**
-     * @param array<string, string> $query
-     * @param array<string, array<string, mixed>> $fieldMap
-     */
-    private function orderSql(array $query, array $fieldMap, ?string $searchScoreSql = null): string
-    {
-        $sort = $query['sort'] ?? 'id';
-        $desc = str_starts_with($sort, '-');
-        $field = ltrim($sort, '-');
-        if ($field === 'id') {
-            return $this->orderSqlWithSearchScore('`id` ' . ($desc ? 'DESC' : 'ASC'), $searchScoreSql);
-        }
-        if (!isset($fieldMap[$field]) || !($fieldMap[$field]['spec']['sortable'] ?? false)) {
-            throw new InvalidArgumentException('Field not sortable: ' . $field);
-        }
-
-        return $this->orderSqlWithSearchScore(
-            '`' . $field . '` ' . ($desc ? 'DESC' : 'ASC'),
-            $searchScoreSql,
-        );
-    }
-
-    private function orderSqlWithSearchScore(string $secondaryOrder, ?string $searchScoreSql): string
-    {
-        if ($searchScoreSql === null) {
-            return ' ORDER BY ' . $secondaryOrder;
-        }
-
-        return ' ORDER BY ' . $searchScoreSql . ' DESC, ' . $secondaryOrder;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @return array<string, mixed>
-     */
-    private function serialize(array $row, array $fieldMap, string $slug = ''): array
-    {
-        $out = [
-            'id' => (int) $row['id'],
-            'createdAt' => $row['created_at'] ?? null,
-            'updatedAt' => $row['updated_at'] ?? null,
-            'createdById' => isset($row['created_by']) ? (int) $row['created_by'] : null,
-            'updatedById' => isset($row['updated_by']) ? (int) $row['updated_by'] : null,
-        ];
-        if (\array_key_exists('locale', $row)) {
-            $out['locale'] = $row['locale'];
-        }
-        if (\array_key_exists('translation_group_id', $row)) {
-            $out['translationGroupId'] = $row['translation_group_id'];
-        }
-        if (\array_key_exists('status', $row)) {
-            $out['status'] = $row['status'];
-        }
-        $mediaCache = [];
-        foreach ($fieldMap as $name => $meta) {
-            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-            if (($meta['type'] ?? '') === 'relation') {
-                $cardinality = $config['cardinality'] ?? 'manyToOne';
-                if ($cardinality === 'oneToMany') {
-                    continue;
-                }
-                if ($cardinality === 'manyToMany') {
-                    if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
-                        continue;
-                    }
-                    $out[$name] = $slug === ''
-                        ? []
-                        : $this->loadManyToManyIds($slug, $name, (int) $row['id']);
-                    continue;
-                }
-            }
-            if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
-                continue;
-            }
-            $out[$name] = $this->serializeFieldValue($row[$name] ?? null, $meta, $mediaCache);
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param array<string, mixed> $validated
-     * @param array<string, array<string, mixed>> $fieldMap
-     * @return array{0: array<string, mixed>, 1: array<string, list<int>>}
-     */
-    private function extractManyToMany(array $validated, array $fieldMap): array
-    {
-        $m2m = [];
-        $data = $validated;
-        foreach ($fieldMap as $name => $meta) {
-            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-            if (($meta['type'] ?? '') !== 'relation' || ($config['cardinality'] ?? '') !== 'manyToMany') {
-                continue;
-            }
-            if (!\array_key_exists($name, $data)) {
-                continue;
-            }
-            /** @var list<int> $ids */
-            $ids = \is_array($data[$name]) ? $data[$name] : [];
-            $m2m[$name] = $ids;
-            unset($data[$name]);
-        }
-
-        return [$data, $m2m];
+        return $this->validator->validate($payload, $fieldMap, $partial);
     }
 
     /**
@@ -1429,38 +1120,6 @@ final class QueryEngine
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    /**
-     * @param array<string, string> $query
-     * @param array<string, mixed> $settings
-     * @param list<string> $where
-     * @param array<string, mixed> $params
-     */
-    private function applyFeatureFilters(
-        array $query,
-        array $settings,
-        bool $public,
-        array &$where,
-        array &$params,
-    ): void {
-        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
-        if ($public && (bool) ($workflow['enabled'] ?? false)) {
-            $where[] = '`status` = :wf_status';
-            $params['wf_status'] = 'published';
-        }
-
-        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
-        if ((bool) ($localization['enabled'] ?? false)) {
-            $locale = isset($query['locale']) && \is_string($query['locale']) ? trim($query['locale']) : '';
-            if ($locale !== '') {
-                $where[] = '`locale` = :feat_locale';
-                $params['feat_locale'] = $locale;
-            } elseif ($public) {
-                $where[] = '`locale` = :feat_locale';
-                $params['feat_locale'] = $this->defaultLocaleCode();
-            }
-        }
-    }
-
     private function defaultLocaleCode(): string
     {
         try {
@@ -1476,173 +1135,5 @@ final class QueryEngine
 
         return 'en';
     }
-
-    /**
-     * @param array<string, list<int>> $m2m
-     */
-    private function syncManyToMany(string $slug, int $leftId, array $m2m): void
-    {
-        foreach ($m2m as $field => $ids) {
-            $join = MigrationService::manyToManyJoinTable($slug, $field);
-            $this->db->execute('DELETE FROM `' . $join . '` WHERE `left_id` = :id', ['id' => $leftId]);
-            foreach ($ids as $rightId) {
-                $this->db->execute(
-                    'INSERT INTO `' . $join . '` (`left_id`, `right_id`) VALUES (:l, :r)',
-                    ['l' => $leftId, 'r' => $rightId],
-                );
-            }
-        }
-    }
-
-    /**
-     * @param array<string, array<string, mixed>> $fieldMap
-     */
-    private function clearManyToMany(string $slug, int $leftId, array $fieldMap): void
-    {
-        foreach ($fieldMap as $name => $meta) {
-            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-            if (($meta['type'] ?? '') !== 'relation' || ($config['cardinality'] ?? '') !== 'manyToMany') {
-                continue;
-            }
-            $join = MigrationService::manyToManyJoinTable($slug, $name);
-            try {
-                $this->db->execute('DELETE FROM `' . $join . '` WHERE `left_id` = :id', ['id' => $leftId]);
-            } catch (\Throwable) {
-                // Join table may not exist yet.
-            }
-        }
-    }
-
-    /** @return list<int> */
-    private function loadManyToManyIds(string $slug, string $field, int $leftId): array
-    {
-        $join = MigrationService::manyToManyJoinTable($slug, $field);
-        try {
-            $rows = $this->db->select(
-                'SELECT `right_id` FROM `' . $join . '` WHERE `left_id` = :id ORDER BY `right_id` ASC',
-                ['id' => $leftId],
-            );
-        } catch (\Throwable) {
-            return [];
-        }
-        $ids = [];
-        foreach ($rows as $row) {
-            $ids[] = (int) $row['right_id'];
-        }
-
-        return $ids;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $mediaCache
-     */
-    private function serializeMediaField(mixed $raw, bool $multiple, array &$mediaCache): mixed
-    {
-        try {
-            $normalized = MediaValue::normalize($raw, $multiple);
-        } catch (InvalidArgumentException) {
-            // Legacy/garbage values (e.g. BIGINT 0 from pre-JSON media columns) are not media.
-            return null;
-        }
-        if ($normalized === null) {
-            return null;
-        }
-
-        $ids = MediaValue::collectIds($normalized);
-        $missing = [];
-        foreach ($ids as $id) {
-            if (!isset($mediaCache[$id])) {
-                $missing[] = $id;
-            }
-        }
-        if ($missing !== []) {
-            foreach ($this->loadMediaRows($missing) as $id => $item) {
-                $mediaCache[$id] = $item;
-            }
-        }
-
-        $expandItem = function (array $item) use (&$mediaCache): array {
-            $variants = [];
-            foreach ($item['variants'] as $key => $vid) {
-                $vid = (int) $vid;
-                $variants[$key] = $mediaCache[$vid] ?? array_merge(
-                    ['id' => $vid],
-                    MediaService::publicUrls($this->appUrl, $vid),
-                );
-            }
-
-            $mediaId = (int) $item['id'];
-
-            return [
-                'id' => $mediaId,
-                'sourceId' => $item['sourceId'] === null ? null : (int) $item['sourceId'],
-                'rotation' => (int) $item['rotation'],
-                'edit' => $item['edit'],
-                'positions' => $item['positions'],
-                'overrides' => $item['overrides'],
-                'variants' => $variants,
-                'media' => $mediaCache[$mediaId] ?? array_merge(
-                    ['id' => $mediaId],
-                    MediaService::publicUrls($this->appUrl, $mediaId),
-                ),
-            ];
-        };
-
-        if (array_is_list($normalized)) {
-            /** @var list<array{id: int, sourceId: int|null, rotation: int, edit: array<string, mixed>|null, positions: array<string, string>, overrides: array<string, array<string, mixed>>, variants: array<string, int>}> $list */
-            $list = $normalized;
-            $out = [];
-            foreach ($list as $item) {
-                $out[] = $expandItem($item);
-            }
-
-            return $out;
-        }
-
-        return $expandItem($normalized);
-    }
-
-    /**
-     * @param list<int> $ids
-     * @return array<int, array<string, mixed>>
-     */
-    private function loadMediaRows(array $ids): array
-    {
-        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
-        if ($ids === []) {
-            return [];
-        }
-        $placeholders = [];
-        $params = [];
-        foreach ($ids as $i => $id) {
-            $key = 'm' . $i;
-            $placeholders[] = ':' . $key;
-            $params[$key] = $id;
-        }
-        $rows = $this->db->select(
-            'SELECT id, original_name, mime, size, width, height, created_at FROM cms_media WHERE id IN ('
-            . implode(', ', $placeholders) . ')',
-            $params,
-        );
-        $out = [];
-        foreach ($rows as $row) {
-            $id = (int) $row['id'];
-            $originalName = \is_string($row['original_name'] ?? null) ? (string) $row['original_name'] : null;
-            $mime = \is_string($row['mime'] ?? null) ? (string) $row['mime'] : null;
-            $urls = MediaService::publicUrls($this->appUrl, $id, $originalName, $mime);
-            $out[$id] = [
-                'id' => $id,
-                'originalName' => $row['original_name'],
-                'mime' => $row['mime'],
-                'size' => (int) $row['size'],
-                'width' => $row['width'] === null ? null : (int) $row['width'],
-                'height' => $row['height'] === null ? null : (int) $row['height'],
-                'url' => $urls['url'],
-                'fullUrl' => $urls['fullUrl'],
-                'createdAt' => $row['created_at'],
-            ];
-        }
-
-        return $out;
-    }
 }
+

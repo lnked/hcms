@@ -1,10 +1,12 @@
 import { clsx } from 'clsx'
-import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Copy, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { FormRenderer, emptyValues, type EntryValues } from '@/features/form-renderer/FormRenderer'
 import { useI18n } from '@/i18n'
+import { sliceFieldErrors } from '@/lib/formErrors'
 import styles from './BlocksEditor.module.css'
 import type { FieldErrors } from '@/lib/formErrors'
 import type { FieldTypeName, SchemaField } from '@/types/field'
@@ -18,6 +20,12 @@ interface BlocksEditorProps {
   disabled?: boolean
   errors?: FieldErrors
   onChange: (next: BlockItem[]) => void
+}
+
+type ComponentDef = {
+  label: string
+  description: string
+  fields: SchemaField[]
 }
 
 function parseBlocks(value: unknown): BlockItem[] {
@@ -36,41 +44,83 @@ function parseBlocks(value: unknown): BlockItem[] {
   return []
 }
 
-function componentSpecs(field: SchemaField): Record<string, SchemaField[]> {
+function nestedFieldFromRow(row: Record<string, unknown>, i: number): SchemaField {
+  const name = typeof row.name === 'string' ? row.name : `field_${i}`
+  const nestedType: FieldTypeName = typeof row.type === 'string' ? row.type : 'string'
+  return {
+    name,
+    type: nestedType === 'blocks' ? 'string' : nestedType,
+    sortOrder: i,
+    label: typeof row.label === 'string' && row.label !== '' ? row.label : name,
+    description: typeof row.description === 'string' ? row.description : null,
+    required: Boolean(row.required),
+    nullable: row.nullable !== false,
+    unique: false,
+    indexed: false,
+    readonly: false,
+    hidden: false,
+    searchable: false,
+    sortable: false,
+    filterable: false,
+    readable: true,
+    writable: true,
+    config:
+      row.config && typeof row.config === 'object' && !Array.isArray(row.config)
+        ? (row.config as Record<string, unknown>)
+        : {},
+  } satisfies SchemaField
+}
+
+/** Supports legacy `type → FieldSpec[]` and `{ label?, description?, fields }`. */
+export function resolveComponentDefs(
+  field: SchemaField,
+): Record<string, ComponentDef> {
   const raw = field.config.components
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const out: Record<string, SchemaField[]> = {}
-  for (const [type, fields] of Object.entries(raw as Record<string, unknown>)) {
-    if (!Array.isArray(fields)) continue
-    out[type] = fields.map((f, i) => {
-      const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
-      const name = typeof row.name === 'string' ? row.name : `field_${i}`
-      const nestedType: FieldTypeName = typeof row.type === 'string' ? row.type : 'string'
-      return {
-        name,
-        type: nestedType === 'blocks' ? 'string' : nestedType,
-        sortOrder: i,
-        label: typeof row.label === 'string' && row.label !== '' ? row.label : name,
-        description: null,
-        required: Boolean(row.required),
-        nullable: row.nullable !== false,
-        unique: false,
-        indexed: false,
-        readonly: false,
-        hidden: false,
-        searchable: false,
-        sortable: false,
-        filterable: false,
-        readable: true,
-        writable: true,
-        config:
-          row.config && typeof row.config === 'object' && !Array.isArray(row.config)
-            ? (row.config as Record<string, unknown>)
-            : {},
-      } satisfies SchemaField
-    })
+  const out: Record<string, ComponentDef> = {}
+  for (const [type, entry] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(entry)) {
+      out[type] = {
+        label: type,
+        description: '',
+        fields: entry.map((f, i) => {
+          const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
+          return nestedFieldFromRow(row, i)
+        }),
+      }
+      continue
+    }
+    if (!entry || typeof entry !== 'object') continue
+    const obj = entry as Record<string, unknown>
+    const fieldsRaw = Array.isArray(obj.fields) ? obj.fields : null
+    if (!fieldsRaw) continue
+    out[type] = {
+      label: typeof obj.label === 'string' && obj.label !== '' ? obj.label : type,
+      description: typeof obj.description === 'string' ? obj.description : '',
+      fields: fieldsRaw.map((f, i) => {
+        const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
+        return nestedFieldFromRow(row, i)
+      }),
+    }
   }
   return out
+}
+
+function newClientId(): string {
+  return crypto.randomUUID()
+}
+
+function summaryFor(block: BlockItem, specs: SchemaField[]): string {
+  for (const key of ['title', 'heading', 'label', 'name']) {
+    const v = block[key]
+    if (typeof v === 'string' && v.trim() !== '') return v.trim()
+  }
+  for (const spec of specs) {
+    if (spec.type !== 'string' && spec.type !== 'text') continue
+    const v = block[spec.name]
+    if (typeof v === 'string' && v.trim() !== '') return v.trim()
+  }
+  return ''
 }
 
 export function BlocksEditor({
@@ -82,9 +132,18 @@ export function BlocksEditor({
   onChange,
 }: BlocksEditorProps) {
   const { t } = useI18n()
-  const components = componentSpecs(field)
+  const components = resolveComponentDefs(field)
   const types = Object.keys(components)
   const blocks = parseBlocks(value)
+  const clientIdsRef = useRef<string[]>([])
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+
+  while (clientIdsRef.current.length < blocks.length) {
+    clientIdsRef.current.push(newClientId())
+  }
+  if (clientIdsRef.current.length > blocks.length) {
+    clientIdsRef.current = clientIdsRef.current.slice(0, blocks.length)
+  }
 
   function updateAt(index: number, nextValues: EntryValues) {
     const current = blocks[index]
@@ -102,15 +161,38 @@ export function BlocksEditor({
     if (tmp === undefined || other === undefined) return
     next[index] = other
     next[to] = tmp
+    const ids = [...clientIdsRef.current]
+    const idTmp = ids[index]
+    const idOther = ids[to]
+    if (idTmp !== undefined && idOther !== undefined) {
+      ids[index] = idOther
+      ids[to] = idTmp
+      clientIdsRef.current = ids
+    }
     onChange(next)
   }
 
   function removeAt(index: number) {
+    clientIdsRef.current = clientIdsRef.current.filter((_, i) => i !== index)
     onChange(blocks.filter((_, i) => i !== index))
   }
 
+  function duplicateAt(index: number) {
+    const block = blocks[index]
+    if (!block) return
+    const copy = { ...block }
+    const next = [...blocks]
+    next.splice(index + 1, 0, copy)
+    const ids = [...clientIdsRef.current]
+    ids.splice(index + 1, 0, newClientId())
+    clientIdsRef.current = ids
+    onChange(next)
+  }
+
   function add(type: string) {
-    const specs = components[type] ?? []
+    const def = components[type]
+    const specs = def?.fields ?? []
+    clientIdsRef.current = [...clientIdsRef.current, newClientId()]
     onChange([...blocks, { type, ...emptyValues(specs) }])
   }
 
@@ -121,12 +203,34 @@ export function BlocksEditor({
   return (
     <div className={styles.root} id={id}>
       {blocks.map((block, index) => {
-        const specs = components[block.type] ?? []
+        const def = components[block.type]
+        const specs = def?.fields ?? []
+        const unknown = !def
+        const clientId = clientIdsRef.current[index] ?? `${block.type}-${index}`
+        const isCollapsed = collapsed[clientId] === true
         const { type: _type, ...fieldValues } = block
+        const blockErrors = sliceFieldErrors(errors, `${field.name}.${index}`)
+        const label = def?.label ?? block.type
+        const summary = summaryFor(block, specs)
+
         return (
-          <div key={`${block.type}-${index}`} className={styles.block}>
+          <div key={clientId} className={styles.block}>
             <div className={styles.blockHeader}>
-              <span className={styles.blockType}>{block.type}</span>
+              <button
+                type="button"
+                className={styles.blockToggle}
+                disabled={disabled}
+                aria-expanded={!isCollapsed}
+                onClick={() =>
+                  setCollapsed((prev) => ({ ...prev, [clientId]: !isCollapsed }))
+                }
+              >
+                <span className={styles.blockType}>{label}</span>
+                {summary ? <span className={styles.blockSummary}>{summary}</span> : null}
+                {unknown ? (
+                  <span className={styles.orphan}>{t('entries.blocksUnknownType')}</span>
+                ) : null}
+              </button>
               <div className={styles.blockActions}>
                 <Button
                   type="button"
@@ -152,6 +256,16 @@ export function BlocksEditor({
                   type="button"
                   size="sm"
                   variant="outline"
+                  disabled={disabled || unknown}
+                  aria-label={t('entries.blocksDuplicate')}
+                  onClick={() => duplicateAt(index)}
+                >
+                  <Copy className={styles.icon} />
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
                   disabled={disabled}
                   aria-label={t('entries.blocksRemove')}
                   onClick={() => removeAt(index)}
@@ -160,17 +274,22 @@ export function BlocksEditor({
                 </Button>
               </div>
             </div>
-            {specs.length > 0 ? (
-              <FormRenderer
-                fields={specs}
-                values={fieldValues}
-                disabled={disabled}
-                errors={errors}
-                onChange={(next) => updateAt(index, next)}
-              />
-            ) : (
-              <p className={styles.hint}>{t('entries.blocksEmptyComponent')}</p>
-            )}
+            {!isCollapsed ? (
+              unknown ? (
+                <p className={styles.hint}>{t('entries.blocksUnknownTypeHint')}</p>
+              ) : specs.length > 0 ? (
+                <FormRenderer
+                  fields={specs}
+                  values={fieldValues}
+                  disabled={disabled}
+                  errors={blockErrors}
+                  idPrefix={`${field.name}-${index}-`}
+                  onChange={(next) => updateAt(index, next)}
+                />
+              ) : (
+                <p className={styles.hint}>{t('entries.blocksEmptyComponent')}</p>
+              )
+            ) : null}
           </div>
         )
       })}
@@ -188,7 +307,7 @@ export function BlocksEditor({
           <option value="">{t('entries.blocksAddPlaceholder')}</option>
           {types.map((type) => (
             <option key={type} value={type}>
-              {type}
+              {components[type]?.label ?? type}
             </option>
           ))}
         </Select>

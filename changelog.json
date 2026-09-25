@@ -1,6 +1,44 @@
 {
   "releases": [
     {
+      "version": "0.62.23",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Backlog polish: i18n/blocks UX, QueryEngine split, pages→features",
+      "changes": [
+        {
+          "type": "improved",
+          "area": "admin",
+          "text": "Content i18n UX: empty locales CTA, create locale picker, EntryLocaleToolbar, list locale badge, settings migrate hint"
+        },
+        {
+          "type": "improved",
+          "area": "admin",
+          "text": "Blocks editor: nested error.fields scoping, collapse/duplicate, component labels, nested config UI (enum/relation/string/image)"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "QueryEngine split: QueryFilterBuilder, EntrySerializer, ManyToManySync (public API unchanged)"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Frontend ownership: pages/ → features/*; SchemaBuilder/Integrations/Webhooks hook extracts + queryKeys"
+        },
+        {
+          "type": "changed",
+          "area": "api",
+          "text": "Blocks OpenAPI oneOf; BlocksType accepts {label,fields} components; nested enum/relation config validation"
+        },
+        {
+          "type": "docs",
+          "area": "docs",
+          "text": "Roadmap/plan sync: comments + spam System UI HAVE; public locale = hard filter (no sibling-fallback)"
+        }
+      ]
+    },
+    {
       "version": "0.62.22",
       "date": "2026-09-25",
       "channel": "stable",

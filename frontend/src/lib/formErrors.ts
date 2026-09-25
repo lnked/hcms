@@ -47,3 +47,20 @@ export function clearFieldError(errors: FieldErrors, key: string): FieldErrors {
   delete next[key]
   return next
 }
+
+/**
+ * Slice nested API paths `prefix.rest` → `rest` (e.g. `body.0.title` → `title`
+ * when prefix is `body.0`). Keys that do not start with `prefix.` are dropped.
+ */
+export function sliceFieldErrors(errors: FieldErrors, prefix: string): FieldErrors {
+  if (prefix === '') return errors
+  const needle = `${prefix}.`
+  const out: FieldErrors = {}
+  for (const [key, msgs] of Object.entries(errors)) {
+    if (!key.startsWith(needle)) continue
+    const rest = key.slice(needle.length)
+    if (rest === '') continue
+    out[rest] = msgs
+  }
+  return out
+}

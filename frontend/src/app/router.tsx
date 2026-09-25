@@ -24,7 +24,7 @@ import { homePath, type AdminRole, type AdminSection } from '@/lib/rbac'
 // Named exports are dereferenced inline so a renamed page is a compile error,
 // not a blank screen on that route.
 const AccountPage = lazy(() =>
-  import('@/pages/AccountPage').then((m) => ({ default: m.AccountPage })),
+  import('@/features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
 )
 const ChangelogPage = lazy(() =>
   import('@/features/changelog/ChangelogPage').then((m) => ({ default: m.ChangelogPage })),
@@ -38,7 +38,9 @@ const DocsPage = lazy(() =>
   import('@/features/docs/DocsPage').then((m) => ({ default: m.DocsPage })),
 )
 const IntegrationsPage = lazy(() =>
-  import('@/pages/IntegrationsPage').then((m) => ({ default: m.IntegrationsPage })),
+  import('@/features/integrations/IntegrationsPage').then((m) => ({
+    default: m.IntegrationsPage,
+  })),
 )
 const LogsPage = lazy(() =>
   import('@/features/logs/LogsPage').then((m) => ({ default: m.LogsPage })),
@@ -54,12 +56,18 @@ const ResourceDetailPage = lazy(() =>
 const ResourcesPage = lazy(() =>
   import('@/features/resources/ResourcesPage').then((m) => ({ default: m.ResourcesPage })),
 )
-const SystemPage = lazy(() => import('@/pages/SystemPage').then((m) => ({ default: m.SystemPage })))
-const BackupsPage = lazy(() =>
-  import('@/pages/BackupsPage').then((m) => ({ default: m.BackupsPage })),
+const SystemPage = lazy(() =>
+  import('@/features/system/SystemPage').then((m) => ({ default: m.SystemPage })),
 )
-const TokensPage = lazy(() => import('@/pages/TokensPage').then((m) => ({ default: m.TokensPage })))
-const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
+const BackupsPage = lazy(() =>
+  import('@/features/backups/BackupsPage').then((m) => ({ default: m.BackupsPage })),
+)
+const TokensPage = lazy(() =>
+  import('@/features/tokens/TokensPage').then((m) => ({ default: m.TokensPage })),
+)
+const UsersPage = lazy(() =>
+  import('@/features/users/UsersPage').then((m) => ({ default: m.UsersPage })),
+)
 const WebhooksPage = lazy(() =>
   import('@/features/webhooks/WebhooksPage').then((m) => ({ default: m.WebhooksPage })),
 )
@@ -72,13 +80,15 @@ const UptimePage = lazy(() =>
   import('@/features/uptime/UptimePage').then((m) => ({ default: m.UptimePage })),
 )
 const FeatureFlagsPage = lazy(() =>
-  import('@/pages/FeatureFlagsPage').then((m) => ({ default: m.FeatureFlagsPage })),
+  import('@/features/feature-flags/FeatureFlagsPage').then((m) => ({
+    default: m.FeatureFlagsPage,
+  })),
 )
 const KeyValuesPage = lazy(() =>
-  import('@/pages/KeyValuesPage').then((m) => ({ default: m.KeyValuesPage })),
+  import('@/features/key-values/KeyValuesPage').then((m) => ({ default: m.KeyValuesPage })),
 )
 const TranslatesPage = lazy(() =>
-  import('@/pages/TranslatesPage').then((m) => ({ default: m.TranslatesPage })),
+  import('@/features/translates/TranslatesPage').then((m) => ({ default: m.TranslatesPage })),
 )
 
 function withSection(section: AdminSection, minRole: AdminRole | undefined, page: ReactNode) {

@@ -1,0 +1,22 @@
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.switch {
+  width: auto;
+  min-width: 7rem;
+  max-width: 12rem;
+}
+
+.add {
+  width: auto;
+  min-width: 5.5rem;
+  max-width: 10rem;
+}

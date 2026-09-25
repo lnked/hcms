@@ -6,6 +6,7 @@ import {
   firstFieldError,
   hasFieldError,
   normalizeFieldErrors,
+  sliceFieldErrors,
 } from '@/lib/formErrors'
 
 describe('formErrors', () => {
@@ -43,5 +44,16 @@ describe('formErrors', () => {
     expect(clearFieldError(errors, 'missing')).toBe(errors)
     expect(clearFieldError(errors, 'slug')).toEqual({ label: ['required'] })
     expect(clearFieldError(errors, 'slug')).not.toBe(errors)
+  })
+
+  it('sliceFieldErrors maps prefix.rest paths', () => {
+    const errors = {
+      'body.0.title': ['required'],
+      'body.1.title': ['too long'],
+      'body.0': ['ignored'],
+      other: ['nope'],
+    }
+    expect(sliceFieldErrors(errors, 'body.0')).toEqual({ title: ['required'] })
+    expect(sliceFieldErrors(errors, '')).toBe(errors)
   })
 })

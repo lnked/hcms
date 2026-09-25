@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '@/components/EmptyState'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Table,
@@ -42,6 +43,8 @@ interface DataTableProps {
   onFilterChange?: (field: string, value: string) => void
   selectedIds?: number[]
   onSelectionChange?: (ids: number[]) => void
+  /** When true, show a Locale column from `row.locale` (no extra fetch). */
+  showLocale?: boolean
 }
 
 export function DataTable({
@@ -57,6 +60,7 @@ export function DataTable({
   onFilterChange,
   selectedIds,
   onSelectionChange,
+  showLocale = false,
 }: DataTableProps) {
   const { t } = useI18n()
   const columns = resolveColumns(fields, layout)
@@ -68,7 +72,7 @@ export function DataTable({
   const someSelected = rows.some((row) => selected.includes(row.id))
   const showFilters = typeof onFilterChange === 'function'
   const filterableColumns = columns.filter((col) => isFilterable(col.field))
-  const colSpan = columns.length + 2 + (selectionEnabled ? 1 : 0)
+  const colSpan = columns.length + 2 + (selectionEnabled ? 1 : 0) + (showLocale ? 1 : 0)
 
   function toggleSort(name: string, sortable: boolean) {
     if (!sortable || !onSort) return
@@ -115,6 +119,9 @@ export function DataTable({
             </TableHead>
           ) : null}
           <TableHead className={clsx(styles.colId)}>ID</TableHead>
+          {showLocale ? (
+            <TableHead className={clsx(styles.colLocale)}>{t('entries.locale')}</TableHead>
+          ) : null}
           {columns.map((col) => (
             <TableHead
               key={col.field.name}
@@ -140,6 +147,7 @@ export function DataTable({
           <TableRow>
             {selectionEnabled ? <TableHead /> : null}
             <TableHead />
+            {showLocale ? <TableHead /> : null}
             {columns.map((col) => (
               <TableHead key={`filter-${col.field.name}`} className={clsx(styles.filterHead)}>
                 <FilterControl
@@ -175,6 +183,17 @@ export function DataTable({
                 </TableCell>
               ) : null}
               <TableCell className={clsx(styles.monoXs)}>{row.id}</TableCell>
+              {showLocale ? (
+                <TableCell>
+                  {typeof row.locale === 'string' && row.locale !== '' ? (
+                    <Badge variant="outline" className={styles.localeBadge}>
+                      {row.locale}
+                    </Badge>
+                  ) : (
+                    '—'
+                  )}
+                </TableCell>
+              ) : null}
               {columns.map((col) =>
                 isMediaField(col.field.type) ? (
                   <TableCell key={col.field.name}>

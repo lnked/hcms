@@ -70,4 +70,36 @@ final class PayloadValidatorTest extends TestCase
         $out = $validator->validate(['title' => 'Hello World'], $fieldMap, false);
         self::assertSame('hello-world', $out['slug']);
     }
+
+    public function testBlocksNestedRequiredPath(): void
+    {
+        $validator = new PayloadValidator();
+        $fieldMap = [
+            'content' => [
+                'type' => 'blocks',
+                'spec' => [
+                    'writable' => true,
+                    'required' => true,
+                    'nullable' => false,
+                    'config' => [
+                        'components' => [
+                            'hero' => [
+                                'label' => 'Hero',
+                                'fields' => [
+                                    ['name' => 'title', 'type' => 'string', 'required' => true, 'nullable' => false],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        try {
+            $validator->validate(['content' => [['type' => 'hero']]], $fieldMap, false);
+            self::fail('Expected ValidationFailedException');
+        } catch (ValidationFailedException $e) {
+            self::assertArrayHasKey('content.0.title', $e->fields() ?? []);
+        }
+    }
 }

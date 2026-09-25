@@ -443,7 +443,7 @@ Foundation + фичи по миграциям `001`…`021`:
 
 ### Localization (content)
 
-`settings.localization.enabled` + migrate `locale`/`translation_group_id` → create/list с `?locale=` → fallback на default из `cms_locales`.
+`settings.localization.enabled` + migrate `locale`/`translation_group_id` → create/list с `?locale=` (hard filter; без sibling-fallback). Без `?locale` → только default из `cms_locales`.
 
 ---
 

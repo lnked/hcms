@@ -29,6 +29,26 @@ DELETE /admin/api/fields/:id
 
 Built-in types: string, text, richtext, integer, float, boolean, date, datetime, email, url, uuid, json, enum, slug, image, file, relation, blocks.
 
+### Blocks
+
+`config.components` maps component type → nested field specs. Legacy form is a bare array; preferred form includes a label:
+
+```json
+{
+  "components": {
+    "hero": {
+      "label": "Hero",
+      "fields": [
+        { "name": "title", "type": "string", "required": true, "nullable": false, "config": { "maxLength": 120 } },
+        { "name": "body", "type": "richtext", "required": false }
+      ]
+    }
+  }
+}
+```
+
+Values are `[{ "type": "hero", "title": "…", "body": "…" }, …]`. Nested `blocks` are forbidden. Validation errors use paths `field.index.nested` (e.g. `content.0.title`).
+
 Schema Builder UI: drag & drop reorder, inline settings, Save schema → `PUT .../fields`.
 
 ## Plugin field types (no marketplace)

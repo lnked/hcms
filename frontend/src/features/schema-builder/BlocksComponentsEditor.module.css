@@ -1,0 +1,74 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .root {
+    grid-column: span 2 / span 2;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+}
+
+.hint {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--hcms-color-muted-foreground);
+}
+
+.component {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  padding: var(--hcms-SPx3);
+  border: 1px solid var(--hcms-color-border);
+  border-radius: var(--hcms-CRx2);
+}
+
+.componentHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.nestedGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+}
+
+.nestedRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+}
+
+.nestedConfig {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx1);
+  padding-inline-start: var(--hcms-SPx2);
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx2);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.iconSm {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}

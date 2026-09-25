@@ -78,7 +78,7 @@ API tokens need matching grants; admin tokens bypass grants.
 
 **CDN / ISR:** HCMS does not ship a CDN. Put Cloudflare/Fastly/nginx in front; use webhooks (`entry.updated` / `entry.deleted`) plus `Surrogate-Key` to invalidate. Set `security.trusted_proxies` to the proxy CIDRs so rate limits and IP blocks see real clients.
 
-**Locale / workflow (opt-in):** after enabling `settings.localization` / `settings.workflow` and migrating, public list accepts `?locale=xx` (default `en`); workflow hides non-`published` rows from public GET.
+**Locale / workflow (opt-in):** after enabling `settings.localization` / `settings.workflow` and migrating, public list accepts `?locale=xx` as a **hard filter** on that locale (no sibling-row fallback). Omit `?locale` → default locale from `cms_locales` only. Workflow hides non-`published` rows from public GET.
 
 **Live preview:**
 

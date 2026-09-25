@@ -334,6 +334,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.localizationEnabled')}
             </label>
+            <p className={styles.hint}>{t('resources.settings.localizationHint')}</p>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"

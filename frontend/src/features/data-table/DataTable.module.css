@@ -6,6 +6,14 @@
   width: 4rem;
 }
 
+.colLocale {
+  width: 5rem;
+}
+
+.localeBadge {
+  font-variant-numeric: tabular-nums;
+}
+
 .colActions {
   width: 6rem;
   text-align: right;

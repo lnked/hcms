@@ -21,16 +21,52 @@
   gap: var(--hcms-SPx2);
 }
 
+.blockToggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--hcms-SPx2);
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.blockToggle:disabled {
+  cursor: default;
+}
+
 .blockType {
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25rem;
 }
 
+.blockSummary {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 16rem;
+}
+
+.orphan {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--hcms-color-destructive);
+}
+
 .blockActions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--hcms-SPx1);
+  flex-shrink: 0;
 }
 
 .icon {

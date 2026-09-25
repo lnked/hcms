@@ -82,11 +82,11 @@
 - Frontend: `knip`, `eslint-config-prettier`, `eslint-plugin-jsx-a11y`, `eslint-plugin-import-x` (order + no-cycle), type-aware ESLint на весь `src/`, Stylelint CSS Modules, Vitest coverage thresholds на `lib/`+`hooks/`, `queryKeys` + `useAuthMe`, `src/test/render.tsx`, `CodeBlock` → `components/`, `useResourceEntriesList`, удалён мёртвый `.oxlintrc.json`
 - Backend: `AuthRoutes` / `SystemRoutes` / `AdminResourceRoutes`, `Cms\Core\Exception\*` + map в `ExceptionHandler`, `PayloadValidator`, `EntryService`, Deptrac ([`deptrac.yaml`](../deptrac.yaml)), PHPStan **level 8** (без baseline), MySQL integ smoke (`tests/Integration/QueryEngineMigrationTest.php`, `CMS_TEST_DSN` в CI)
 
-Остаток фазы 3 (по мере касания кода):
+Остаток фазы 3 — **shipped** (см. product polish в [`roadmap-product.md`](roadmap-product.md) Next):
 
-1. Глубже разрезать `QueryEngine` (serialize / filters отдельно)
-2. Вынести hooks из god-панелей (`IntegrationsPage`, `SchemaBuilder`, `WebhooksPage`)
-3. Свести `pages/` → `features/` по единому ownership
+1. ~~Глубже разрезать `QueryEngine`~~ → `QueryFilterBuilder` / `EntrySerializer` / `ManyToManySync`
+2. ~~Вынести hooks из god-панелей~~ → SchemaBuilder / Integrations / Webhooks
+3. ~~Свести `pages/` → `features/`~~ → ownership под `frontend/src/features/`
 
 Сделано дополнительно (quality audit):
 

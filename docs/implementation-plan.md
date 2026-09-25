@@ -5,9 +5,9 @@
 
 **Правило:** каждый эпик — opt-in через `settings` или новый field type; default поведение public API не ломаем.
 
-**Статус:** Phase 0–6 + anti-spam K–N + growth P5–P7 (Event Bus, webhook presets, field/row ACL) + **P8 GraphQL** — shipped.  
-Follow-up polish: locale switcher / create-translation UI; rich blocks editor; workflow comments; System UI for `ip_auto_block_after_spam_rejects`.  
-Не в плане: multi-tenancy, CDN product.
+**Статус:** Phase 0–6 + anti-spam K–N + growth P5–P7 (Event Bus, webhook presets, field/row ACL) + **P8 GraphQL** + entry comments + System UI spam autoban — shipped.  
+Follow-up polish: content i18n UX; rich blocks editor (nested validation/config). Tech debt O: QueryEngine / god-panels / pages→features.  
+Не в плане: multi-tenancy, CDN product, SAML.
 
 ---
 
@@ -20,7 +20,7 @@ Follow-up polish: locale switcher / create-translation UI; rich blocks editor; w
 | M2M | `cardinality: manyToMany` → join table `res_{slug}_{field}` (`left_id`, `right_id`, UNIQUE). API: `number[]`. |
 | oneToOne | `manyToOne` + UNIQUE на FK (та же колонка BIGINT). |
 | Blocks | Field type `blocks`: JSON `[{ type, ... }]`, `config.components` = map type → nested field specs; validate via `PayloadValidator`. |
-| Workflows | Opt-in `settings.workflow.enabled` → col `status` (`draft\|in_review\|published`). Public GET только `published`. Comments — later. |
+| Workflows | Opt-in `settings.workflow.enabled` → col `status` (`draft\|in_review\|published`). Public GET только `published`. Entry comments shipped. |
 | Cache | `settings.cache.maxAge` (0 = как сейчас). Anonymous GET → `public, max-age=N`; Bearer → `private, no-store`. |
 | SDK | Thin `@hcms/sdk` + CLI typegen из `GET /api/openapi.json`. Не второй schema DSL. |
 | GraphQL | Opt-in `api.graphql.enabled`; thin layer over QueryEngine; see [`graphql.md`](graphql.md). REST stays default. |
@@ -115,7 +115,7 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 2. При enable + migrate/publish: system columns `locale VARCHAR(16) NOT NULL`, `translation_group_id CHAR(36) NOT NULL` (+ indexes: unique `(locale, translation_group_id)`, index `locale`).
 3. Create entry: генерировать `translation_group_id` (UUID); `locale` = default locale из `LocaleRepository` или из body.
 4. `POST .../entries/{id}/translations` — создать sibling row (copy non-localizable? v1: empty writable fields, same group).
-5. Public: `?locale=xx` filter; missing → fallback default locale (как Translates). List без locale → default only (документировать).
+5. Public: `?locale=xx` = hard filter on that locale (no sibling-fallback like Translates). List без `?locale` → default locale from `cms_locales` only.
 6. Admin: locale switcher на entry; список «missing translations».
 
 ### Field-level localizable (v1.1, optional)
@@ -134,7 +134,7 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 ### Done when
 
 - Resource без localization — zero schema change.
-- С localization: две locale-строки одной group; public `?locale=` + fallback.
+- С localization: две locale-строки одной group; public `?locale=` hard filter (no sibling-fallback).
 - Package export/import сохраняет group + locale.
 - PHPUnit + seed-demo smoke.
 
@@ -264,7 +264,7 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 | Item | Why |
 |---|---|
 | Full DAM / CDN image pipeline | Separate media epic beyond AVIF encode |
-| SAML / OIDC SSO | Enterprise; Google+TOTP covers MVP |
+| SAML SSO | Enterprise; Google + Telegram + generic OIDC cover MVP |
 | Full ar/he UI catalogs | RTL shell + sparse `ar` shipped; complete translations later |
 | Admin iframe apps / plugin fields | Hooks cover external; UI extensions later |
 | CDN / HA / Redis / marketplace / compliance | Out of self-hosted core |

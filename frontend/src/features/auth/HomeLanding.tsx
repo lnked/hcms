@@ -6,7 +6,7 @@ import { useAcl } from '@/hooks/useAcl'
 import { homePath, resolveHomeSection } from '@/lib/rbac'
 
 const DashboardPage = lazy(() =>
-  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+  import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
 
 /**

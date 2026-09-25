@@ -8,6 +8,7 @@ use Cms\Core\Config;
 use Cms\Core\MetadataCache;
 use Cms\Core\Version;
 use Cms\Fields\FieldRepository;
+use Cms\Fields\Types\BlocksType;
 use Cms\Integrations\IntegrationApiRepository;
 use Cms\Integrations\IntegrationApiService;
 use Cms\Resources\ResourceApiRepository;
@@ -478,6 +479,7 @@ final class OpenApiGenerator
                 'enum' => array_values(array_map('strval', \is_array($spec['config']['options'] ?? null) ? $spec['config']['options'] : [])),
             ],
             'image', 'file' => $this->mediaPropertySchema($spec),
+            'blocks' => $this->blocksPropertySchema($spec),
             default => ['type' => 'string'],
         };
 
@@ -584,6 +586,68 @@ final class OpenApiGenerator
         }
 
         return $item;
+    }
+
+    /**
+     * @param array<string, mixed> $spec
+     * @return array<string, mixed>
+     */
+    private function blocksPropertySchema(array $spec): array
+    {
+        $components = \is_array($spec['config']['components'] ?? null) ? $spec['config']['components'] : [];
+        $oneOf = [];
+        foreach ($components as $type => $entry) {
+            if (!\is_string($type)) {
+                continue;
+            }
+            $fields = BlocksType::fieldsForComponent($components, $type);
+            if ($fields === null) {
+                continue;
+            }
+            $properties = [
+                'type' => ['type' => 'string', 'enum' => [$type]],
+            ];
+            $required = ['type'];
+            foreach ($fields as $field) {
+                $fname = isset($field['name']) && \is_string($field['name']) ? $field['name'] : '';
+                if ($fname === '') {
+                    continue;
+                }
+                $nestedType = isset($field['type']) && \is_string($field['type']) ? $field['type'] : 'string';
+                $nestedSpec = [
+                    'nullable' => $field['nullable'] ?? true,
+                    'config' => \is_array($field['config'] ?? null) ? $field['config'] : [],
+                ];
+                $properties[$fname] = $this->propertySchema($nestedType, $nestedSpec);
+                if (($field['required'] ?? false) === true) {
+                    $required[] = $fname;
+                }
+            }
+            $oneOf[] = [
+                'type' => 'object',
+                'required' => $required,
+                'properties' => $properties,
+            ];
+        }
+
+        if ($oneOf === []) {
+            return [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'required' => ['type'],
+                    'properties' => [
+                        'type' => ['type' => 'string'],
+                    ],
+                    'additionalProperties' => true,
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'array',
+            'items' => ['oneOf' => $oneOf],
+        ];
     }
 
     /**

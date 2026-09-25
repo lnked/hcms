@@ -22,4 +22,9 @@ export const ar: Partial<Record<MessageKey, string>> = {
   'nav.collapse': 'طي الشريط',
   'nav.openMenu': 'فتح القائمة',
   'nav.closeMenu': 'إغلاق القائمة',
+  'entries.noLocales': 'لا توجد لغات مهيأة',
+  'entries.configureLocales': 'تهيئة اللغات',
+  'entries.createLocale': 'اللغة',
+  'resources.settings.localizationHint':
+    'هيّئ اللغات في الترجمة أولاً. بعد التفعيل نفّذ Migrate لإضافة أعمدة locale.',
 }

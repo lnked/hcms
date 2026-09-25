@@ -4,7 +4,6 @@ import { FormBlockSkeleton } from '@/components/skeletons'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { SecurityCard } from '@/features/account/SecurityCard'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
@@ -12,6 +11,7 @@ import { api, ApiError } from '@/lib/api'
 import { showError, showSuccess } from '@/lib/toast'
 import styles from './AccountPage.module.css'
 import { OauthIntegrationsCard } from './OauthIntegrationsCard'
+import { SecurityCard } from './SecurityCard'
 
 interface AuthProviders {
   google: { enabled: boolean; clientId: string }

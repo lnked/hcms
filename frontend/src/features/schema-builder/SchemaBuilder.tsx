@@ -1,7 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
 import { clsx } from 'clsx'
 import { Crop, GripVertical, Images, Plus, Settings2, Trash2 } from 'lucide-react'
-import { useLayoutEffect, useRef, useState, type DragEvent } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { AnchorPicker } from '@/components/AnchorPicker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,8 +10,10 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
+import { BlocksComponentsEditor } from '@/features/schema-builder/BlocksComponentsEditor'
+import { useFieldTypes } from '@/features/schema-builder/useFieldTypes'
+import { useSchemaFieldDrag } from '@/features/schema-builder/useSchemaFieldDrag'
 import { useI18n } from '@/i18n'
-import { api } from '@/lib/api'
 import { configString } from '@/lib/coerce'
 import { slugifyIdentifier } from '@/lib/slugify'
 import {
@@ -20,7 +21,6 @@ import {
   DEFAULT_DATETIME_FORMAT,
   emptyField,
   FIELD_TYPES,
-  type FieldTypeDescriptor,
   type FieldTypeName,
   type ImageSizeConfig,
   type SchemaField,
@@ -32,56 +32,42 @@ interface SchemaBuilderProps {
   onChange: (schema: SchemaField[]) => void
 }
 
-const LIST_GAP_PX = 8
-
 export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   const { t } = useI18n()
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [overIndex, setOverIndex] = useState<number | null>(null)
-  const [dragHeight, setDragHeight] = useState(0)
-  const dragIndexRef = useRef<number | null>(null)
-  const overIndexRef = useRef<number | null>(null)
-  const dragImageRef = useRef<HTMLElement | null>(null)
-  const rowRefs = useRef<(HTMLLIElement | null)[]>([])
-  const listRef = useRef<HTMLUListElement>(null)
-  // Geometry captured at drag start: rows shift via transform while dragging,
-  // so live hit-testing would flip-flop and resolve back to the source index.
-  const startRowsRef = useRef<{ top: number; height: number }[]>([])
-  const startListTopRef = useRef(0)
   const editFormRef = useRef<HTMLDivElement>(null)
   const scrollToEditRef = useRef(false)
 
-  const fieldTypesQuery = useQuery({
-    queryKey: ['field-types'],
-    queryFn: () => api<FieldTypeDescriptor[] | string[]>('/admin/api/field-types'),
-    staleTime: 60_000,
-  })
+  const { fieldTypeDescriptors, fieldTypes, descriptorByName } = useFieldTypes()
   const encodeCaps = useMediaEncodeCapabilities()
-  const fieldTypeDescriptors: FieldTypeDescriptor[] = (() => {
-    const data = fieldTypesQuery.data
-    if (!data || data.length === 0) {
-      return FIELD_TYPES.map((name) => ({
-        name,
-        label: name,
-        widget: 'text',
-        defaultConfig: {},
-        configSchema: {},
-      }))
-    }
-    if (typeof data[0] === 'string') {
-      return (data as string[]).map((name) => ({
-        name,
-        label: name,
-        widget: 'text',
-        defaultConfig: {},
-        configSchema: {},
-      }))
-    }
-    return data as FieldTypeDescriptor[]
-  })()
-  const fieldTypes: FieldTypeName[] = fieldTypeDescriptors.map((d) => d.name)
-  const descriptorByName = new Map(fieldTypeDescriptors.map((d) => [d.name, d]))
+
+  function reorder(from: number, to: number) {
+    if (from === to || from < 0 || to < 0 || from >= schema.length || to >= schema.length) return
+    const next = [...schema]
+    const [moved] = next.splice(from, 1)
+    if (moved === undefined) return
+    next.splice(to, 0, moved)
+    onChange(next.map((field, i) => ({ ...field, sortOrder: i })))
+    setEditingIndex((current) => {
+      if (current === null) return null
+      if (current === from) return to
+      if (from < current && to >= current) return current - 1
+      if (from > current && to <= current) return current + 1
+      return current
+    })
+  }
+
+  const {
+    listRef,
+    rowRefs,
+    dragIndex,
+    overIndex,
+    rowShiftY,
+    onGripDragStart,
+    onGripDragEnd,
+    onListDragOver,
+    onListDrop,
+  } = useSchemaFieldDrag({ itemCount: schema.length, onReorder: reorder })
 
   useLayoutEffect(() => {
     if (!scrollToEditRef.current || editingIndex === null || !editFormRef.current) return
@@ -105,129 +91,6 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     if (editingIndex === index) {
       setEditingIndex(null)
     }
-  }
-
-  function reorder(from: number, to: number) {
-    if (from === to || from < 0 || to < 0 || from >= schema.length || to >= schema.length) return
-    const next = [...schema]
-    const [moved] = next.splice(from, 1)
-    if (moved === undefined) return
-    next.splice(to, 0, moved)
-    onChange(next.map((field, i) => ({ ...field, sortOrder: i })))
-    setEditingIndex((current) => {
-      if (current === null) return null
-      if (current === from) return to
-      if (from < current && to >= current) return current - 1
-      if (from > current && to <= current) return current + 1
-      return current
-    })
-  }
-
-  function clearDragState() {
-    dragIndexRef.current = null
-    overIndexRef.current = null
-    startRowsRef.current = []
-    dragImageRef.current?.remove()
-    dragImageRef.current = null
-    setDragIndex(null)
-    setOverIndex(null)
-    setDragHeight(0)
-  }
-
-  function targetIndexAt(clientY: number, from: number): number {
-    const rows = startRowsRef.current
-    if (rows.length === 0) return from
-    const listTop = listRef.current?.getBoundingClientRect().top ?? startListTopRef.current
-    const y = clientY - (listTop - startListTopRef.current)
-
-    let insertBefore = rows.length
-    for (let i = 0; i < rows.length; i += 1) {
-      const row = rows[i]
-      if (row === undefined) continue
-      if (y < row.top + row.height / 2) {
-        insertBefore = i
-        break
-      }
-    }
-    const to = insertBefore > from ? insertBefore - 1 : insertBefore
-    return Math.min(Math.max(to, 0), rows.length - 1)
-  }
-
-  function rowShiftY(index: number): number {
-    if (dragIndex === null || overIndex === null || dragIndex === overIndex || dragHeight <= 0) {
-      return 0
-    }
-    const delta = dragHeight + LIST_GAP_PX
-    if (dragIndex < overIndex) {
-      if (index > dragIndex && index <= overIndex) return -delta
-    } else if (index >= overIndex && index < dragIndex) {
-      return delta
-    }
-    return 0
-  }
-
-  function onGripDragStart(index: number, event: DragEvent<HTMLButtonElement>) {
-    dragIndexRef.current = index
-    overIndexRef.current = index
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', String(index))
-
-    startListTopRef.current = listRef.current?.getBoundingClientRect().top ?? 0
-    startRowsRef.current = schema.map((_, i) => {
-      const rect = rowRefs.current[i]?.getBoundingClientRect()
-      return { top: rect?.top ?? 0, height: rect?.height ?? 0 }
-    })
-
-    const row = rowRefs.current[index]
-    if (row) {
-      const rect = row.getBoundingClientRect()
-      const clone = row.cloneNode(true) as HTMLElement
-      clone.style.width = `${rect.width}px`
-      clone.style.position = 'fixed'
-      clone.style.top = '-9999px'
-      clone.style.left = '-9999px'
-      clone.style.margin = '0'
-      clone.style.opacity = '0.96'
-      clone.style.boxShadow = '0 16px 40px rgba(15, 23, 42, 0.18)'
-      clone.style.pointerEvents = 'none'
-      clone.style.transform = 'rotate(1.5deg)'
-      clone.style.zIndex = '9999'
-      document.body.appendChild(clone)
-      dragImageRef.current = clone
-      event.dataTransfer.setDragImage(clone, event.clientX - rect.left, event.clientY - rect.top)
-      setDragHeight(rect.height)
-    }
-
-    // Defer paint so React re-render does not cancel the native drag.
-    requestAnimationFrame(() => {
-      setDragIndex(index)
-      setOverIndex(index)
-    })
-  }
-
-  function onGripDragEnd() {
-    clearDragState()
-  }
-
-  function onListDragOver(event: DragEvent<HTMLUListElement>) {
-    const from = dragIndexRef.current
-    if (from === null) return
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-    const to = targetIndexAt(event.clientY, from)
-    if (overIndexRef.current !== to) {
-      overIndexRef.current = to
-      setOverIndex(to)
-    }
-  }
-
-  function onListDrop(event: DragEvent<HTMLUListElement>) {
-    const from = dragIndexRef.current
-    if (from === null) return
-    event.preventDefault()
-    const to = targetIndexAt(event.clientY, from)
-    clearDragState()
-    reorder(from, to)
   }
 
   function changeType(index: number, type: FieldTypeName) {
@@ -474,7 +337,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   {field.type === 'blocks' ? (
                     <BlocksComponentsEditor
                       field={field}
-                      fieldTypes={fieldTypes.filter((t) => t !== 'blocks')}
+                      fieldTypes={fieldTypes.filter((ft) => ft !== 'blocks')}
                       onChange={(components) => patchConfig(index, { components })}
                     />
                   ) : null}
@@ -831,183 +694,6 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
           )
         })}
       </ul>
-    </div>
-  )
-}
-
-type BlockNestedField = {
-  name: string
-  type: string
-  required?: boolean
-  nullable?: boolean
-  label?: string
-}
-
-function readComponents(field: SchemaField): Record<string, BlockNestedField[]> {
-  const raw = field.config.components
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const out: Record<string, BlockNestedField[]> = {}
-  for (const [type, fields] of Object.entries(raw as Record<string, unknown>)) {
-    if (!Array.isArray(fields)) continue
-    out[type] = fields.map((f) => {
-      const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
-      return {
-        name: typeof row.name === 'string' ? row.name : '',
-        type: typeof row.type === 'string' ? row.type : 'string',
-        required: Boolean(row.required),
-        nullable: row.nullable !== false,
-        label: typeof row.label === 'string' ? row.label : '',
-      }
-    })
-  }
-  return out
-}
-
-function BlocksComponentsEditor({
-  field,
-  fieldTypes,
-  onChange,
-}: {
-  field: SchemaField
-  fieldTypes: FieldTypeName[]
-  onChange: (components: Record<string, BlockNestedField[]>) => void
-}) {
-  const { t } = useI18n()
-  const components = readComponents(field)
-  const entries = Object.entries(components)
-
-  function setComponents(next: Record<string, BlockNestedField[]>) {
-    onChange(next)
-  }
-
-  function renameType(from: string, to: string) {
-    const trimmed = slugifyIdentifier(to)
-    if (trimmed === '' || trimmed === from) return
-    if (components[trimmed]) return
-    const next: Record<string, BlockNestedField[]> = {}
-    for (const [key, fields] of Object.entries(components)) {
-      next[key === from ? trimmed : key] = fields
-    }
-    setComponents(next)
-  }
-
-  function addComponent() {
-    let name = 'block'
-    let i = 1
-    while (components[name]) {
-      name = `block_${i}`
-      i += 1
-    }
-    setComponents({
-      ...components,
-      [name]: [{ name: 'title', type: 'string', required: true, nullable: false, label: 'Title' }],
-    })
-  }
-
-  function removeComponent(type: string) {
-    const next = { ...components }
-    delete next[type]
-    setComponents(next)
-  }
-
-  function updateNested(type: string, index: number, patch: Partial<BlockNestedField>) {
-    const list = [...(components[type] ?? [])]
-    const current = list[index]
-    if (!current) return
-    list[index] = { ...current, ...patch }
-    setComponents({ ...components, [type]: list })
-  }
-
-  function addNested(type: string) {
-    const list = [...(components[type] ?? [])]
-    list.push({ name: '', type: 'string', required: false, nullable: true, label: '' })
-    setComponents({ ...components, [type]: list })
-  }
-
-  function removeNested(type: string, index: number) {
-    const list = (components[type] ?? []).filter((_, i) => i !== index)
-    setComponents({ ...components, [type]: list })
-  }
-
-  return (
-    <div className={clsx(styles.field, styles.span2)}>
-      <div className={styles.blocksHeader}>
-        <Label>{t('schema.blocks.components')}</Label>
-        <Button type="button" size="sm" variant="outline" onClick={addComponent}>
-          <Plus className={styles.iconSm} />
-          {t('schema.blocks.addComponent')}
-        </Button>
-      </div>
-      <p className={styles.hint}>{t('schema.blocks.componentsHint')}</p>
-      {entries.length === 0 ? <p className={styles.hint}>{t('schema.blocks.empty')}</p> : null}
-      {entries.map(([type, nested]) => (
-        <div key={type} className={styles.blocksComponent}>
-          <div className={styles.blocksComponentHeader}>
-            <Input
-              defaultValue={type}
-              key={type}
-              aria-label={t('schema.blocks.componentType')}
-              onBlur={(e) => renameType(type, e.target.value)}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              aria-label={t('schema.blocks.removeComponent')}
-              onClick={() => removeComponent(type)}
-            >
-              <Trash2 className={styles.iconSm} />
-            </Button>
-          </div>
-          {nested.map((nf, ni) => (
-            <div key={ni} className={styles.blocksNestedRow}>
-              <Input
-                placeholder={t('common.name')}
-                value={nf.name}
-                onChange={(e) =>
-                  updateNested(type, ni, { name: slugifyIdentifier(e.target.value) })
-                }
-              />
-              <Select
-                value={nf.type}
-                onChange={(e) => updateNested(type, ni, { type: e.target.value })}
-              >
-                {fieldTypes.map((ft) => (
-                  <option key={ft} value={ft}>
-                    {ft}
-                  </option>
-                ))}
-              </Select>
-              <Input
-                placeholder={t('common.label')}
-                value={nf.label ?? ''}
-                onChange={(e) => updateNested(type, ni, { label: e.target.value })}
-              />
-              <label className={styles.checkLabel}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(nf.required)}
-                  onChange={(e) => updateNested(type, ni, { required: e.target.checked })}
-                />
-                {t('common.required')}
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                aria-label={t('common.delete')}
-                onClick={() => removeNested(type, ni)}
-              >
-                <Trash2 className={styles.iconSm} />
-              </Button>
-            </div>
-          ))}
-          <Button type="button" size="sm" variant="outline" onClick={() => addNested(type)}>
-            <Plus className={styles.iconSm} />
-            {t('schema.blocks.addField')}
-          </Button>
-        </div>
-      ))}
     </div>
   )
 }

@@ -29,6 +29,8 @@ interface FormRendererProps {
   disabled?: boolean
   entryId?: number | null
   errors?: FieldErrors
+  /** Prefix for control ids (e.g. `body-0-`) to avoid collisions in nested blocks. */
+  idPrefix?: string
 }
 
 function relationCardinality(field: SchemaField): 'manyToOne' | 'oneToMany' {
@@ -72,6 +74,7 @@ export function FormRenderer({
   disabled,
   entryId,
   errors = {},
+  idPrefix = '',
 }: FormRendererProps) {
   const { t } = useI18n()
   const [touchedSlugs, setTouchedSlugs] = useState<Set<string>>(() => new Set())
@@ -96,7 +99,7 @@ export function FormRenderer({
   return (
     <div className={styles.root}>
       {visible.map((field) => {
-        const id = `field-${field.name}`
+        const id = `field-${idPrefix}${field.name}`
         const value = values[field.name]
         const invalid = hasFieldError(errors, field.name)
         return (

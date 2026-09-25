@@ -5,6 +5,7 @@ export const queryKeys = {
     me: (token: string | null = getToken()) => ['auth-me', token] as const,
     root: ['auth-me'] as const,
   },
+  fieldTypes: ['field-types'] as const,
   resources: {
     all: ['resources'] as const,
     detail: (id: number) => ['resource', id] as const,
@@ -13,6 +14,14 @@ export const queryKeys = {
       params === undefined
         ? (['resource-entries', id] as const)
         : (['resource-entries', id, params] as const),
+  },
+  integrations: {
+    email: ['integrations-email'] as const,
+    emailApis: ['integrations-email-apis'] as const,
+  },
+  webhooks: {
+    list: ['webhooks'] as const,
+    deliveries: (id: number) => ['webhooks', id, 'deliveries'] as const,
   },
   system: {
     version: ['system-version'] as const,

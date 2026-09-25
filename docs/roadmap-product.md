@@ -28,11 +28,11 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | SDK / ecosystem | **HAVE** | [`packages/sdk`](../packages/sdk) (`@hcms/sdk`) + [`examples/react`](../examples/react) |
 | TS typegen from schema | **HAVE** | `hcms-types` CLI from OpenAPI |
 | Relations | **HAVE** | `manyToOne`, virtual `oneToMany`, `oneToOne`, `manyToMany` (join tables) |
-| Content i18n | **PARTIAL** | System cols + `?locale=` / fallback; locale switcher UI polish later |
+| Content i18n | **HAVE** | System cols + hard `?locale=` filter (no sibling-fallback); admin switcher / add translation; UX polish remaining |
 | Cache / ISR | **HAVE** | Cache-Control + Surrogate-Key + webhook revalidation presets |
 | Live Preview | **HAVE** | `settings.preview.url`, `POST …/preview`, `GET /api/preview/{token}` |
-| Workflows + comments | **PARTIAL** | Entry `status` + transitions / UI; comments later |
-| Repeatable components / blocks | **HAVE** | Field type `blocks` + typed `config.components`; rich editor polish later |
+| Workflows + comments | **HAVE** | Entry `status` + transitions / UI; entry comments CRUD |
+| Repeatable components / blocks | **HAVE** | Field type `blocks` + typed `config.components`; editor UX polish remaining |
 | Internal Event Bus | **HAVE** | `Cms\Events\EventBus`; webhooks as listeners |
 | Webhook revalidation presets | **HAVE** | Vercel / Netlify / Cloudflare / Fastly templates |
 | Data backups (DB + media) | **HAVE** | Admin Backups + `php cms backup:*` + cloud/SFTP — [recovery.md](recovery.md#data-backups-бд--media) |
@@ -62,9 +62,10 @@ Implementation status: see [`implementation-plan.md`](implementation-plan.md).
 
 ### Next (remaining)
 
-1. Polish: locale switcher UI, rich blocks editor, workflow comments, System UI for `ip_auto_block_after_spam_rejects` (частично shipped).
+1. Polish: content i18n UX / rich blocks editor — **shipped** (locale toolbar, nested blocks validation/config; further canvas/DnD optional).
 2. CDN / HA / compliance / marketplace / **multi-tenancy** — docs or future cloud-tier, **не** core MVP.
-3. SAML, full ar/he catalogs, CDN image DAM — secondary.
+3. SAML, full ar/he catalogs, CDN image DAM — secondary (no customer pull → skip).
+4. Tech debt O (QueryEngine split, god-panel hooks, pages→features) — **shipped**.
 
 ---
 
@@ -88,4 +89,4 @@ Self-hosted core: одна инсталляция = один клиент. `tena
 
 ## One-liner
 
-HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL / opt-in GraphQL / AVIF + RTL shell**. Остаются secondary polish (full ar/he, SAML) и out-of-scope cloud concerns.
+HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL / opt-in GraphQL / AVIF + RTL shell / entry comments / spam autoban UI**. Остаются UX polish (i18n/blocks), opportunistic QA refactors и secondary/OOS (ar/he, SAML, cloud).
