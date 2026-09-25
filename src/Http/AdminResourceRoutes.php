@@ -602,6 +602,14 @@ final class AdminResourceRoutes
 
             return $media->upload($request, $context);
         });
+        $router->add('GET', '/admin/api/media/capabilities', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
+            unset($params);
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $media->capabilities($request, $context);
+        });
         $router->add('POST', '/admin/api/media/{id}/regenerate', function (Request $request, array $params, ?AuthContext $context) use ($media): Response {
             if ($context === null) {
                 return Response::error('UNAUTHORIZED', 'Unauthorized', 401);

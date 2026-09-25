@@ -28,4 +28,7 @@ export const queryKeys = {
     security: ['settings-security'] as const,
     graphql: ['settings-graphql'] as const,
   },
+  media: {
+    capabilities: ['media-capabilities'] as const,
+  },
 }

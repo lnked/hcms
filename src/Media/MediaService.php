@@ -1009,6 +1009,21 @@ HTACCESS;
         return $variants;
     }
 
+    /**
+     * Which storage re-encode targets this PHP/GD build can actually write.
+     *
+     * @return array{webp: bool, avif: bool, jpeg: bool, png: bool}
+     */
+    public static function encodeCapabilities(): array
+    {
+        return [
+            'webp' => \function_exists('imagewebp'),
+            'avif' => \function_exists('imageavif'),
+            'jpeg' => \function_exists('imagejpeg'),
+            'png' => \function_exists('imagepng'),
+        ];
+    }
+
     private function assertEncodeAvailable(string $outputMime): void
     {
         if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {

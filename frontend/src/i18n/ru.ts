@@ -652,6 +652,8 @@ export const ru: Record<MessageKey, string> = {
   'schema.image.encodeFormatKeep': 'Оставить исходный формат',
   'schema.image.encodeFormatHint':
     'Опционально — перекодирует оригинал и варианты при загрузке/правке',
+  'schema.image.encodeFormatHintNoAvif':
+    'Опциональный re-encode. AVIF нужен PHP GD с libavif — на этом сервере недоступен.',
   'schema.image.sizes': 'Размеры изображений',
   'schema.image.addSize': 'Добавить размер',
   'schema.image.prefix': 'Префикс',
@@ -720,6 +722,8 @@ export const ru: Record<MessageKey, string> = {
   'media.optimizeCustom': 'Своё',
   'media.optimizeFormat': 'Формат',
   'media.optimizeFormatKeep': 'Оставить исходный',
+  'media.optimizeAvifUnavailable':
+    'AVIF encode нужен PHP GD + libavif — на этом сервере недоступен. Бери WebP/JPEG/PNG.',
   'media.optimizeMaxSide': 'Макс. сторона (px)',
   'media.optimizeMaxSidePlaceholder': 'Опционально — напр. 1920',
   'media.optimizeVariants': 'Также оптимизировать варианты',

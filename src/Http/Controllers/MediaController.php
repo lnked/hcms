@@ -26,6 +26,13 @@ final class MediaController
     ) {
     }
 
+    public function capabilities(Request $request, AuthContext $auth): Response
+    {
+        unset($request, $auth);
+
+        return Response::data(MediaService::encodeCapabilities());
+    }
+
     public function index(Request $request, AuthContext $auth): Response
     {
         $page = max(1, (int) ($request->query['page'] ?? 1));

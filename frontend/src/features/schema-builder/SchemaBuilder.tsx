@@ -14,6 +14,7 @@ import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { configString } from '@/lib/coerce'
 import { slugifyIdentifier } from '@/lib/slugify'
+import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import {
   DEFAULT_DATE_FORMAT,
   DEFAULT_DATETIME_FORMAT,
@@ -56,6 +57,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     queryFn: () => api<FieldTypeDescriptor[] | string[]>('/admin/api/field-types'),
     staleTime: 60_000,
   })
+  const encodeCaps = useMediaEncodeCapabilities()
   const fieldTypeDescriptors: FieldTypeDescriptor[] = (() => {
     const data = fieldTypesQuery.data
     if (!data || data.length === 0) {
@@ -572,12 +574,22 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                             }
                           >
                             <option value="">{t('schema.image.encodeFormatKeep')}</option>
-                            <option value="webp">WebP</option>
-                            <option value="avif">AVIF</option>
+                            {encodeCaps.data?.webp !== false ? (
+                              <option value="webp">WebP</option>
+                            ) : null}
+                            {encodeCaps.data?.avif || field.config.encodeFormat === 'avif' ? (
+                              <option value="avif" disabled={!encodeCaps.data?.avif}>
+                                {encodeCaps.data?.avif ? 'AVIF' : 'AVIF (unavailable)'}
+                              </option>
+                            ) : null}
                             <option value="jpeg">JPEG</option>
                             <option value="png">PNG</option>
                           </Select>
-                          <p className={styles.hint}>{t('schema.image.encodeFormatHint')}</p>
+                          <p className={styles.hint}>
+                            {encodeCaps.data?.avif
+                              ? t('schema.image.encodeFormatHint')
+                              : t('schema.image.encodeFormatHintNoAvif')}
+                          </p>
                         </div>
                       ) : null}
                     </>

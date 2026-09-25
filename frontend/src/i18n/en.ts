@@ -646,6 +646,8 @@ export const en = {
   'schema.image.encodeFormat': 'Convert uploaded images to',
   'schema.image.encodeFormatKeep': 'Keep original format',
   'schema.image.encodeFormatHint': 'Optional — re-encodes master and variants on upload/edit',
+  'schema.image.encodeFormatHintNoAvif':
+    'Optional re-encode. AVIF needs PHP GD built with libavif — not available on this server.',
   'schema.image.sizes': 'Image sizes',
   'schema.image.addSize': 'Add size',
   'schema.image.prefix': 'Prefix',
@@ -716,6 +718,8 @@ export const en = {
   'media.optimizeCustom': 'Custom',
   'media.optimizeFormat': 'Format',
   'media.optimizeFormatKeep': 'Keep original',
+  'media.optimizeAvifUnavailable':
+    'AVIF encode needs PHP GD + libavif — not available on this server. Use WebP/JPEG/PNG.',
   'media.optimizeMaxSide': 'Max side (px)',
   'media.optimizeMaxSidePlaceholder': 'Optional — e.g. 1920',
   'media.optimizeVariants': 'Also optimize variants',

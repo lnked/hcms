@@ -60,7 +60,10 @@ Admin URL: **`/admin`** (не `/public_html/admin`).
 ### PHP GD / AVIF
 
 Для ресайза, crop и `encodeFormat` / Optimize → WebP|AVIF нужен PHP extension **gd**.
-AVIF (`imageavif` / `imagecreatefromavif`) — только если GD собран с **libavif**; без него выбор AVIF даёт понятную 422, не fatal. WebP — аналогично (`imagewebp`).
+AVIF (`imageavif` / `imagecreatefromavif`) — только если GD собран с **libavif**; без него UI не предлагает AVIF (`GET /admin/api/media/capabilities`), а прямой запрос даёт 422, не fatal. WebP — аналогично (`imagewebp`).
+
+Проверка: `php -r 'var_export(function_exists("imageavif"));'` или `gd_info()["AVIF Support"]`.
+На Debian/Ubuntu часто нужен пакет вроде `php8.3-gd` собранный с libavif, либо свой PHP build `--with-avif`. Shared-хостинг без libavif → используй WebP.
 
 ```bash
 composer install

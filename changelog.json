@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.22",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Hide unavailable AVIF/WebP encode options",
+      "changes": [
+        {
+          "type": "added",
+          "area": "media",
+          "text": "GET /admin/api/media/capabilities — Schema Builder + Optimize hide AVIF/WebP when PHP GD lacks the encoder"
+        },
+        {
+          "type": "docs",
+          "area": "docs",
+          "text": "installation.md: how to check gd_info AVIF Support / libavif"
+        }
+      ]
+    },
+    {
       "version": "0.62.21",
       "date": "2026-09-25",
       "channel": "stable",

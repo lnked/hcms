@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
+import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import styles from './OptimizeImageDialog.module.css'
 
 export type OptimizeFormat = 'keep' | 'webp' | 'avif' | 'jpeg' | 'png'
@@ -66,6 +67,7 @@ export function OptimizeImageDialog({
   onDone,
 }: OptimizeImageDialogProps) {
   const { t } = useI18n()
+  const encodeCaps = useMediaEncodeCapabilities(open)
   const [preset, setPreset] = useState<'60' | '75' | '85' | 'custom'>('75')
   const [quality, setQuality] = useState(75)
   const [format, setFormat] = useState<OptimizeFormat>('keep')
@@ -74,6 +76,12 @@ export function OptimizeImageDialog({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastResult, setLastResult] = useState<OptimizeResult | BulkOptimizeResult | null>(null)
+
+  useEffect(() => {
+    if (!encodeCaps.data) return
+    if (format === 'avif' && !encodeCaps.data.avif) setFormat('keep')
+    if (format === 'webp' && !encodeCaps.data.webp) setFormat('keep')
+  }, [encodeCaps.data, format])
 
   const isBulk = mediaIds.length > 1
 
@@ -187,11 +195,14 @@ export function OptimizeImageDialog({
               onChange={(e) => setFormat(e.target.value as OptimizeFormat)}
             >
               <option value="keep">{t('media.optimizeFormatKeep')}</option>
-              <option value="webp">WebP</option>
-              <option value="avif">AVIF</option>
+              {encodeCaps.data?.webp !== false ? <option value="webp">WebP</option> : null}
+              {encodeCaps.data?.avif ? <option value="avif">AVIF</option> : null}
               <option value="jpeg">JPEG</option>
               <option value="png">PNG</option>
             </Select>
+            {encodeCaps.data && !encodeCaps.data.avif ? (
+              <p className={clsx(styles.hint)}>{t('media.optimizeAvifUnavailable')}</p>
+            ) : null}
           </div>
 
           <div className={clsx(styles.field)}>
