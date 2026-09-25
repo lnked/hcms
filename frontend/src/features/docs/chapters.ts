@@ -1,5 +1,5 @@
-import type { Locale } from '@/i18n'
 import { roleAllows, type AdminRole } from '@/lib/rbac'
+import type { Locale } from '@/i18n'
 
 const CHAPTER_IDS = [
   'overview',
