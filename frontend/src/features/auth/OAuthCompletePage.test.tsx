@@ -42,6 +42,6 @@ describe('OAuthCompletePage', () => {
       </I18nProvider>,
     )
 
-    expect(await screen.findByText('No CMS user matches this Google account.')).toBeInTheDocument()
+    expect(await screen.findByText('No CMS user matches this social account.')).toBeInTheDocument()
   })
 })
