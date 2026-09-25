@@ -40,7 +40,7 @@ export type FieldTypeWidget =
 export interface FieldTypeDescriptor {
   name: string
   label: string
-  widget: FieldTypeWidget | string
+  widget: string
   defaultConfig: Record<string, unknown>
   configSchema: Record<string, unknown>
 }

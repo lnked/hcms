@@ -45,9 +45,7 @@ function componentSpecs(field: SchemaField): Record<string, SchemaField[]> {
     out[type] = fields.map((f, i) => {
       const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
       const name = typeof row.name === 'string' ? row.name : `field_${i}`
-      const nestedType = (
-        typeof row.type === 'string' ? row.type : 'string'
-      ) as FieldTypeName
+      const nestedType: FieldTypeName = typeof row.type === 'string' ? row.type : 'string'
       return {
         name,
         type: nestedType === 'blocks' ? 'string' : nestedType,
