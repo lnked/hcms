@@ -23,20 +23,6 @@ export type BuiltinFieldTypeName =
 
 export type FieldTypeName = BuiltinFieldTypeName | (string & {})
 
-export type FieldTypeWidget =
-  | 'text'
-  | 'textarea'
-  | 'number'
-  | 'boolean'
-  | 'json'
-  | 'media'
-  | 'relation'
-  | 'enum'
-  | 'richtext'
-  | 'date'
-  | 'datetime'
-  | 'blocks'
-
 export interface FieldTypeDescriptor {
   name: string
   label: string
