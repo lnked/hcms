@@ -7,6 +7,7 @@ namespace Cms\Http\Controllers;
 use Cms\Api\QueryEngine;
 use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
+use Cms\Events\EventBus;
 use Cms\Hooks\HookRejectedException;
 use Cms\Hooks\RequestMeta;
 use Cms\Hooks\ResourceHookService;
@@ -19,7 +20,6 @@ use Cms\Resources\ResourceService;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
 use Cms\Security\SpamRejected;
-use Cms\Events\EventBus;
 use InvalidArgumentException;
 use RuntimeException;
 

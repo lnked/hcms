@@ -297,8 +297,8 @@ export function WebhooksPage() {
     )
     setResourceId(hook.resourceId)
     setStatus(hook.status)
-    const presetId = (WEBHOOK_PRESETS.find((p) => p.id === hook.preset)?.id ??
-      'custom') as WebhookPresetId
+    const presetId: WebhookPresetId =
+      WEBHOOK_PRESETS.find((p) => p.id === hook.preset)?.id ?? 'custom'
     setPreset(presetId)
     setPayloadMode(hook.payloadMode ?? 'hcms')
     setHeadersText(

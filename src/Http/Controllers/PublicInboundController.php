@@ -6,6 +6,7 @@ namespace Cms\Http\Controllers;
 
 use Cms\Api\QueryEngine;
 use Cms\Auth\AuthContext;
+use Cms\Events\EventBus;
 use Cms\Hooks\HookRejectedException;
 use Cms\Hooks\InboundEndpointService;
 use Cms\Hooks\RequestMeta;
@@ -16,7 +17,6 @@ use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
-use Cms\Events\EventBus;
 use InvalidArgumentException;
 use RuntimeException;
 
