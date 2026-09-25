@@ -169,7 +169,8 @@ export const ru: Record<MessageKey, string> = {
   'account.title': 'Аккаунт',
   'account.description': 'Привяжите Google, Telegram или OIDC SSO, чтобы входить без пароля.',
   'account.oauth.cardTitle': 'Вход через соцсети',
-  'account.oauth.description': 'Google OAuth, Telegram Login Widget и generic OIDC SSO для админки.',
+  'account.oauth.description':
+    'Google OAuth, Telegram Login Widget и generic OIDC SSO для админки.',
   'account.oauth.googleHint':
     'Создайте OAuth-клиент в Google Cloud. Redirect URI должен совпадать один в один.',
   'account.oauth.googleEnabled': 'Включить вход через Google',

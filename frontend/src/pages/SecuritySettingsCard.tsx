@@ -148,10 +148,7 @@ export function SecuritySettingsCard() {
         <CardDescription>{t('system.securityHint')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <SecuritySettingsForm
-          key={JSON.stringify(query.data)}
-          initial={query.data}
-        />
+        <SecuritySettingsForm key={JSON.stringify(query.data)} initial={query.data} />
       </CardContent>
     </Card>
   )

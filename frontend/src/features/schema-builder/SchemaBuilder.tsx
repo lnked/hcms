@@ -354,10 +354,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                   </div>
                   <div className={styles.field}>
                     <Label>{t('common.type')}</Label>
-                    <Select
-                      value={field.type}
-                      onChange={(e) => changeType(index, e.target.value)}
-                    >
+                    <Select value={field.type} onChange={(e) => changeType(index, e.target.value)}>
                       {fieldTypeDescriptors.map((descriptor) => (
                         <option key={descriptor.name} value={descriptor.name}>
                           {descriptor.label !== descriptor.name
