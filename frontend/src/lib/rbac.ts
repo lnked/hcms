@@ -56,7 +56,7 @@ export const RESOURCE_TABS: ResourceTab[] = [
 ]
 
 /** Min role for nav items that require more than viewer. */
-export const SECTION_MIN_ROLE: Partial<Record<AdminSection, AdminRole>> = {
+const SECTION_MIN_ROLE: Partial<Record<AdminSection, AdminRole>> = {
   media: 'editor',
   logs: 'admin',
   tokens: 'admin',
