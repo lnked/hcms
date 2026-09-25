@@ -8,7 +8,7 @@ export type TextDirection = 'ltr' | 'rtl'
 export const LOCALES = ['en', 'ru', 'ar'] as const
 export type Locale = (typeof LOCALES)[number]
 
-export const LOCALE_META: Record<Locale, { code: Locale; dir: TextDirection }> = {
+const LOCALE_META: Record<Locale, { code: Locale; dir: TextDirection }> = {
   en: { code: 'en', dir: 'ltr' },
   ru: { code: 'ru', dir: 'ltr' },
   ar: { code: 'ar', dir: 'rtl' },
