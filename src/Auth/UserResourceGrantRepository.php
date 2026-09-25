@@ -13,12 +13,12 @@ final class UserResourceGrantRepository
     }
 
     /**
-     * @return list<array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>}>
+     * @return list<array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>, fieldAcl: array<string, array{readable: bool, writable: bool}>, ownEntriesOnly: bool}>
      */
     public function forUser(int $userId): array
     {
         $rows = $this->db->select(
-            'SELECT resource_id, can_read, can_create, can_update, can_delete, tabs_json
+            'SELECT resource_id, can_read, can_create, can_update, can_delete, tabs_json, field_acl_json, own_entries_only
              FROM cms_user_resource_grants WHERE user_id = :user_id ORDER BY id ASC',
             ['user_id' => $userId],
         );
@@ -27,7 +27,7 @@ final class UserResourceGrantRepository
     }
 
     /**
-     * @param list<array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>}> $grants
+     * @param list<array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>, fieldAcl?: array<string, array{readable: bool, writable: bool}>, ownEntriesOnly?: bool}> $grants
      */
     public function replace(int $userId, array $grants): void
     {
@@ -40,10 +40,11 @@ final class UserResourceGrantRepository
             }
             $seen[$resourceId] = true;
             $tabs = $this->normalizeTabs($grant['tabs'] ?? []);
+            $fieldAcl = FieldAcl::normalize($grant['fieldAcl'] ?? []);
             $this->db->execute(
                 'INSERT INTO cms_user_resource_grants
-                 (user_id, resource_id, can_read, can_create, can_update, can_delete, tabs_json)
-                 VALUES (:user_id, :resource_id, :can_read, :can_create, :can_update, :can_delete, :tabs_json)',
+                 (user_id, resource_id, can_read, can_create, can_update, can_delete, tabs_json, field_acl_json, own_entries_only)
+                 VALUES (:user_id, :resource_id, :can_read, :can_create, :can_update, :can_delete, :tabs_json, :field_acl_json, :own_entries_only)',
                 [
                     'user_id' => $userId,
                     'resource_id' => $resourceId,
@@ -52,6 +53,8 @@ final class UserResourceGrantRepository
                     'can_update' => !empty($grant['canUpdate']) ? 1 : 0,
                     'can_delete' => !empty($grant['canDelete']) ? 1 : 0,
                     'tabs_json' => json_encode($tabs, JSON_THROW_ON_ERROR),
+                    'field_acl_json' => $fieldAcl === [] ? null : json_encode($fieldAcl, JSON_THROW_ON_ERROR),
+                    'own_entries_only' => !empty($grant['ownEntriesOnly']) ? 1 : 0,
                 ],
             );
         }
@@ -72,7 +75,7 @@ final class UserResourceGrantRepository
 
     /**
      * @param array<string, mixed> $row
-     * @return array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>}
+     * @return array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>, fieldAcl: array<string, array{readable: bool, writable: bool}>, ownEntriesOnly: bool}
      */
     private function serializeRow(array $row): array
     {
@@ -87,6 +90,8 @@ final class UserResourceGrantRepository
             'canUpdate' => (bool) $row['can_update'],
             'canDelete' => (bool) $row['can_delete'],
             'tabs' => $tabs,
+            'fieldAcl' => FieldAcl::normalize($row['field_acl_json'] ?? null),
+            'ownEntriesOnly' => (bool) ($row['own_entries_only'] ?? false),
         ];
     }
 

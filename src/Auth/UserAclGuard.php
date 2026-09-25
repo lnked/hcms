@@ -105,6 +105,32 @@ final class UserAclGuard
         return $this->resources->resourceIdsForUser($auth->userId());
     }
 
+    /**
+     * Active ACL grant for a resource, or null when ACL does not apply (owner / disabled).
+     *
+     * @return array{resourceId: int, canRead: bool, canCreate: bool, canUpdate: bool, canDelete: bool, tabs: list<string>, fieldAcl: array<string, array{readable: bool, writable: bool}>, ownEntriesOnly: bool}|null
+     */
+    public function grantForResource(AuthContext $auth, int $resourceId): ?array
+    {
+        if (!$auth->isAdmin() || $auth->user === null || $auth->userId() === null) {
+            return null;
+        }
+        $role = RolePolicy::normalize(isset($auth->user['role']) ? (string) $auth->user['role'] : null);
+        if ($role === RolePolicy::OWNER) {
+            return null;
+        }
+        if (!(bool) ($auth->user['acl_enabled'] ?? false)) {
+            return null;
+        }
+        foreach ($this->resources->forUser($auth->userId()) as $grant) {
+            if ((int) $grant['resourceId'] === $resourceId) {
+                return $grant;
+            }
+        }
+
+        return null;
+    }
+
     private function resolveFieldResourceId(string $path): ?int
     {
         if (preg_match('#^/admin/api/fields/(\d+)$#', $path, $m) !== 1) {

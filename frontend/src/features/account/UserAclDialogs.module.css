@@ -110,6 +110,26 @@
   gap: calc(var(--hcms-SPx1) * 1.5);
 }
 
+.stackXs {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--hcms-SPx1) * 1.5);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  border-radius: var(--hcms-CRx2);
+  border: 1px solid var(--hcms-color-border);
+  background: var(--hcms-color-background);
+  color: var(--hcms-color-foreground);
+  padding: var(--hcms-SPx2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  resize: vertical;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

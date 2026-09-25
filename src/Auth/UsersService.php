@@ -218,6 +218,8 @@ final class UsersService
                 'canUpdate' => !empty($item['canUpdate']),
                 'canDelete' => !empty($item['canDelete']),
                 'tabs' => $tabs,
+                'fieldAcl' => FieldAcl::normalize($item['fieldAcl'] ?? []),
+                'ownEntriesOnly' => !empty($item['ownEntriesOnly']),
             ];
         }
 

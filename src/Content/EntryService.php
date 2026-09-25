@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Cms\Content;
 
 use Cms\Api\QueryEngine;
+use Cms\Auth\AuthContext;
+use Cms\Auth\UserAclGuard;
 use Cms\Auth\UsersRepository;
 use Cms\Core\Exception\NotFoundException;
 use Cms\Resources\ResourceRepository;
@@ -19,6 +21,7 @@ final class EntryService
         private readonly QueryEngine $query,
         private readonly ResourceRepository $resources,
         private readonly ?UsersRepository $users = null,
+        private readonly ?UserAclGuard $userAcl = null,
     ) {
     }
 
@@ -26,27 +29,32 @@ final class EntryService
      * @param array<string, string> $query
      * @return array{data: list<array<string, mixed>>, meta: array<string, int>}
      */
-    public function list(int $resourceId, array $query): array
+    public function list(int $resourceId, array $query, ?AuthContext $auth = null): array
     {
-        $page = $this->query->list($this->slug($resourceId), $query);
+        $page = $this->query->list($this->slug($resourceId), $query, $this->aclOptions($auth, $resourceId));
         $page['data'] = $this->attachActors($page['data']);
 
         return $page;
     }
 
     /** @return array<string, mixed> */
-    public function find(int $resourceId, int $entryId): array
+    public function find(int $resourceId, int $entryId, ?AuthContext $auth = null): array
     {
-        return $this->attachActor($this->query->find($this->slug($resourceId), $entryId));
+        return $this->attachActor(
+            $this->query->find($this->slug($resourceId), $entryId, $this->aclOptions($auth, $resourceId)),
+        );
     }
 
     /**
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
-    public function create(int $resourceId, array $payload, ?int $actorUserId = null): array
+    public function create(int $resourceId, array $payload, ?int $actorUserId = null, ?AuthContext $auth = null): array
     {
-        $options = $actorUserId === null ? [] : ['actorUserId' => $actorUserId];
+        $options = $this->aclOptions($auth, $resourceId);
+        if ($actorUserId !== null) {
+            $options['actorUserId'] = $actorUserId;
+        }
 
         return $this->attachActor($this->query->create($this->slug($resourceId), $payload, $options));
     }
@@ -55,27 +63,30 @@ final class EntryService
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
-    public function update(int $resourceId, int $entryId, array $payload, ?int $actorUserId = null): array
+    public function update(int $resourceId, int $entryId, array $payload, ?int $actorUserId = null, ?AuthContext $auth = null): array
     {
-        return $this->patch($resourceId, $entryId, $payload, $actorUserId);
+        return $this->patch($resourceId, $entryId, $payload, $actorUserId, $auth);
     }
 
     /**
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
-    public function patch(int $resourceId, int $entryId, array $payload, ?int $actorUserId = null): array
+    public function patch(int $resourceId, int $entryId, array $payload, ?int $actorUserId = null, ?AuthContext $auth = null): array
     {
-        $options = $actorUserId === null ? [] : ['actorUserId' => $actorUserId];
+        $options = $this->aclOptions($auth, $resourceId);
+        if ($actorUserId !== null) {
+            $options['actorUserId'] = $actorUserId;
+        }
 
         return $this->attachActor(
             $this->query->patch($this->slug($resourceId), $entryId, $payload, $options),
         );
     }
 
-    public function delete(int $resourceId, int $entryId): void
+    public function delete(int $resourceId, int $entryId, ?AuthContext $auth = null): void
     {
-        $this->query->delete($this->slug($resourceId), $entryId);
+        $this->query->delete($this->slug($resourceId), $entryId, $this->aclOptions($auth, $resourceId));
     }
 
     /**
@@ -98,6 +109,35 @@ final class EntryService
         }
 
         return (string) $resource['slug'];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function aclOptions(?AuthContext $auth, int $resourceId): array
+    {
+        if ($auth === null) {
+            return [];
+        }
+        $options = [];
+        if ($auth->userId() !== null) {
+            $options['actorUserId'] = $auth->userId();
+        }
+        if ($this->userAcl === null) {
+            return $options;
+        }
+        $grant = $this->userAcl->grantForResource($auth, $resourceId);
+        if ($grant === null) {
+            return $options;
+        }
+        if ($grant['fieldAcl'] !== []) {
+            $options['fieldAcl'] = $grant['fieldAcl'];
+        }
+        if ($grant['ownEntriesOnly'] && $auth->userId() !== null) {
+            $options['ownCreatedBy'] = $auth->userId();
+        }
+
+        return $options;
     }
 
     /**

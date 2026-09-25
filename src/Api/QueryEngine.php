@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Api;
 
+use Cms\Auth\FieldAcl;
 use Cms\Core\Exception\NotFoundException;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
@@ -38,6 +39,7 @@ final class QueryEngine
     public function list(string $slug, array $query, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $fieldMap = $this->applyFieldAclMap($fieldMap, $options);
         $settings = $this->settingsOf($resource);
         $public = (bool) ($options['public'] ?? false);
 
@@ -52,6 +54,10 @@ final class QueryEngine
         $where = ['`deleted_at` IS NULL'];
         $params = [];
         $this->applyFeatureFilters($query, $settings, $public, $where, $params);
+        if (isset($options['ownCreatedBy']) && (int) $options['ownCreatedBy'] > 0) {
+            $where[] = '`created_by` = :own_created_by';
+            $params['own_created_by'] = (int) $options['ownCreatedBy'];
+        }
         if (!$public || ($settings['filtering'] ?? true)) {
             $this->applyFilters($query, $fieldMap, $where, $params);
         } elseif ($this->hasFilterParams($query)) {
@@ -208,6 +214,7 @@ final class QueryEngine
     public function find(string $slug, int $id, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $fieldMap = $this->applyFieldAclMap($fieldMap, $options);
         $row = $this->db->selectOne(
             'SELECT * FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
             ['id' => $id],
@@ -215,6 +222,7 @@ final class QueryEngine
         if ($row === null) {
             throw new NotFoundException('Resource not found');
         }
+        $this->assertOwnEntry($row, $options);
         $settings = $this->settingsOf($resource);
         $public = (bool) ($options['public'] ?? false);
         $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
@@ -227,12 +235,13 @@ final class QueryEngine
 
     /**
      * @param array<string, mixed> $payload
-     * @param array{public?: bool, actorUserId?: int|null} $options
+     * @param array{public?: bool, actorUserId?: int|null, fieldAcl?: array<string, array{readable: bool, writable: bool}>, ownCreatedBy?: int} $options
      * @return array<string, mixed>
      */
     public function create(string $slug, array $payload, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $fieldMap = $this->applyFieldAclMap($fieldMap, $options);
         $this->ensureActorColumns($table);
         $settings = $this->settingsOf($resource);
         [$payload, $system] = $this->extractSystemFields($payload, $settings);
@@ -259,7 +268,9 @@ final class QueryEngine
     public function patch(string $slug, int $id, array $payload, array $options = []): array
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
-        $this->requireRow($table, $id);
+        $fieldMap = $this->applyFieldAclMap($fieldMap, $options);
+        $row = $this->requireRow($table, $id);
+        $this->assertOwnEntry($row, $options);
         $this->ensureActorColumns($table);
         $settings = $this->settingsOf($resource);
         [$payload, $system] = $this->extractSystemFields($payload, $settings, true);
@@ -280,11 +291,13 @@ final class QueryEngine
     }
 
     /**
-     * @param array{public?: bool} $options
+     * @param array{public?: bool, ownCreatedBy?: int} $options
      */
     public function delete(string $slug, int $id, array $options = []): void
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $row = $this->requireRow($table, $id);
+        $this->assertOwnEntry($row, $options);
         $settings = $this->settingsOf($resource);
         $hard = !(($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft');
         $this->deleteRow($table, $id, $settings);
@@ -849,15 +862,54 @@ final class QueryEngine
         return false;
     }
 
-    private function requireRow(string $table, int $id): void
+    /**
+     * @return array<string, mixed>
+     */
+    private function requireRow(string $table, int $id): array
     {
         $row = $this->db->selectOne(
-            'SELECT id FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
+            'SELECT * FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
             ['id' => $id],
         );
         if ($row === null) {
             throw new NotFoundException('Resource not found');
         }
+
+        return $row;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<string, mixed> $options
+     */
+    private function assertOwnEntry(array $row, array $options): void
+    {
+        if (!isset($options['ownCreatedBy']) || (int) $options['ownCreatedBy'] < 1) {
+            return;
+        }
+        if ((int) ($row['created_by'] ?? 0) !== (int) $options['ownCreatedBy']) {
+            throw new NotFoundException('Resource not found');
+        }
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @param array<string, mixed> $options
+     * @return array<string, array<string, mixed>>
+     */
+    private function applyFieldAclMap(array $fieldMap, array $options): array
+    {
+        $fieldAcl = FieldAcl::normalize($options['fieldAcl'] ?? []);
+        if ($fieldAcl === []) {
+            return $fieldMap;
+        }
+        foreach ($fieldMap as $name => $meta) {
+            $spec = \is_array($meta['spec'] ?? null) ? $meta['spec'] : [];
+            $meta['spec'] = FieldAcl::applyToSpec($spec, $name, $fieldAcl);
+            $fieldMap[$name] = $meta;
+        }
+
+        return $fieldMap;
     }
 
     /**

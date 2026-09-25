@@ -27,6 +27,9 @@ final class WebhookDispatcherTest extends TestCase
             events TEXT NOT NULL,
             resource_id INTEGER NULL,
             status TEXT NOT NULL DEFAULT \'active\',
+            preset TEXT NULL,
+            payload_mode TEXT NOT NULL DEFAULT \'hcms\',
+            headers_json TEXT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )');
@@ -61,6 +64,9 @@ final class WebhookDispatcherTest extends TestCase
             'events' => ['entry.created'],
             'resource_id' => null,
             'status' => 'active',
+            'preset' => null,
+            'payload_mode' => 'hcms',
+            'headers_json' => null,
         ]);
 
         $captured = [];
@@ -105,6 +111,9 @@ final class WebhookDispatcherTest extends TestCase
             'events' => ['entry.created'],
             'resource_id' => null,
             'status' => 'active',
+            'preset' => null,
+            'payload_mode' => 'hcms',
+            'headers_json' => null,
         ]);
 
         $calls = 0;

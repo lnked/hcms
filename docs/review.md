@@ -26,7 +26,7 @@ HTTP (Controllers + Routes)
 |---|---|
 | [`public/index.php`](../public/index.php) + [`public/router.php`](../public/router.php) | Front controller / built-in PHP server |
 | [`src/Http/Kernel.php`](../src/Http/Kernel.php) | DI-lite, wiring всех сервисов, rate-limit, IP blocks, роуты |
-| [`cms`](../cms) | CLI: `status`, `migrate`, `cache:clear`, `uptime:check` |
+| [`cms`](../cms) | CLI: `status`, `migrate`, `cache:clear`, `uptime:check`, `backup:*` |
 | [`install.php`](../install.php) | Мастер + JSON API установки |
 | [`packages/sdk`](../packages/sdk) | `@hcms/sdk` + `hcms-types` CLI |
 | [`examples/react`](../examples/react) | Демо-консьюмер public API |
@@ -214,20 +214,33 @@ Public: `GET /media/{id}` / pretty `…/{filename}` + rate limit.
 
 ---
 
-## 12. Webhooks — `src/Webhooks/`
+## 12. Events — `src/Events/`
 
-Исходящие HMAC-хуки после ответа.
+In-process domain bus (без внешнего брокера).
 
 | Класс | Назначение |
 |---|---|
-| `WebhookService` / `WebhookRepository` | CRUD + deliveries |
-| `WebhookDispatcher` | Async dispatch (`entry.*`, `webhook.test`, workflow events) |
+| `EventBus` | `listen` / `dispatch` / `dispatchAfterResponse` |
+
+Контроллеры (entries, public API, publish) диспатчат сюда; Kernel регистрирует listener → `WebhookDispatcher::dispatch`.
+
+---
+
+## 13. Webhooks — `src/Webhooks/`
+
+Исходящие HMAC-хуки после ответа (через Event Bus).
+
+| Класс | Назначение |
+|---|---|
+| `WebhookService` / `WebhookRepository` | CRUD + deliveries + presets |
+| `WebhookPresets` | vercel/netlify/cloudflare/fastly + payload modes |
+| `WebhookDispatcher` | HTTP deliver + retries |
 
 UI: Settings → Webhooks. Дока: [`webhooks.md`](webhooks.md).
 
 ---
 
-## 13. Hooks — `src/Hooks/`
+## 14. Hooks — `src/Hooks/`
 
 Sync request hooks + inbound endpoints (логика на внешнем URL).
 
@@ -242,7 +255,7 @@ Sync request hooks + inbound endpoints (логика на внешнем URL).
 
 ---
 
-## 14. Audit — `src/Audit/`
+## 15. Audit — `src/Audit/`
 
 | Класс | Назначение |
 |---|---|
@@ -253,7 +266,7 @@ UI: Logs (audit / api / security / IP blocks).
 
 ---
 
-## 15. OpenApi — `src/OpenApi/`
+## 16. OpenApi — `src/OpenApi/`
 
 | Класс | Назначение |
 |---|---|
@@ -263,7 +276,7 @@ UI: Logs (audit / api / security / IP blocks).
 
 ---
 
-## 16. Install — `src/Install/`
+## 17. Install — `src/Install/`
 
 | Класс | Назначение |
 |---|---|
@@ -275,7 +288,7 @@ UI: Logs (audit / api / security / IP blocks).
 
 ---
 
-## 17. System — `src/System/`
+## 18. System — `src/System/`
 
 Обновления продукта и служебное.
 
@@ -288,7 +301,25 @@ UI: Logs (audit / api / security / IP blocks).
 
 ---
 
-## 18. Mail / Integrations
+## 18a. Backup — `src/Backup/`
+
+Data snapshots (БД `cms_*`/`res_*` + `storage/uploads`), отдельно от code-бэкапов апдейта.
+
+| Класс | Назначение |
+|---|---|
+| `DataBackupService` | create / list / restore / push / retention |
+| `SqlDumper` / `SqlRestorer` | PDO SQL dump/restore |
+| `BackupRemoteSettings` | `cms_settings` key `backups.remote` |
+| `BackupCloudOAuthService` | OAuth connect Google / Yandex / Dropbox |
+| `RemoteDriver` + drivers | Google Drive, Yandex Disk, Dropbox, SFTP (curl) |
+| API / UI | `/admin/api/backups*` · Settings → Backups |
+| CLI | `php cms backup:create\|list\|restore\|push` |
+
+Дока: [`recovery.md`](recovery.md#data-backups-бд--media).
+
+---
+
+## 19. Mail / Integrations
 
 **Mail (`src/Mail/`):** Resend / Postmark / Mailgun transports, `EmailIntegration`, `Mailer`.  
 **Integrations (`src/Integrations/`):** named integration API endpoints (email send и т.п.), OpenAPI-схемы.
@@ -297,13 +328,13 @@ UI: Settings → Integrations. Дока: [`integrations-email.md`](integrations-
 
 ---
 
-## 19. FeatureFlags — `src/FeatureFlags/`
+## 20. FeatureFlags — `src/FeatureFlags/`
 
 Remote config / A–B (`cms_feature_flags`). Public GET с Cache-Control/ETag; admin CRUD.
 
 ---
 
-## 20. Translates — `src/Translates/`
+## 21. Translates — `src/Translates/`
 
 **UI-/client string i18n** (не content localization).
 
@@ -317,13 +348,13 @@ Content localization (entry rows) — отдельная ось в Resource sett
 
 ---
 
-## 21. KeyValues — `src/KeyValues/`
+## 22. KeyValues — `src/KeyValues/`
 
 Простой KV store для клиентов (`cms_key_values`), public GET + admin CRUD, cache headers.
 
 ---
 
-## 22. Uptime — `src/Uptime/`
+## 23. Uptime — `src/Uptime/`
 
 Мониторинг HTTP-целей: targets, probes, incidents, heartbeat, soft cron через `/admin/api/health` или `php cms uptime:check`.
 
@@ -331,7 +362,7 @@ Content localization (entry rows) — отдельная ось в Resource sett
 
 ---
 
-## 23. Frontend — `frontend/src/`
+## 24. Frontend — `frontend/src/`
 
 React SPA → build в `public/admin/`.
 
@@ -352,14 +383,14 @@ React SPA → build в `public/admin/`.
 
 ---
 
-## 24. SDK — `packages/sdk`
+## 25. SDK — `packages/sdk`
 
 - `createClient({ baseUrl, token })` — list/get/create/update/remove/preview/openapi
 - bin `hcms-types` — fetch OpenAPI → TS (опционально `openapi-typescript`)
 
 ---
 
-## 25. Таблицы `cms_*` (ориентир)
+## 26. Таблицы `cms_*` (ориентир)
 
 Foundation + фичи по миграциям `001`…`021`:
 
@@ -376,7 +407,7 @@ Foundation + фичи по миграциям `001`…`021`:
 
 ---
 
-## 26. Типовые потоки (для навигации по коду)
+## 27. Типовые потоки (для навигации по коду)
 
 ### Создать схему
 
@@ -384,7 +415,7 @@ Foundation + фичи по миграциям `001`…`021`:
 
 ### Public CRUD
 
-`PublicApiController` → authorize (public flags / API token grants) → SpamGuard (anon write) → `QueryEngine` → Webhooks.
+`PublicApiController` → authorize (public flags / API token grants) → SpamGuard (anon write) → `QueryEngine` → `EventBus` → Webhooks.
 
 ### Preview
 
@@ -400,17 +431,18 @@ Foundation + фичи по миграциям `001`…`021`:
 
 ---
 
-## 27. Документация (куда смотреть дальше)
+## 28. Документация (куда смотреть дальше)
 
 | Файл | Тема |
 |---|---|
 | [`architecture.md`](architecture.md) | Модель сущностей |
-| [`api.md`](api.md) | Admin/public API, cache, preview |
+| [`api.md`](api.md) | Admin/public API, cache, preview, backups, Event Bus, ACL |
 | [`schema.md`](schema.md) | Поля, миграции |
 | [`resources.md`](resources.md) | Settings, custom APIs |
-| [`authentication.md`](authentication.md) / [`permissions.md`](permissions.md) | Auth/RBAC |
+| [`authentication.md`](authentication.md) / [`permissions.md`](permissions.md) | Auth/RBAC + field/row ACL |
 | [`anti-spam.md`](anti-spam.md) | Spam / IP |
-| [`webhooks.md`](webhooks.md) / [`hooks.md`](hooks.md) | Outbound / inbound |
+| [`webhooks.md`](webhooks.md) / [`hooks.md`](hooks.md) | Outbound presets / inbound |
+| [`recovery.md`](recovery.md) | Update restore + data backups |
 | [`openapi.md`](openapi.md) | Генератор |
 | [`deployment.md`](deployment.md) | Релиз, CDN proxy |
 | [`improvements.md`](improvements.md) | Инженерный backlog |
@@ -419,7 +451,7 @@ Foundation + фичи по миграциям `001`…`021`:
 
 ---
 
-## 28. Правила при правках (кратко)
+## 29. Правила при правках (кратко)
 
 1. Settings — только через `ResourceService::normalizeSettings` (+ TS `ResourceSettings`).
 2. Новые system cols на `res_*` — через `MigrationService` + opt-in settings; default public behaviour не ломать.

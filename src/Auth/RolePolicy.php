@@ -83,6 +83,9 @@ final class RolePolicy
         if ($path === '/admin/api/system/update/run') {
             return 'system.write';
         }
+        if (preg_match('#^/admin/api/backups/[^/]+/restore$#', $path) === 1) {
+            return 'system.write';
+        }
         // check/preview/status are read-only despite POST
         if (str_starts_with($path, '/admin/api/system/update')) {
             return null;
@@ -104,6 +107,7 @@ final class RolePolicy
             || str_starts_with($path, '/admin/api/locales')
             || str_starts_with($path, '/admin/api/translations')
             || str_starts_with($path, '/admin/api/logs/ip-blocks')
+            || str_starts_with($path, '/admin/api/backups')
         ) {
             return 'settings.write';
         }

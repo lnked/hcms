@@ -25,6 +25,7 @@ import {
   Webhook,
   Inbox,
   HeartPulse,
+  Archive,
   X,
 } from 'lucide-react'
 import { Suspense, useEffect, useState, type ReactNode, type SVGProps } from 'react'
@@ -364,6 +365,13 @@ export function AppShell() {
         label: t('nav.integrations'),
         icon: Plug,
         section: 'integrations',
+        minRole: 'admin' as const,
+      },
+      {
+        to: '/settings/backups',
+        label: t('nav.backups'),
+        icon: Archive,
+        section: 'backups',
         minRole: 'admin' as const,
       },
       {

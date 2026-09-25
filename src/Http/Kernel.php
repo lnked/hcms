@@ -26,6 +26,11 @@ use Cms\Auth\UserResourceGrantRepository;
 use Cms\Auth\UserSectionGrantRepository;
 use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
+use Cms\Backup\BackupCloudOAuthService;
+use Cms\Backup\BackupHttpClient;
+use Cms\Backup\BackupRemoteSettings;
+use Cms\Backup\DataBackupService;
+use Cms\Backup\RemoteDriverFactory;
 use Cms\Content\ContentTypeRepository;
 use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryService;
@@ -52,6 +57,7 @@ use Cms\Hooks\InboundEndpointService;
 use Cms\Hooks\ResourceHookRepository;
 use Cms\Hooks\ResourceHookService;
 use Cms\Http\Controllers\AuthController;
+use Cms\Http\Controllers\BackupsController;
 use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FeatureFlagsController;
@@ -114,6 +120,7 @@ use Cms\Uptime\UptimeService;
 use Cms\Uptime\UptimeSettings;
 use Cms\Uptime\UptimeStatusService;
 use Cms\Uptime\UptimeTargetRepository;
+use Cms\Events\EventBus;
 use Cms\Webhooks\WebhookDispatcher;
 use Cms\Webhooks\WebhookRepository;
 use Cms\Webhooks\WebhookService;
@@ -557,6 +564,8 @@ final class Kernel
 
         AuthRoutes::register($this->router, $auth);
 
+        /** @var EventBus|null $eventBus */
+        $eventBus = null;
         /** @var WebhookDispatcher|null $webhookDispatcher */
         $webhookDispatcher = null;
         /** @var UptimeHeartbeatService|null $uptimeHeartbeat */
@@ -580,6 +589,34 @@ final class Kernel
             );
             SystemRoutes::register($this->router, $system);
 
+            $backupSettings = new BackupRemoteSettings(new Settings($this->db));
+            $backupHttp = new BackupHttpClient(120);
+            $backupDrivers = new RemoteDriverFactory($backupSettings, $backupHttp, $this->paths);
+            $backupService = new DataBackupService(
+                $this->paths,
+                $this->db,
+                $backupSettings,
+                $backupDrivers,
+            );
+            $backupOauth = new BackupCloudOAuthService(
+                $backupSettings,
+                $backupHttp,
+                $this->config->appUrl,
+                $this->config->appSecret,
+                $this->config->adminBase,
+            );
+            BackupRoutes::register(
+                $this->router,
+                new BackupsController(
+                    $backupService,
+                    $backupSettings,
+                    $backupOauth,
+                    $backupDrivers,
+                    $this->config->appUrl,
+                    $this->config->adminBase->apiPrefix(),
+                ),
+            );
+
             $audit = $this->audit;
             if ($audit === null) {
                 throw new \RuntimeException('Audit logger is required');
@@ -600,7 +637,13 @@ final class Kernel
             );
             $webhookRepo = new WebhookRepository($this->db);
             $webhookDispatcher = new WebhookDispatcher($webhookRepo);
-            $resources = new ResourceController($resourceService, $audit, $migrationService, $webhookDispatcher, $this->userAcl);
+            $eventBus = new EventBus();
+            $eventBus->listen(
+                static function (string $event, array $payload, ?int $resourceId) use ($webhookDispatcher): void {
+                    $webhookDispatcher->dispatch($event, $payload, $resourceId);
+                },
+            );
+            $resources = new ResourceController($resourceService, $audit, $migrationService, $eventBus, $this->userAcl);
 
             $resourceApiService = new ResourceApiService(
                 new ResourceRepository($this->db),
@@ -634,12 +677,13 @@ final class Kernel
                 $queryEngine,
                 new ResourceRepository($this->db),
                 new UsersRepository($this->db),
+                $this->userAcl,
             );
             $entries = new EntriesController(
                 $entryService,
                 $audit,
                 $entryImportExport,
-                $webhookDispatcher,
+                $eventBus,
                 $entryRevisions,
                 new PreviewTokenService($this->config->appSecret),
                 new ResourceRepository($this->db),
@@ -937,7 +981,7 @@ final class Kernel
                 $tokenGrants,
                 $resourceApiRepo,
                 $spamGuard,
-                $webhookDispatcher,
+                $eventBus,
                 $resourceHookService,
                 $this->audit,
                 $this->rateLimitStore,
@@ -952,7 +996,7 @@ final class Kernel
                 $queryEnginePublic,
                 $resourceHookService,
                 $spamGuard,
-                $webhookDispatcher,
+                $eventBus,
             );
             $previewController = new PreviewController(
                 new PreviewTokenService($this->config->appSecret),

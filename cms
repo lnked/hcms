@@ -3,6 +3,10 @@
 
 declare(strict_types=1);
 
+use Cms\Backup\BackupHttpClient;
+use Cms\Backup\BackupRemoteSettings;
+use Cms\Backup\DataBackupService;
+use Cms\Backup\RemoteDriverFactory;
 use Cms\Core\Config;
 use Cms\Core\Env;
 use Cms\Core\FileCache;
@@ -45,6 +49,10 @@ try {
         'cache:clear' => cliCacheClear($paths),
         'migrate' => cliMigrate($paths, $config, $installed, $options),
         'uptime:check' => cliUptimeCheck($paths, $config, $installed),
+        'backup:create' => cliBackupCreate($paths, $config, $installed, $options),
+        'backup:list' => cliBackupList($paths, $config, $installed),
+        'backup:restore' => cliBackupRestore($paths, $config, $installed, $options),
+        'backup:push' => cliBackupPush($paths, $config, $installed, $options),
         null, '', 'help', '--help', '-h' => cliHelp(),
         default => throw new RuntimeException('Unknown command: ' . $command),
     };
@@ -86,6 +94,10 @@ Usage:
   php cms migrate [--resource=ID]
   php cms cache:clear
   php cms uptime:check
+  php cms backup:create [--push=google,yandex,dropbox,sftp]
+  php cms backup:list
+  php cms backup:restore --id=data-... --confirm
+  php cms backup:push --id=data-... --to=google|yandex|dropbox|sftp
 
 TXT;
 }
@@ -211,4 +223,93 @@ function cliUptimeCheck(Paths $paths, Config $config, bool $installed): void
         echo $status . "\t" . $name . "\t" . $latency . $error . PHP_EOL;
     }
     echo 'Checked: ' . count($results) . PHP_EOL;
+}
+
+function cliBackupService(Paths $paths, Config $config): DataBackupService
+{
+    $db = cliDb($config);
+    $settings = new BackupRemoteSettings(new Settings($db));
+    $drivers = new RemoteDriverFactory($settings, new BackupHttpClient(120), $paths);
+
+    return new DataBackupService($paths, $db, $settings, $drivers);
+}
+
+/**
+ * @param array<string, string|bool> $options
+ */
+function cliBackupCreate(Paths $paths, Config $config, bool $installed, array $options): void
+{
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+    $pushTo = [];
+    if (isset($options['push']) && is_string($options['push']) && $options['push'] !== '') {
+        foreach (explode(',', $options['push']) as $p) {
+            $p = strtolower(trim($p));
+            if ($p !== '') {
+                $pushTo[] = $p;
+            }
+        }
+    }
+    $result = cliBackupService($paths, $config)->create($pushTo);
+    echo 'Backup created: ' . $result['id'] . PHP_EOL;
+    if ($result['destinations'] !== []) {
+        echo 'Pushed: ' . implode(', ', $result['destinations']) . PHP_EOL;
+    }
+    if ($result['pushErrors'] !== []) {
+        foreach ($result['pushErrors'] as $provider => $message) {
+            echo 'Push error (' . $provider . '): ' . $message . PHP_EOL;
+        }
+    }
+}
+
+function cliBackupList(Paths $paths, Config $config, bool $installed): void
+{
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+    $items = cliBackupService($paths, $config)->list();
+    if ($items === []) {
+        echo 'No data backups.' . PHP_EOL;
+
+        return;
+    }
+    foreach ($items as $item) {
+        $dest = is_array($item['destinations'] ?? null) ? implode(',', $item['destinations']) : '';
+        echo ($item['id'] ?? '') . "\t" . ($item['createdAt'] ?? '') . "\t" . ($item['sizeBytes'] ?? 0) . "\t" . $dest . PHP_EOL;
+    }
+}
+
+/**
+ * @param array<string, string|bool> $options
+ */
+function cliBackupRestore(Paths $paths, Config $config, bool $installed, array $options): void
+{
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+    $id = isset($options['id']) && is_string($options['id']) ? $options['id'] : '';
+    if ($id === '') {
+        throw new RuntimeException('--id=data-... is required');
+    }
+    $confirm = !empty($options['confirm']);
+    $result = cliBackupService($paths, $config)->restore($id, $confirm);
+    echo 'Restored: ' . $result['id'] . ' (safety: ' . $result['safetyBackup'] . ')' . PHP_EOL;
+}
+
+/**
+ * @param array<string, string|bool> $options
+ */
+function cliBackupPush(Paths $paths, Config $config, bool $installed, array $options): void
+{
+    if (!$installed || $config->dbName === '') {
+        throw new RuntimeException('CMS is not installed');
+    }
+    $id = isset($options['id']) && is_string($options['id']) ? $options['id'] : '';
+    $to = isset($options['to']) && is_string($options['to']) ? $options['to'] : '';
+    if ($id === '' || $to === '') {
+        throw new RuntimeException('--id= and --to= are required');
+    }
+    $result = cliBackupService($paths, $config)->push($id, $to);
+    echo 'Pushed ' . $result['id'] . ' → ' . $result['provider'] . PHP_EOL;
 }

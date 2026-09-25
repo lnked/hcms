@@ -5,9 +5,9 @@
 
 **Правило:** каждый эпик — opt-in через `settings` или новый field type; default поведение public API не ломаем.
 
-**Статус (initial cut):** Phase 0–6 + gap-plan K–N anti-spam.  
-Добито: workflow `POST …/status` + UI; Surrogate-Key; locale default из `cms_locales`; CIDR IP blocks; SpamRejected + AutoBlock.  
-Follow-up: locale switcher / create-translation UI; rich blocks editor; System settings field for `ip_auto_block_after_spam_rejects` (ключ уже в install defaults).
+**Статус:** Phase 0–6 + anti-spam K–N + growth P5–P7 (Event Bus, webhook presets, field/row ACL) — shipped ~0.62.12.  
+Follow-up polish: locale switcher / create-translation UI; rich blocks editor; workflow comments; System UI for `ip_auto_block_after_spam_rejects`.  
+Не в плане: GraphQL (demand-gated), multi-tenancy, CDN product.
 
 ---
 
@@ -23,7 +23,10 @@ Follow-up: locale switcher / create-translation UI; rich blocks editor; System s
 | Workflows | Opt-in `settings.workflow.enabled` → col `status` (`draft\|in_review\|published`). Public GET только `published`. Comments — later. |
 | Cache | `settings.cache.maxAge` (0 = как сейчас). Anonymous GET → `public, max-age=N`; Bearer → `private, no-store`. |
 | SDK | Thin `@hcms/sdk` + CLI typegen из `GET /api/openapi.json`. Не второй schema DSL. |
-| GraphQL / CDN / marketplace | Не в этом плане. |
+| GraphQL / CDN / marketplace / multi-tenancy | Не в этом плане (см. roadmap growth / OOS). |
+| Event Bus | Sync in-process `EventBus`; webhooks listen; controllers не зовут WebhookDispatcher напрямую. |
+| Revalidation presets | Webhook `preset` + `payloadMode` + `headers`; UI templates. |
+| Field/row ACL | `field_acl_json` + `own_entries_only` на `cms_user_resource_grants`; QueryEngine projection/WHERE. |
 
 ---
 

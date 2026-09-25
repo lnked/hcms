@@ -16,7 +16,7 @@ use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
-use Cms\Webhooks\WebhookDispatcher;
+use Cms\Events\EventBus;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -28,7 +28,7 @@ final class PublicInboundController
         private readonly QueryEngine $query,
         private readonly ?ResourceHookService $resourceHooks = null,
         private readonly ?SpamGuard $spamGuard = null,
-        private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?EventBus $events = null,
     ) {
     }
 
@@ -105,8 +105,8 @@ final class PublicInboundController
                 $afterHook = $this->resourceHooks->runAfterCreate($persistResourceId, $resourceSlug, $entry, $meta);
             }
 
-            if ($this->webhooks !== null) {
-                $this->webhooks->dispatchAfterResponse('entry.created', [
+            if ($this->events !== null) {
+                $this->events->dispatchAfterResponse('entry.created', [
                     'resourceId' => $persistResourceId,
                     'slug' => $resourceSlug,
                     'entry' => $entry,

@@ -28,6 +28,7 @@ final class UserAclPolicy
         'users',
         'integrations',
         'system',
+        'backups',
         'account',
     ];
 
@@ -188,6 +189,9 @@ final class UserAclPolicy
         }
         if (str_starts_with($path, '/admin/api/integrations')) {
             return 'integrations';
+        }
+        if (str_starts_with($path, '/admin/api/backups')) {
+            return 'backups';
         }
         if (str_starts_with($path, '/admin/api/media')) {
             return 'media';

@@ -52,7 +52,7 @@ final class WebhookService
     public function create(array $payload): array
     {
         $data = $this->normalizeWrite($payload, true);
-        /** @var array{name: string, url: string, secret: string, events: list<string>, resource_id: int|null, status: string} $data */
+        /** @var array{name: string, url: string, secret: string, events: list<string>, resource_id: int|null, status: string, preset: ?string, payload_mode: string, headers_json: ?string} $data */
 
         return $this->serialize($this->webhooks->create($data));
     }
@@ -173,8 +173,19 @@ final class WebhookService
             $out['secret'] = $secret;
         }
 
+        $presetInput = null;
+        if ($creating || \array_key_exists('preset', $payload)) {
+            $rawPreset = isset($payload['preset']) && \is_string($payload['preset']) ? trim($payload['preset']) : null;
+            $presetInput = WebhookPresets::normalizePreset($rawPreset);
+            $out['preset'] = $presetInput;
+        }
+
         if ($creating || \array_key_exists('events', $payload)) {
-            $out['events'] = $this->normalizeEvents($payload['events'] ?? null);
+            if (!\array_key_exists('events', $payload) && $creating && $presetInput !== null) {
+                $out['events'] = WebhookPresets::defaults($presetInput)['defaultEvents'];
+            } else {
+                $out['events'] = $this->normalizeEvents($payload['events'] ?? null);
+            }
         }
 
         if ($creating || \array_key_exists('resourceId', $payload)) {
@@ -198,7 +209,49 @@ final class WebhookService
             $out['status'] = $status;
         }
 
+        if ($creating || \array_key_exists('payloadMode', $payload) || \array_key_exists('preset', $payload)) {
+            $modeRaw = isset($payload['payloadMode']) && \is_string($payload['payloadMode'])
+                ? $payload['payloadMode']
+                : null;
+            $out['payload_mode'] = WebhookPresets::normalizePayloadMode($modeRaw, $presetInput ?? ($out['preset'] ?? null));
+        }
+
+        if ($creating || \array_key_exists('headers', $payload)) {
+            $out['headers_json'] = $this->normalizeHeaders($payload['headers'] ?? null);
+        }
+
+        if ($creating) {
+            $out['preset'] ??= null;
+            $out['payload_mode'] ??= WebhookPresets::PAYLOAD_HCMS;
+            $out['headers_json'] ??= null;
+        }
+
         return $out;
+    }
+
+    /**
+     * @param mixed $input
+     */
+    private function normalizeHeaders(mixed $input): ?string
+    {
+        if ($input === null || $input === '') {
+            return null;
+        }
+        if (!\is_array($input)) {
+            throw ValidationFailedException::field('headers', 'headers must be an object of string→string');
+        }
+        $out = [];
+        foreach ($input as $name => $value) {
+            if (!\is_string($name) || !\is_string($value) || trim($name) === '') {
+                throw ValidationFailedException::field('headers', 'headers must be an object of string→string');
+            }
+            if (str_starts_with(strtolower($name), 'x-hcms-')) {
+                continue;
+            }
+            $out[trim($name)] = $value;
+        }
+
+        return $out === [] ? null : (json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: null);
     }
 
     /**
@@ -244,9 +297,37 @@ final class WebhookService
             'events' => array_values(array_filter($events, static fn (mixed $e): bool => \is_string($e))),
             'resourceId' => $row['resource_id'] === null ? null : (int) $row['resource_id'],
             'status' => $row['status'],
+            'preset' => $row['preset'] === null || $row['preset'] === '' ? null : (string) $row['preset'],
+            'payloadMode' => WebhookPresets::normalizePayloadMode(
+                \is_string($row['payload_mode'] ?? null) ? $row['payload_mode'] : null,
+                \is_string($row['preset'] ?? null) ? $row['preset'] : null,
+            ),
+            'headers' => $this->decodeHeaders($row['headers_json'] ?? null),
             'createdAt' => $row['created_at'],
             'updatedAt' => $row['updated_at'],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function decodeHeaders(mixed $raw): array
+    {
+        if (\is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = \is_array($decoded) ? $decoded : [];
+        }
+        if (!\is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $name => $value) {
+            if (\is_string($name) && \is_string($value)) {
+                $out[$name] = $value;
+            }
+        }
+
+        return $out;
     }
 
     /**

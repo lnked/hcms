@@ -19,7 +19,7 @@ use Cms\Resources\ResourceService;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
 use Cms\Security\SpamRejected;
-use Cms\Webhooks\WebhookDispatcher;
+use Cms\Events\EventBus;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -31,7 +31,7 @@ final class PublicApiController
         private readonly TokenGrantRepository $grants,
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?SpamGuard $spamGuard = null,
-        private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?EventBus $events = null,
         private readonly ?ResourceHookService $hooks = null,
         private readonly ?\Cms\Audit\AuditLogger $audit = null,
         private readonly ?\Cms\Auth\RateLimitStore $rateLimitStore = null,
@@ -291,7 +291,7 @@ final class PublicApiController
      */
     private function dispatchWebhook(string $event, Request $request, string $slug, ?string $apiSlug, array $data): void
     {
-        if ($this->webhooks === null) {
+        if ($this->events === null) {
             return;
         }
 
@@ -305,7 +305,7 @@ final class PublicApiController
         if ($apiSlug !== null) {
             $payload['apiSlug'] = $apiSlug;
         }
-        $this->webhooks->dispatchAfterResponse($event, $payload, $resourceId);
+        $this->events->dispatchAfterResponse($event, $payload, $resourceId);
     }
 
     private static function actionFor(string $method): string

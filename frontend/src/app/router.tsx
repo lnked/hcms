@@ -55,6 +55,9 @@ const ResourcesPage = lazy(() =>
   import('@/features/resources/ResourcesPage').then((m) => ({ default: m.ResourcesPage })),
 )
 const SystemPage = lazy(() => import('@/pages/SystemPage').then((m) => ({ default: m.SystemPage })))
+const BackupsPage = lazy(() =>
+  import('@/pages/BackupsPage').then((m) => ({ default: m.BackupsPage })),
+)
 const TokensPage = lazy(() => import('@/pages/TokensPage').then((m) => ({ default: m.TokensPage })))
 const UsersPage = lazy(() => import('@/pages/UsersPage').then((m) => ({ default: m.UsersPage })))
 const WebhooksPage = lazy(() =>
@@ -120,6 +123,10 @@ export function AppRouter() {
             <Route
               path="settings/system"
               element={withSection('system', 'admin', <SystemPage />)}
+            />
+            <Route
+              path="settings/backups"
+              element={withSection('backups', 'admin', <BackupsPage />)}
             />
             <Route
               path="settings/integrations"

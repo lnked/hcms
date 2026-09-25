@@ -104,14 +104,34 @@ final class WebhookDispatcher
             'error_message' => null,
         ]);
         $deliveryId = (string) (int) $pending['id'];
-        $body = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+        $bodyEnc = WebhookPresets::encodeBody(
+            WebhookPresets::normalizePayloadMode(
+                \is_string($webhook['payload_mode'] ?? null) ? $webhook['payload_mode'] : null,
+                \is_string($webhook['preset'] ?? null) ? $webhook['preset'] : null,
+            ),
+            $payload,
+        );
+        $body = $bodyEnc['body'];
         $headers = [
-            'Content-Type' => 'application/json; charset=utf-8',
+            'Content-Type' => $bodyEnc['contentType'],
             'X-HCMS-Event' => $event,
             'X-HCMS-Signature' => self::signatureHeader($body, (string) $webhook['secret']),
             'X-HCMS-Delivery-Id' => $deliveryId,
             'User-Agent' => 'HCMS-Webhooks/1.0',
         ];
+        $extra = $webhook['headers_json'] ?? null;
+        if (\is_string($extra)) {
+            $decoded = json_decode($extra, true);
+            $extra = \is_array($decoded) ? $decoded : [];
+        }
+        if (\is_array($extra)) {
+            foreach ($extra as $name => $value) {
+                if (!\is_string($name) || !\is_string($value) || $name === '' || str_starts_with(strtolower($name), 'x-hcms-')) {
+                    continue;
+                }
+                $headers[$name] = $value;
+            }
+        }
 
         $result = ($this->httpClient)((string) $webhook['url'], $body, $headers);
         $ok = $result['status'] !== null && $result['status'] >= 200 && $result['status'] < 300;

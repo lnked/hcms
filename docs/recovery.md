@@ -93,3 +93,31 @@ php scripts/verify-tree.php dist/stage # собранный релиз
 ```
 
 `scripts/release.sh` вызывает эту проверку сам и не даёт собрать зип, который не бутается.
+
+## Data backups (БД + media)
+
+Отдельно от code-бэкапов апдейта (`update-*`). Артефакты: `storage/backups/data-YYYYMMDDTHHMMSS/`
+(+ рядом `.zip`), в манифесте таблицы, mediaBytes, destinations.
+
+### Админка
+
+**Backups** → табы:
+
+1. **Backups** — создать / скачать / удалить / откатить (restore — только owner).
+2. **Cloud** — подключение Google Drive / Яндекс Диск / Dropbox (OAuth) и SFTP.
+
+### CLI
+
+```sh
+php cms backup:create [--push=google,yandex,dropbox,sftp]
+php cms backup:list
+php cms backup:restore --id=data-20260925T120000 --confirm
+php cms backup:push --id=data-… --to=sftp
+```
+
+Cron: `0 3 * * * cd /path/to/hcms && php cms backup:create --push=sftp`.
+
+Перед restore автоматически пишется safety-снимок `data-pre-restore-*`.
+`.env` в data-бэкап **не** входит.
+
+SFTP требует curl с протоколом `sftp` (libssh2). OAuth-приложения облаков — отдельные от social login (`backups.remote` в `cms_settings`).

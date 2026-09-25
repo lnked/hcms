@@ -30,6 +30,8 @@ export interface UserAclPayload {
     canUpdate: boolean
     canDelete: boolean
     tabs: string[]
+    fieldAcl?: Record<string, { readable: boolean; writable: boolean }>
+    ownEntriesOnly?: boolean
   }>
 }
 
@@ -40,6 +42,8 @@ type GrantDraft = {
   canUpdate: boolean
   canDelete: boolean
   tabs: ResourceTab[]
+  ownEntriesOnly: boolean
+  fieldAclText: string
 }
 
 function emptyGrant(): GrantDraft {
@@ -50,6 +54,8 @@ function emptyGrant(): GrantDraft {
     canUpdate: true,
     canDelete: true,
     tabs: ['overview', 'data'],
+    ownEntriesOnly: false,
+    fieldAclText: '',
   }
 }
 
@@ -70,6 +76,28 @@ function fullGrant(base: GrantDraft): GrantDraft {
     canCreate: true,
     canUpdate: true,
     canDelete: true,
+    ownEntriesOnly: false,
+  }
+}
+
+function parseFieldAclText(raw: string): Record<string, { readable: boolean; writable: boolean }> {
+  const trimmed = raw.trim()
+  if (!trimmed) return {}
+  try {
+    const parsed = JSON.parse(trimmed) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    const out: Record<string, { readable: boolean; writable: boolean }> = {}
+    for (const [field, flags] of Object.entries(parsed as Record<string, unknown>)) {
+      if (!flags || typeof flags !== 'object' || Array.isArray(flags)) continue
+      const f = flags as Record<string, unknown>
+      out[field] = {
+        readable: f.readable !== false,
+        writable: f.writable !== false,
+      }
+    }
+    return out
+  } catch {
+    return {}
   }
 }
 
@@ -90,6 +118,9 @@ function parseAcl(data: UserAclPayload): {
       canUpdate: g.canUpdate,
       canDelete: g.canDelete,
       tabs: g.tabs.filter((tab): tab is ResourceTab => RESOURCE_TABS.includes(tab as ResourceTab)),
+      ownEntriesOnly: Boolean(g.ownEntriesOnly),
+      fieldAclText:
+        g.fieldAcl && Object.keys(g.fieldAcl).length > 0 ? JSON.stringify(g.fieldAcl, null, 2) : '',
     })),
   }
 }
@@ -127,6 +158,8 @@ function UserPermissionsForm({
             canUpdate: g.canUpdate,
             canDelete: g.canDelete,
             tabs: g.tabs,
+            ownEntriesOnly: g.ownEntriesOnly,
+            fieldAcl: parseFieldAclText(g.fieldAclText),
           })),
       }
       return api<UserAclPayload>(`/admin/api/users/${userId}/acl`, {
@@ -297,6 +330,37 @@ function UserPermissionsForm({
                       {t(labelKey)}
                     </label>
                   ))}
+                </div>
+                <label className={clsx(styles.flagLabel)}>
+                  <input
+                    type="checkbox"
+                    checked={grant.ownEntriesOnly}
+                    onChange={(e) => {
+                      setGrants((rows) =>
+                        rows.map((row, i) =>
+                          i === index ? { ...row, ownEntriesOnly: e.target.checked } : row,
+                        ),
+                      )
+                    }}
+                  />
+                  {t('users.acl.ownEntriesOnly')}
+                </label>
+                <div className={clsx(styles.stackXs)}>
+                  <Label>{t('users.acl.fieldAcl')}</Label>
+                  <textarea
+                    className={clsx(styles.textarea)}
+                    rows={3}
+                    value={grant.fieldAclText}
+                    placeholder='{"title":{"readable":true,"writable":false}}'
+                    onChange={(e) => {
+                      setGrants((rows) =>
+                        rows.map((row, i) =>
+                          i === index ? { ...row, fieldAclText: e.target.value } : row,
+                        ),
+                      )
+                    }}
+                  />
+                  <p className={clsx(styles.mutedXs)}>{t('users.acl.fieldAclHint')}</p>
                 </div>
                 <div className={clsx(styles.stackXs)}>
                   <p className={clsx(styles.mutedXs)}>{t('users.acl.tabs')}</p>

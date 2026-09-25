@@ -189,3 +189,38 @@ GET /api/translates?locale=ru&keys=amount.title,amount.description
 ```
 
 Missing values fall back to the default locale, then `""`.
+
+## Data backups
+
+Admin section `backups` (Settings → Backups). Details: [recovery.md](recovery.md#data-backups-бд--media).
+
+```http
+GET    /admin/api/backups
+GET    /admin/api/backups/status
+POST   /admin/api/backups                 # create data backup (optional push)
+GET    /admin/api/backups/{id}/download
+POST   /admin/api/backups/{id}/push      # body: { to: "google"|"yandex"|"dropbox"|"sftp" }
+POST   /admin/api/backups/{id}/restore   # owner-only
+DELETE /admin/api/backups/{id}
+
+GET/PUT /admin/api/backups/cloud
+POST   /admin/api/backups/cloud/{provider}/connect
+GET    /admin/api/backups/cloud/{provider}/callback
+POST   /admin/api/backups/cloud/{provider}/disconnect
+POST   /admin/api/backups/cloud/{provider}/test
+```
+
+`provider`: `google` | `yandex` | `dropbox`. SFTP credentials live in cloud settings (no OAuth).
+
+## Domain events
+
+Content mutations dispatch via `Cms\Events\EventBus` after the HTTP response. Outbound webhooks are a listener — see [webhooks.md](webhooks.md). Controllers do not call `WebhookDispatcher` directly.
+
+## Admin ACL on entries
+
+When a user has `acl_enabled` and a resource grant with:
+
+- `ownEntriesOnly: true` — only rows where `created_by = userId`
+- `fieldAcl: { field: { readable, writable } }` — AND with schema field flags
+
+Owner bypasses. See [permissions.md](permissions.md).

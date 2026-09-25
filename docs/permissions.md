@@ -33,12 +33,13 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 | Действие | Эндпоинт / UI |
 |---|---|
 | Установка / откат релиза | `POST /admin/api/system/update/run` · System → Update / Downgrade |
+| Откат data-бэкапа | `POST /admin/api/backups/{id}/restore` · Backups → Restore |
 | Путь панели | `PATCH /admin/api/settings` с `adminBase` · System → Admin path |
 | Чтение / запись ACL | `GET` / `PATCH /admin/api/users/{id}/acl` · Users → ACL |
 | Сброс чужого пароля | `PATCH /admin/api/users/{id}` с `password` (нельзя другому `owner`) |
 | Bypass user ACL | всегда для `owner` |
 
-Preview/check/status обновлений (`…/system/update/*` кроме `run`) доступны admin; **apply** — только owner (`system.write`).
+Preview/check/status обновлений (`…/system/update/*` кроме `run`) доступны admin; **apply** — только owner (`system.write`). Create/list/cloud config бэкапов — admin (`settings.write`); **restore** — только owner.
 
 ## Admin user ACL (поверх ролей)
 
@@ -49,9 +50,32 @@ Preview/check/status обновлений (`…/system/update/*` кроме `run
 - `acl_enabled = 0` → поведение только по роли (как раньше).
 - `acl_enabled = 1` → доступны только выданные секции админки и ресурсы.
 
-Секции: `dashboard`, `resources`, `media`, `logs`, `docs`, `changelog`, `tokens`, `webhooks`, `inbound`, `feature-flags`, `translates`, `users`, `integrations`, `system`, `account` (`account` и `/admin/api/auth/*` всегда доступны).
+Секции: `dashboard`, `resources`, `media`, `logs`, `docs`, `changelog`, `tokens`, `webhooks`, `inbound`, `feature-flags`, `translates`, `users`, `integrations`, `system`, `backups`, `account` (`account` и `/admin/api/auth/*` всегда доступны).
 
-На ресурс: `canRead` / `canCreate` / `canUpdate` / `canDelete` + список табов (`overview`, `schema`, `data`, `settings`, `api`, `hooks`, `export`). Создание новых ресурсов / package import при включённом ACL запрещены.
+На ресурс: `canRead` / `canCreate` / `canUpdate` / `canDelete` + список табов (`overview`, `schema`, `data`, `settings`, `api`, `hooks`, `export`).
+
+Дополнительно (миграция `022`):
+
+- **`ownEntriesOnly`** — list/get/update/delete только записей с `created_by = userId` (колонка уже есть на `res_*`).
+- **`fieldAcl`** — map `fieldName → { readable, writable }`; сужает schema-флаги поля (AND). Пустой map = без overrides.
+
+```http
+PATCH /admin/api/users/{id}/acl
+# {
+#   "aclEnabled": true,
+#   "sections": ["resources","media"],
+#   "resources": [{
+#     "resourceId": 1,
+#     "canRead": true, "canCreate": true, "canUpdate": true, "canDelete": false,
+#     "tabs": ["overview","data"],
+#     "ownEntriesOnly": true,
+#     "fieldAcl": { "body": { "readable": true, "writable": false } }
+#   }]
+# }
+```
+
+Создание новых ресурсов / package import при включённом ACL запрещены.
+Owner всегда bypass field/row ACL.
 
 ### Media library (ACL scope)
 

@@ -295,6 +295,43 @@ final class Installer
                 'postmark' => ['apiKey' => ''],
                 'mailgun' => ['apiKey' => '', 'domain' => '', 'region' => 'us'],
             ],
+            'backups.remote' => [
+                'retention' => 10,
+                'google' => [
+                    'enabled' => false,
+                    'clientId' => '',
+                    'clientSecret' => '',
+                    'refreshToken' => '',
+                    'accountLabel' => '',
+                ],
+                'yandex' => [
+                    'enabled' => false,
+                    'clientId' => '',
+                    'clientSecret' => '',
+                    'refreshToken' => '',
+                    'accountLabel' => '',
+                ],
+                'dropbox' => [
+                    'enabled' => false,
+                    'clientId' => '',
+                    'clientSecret' => '',
+                    'refreshToken' => '',
+                    'accountLabel' => '',
+                ],
+                'sftp' => [
+                    'enabled' => false,
+                    'host' => '',
+                    'port' => 22,
+                    'username' => '',
+                    'auth' => 'password',
+                    'password' => '',
+                    'privateKey' => '',
+                    'passphrase' => '',
+                    'remotePath' => '/hcms-backups',
+                    'insecureHostKey' => false,
+                    'timeoutSec' => 120,
+                ],
+            ],
             'db.migrations' => $this->listMigrationFiles(),
         ];
         foreach ($settings as $key => $value) {

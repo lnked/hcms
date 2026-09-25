@@ -57,6 +57,16 @@ php cms uptime:check
 * * * * * cd /path/to/hcms && php cms uptime:check >/dev/null 2>&1
 ```
 
+Data backups (см. [`recovery.md`](recovery.md#data-backups-бд--media)):
+
+```bash
+php cms backup:create [--push=google,yandex,dropbox,sftp]
+php cms backup:list
+php cms backup:restore --id=data-... --confirm
+# crontab, раз в сутки:
+0 3 * * * cd /path/to/hcms && php cms backup:create --push=sftp >/dev/null 2>&1
+```
+
 ### HTTP cron (shared hosting без CLI)
 
 Нужен **admin** Bearer из `POST /admin/api/auth/login` (`remember: true` → длинный TTL). Токен из Tokens (`type=api`) даёт `403 Admin token required`.

@@ -19,7 +19,7 @@ final class WebhookRepository
     public function all(): array
     {
         return $this->db->select(
-            'SELECT id, name, url, secret, events, resource_id, status, created_at, updated_at
+            'SELECT id, name, url, secret, events, resource_id, status, preset, payload_mode, headers_json, created_at, updated_at
              FROM cms_webhooks
              ORDER BY id DESC',
         );
@@ -31,7 +31,7 @@ final class WebhookRepository
     public function find(int $id): ?array
     {
         return $this->db->selectOne(
-            'SELECT id, name, url, secret, events, resource_id, status, created_at, updated_at
+            'SELECT id, name, url, secret, events, resource_id, status, preset, payload_mode, headers_json, created_at, updated_at
              FROM cms_webhooks WHERE id = :id',
             ['id' => $id],
         );
@@ -46,7 +46,7 @@ final class WebhookRepository
     {
         if ($resourceId === null) {
             return $this->db->select(
-                "SELECT id, name, url, secret, events, resource_id, status, created_at, updated_at
+                "SELECT id, name, url, secret, events, resource_id, status, preset, payload_mode, headers_json, created_at, updated_at
                  FROM cms_webhooks
                  WHERE status = 'active' AND resource_id IS NULL
                  ORDER BY id ASC",
@@ -54,7 +54,7 @@ final class WebhookRepository
         }
 
         return $this->db->select(
-            "SELECT id, name, url, secret, events, resource_id, status, created_at, updated_at
+            "SELECT id, name, url, secret, events, resource_id, status, preset, payload_mode, headers_json, created_at, updated_at
              FROM cms_webhooks
              WHERE status = 'active'
                AND (resource_id IS NULL OR resource_id = :resource_id)
@@ -70,7 +70,10 @@ final class WebhookRepository
      *   secret: string,
      *   events: list<string>,
      *   resource_id: int|null,
-     *   status: string
+     *   status: string,
+     *   preset: ?string,
+     *   payload_mode: string,
+     *   headers_json: ?string
      * } $data
      * @return array<string, mixed>
      */
@@ -79,8 +82,8 @@ final class WebhookRepository
         $now = date('Y-m-d H:i:s');
         $this->db->execute(
             'INSERT INTO cms_webhooks
-             (name, url, secret, events, resource_id, status, created_at, updated_at)
-             VALUES (:name, :url, :secret, :events, :resource_id, :status, :created_at, :updated_at)',
+             (name, url, secret, events, resource_id, status, preset, payload_mode, headers_json, created_at, updated_at)
+             VALUES (:name, :url, :secret, :events, :resource_id, :status, :preset, :payload_mode, :headers_json, :created_at, :updated_at)',
             [
                 'name' => $data['name'],
                 'url' => $data['url'],
@@ -88,6 +91,9 @@ final class WebhookRepository
                 'events' => json_encode($data['events'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'resource_id' => $data['resource_id'],
                 'status' => $data['status'],
+                'preset' => $data['preset'],
+                'payload_mode' => $data['payload_mode'],
+                'headers_json' => $data['headers_json'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ],
@@ -108,7 +114,10 @@ final class WebhookRepository
      *   secret?: string,
      *   events?: list<string>,
      *   resource_id?: int|null,
-     *   status?: string
+     *   status?: string,
+     *   preset?: ?string,
+     *   payload_mode?: string,
+     *   headers_json?: ?string
      * } $data
      * @return array<string, mixed>
      */
@@ -134,6 +143,9 @@ final class WebhookRepository
                  events = :events,
                  resource_id = :resource_id,
                  status = :status,
+                 preset = :preset,
+                 payload_mode = :payload_mode,
+                 headers_json = :headers_json,
                  updated_at = :updated_at
              WHERE id = :id',
             [
@@ -146,6 +158,11 @@ final class WebhookRepository
                     ? $data['resource_id']
                     : $existing['resource_id'],
                 'status' => $data['status'] ?? $existing['status'],
+                'preset' => \array_key_exists('preset', $data) ? $data['preset'] : $existing['preset'],
+                'payload_mode' => $data['payload_mode'] ?? $existing['payload_mode'] ?? WebhookPresets::PAYLOAD_HCMS,
+                'headers_json' => \array_key_exists('headers_json', $data)
+                    ? $data['headers_json']
+                    : ($existing['headers_json'] ?? null),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         );

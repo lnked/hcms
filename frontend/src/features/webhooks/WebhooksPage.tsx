@@ -42,6 +42,42 @@ const WEBHOOK_EVENTS = [
 
 type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
+const WEBHOOK_PRESETS = [
+  { id: 'custom', payloadMode: 'hcms' as const, events: ['entry.created'] as WebhookEvent[] },
+  {
+    id: 'vercel_deploy',
+    payloadMode: 'empty' as const,
+    events: [
+      'entry.created',
+      'entry.updated',
+      'entry.deleted',
+      'resource.published',
+    ] as WebhookEvent[],
+  },
+  {
+    id: 'netlify_build',
+    payloadMode: 'empty' as const,
+    events: [
+      'entry.created',
+      'entry.updated',
+      'entry.deleted',
+      'resource.published',
+    ] as WebhookEvent[],
+  },
+  {
+    id: 'cloudflare_purge',
+    payloadMode: 'surrogate_keys' as const,
+    events: ['entry.updated', 'entry.deleted', 'resource.published'] as WebhookEvent[],
+  },
+  {
+    id: 'fastly_purge',
+    payloadMode: 'surrogate_keys' as const,
+    events: ['entry.updated', 'entry.deleted', 'resource.published'] as WebhookEvent[],
+  },
+] as const
+
+type WebhookPresetId = (typeof WEBHOOK_PRESETS)[number]['id']
+
 interface Webhook {
   id: number
   name: string
@@ -50,6 +86,9 @@ interface Webhook {
   events: string[]
   resourceId: number | null
   status: 'active' | 'disabled'
+  preset: string | null
+  payloadMode: 'hcms' | 'empty' | 'surrogate_keys'
+  headers: Record<string, string>
   createdAt: string
   updatedAt: string
 }
@@ -85,6 +124,9 @@ export function WebhooksPage() {
   const [events, setEvents] = useState<WebhookEvent[]>(['entry.created'])
   const [resourceId, setResourceId] = useState<number | null>(null)
   const [status, setStatus] = useState<'active' | 'disabled'>('active')
+  const [preset, setPreset] = useState<WebhookPresetId>('custom')
+  const [payloadMode, setPayloadMode] = useState<'hcms' | 'empty' | 'surrogate_keys'>('hcms')
+  const [headersText, setHeadersText] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [testResult, setTestResult] = useState<string | null>(null)
 
@@ -112,18 +154,41 @@ export function WebhooksPage() {
     return map
   }, [resources.data])
 
+  function parseHeadersText(raw: string): Record<string, string> | undefined {
+    const trimmed = raw.trim()
+    if (!trimmed) return undefined
+    try {
+      const parsed = JSON.parse(trimmed) as unknown
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return undefined
+      const out: Record<string, string> = {}
+      for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+        if (typeof v === 'string') out[k] = v
+      }
+      return out
+    } catch {
+      return undefined
+    }
+  }
+
+  function webhookBody() {
+    return {
+      name,
+      url,
+      ...(secret.trim() ? { secret: secret.trim() } : {}),
+      events,
+      resourceId,
+      status,
+      preset: preset === 'custom' ? null : preset,
+      payloadMode,
+      headers: parseHeadersText(headersText) ?? {},
+    }
+  }
+
   const create = useMutation({
     mutationFn: () =>
       api<Webhook>('/admin/api/webhooks', {
         method: 'POST',
-        body: JSON.stringify({
-          name,
-          url,
-          secret: secret.trim() || undefined,
-          events,
-          resourceId,
-          status,
-        }),
+        body: JSON.stringify(webhookBody()),
       }),
     onSuccess: (data) => {
       showSuccess(t('common.saved'))
@@ -140,14 +205,7 @@ export function WebhooksPage() {
     mutationFn: (id: number) =>
       api<Webhook>(`/admin/api/webhooks/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          name,
-          url,
-          ...(secret.trim() ? { secret: secret.trim() } : {}),
-          events,
-          resourceId,
-          status,
-        }),
+        body: JSON.stringify(webhookBody()),
       }),
     onSuccess: () => {
       showSuccess(t('common.saved'))
@@ -207,7 +265,18 @@ export function WebhooksPage() {
     setEvents(['entry.created'])
     setResourceId(null)
     setStatus('active')
+    setPreset('custom')
+    setPayloadMode('hcms')
+    setHeadersText('')
     setFieldErrors({})
+  }
+
+  function applyPreset(next: WebhookPresetId) {
+    setPreset(next)
+    const cfg = WEBHOOK_PRESETS.find((p) => p.id === next)
+    if (!cfg) return
+    setPayloadMode(cfg.payloadMode)
+    setEvents([...cfg.events])
   }
 
   function openCreate() {
@@ -228,6 +297,15 @@ export function WebhooksPage() {
     )
     setResourceId(hook.resourceId)
     setStatus(hook.status)
+    const presetId = (WEBHOOK_PRESETS.find((p) => p.id === hook.preset)?.id ??
+      'custom') as WebhookPresetId
+    setPreset(presetId)
+    setPayloadMode(hook.payloadMode ?? 'hcms')
+    setHeadersText(
+      hook.headers && Object.keys(hook.headers).length > 0
+        ? JSON.stringify(hook.headers, null, 2)
+        : '',
+    )
     setFieldErrors({})
     setOpen(true)
   }
@@ -441,6 +519,35 @@ export function WebhooksPage() {
               <FieldError messages={fieldErrors.name} />
             </div>
             <div className={clsx(styles.stackXs)}>
+              <Label htmlFor="webhook-preset">{t('webhooks.preset')}</Label>
+              <Select
+                id="webhook-preset"
+                value={preset}
+                onChange={(e) => applyPreset(e.target.value as WebhookPresetId)}
+              >
+                {WEBHOOK_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {t(`webhooks.preset.${p.id}`)}
+                  </option>
+                ))}
+              </Select>
+              <p className={clsx(styles.mutedXs)}>{t('webhooks.presetHint')}</p>
+            </div>
+            <div className={clsx(styles.stackXs)}>
+              <Label htmlFor="webhook-payload-mode">{t('webhooks.payloadMode')}</Label>
+              <Select
+                id="webhook-payload-mode"
+                value={payloadMode}
+                onChange={(e) =>
+                  setPayloadMode(e.target.value as 'hcms' | 'empty' | 'surrogate_keys')
+                }
+              >
+                <option value="hcms">{t('webhooks.payloadMode.hcms')}</option>
+                <option value="empty">{t('webhooks.payloadMode.empty')}</option>
+                <option value="surrogate_keys">{t('webhooks.payloadMode.surrogate_keys')}</option>
+              </Select>
+            </div>
+            <div className={clsx(styles.stackXs)}>
               <Label htmlFor="webhook-url">{t('webhooks.url')}</Label>
               <Input
                 id="webhook-url"
@@ -482,6 +589,17 @@ export function WebhooksPage() {
                 placeholder={isEdit ? t('webhooks.secretKeep') : undefined}
               />
               <FieldError messages={fieldErrors.secret} />
+            </div>
+            <div className={clsx(styles.stackXs)}>
+              <Label htmlFor="webhook-headers">{t('webhooks.headers')}</Label>
+              <Input
+                id="webhook-headers"
+                value={headersText}
+                onChange={(e) => setHeadersText(e.target.value)}
+                placeholder='{"Authorization":"Bearer …"}'
+              />
+              <p className={clsx(styles.mutedXs)}>{t('webhooks.headersHint')}</p>
+              <FieldError messages={fieldErrors.headers} />
             </div>
             <div className={clsx(styles.stackXs)}>
               <Label>{t('webhooks.events')}</Label>

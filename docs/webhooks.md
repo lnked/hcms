@@ -3,24 +3,40 @@
 Админка: **Settings → Webhooks** (`/admin/settings/webhooks`).  
 Нужна роль с capability `settings.write` (обычно `admin`).
 
-Исходящие HTTP POST на ваш endpoint при изменениях контента. Тело подписано **HMAC-SHA256** (`X-HCMS-Signature`). Доставка идёт **после** ответа клиенту (shutdown / `fastcgi_finish_request`).
+Исходящие HTTP POST на ваш endpoint при изменениях контента. Тело подписано **HMAC-SHA256** (`X-HCMS-Signature`). Доставка идёт **после** ответа клиенту через **Event Bus** (`register_shutdown_function` / `fastcgi_finish_request`): контроллеры вызывают `EventBus::dispatchAfterResponse`, listener дергает `WebhookDispatcher`.
 
 ## UI
 
-1. **Создать** webhook: имя, URL, секрет (можно сгенерировать), события, опционально фильтр ресурса, статус.
-2. Оставить `status=active`.
-3. Нажать **Test** — синхронный POST с событием `webhook.test` (без ретраев).
-4. Клик по имени → лог **Deliveries** (event, status, attempt, HTTP code, duration).
-5. Enable/Disable без удаления; Delete — с confirm.
+1. **Создать** webhook: имя, URL, секрет (можно сгенерировать), **preset** (опционально), события, опционально фильтр ресурса, статус.
+2. Пресеты ISR/CDN подставляют `events` + `payloadMode` (можно потом поменять вручную).
+3. Оставить `status=active`.
+4. Нажать **Test** — синхронный POST с событием `webhook.test` (без ретраев).
+5. Клик по имени → лог **Deliveries** (event, status, attempt, HTTP code, duration).
+6. Enable/Disable без удаления; Delete — с confirm.
 
 | поле | описание |
 |------|----------|
 | `name` | название в админке (≤120) |
 | `url` | `http(s)://…` endpoint (≤2048) |
 | `secret` | ключ HMAC; при create пустой → авто `64` hex; при edit пустой → не менять |
+| `preset` | `null` / `vercel_deploy` / `netlify_build` / `cloudflare_purge` / `fastly_purge` |
+| `payloadMode` | `hcms` (полный JSON) \| `empty` (`{}` для build hooks) \| `surrogate_keys` (`tags` + `surrogate_keys` из `slug`) |
+| `headers` | доп. HTTP-заголовки (object string→string); `X-HCMS-*` игнорируются |
 | `events` | один или несколько из whitelist |
 | `resourceId` | `null` = все ресурсы; иначе только этот resource |
 | `status` | `active` \| `disabled` |
+
+### Пресеты (revalidation)
+
+| preset | payloadMode | типичные events | куда указывать URL |
+|--------|-------------|-----------------|-------------------|
+| `vercel_deploy` | `empty` | create/update/delete/published | Vercel Deploy Hook |
+| `netlify_build` | `empty` | то же | Netlify Build Hook |
+| `cloudflare_purge` | `surrogate_keys` | update/delete/published | Cloudflare purge API; в `headers` — `Authorization: Bearer …` |
+| `fastly_purge` | `surrogate_keys` | то же | Fastly purge; auth в `headers` |
+| custom | `hcms` | на выбор | ваш handler |
+
+Surrogate keys совпадают с заголовком `Surrogate-Key: {slug}` на public GET ([api.md](api.md)).
 
 ## События
 

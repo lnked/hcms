@@ -17,7 +17,7 @@ use Cms\Preview\PreviewTokenService;
 use Cms\Resources\EntryImportExportService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
-use Cms\Webhooks\WebhookDispatcher;
+use Cms\Events\EventBus;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -28,7 +28,7 @@ final class EntriesController
         private readonly EntryService $entries,
         private readonly AuditLogger $audit,
         private readonly EntryImportExportService $importExport,
-        private readonly ?WebhookDispatcher $webhooks = null,
+        private readonly ?EventBus $events = null,
         private readonly ?EntryRevisionService $revisions = null,
         private readonly ?PreviewTokenService $previewTokens = null,
         private readonly ?ResourceRepository $resources = null,
@@ -37,9 +37,8 @@ final class EntriesController
 
     public function index(Request $request, AuthContext $auth, int $resourceId): Response
     {
-        unset($auth);
         try {
-            return Response::json($this->entries->list($resourceId, $request->query));
+            return Response::json($this->entries->list($resourceId, $request->query, $auth));
         } catch (ValidationFailedException $e) {
             return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
         } catch (InvalidArgumentException $e) {
@@ -53,9 +52,9 @@ final class EntriesController
 
     public function show(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
     {
-        unset($request, $auth);
+        unset($request);
         try {
-            return Response::data($this->entries->find($resourceId, $entryId));
+            return Response::data($this->entries->find($resourceId, $entryId, $auth));
         } catch (RuntimeException $e) {
             return $this->runtimeError($e);
         }
@@ -96,7 +95,7 @@ final class EntriesController
     {
         try {
             $slug = $this->entries->slug($resourceId);
-            $entry = $this->entries->create($resourceId, $request->json(), $auth->userId());
+            $entry = $this->entries->create($resourceId, $request->json(), $auth->userId(), $auth);
             $this->audit->log(
                 $request,
                 'entry.created',
@@ -105,7 +104,7 @@ final class EntriesController
                 (string) ($entry['id'] ?? ''),
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
-            $this->webhooks?->dispatchAfterResponse('entry.created', [
+            $this->events?->dispatchAfterResponse('entry.created', [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
@@ -128,8 +127,8 @@ final class EntriesController
     {
         try {
             $slug = $this->entries->slug($resourceId);
-            $before = $this->entries->find($resourceId, $entryId);
-            $entry = $this->entries->patch($resourceId, $entryId, $request->json(), $auth->userId());
+            $before = $this->entries->find($resourceId, $entryId, $auth);
+            $entry = $this->entries->patch($resourceId, $entryId, $request->json(), $auth->userId(), $auth);
             $this->revisions?->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
@@ -139,7 +138,7 @@ final class EntriesController
                 (string) $entryId,
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
-            $this->webhooks?->dispatchAfterResponse('entry.updated', [
+            $this->events?->dispatchAfterResponse('entry.updated', [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
@@ -162,9 +161,9 @@ final class EntriesController
     {
         try {
             $slug = $this->entries->slug($resourceId);
-            $before = $this->entries->find($resourceId, $entryId);
+            $before = $this->entries->find($resourceId, $entryId, $auth);
             $this->revisions?->snapshot($resourceId, $entryId, $before, null, $auth->userId());
-            $this->entries->delete($resourceId, $entryId);
+            $this->entries->delete($resourceId, $entryId, $auth);
             $this->audit->log(
                 $request,
                 'entry.deleted',
@@ -173,7 +172,7 @@ final class EntriesController
                 (string) $entryId,
                 ['resourceId' => $resourceId, 'slug' => $slug],
             );
-            $this->webhooks?->dispatchAfterResponse('entry.deleted', [
+            $this->events?->dispatchAfterResponse('entry.deleted', [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entryId' => $entryId,
@@ -210,9 +209,9 @@ final class EntriesController
             $deleted = 0;
             foreach ($normalized as $id) {
                 try {
-                    $this->entries->delete($resourceId, $id);
+                    $this->entries->delete($resourceId, $id, $auth);
                     ++$deleted;
-                    $this->webhooks?->dispatchAfterResponse('entry.deleted', [
+                    $this->events?->dispatchAfterResponse('entry.deleted', [
                         'resourceId' => $resourceId,
                         'slug' => $slug,
                         'entryId' => $id,
@@ -270,7 +269,7 @@ final class EntriesController
         try {
             $slug = $this->entries->slug($resourceId);
             $data = $this->revisions->dataForRestore($resourceId, $entryId, $revisionId);
-            $before = $this->entries->find($resourceId, $entryId);
+            $before = $this->entries->find($resourceId, $entryId, $auth);
             unset(
                 $data['id'],
                 $data['createdAt'],
@@ -283,7 +282,7 @@ final class EntriesController
                 $data['createdBy'],
                 $data['updatedBy'],
             );
-            $entry = $this->entries->patch($resourceId, $entryId, $data, $auth->userId());
+            $entry = $this->entries->patch($resourceId, $entryId, $data, $auth->userId(), $auth);
             $this->revisions->snapshot($resourceId, $entryId, $before, $entry, $auth->userId());
             $this->audit->log(
                 $request,
@@ -293,7 +292,7 @@ final class EntriesController
                 (string) $entryId,
                 ['resourceId' => $resourceId, 'revisionId' => $revisionId],
             );
-            $this->webhooks?->dispatchAfterResponse('entry.updated', [
+            $this->events?->dispatchAfterResponse('entry.updated', [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,
@@ -319,7 +318,7 @@ final class EntriesController
         }
         try {
             $slug = $this->entries->slug($resourceId);
-            $this->entries->find($resourceId, $entryId);
+            $this->entries->find($resourceId, $entryId, $auth);
             $row = $this->resources->find($resourceId);
             if ($row === null) {
                 return Response::error('NOT_FOUND', 'Resource not found', 404);
@@ -406,7 +405,7 @@ final class EntriesController
                 return Response::error('FORBIDDEN', 'Insufficient role to publish', 403);
             }
             $slug = $this->entries->slug($resourceId);
-            $entry = $this->entries->patch($resourceId, $entryId, ['status' => $status], $auth->userId());
+            $entry = $this->entries->patch($resourceId, $entryId, ['status' => $status], $auth->userId(), $auth);
             $event = match ($status) {
                 'in_review' => 'entry.submitted',
                 'published' => 'entry.published',
@@ -416,7 +415,7 @@ final class EntriesController
                 'resourceId' => $resourceId,
                 'status' => $status,
             ]);
-            $this->webhooks?->dispatchAfterResponse($event, [
+            $this->events?->dispatchAfterResponse($event, [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,

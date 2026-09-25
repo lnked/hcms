@@ -132,6 +132,10 @@ php cms migrate                # миграция всех published ресур�
 php cms migrate --resource=1 [--confirm-destructive]
 php cms cache:clear            # сбросить MetadataCache
 php cms uptime:check           # HTTP-пробы due uptime-целей (cron)
+php cms backup:create [--push=…]  # data snapshot (БД + media); см. docs/recovery.md
+php cms backup:list
+php cms backup:restore --id=data-… --confirm
+php cms backup:push --id=… --to=google|yandex|dropbox|sftp
 ```
 
 Uptime без shell: `POST /admin/api/uptime/run` с **admin** Bearer (login / `remember: true`). API-токен из Tokens → `403 Admin token required`. Soft cron и примеры crontab: [`docs/development.md`](docs/development.md#uptime-checks-cron).
@@ -469,6 +473,8 @@ php scripts/verify-tree.php
 
 Сломанная установка после апдейта: `php scripts/restore.php` (diagnose, `fix-autoload`, откат на бэкап, переустановка релиза) — [`docs/recovery.md`](docs/recovery.md).
 
+Data backups (БД+media, cloud/SFTP): раздел **Backups** в админке или `php cms backup:*` — тоже [`docs/recovery.md`](docs/recovery.md#data-backups-бд--media).
+
 ---
 
 ## 10. Правила для агента
@@ -495,9 +501,9 @@ php scripts/verify-tree.php
 | [`docs/resources.md`](docs/resources.md) | ресурсы, custom APIs, фильтры админки |
 | [`docs/api.md`](docs/api.md) | admin/public API, токены, ограничения |
 | [`docs/authentication.md`](docs/authentication.md) | Bearer, social login, TOTP, rate limits |
-| [`docs/permissions.md`](docs/permissions.md) | роли и RBAC; owner-only (update run, adminBase, ACL, password reset). В UI Docs глава Owner — только `role=owner` |
+| [`docs/permissions.md`](docs/permissions.md) | роли и RBAC; owner-only (update run, adminBase, ACL, password reset); field/row ACL. В UI Docs глава Owner — только `role=owner` |
 | [`docs/anti-spam.md`](docs/anti-spam.md) | защита анонимной записи |
-| [`docs/webhooks.md`](docs/webhooks.md) | исходящие HMAC-хуки |
+| [`docs/webhooks.md`](docs/webhooks.md) | исходящие HMAC-хуки + ISR/CDN presets; Event Bus |
 | [`docs/hooks.md`](docs/hooks.md) | sync request hooks + inbound endpoints |
 | [`docs/integrations-email.md`](docs/integrations-email.md) | Resend / Postmark / Mailgun |
 | [`docs/openapi.md`](docs/openapi.md) | генерация OpenAPI |

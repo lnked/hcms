@@ -19,6 +19,7 @@ export type AdminSection =
   | 'users'
   | 'integrations'
   | 'system'
+  | 'backups'
   | 'account'
 
 export type ResourceTab = 'overview' | 'schema' | 'data' | 'settings' | 'api' | 'hooks' | 'export'
@@ -40,6 +41,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'users',
   'integrations',
   'system',
+  'backups',
   'account',
 ]
 
@@ -148,6 +150,7 @@ export function sectionForPath(pathname: string): AdminSection | null {
   if (path.startsWith('/settings/users')) return 'users'
   if (path.startsWith('/settings/integrations')) return 'integrations'
   if (path.startsWith('/settings/system')) return 'system'
+  if (path.startsWith('/settings/backups')) return 'backups'
   if (path.startsWith('/settings/account')) return 'account'
   return null
 }

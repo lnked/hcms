@@ -1,6 +1,72 @@
 {
   "releases": [
     {
+      "version": "0.62.13",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Data backups + cloud / SFTP",
+      "changes": [
+        {
+          "type": "added",
+          "area": "system",
+          "text": "Data backups: БД (cms_*/res_*) + media в storage/backups/data-*; restore с safety-снимком; retention"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Раздел Backups: табы Backups | Cloud (Google Drive, Яндекс Диск, Dropbox OAuth, SFTP)"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "GET/POST /admin/api/backups*, cloud connect/test; restore — owner-only (system.write)"
+        },
+        {
+          "type": "added",
+          "area": "cli",
+          "text": "php cms backup:create|list|restore|push"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "recovery.md / permissions / AGENTS / review — data backups + cloud destinations"
+        }
+      ]
+    },
+    {
+      "version": "0.62.12",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Event Bus, ISR presets, field/row ACL, data backups",
+      "changes": [
+        {
+          "type": "added",
+          "area": "core",
+          "text": "Internal Event Bus (Cms\\Events\\EventBus); webhooks subscribe as listeners"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Webhook presets: vercel_deploy, netlify_build, cloudflare_purge, fastly_purge; payloadMode + headers"
+        },
+        {
+          "type": "added",
+          "area": "auth",
+          "text": "Field-level ACL + ownEntriesOnly row ACL on cms_user_resource_grants"
+        },
+        {
+          "type": "added",
+          "area": "ops",
+          "text": "Data backups: admin Backups UI, cloud OAuth/SFTP, php cms backup:*"
+        },
+        {
+          "type": "added",
+          "area": "db",
+          "text": "Migration 022_webhooks_presets_field_acl.sql"
+        }
+      ]
+    },
+    {
       "version": "0.62.11",
       "date": "2026-09-25",
       "channel": "stable",
