@@ -200,15 +200,14 @@ export function SystemPage() {
   const saveAdminSection = useMutation({
     mutationFn: ({ section, enabled }: { section: AdminSection; enabled: boolean }) => {
       const current = adminSectionsQuery.data?.sections ?? {}
-      return api<{ adminSections: { sections: Record<string, boolean>; locked: string[]; homeSection: string } }>(
-        '/admin/api/settings',
-        {
-          method: 'PATCH',
-          body: JSON.stringify({
-            adminSections: { ...current, [section]: enabled },
-          }),
-        },
-      )
+      return api<{
+        adminSections: { sections: Record<string, boolean>; locked: string[]; homeSection: string }
+      }>('/admin/api/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          adminSections: { ...current, [section]: enabled },
+        }),
+      })
     },
     onSuccess: (data) => {
       showSuccess(t('system.adminSectionsSaved'))
