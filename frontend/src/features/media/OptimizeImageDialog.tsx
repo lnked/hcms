@@ -1,5 +1,5 @@
 import { clsx } from 'clsx'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,9 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
-import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import styles from './OptimizeImageDialog.module.css'
 
 export type OptimizeFormat = 'keep' | 'webp' | 'avif' | 'jpeg' | 'png'
@@ -77,11 +77,11 @@ export function OptimizeImageDialog({
   const [error, setError] = useState<string | null>(null)
   const [lastResult, setLastResult] = useState<OptimizeResult | BulkOptimizeResult | null>(null)
 
-  useEffect(() => {
-    if (!encodeCaps.data) return
-    if (format === 'avif' && !encodeCaps.data.avif) setFormat('keep')
-    if (format === 'webp' && !encodeCaps.data.webp) setFormat('keep')
-  }, [encodeCaps.data, format])
+  const caps = encodeCaps.data
+  const resolvedFormat: OptimizeFormat =
+    (format === 'avif' && caps && !caps.avif) || (format === 'webp' && caps && !caps.webp)
+      ? 'keep'
+      : format
 
   const isBulk = mediaIds.length > 1
 
@@ -100,7 +100,7 @@ export function OptimizeImageDialog({
     }
     const body: OptimizeOpts = {
       quality: q,
-      format,
+      format: resolvedFormat,
       maxWidth: side,
       maxHeight: side,
       applyToVariants,
@@ -190,7 +190,7 @@ export function OptimizeImageDialog({
             <Label htmlFor="optimize-format">{t('media.optimizeFormat')}</Label>
             <Select
               id="optimize-format"
-              value={format}
+              value={resolvedFormat}
               disabled={busy}
               onChange={(e) => setFormat(e.target.value as OptimizeFormat)}
             >

@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import { configString } from '@/lib/coerce'
 import { slugifyIdentifier } from '@/lib/slugify'
-import { useMediaEncodeCapabilities } from '@/features/media/useMediaEncodeCapabilities'
 import {
   DEFAULT_DATE_FORMAT,
   DEFAULT_DATETIME_FORMAT,
