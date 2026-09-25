@@ -241,8 +241,7 @@ export function ResourceEntriesPanel({
     },
   })
 
-  const entryStatus =
-    editing && typeof editing.status === 'string' ? editing.status : 'draft'
+  const entryStatus = editing && typeof editing.status === 'string' ? editing.status : 'draft'
 
   const save = useMutation({
     mutationFn: async () => {

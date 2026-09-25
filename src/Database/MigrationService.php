@@ -368,7 +368,7 @@ final class MigrationService
             $rows = $this->db->select('SHOW COLUMNS FROM ' . $t . " LIKE 'status'");
             if ($rows === []) {
                 $this->db->execRaw(
-                    "ALTER TABLE " . $t . " ADD COLUMN `status` VARCHAR(32) NOT NULL DEFAULT 'published'",
+                    'ALTER TABLE ' . $t . " ADD COLUMN `status` VARCHAR(32) NOT NULL DEFAULT 'published'",
                 );
                 $this->db->execRaw('ALTER TABLE ' . $t . ' ADD KEY `idx_status` (`status`)');
                 $added[] = 'status';
