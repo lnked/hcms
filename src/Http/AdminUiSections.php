@@ -143,6 +143,9 @@ final class AdminUiSections
         ];
     }
 
+    /**
+     * @return array{sections: array<string, bool>, locked: list<string>, homeSection: string}
+     */
     public static function publicFromSettings(Settings $settings): array
     {
         $ui = self::fromSettings($settings);

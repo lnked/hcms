@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "0.62.17",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Fix phpstan on admin UI sections",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "system",
+          "text": "PHPStan iterable return type on AdminUiSections::publicFromSettings (0.62.16 CI)"
+        }
+      ]
+    },
+    {
       "version": "0.62.16",
       "date": "2026-09-25",
       "channel": "stable",
