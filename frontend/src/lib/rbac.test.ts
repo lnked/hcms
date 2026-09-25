@@ -42,6 +42,13 @@ describe('rbac', () => {
     expect(canAccessNav(user, 'media', 'admin')).toBe(false)
   })
 
+  it('sectionAllows respects instance hiddenSections', () => {
+    const owner = baseUser({ role: 'owner', hiddenSections: ['webhooks', 'uptime'] })
+    expect(sectionAllows(owner, 'webhooks')).toBe(false)
+    expect(sectionAllows(owner, 'system')).toBe(true)
+    expect(canAccessNav(owner, 'webhooks', 'admin')).toBe(false)
+  })
+
   it('resource grants', () => {
     const user = baseUser({
       aclEnabled: true,

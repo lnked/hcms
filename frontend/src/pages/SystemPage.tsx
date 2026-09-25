@@ -9,10 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { useAuthMe } from '@/hooks/useAcl'
 import { useI18n, type Locale, type MessageKey } from '@/i18n'
 import { api } from '@/lib/api'
 import { queryKeys } from '@/lib/queryKeys'
+import { ADMIN_SECTIONS, type AdminSection } from '@/lib/rbac'
 import { showSuccess, showError } from '@/lib/toast'
 import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
 import styles from './SystemPage.module.css'
@@ -171,6 +173,14 @@ export function SystemPage() {
   const adminBasePreviewUi = adminBaseValue === '' ? '/' : `/${adminBaseValue}`
   const adminBasePreviewApi = adminBaseValue === '' ? '/admin/api' : `/${adminBaseValue}/api`
 
+  const adminSectionsQuery = useQuery({
+    queryKey: queryKeys.settings.adminSections,
+    queryFn: () =>
+      api<{ sections: Record<string, boolean>; locked: string[] }>(
+        '/admin/api/settings/admin-sections',
+      ),
+  })
+
   const saveAdminBase = useMutation({
     mutationFn: (adminBase: string) =>
       api<{ adminBase: { adminBase: string; uiBase: string; apiPrefix: string } }>(
@@ -184,6 +194,26 @@ export function SystemPage() {
       showSuccess(t('system.adminBaseSaved'))
       const ui = data.adminBase.uiBase
       window.location.assign(ui === '' ? '/settings/system' : `${ui}/settings/system`)
+    },
+  })
+
+  const saveAdminSection = useMutation({
+    mutationFn: ({ section, enabled }: { section: AdminSection; enabled: boolean }) => {
+      const current = adminSectionsQuery.data?.sections ?? {}
+      return api<{ adminSections: { sections: Record<string, boolean>; locked: string[] } }>(
+        '/admin/api/settings',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            adminSections: { ...current, [section]: enabled },
+          }),
+        },
+      )
+    },
+    onSuccess: (data) => {
+      showSuccess(t('system.adminSectionsSaved'))
+      queryClient.setQueryData(queryKeys.settings.adminSections, data.adminSections)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.root })
     },
   })
 
@@ -401,6 +431,49 @@ export function SystemPage() {
                 {t('system.adminBaseSave')}
               </Button>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('system.adminSectionsTitle')}</CardTitle>
+          <CardDescription>{t('system.adminSectionsHint')}</CardDescription>
+        </CardHeader>
+        <CardContent className={clsx(styles.stackMd)}>
+          {!isOwner ? (
+            <p className={clsx(styles.hint)}>{t('system.adminSectionsOwnerOnly')}</p>
+          ) : adminSectionsQuery.isLoading || !adminSectionsQuery.data ? (
+            <FormBlockSkeleton fields={4} />
+          ) : (
+            <div className={styles.sectionSwitchList}>
+              {ADMIN_SECTIONS.map((section) => {
+                const locked = adminSectionsQuery.data.locked.includes(section)
+                const enabled = adminSectionsQuery.data.sections[section] ?? true
+                const busy =
+                  saveAdminSection.isPending && saveAdminSection.variables?.section === section
+                return (
+                  <div key={section} className={styles.sectionSwitchRow}>
+                    <div className={styles.sectionSwitchMeta}>
+                      <Label htmlFor={`admin-section-${section}`}>
+                        {t(`users.acl.section.${section}` as MessageKey)}
+                      </Label>
+                      {locked ? (
+                        <span className={styles.hint}>{t('system.adminSectionsLocked')}</span>
+                      ) : null}
+                    </div>
+                    <Switch
+                      id={`admin-section-${section}`}
+                      checked={enabled}
+                      disabled={locked || busy}
+                      onCheckedChange={(next) =>
+                        saveAdminSection.mutate({ section, enabled: next })
+                      }
+                    />
+                  </div>
+                )
+              })}
+            </div>
           )}
         </CardContent>
       </Card>

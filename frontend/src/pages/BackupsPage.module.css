@@ -118,11 +118,25 @@
   gap: var(--hcms-SPx6);
 }
 
-.cardTitleRow {
+.providerPanel {
   display: flex;
-  align-items: center;
-  gap: var(--hcms-SPx3);
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--hcms-SPx4);
+}
+
+.providerDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.providerDotOn {
+  background-color: var(--hcms-color-success);
+}
+
+.providerDotOff {
+  background-color: var(--hcms-color-destructive);
 }
 
 .copyRow {
@@ -135,4 +149,16 @@
   display: grid;
   grid-template-columns: 1fr 6rem;
   gap: var(--hcms-SPx3);
+}
+
+.retentionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hcms-SPx3);
+}
+
+.retentionRow .retentionInput {
+  width: 120px;
+  max-width: 120px;
+  flex: 0 0 120px;
 }

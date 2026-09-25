@@ -43,6 +43,8 @@ export interface AuthUser {
   aclEnabled?: boolean
   sections?: string[]
   resourceGrants?: ResourceGrant[]
+  /** Instance-wide sections hidden by owner (System → Admin sections). */
+  hiddenSections?: string[]
 }
 
 export interface InstallStatus {

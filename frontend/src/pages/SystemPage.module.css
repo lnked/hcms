@@ -34,6 +34,27 @@
   gap: var(--hcms-SPx4);
 }
 
+.sectionSwitchList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  max-width: 28rem;
+}
+
+.sectionSwitchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx3);
+}
+
+.sectionSwitchMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
 .cardHeaderStack {
   display: flex;
   flex-direction: column;

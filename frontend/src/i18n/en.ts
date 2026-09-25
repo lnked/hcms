@@ -1142,6 +1142,12 @@ export const en = {
   'system.adminBaseSaved': 'Admin base saved — redirecting…',
   'system.adminBaseSave': 'Save admin path',
   'system.adminBaseOwnerOnly': 'Only the owner can change the admin path.',
+  'system.adminSectionsTitle': 'Admin sections',
+  'system.adminSectionsHint':
+    'Hide unused sections from the sidebar for everyone. Turn them back on anytime. System and Account stay available.',
+  'system.adminSectionsOwnerOnly': 'Only the owner can change section visibility.',
+  'system.adminSectionsLocked': 'Always on',
+  'system.adminSectionsSaved': 'Section visibility saved',
   'system.update': 'Update',
   'system.updateHint':
     'Pick a newer release, download the zip (sha256), preserve .env / uploads / lock, run pending SQL migrations.',

@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.62.15",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Admin section visibility + backups cloud tabs",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Owner can hide/show admin sections (System → Admin sections); locked: system, account; auth/me.hiddenSections"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "GET /admin/api/settings/admin-sections; PATCH settings { adminSections }"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "Backups Cloud: provider tabs with green/red status dots; retention input 120px + save inline"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "permissions.md — owner-only admin section visibility"
+        }
+      ]
+    },
+    {
       "version": "0.62.14",
       "date": "2026-09-25",
       "channel": "stable",

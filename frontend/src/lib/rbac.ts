@@ -71,6 +71,7 @@ export function roleAllows(userRole: string | undefined, minRole: AdminRole | un
 
 export function sectionAllows(user: AuthUser | undefined, section: AdminSection): boolean {
   if (!user) return false
+  if ((user.hiddenSections ?? []).includes(section)) return false
   if (user.role === 'owner') return true
   if (section === 'account') return true
   if (!user.aclEnabled) return true

@@ -80,11 +80,15 @@ interface CloudConfig {
   }
 }
 
-const OAUTH_PROVIDERS: OauthProvider[] = ['google', 'yandex', 'dropbox']
 const ALL_PROVIDERS: Provider[] = ['google', 'yandex', 'dropbox', 'sftp']
 
 function parseTab(value: string | null): Tab {
   return value === 'cloud' ? 'cloud' : 'backups'
+}
+
+function parseProvider(value: string | null): Provider {
+  if (value === 'yandex' || value === 'dropbox' || value === 'sftp') return value
+  return 'google'
 }
 
 function formatBytes(n: number): string {
@@ -100,9 +104,22 @@ export function BackupsPage() {
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const tab = parseTab(params.get('section'))
+  const providerTab = parseProvider(params.get('provider'))
 
   const [pushTo, setPushTo] = useState<Provider[]>([])
   const [retentionDraft, setRetentionDraft] = useState<number | null>(null)
+
+  const setCloudProvider = (provider: Provider) => {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('section', 'cloud')
+        next.set('provider', provider)
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   const listQuery = useQuery({
     queryKey: ['backups'],
@@ -137,6 +154,14 @@ export function BackupsPage() {
           next.delete('connected')
           next.delete('error')
           next.set('section', 'cloud')
+          if (
+            connected === 'google' ||
+            connected === 'yandex' ||
+            connected === 'dropbox' ||
+            connected === 'sftp'
+          ) {
+            next.set('provider', connected)
+          }
           return next
         },
         { replace: true },
@@ -373,38 +398,72 @@ export function BackupsPage() {
                 }}
               >
                 <Label htmlFor="retention">{t('backups.retention')}</Label>
-                <Input
-                  id="retention"
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={retention}
-                  onChange={(e) => setRetentionDraft(Number(e.target.value) || 10)}
-                />
-                <Button type="submit">{t('backups.save')}</Button>
+                <div className={styles.retentionRow}>
+                  <Input
+                    id="retention"
+                    className={styles.retentionInput}
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={retention}
+                    onChange={(e) => setRetentionDraft(Number(e.target.value) || 10)}
+                  />
+                  <Button type="submit">{t('backups.save')}</Button>
+                </div>
               </Form>
             </CardContent>
           </Card>
 
-          {OAUTH_PROVIDERS.map((provider) => {
-            const data = cloudQuery.data.providers[provider]
-            return (
-              <OauthCard
-                key={`${provider}-${data.clientId}-${data.connected}-${data.enabled}`}
-                provider={provider}
-                data={data}
+          <div className={styles.providerPanel}>
+            <div className={styles.tabs} role="tablist" aria-label={t('backups.tab.cloud')}>
+              {ALL_PROVIDERS.map((id) => {
+                const connected = Boolean(cloudQuery.data.providers[id]?.connected)
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={providerTab === id}
+                    className={clsx(styles.tab, providerTab === id && styles.tabActive)}
+                    onClick={() => setCloudProvider(id)}
+                  >
+                    <span
+                      className={clsx(
+                        styles.providerDot,
+                        connected ? styles.providerDotOn : styles.providerDotOff,
+                      )}
+                      title={
+                        connected
+                          ? t('backups.cloud.statusConnected')
+                          : t('backups.cloud.statusDisconnected')
+                      }
+                      aria-hidden
+                    />
+                    {t(`backups.provider.${id}`)}
+                  </button>
+                )
+              })}
+            </div>
+
+            {providerTab === 'sftp' ? (
+              <SftpCard
+                key={`sftp-${cloudQuery.data.providers.sftp.host}-${cloudQuery.data.providers.sftp.connected}`}
+                data={cloudQuery.data.providers.sftp}
                 onChanged={() =>
                   void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })
                 }
               />
-            )
-          })}
-
-          <SftpCard
-            key={`sftp-${cloudQuery.data.providers.sftp.host}-${cloudQuery.data.providers.sftp.connected}`}
-            data={cloudQuery.data.providers.sftp}
-            onChanged={() => void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })}
-          />
+            ) : (
+              <OauthCard
+                key={`${providerTab}-${cloudQuery.data.providers[providerTab].clientId}-${cloudQuery.data.providers[providerTab].connected}-${cloudQuery.data.providers[providerTab].enabled}`}
+                provider={providerTab}
+                data={cloudQuery.data.providers[providerTab]}
+                onChanged={() =>
+                  void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })
+                }
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -491,14 +550,7 @@ function OauthCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={styles.cardTitleRow}>
-          {t(`backups.provider.${provider}`)}
-          {data.connected ? (
-            <Badge>{t('backups.cloud.statusConnected')}</Badge>
-          ) : (
-            <Badge variant="secondary">{t('backups.cloud.statusDisconnected')}</Badge>
-          )}
-        </CardTitle>
+        <CardTitle>{t(`backups.provider.${provider}`)}</CardTitle>
         <CardDescription>
           {data.connected && data.accountLabel
             ? t('backups.cloud.account', { label: data.accountLabel })
@@ -645,14 +697,7 @@ function SftpCard({ data, onChanged }: { data: SftpPublic; onChanged: () => void
   return (
     <Card>
       <CardHeader>
-        <CardTitle className={styles.cardTitleRow}>
-          {t('backups.provider.sftp')}
-          {data.connected ? (
-            <Badge>{t('backups.cloud.statusConnected')}</Badge>
-          ) : (
-            <Badge variant="secondary">{t('backups.cloud.statusDisconnected')}</Badge>
-          )}
-        </CardTitle>
+        <CardTitle>{t('backups.provider.sftp')}</CardTitle>
         <CardDescription>{t('backups.cloud.hint.sftp')}</CardDescription>
       </CardHeader>
       <CardContent>

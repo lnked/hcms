@@ -10,6 +10,7 @@ use Cms\Core\EnvFile;
 use Cms\Core\Locale;
 use Cms\Core\Paths;
 use Cms\Core\Settings;
+use Cms\Http\AdminUiSections;
 use Cms\Http\ApiAccess;
 use Cms\Http\Request;
 use Cms\Http\Response;
@@ -41,16 +42,22 @@ final class SettingsController
         return Response::data($this->adminBase->toPublicArray());
     }
 
+    public function adminSections(): Response
+    {
+        return Response::data(AdminUiSections::fromSettings($this->settings)->toPublicArray());
+    }
+
     public function update(Request $request, AuthContext $context): Response
     {
         $payload = $request->json();
         $hasLanguage = \array_key_exists('language', $payload);
         $hasApiAccess = \array_key_exists('apiAccess', $payload);
         $hasAdminBase = \array_key_exists('adminBase', $payload);
+        $hasAdminSections = \array_key_exists('adminSections', $payload);
 
-        if (!$hasLanguage && !$hasApiAccess && !$hasAdminBase) {
+        if (!$hasLanguage && !$hasApiAccess && !$hasAdminBase && !$hasAdminSections) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Provide language, apiAccess, and/or adminBase'],
+                'language' => ['Provide language, apiAccess, adminBase, and/or adminSections'],
             ]);
         }
 
@@ -110,6 +117,24 @@ final class SettingsController
             }
             $this->settings->set('app.admin_base', $next->segment());
             $out['adminBase'] = $next->toPublicArray();
+        }
+
+        if ($hasAdminSections) {
+            $role = isset($context->user['role']) ? (string) $context->user['role'] : '';
+            if ($role !== 'owner') {
+                return Response::error('FORBIDDEN', 'Only the owner can change admin UI sections', 403);
+            }
+            if (!\is_array($payload['adminSections'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'adminSections' => ['Must be an object of section → boolean'],
+                ]);
+            }
+            $validated = AdminUiSections::validatePayload($payload['adminSections']);
+            if ($validated['ok'] === false) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $validated['error']);
+            }
+            $this->settings->set('admin.ui.sections', $validated['value']);
+            $out['adminSections'] = (new AdminUiSections($validated['value']))->toPublicArray();
         }
 
         return Response::data($out);

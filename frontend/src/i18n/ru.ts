@@ -1143,6 +1143,12 @@ export const ru: Record<MessageKey, string> = {
   'system.adminBaseSaved': 'Базовый путь сохранён — редирект…',
   'system.adminBaseSave': 'Сохранить путь админки',
   'system.adminBaseOwnerOnly': 'Менять путь админки может только owner.',
+  'system.adminSectionsTitle': 'Разделы админки',
+  'system.adminSectionsHint':
+    'Скрывайте ненужные разделы из меню для всех. В любой момент можно включить обратно. Система и Аккаунт всегда доступны.',
+  'system.adminSectionsOwnerOnly': 'Менять видимость разделов может только owner.',
+  'system.adminSectionsLocked': 'Всегда включено',
+  'system.adminSectionsSaved': 'Видимость раздела сохранена',
   'system.update': 'Обновление',
   'system.updateHint':
     'Выберите более новую версию, скачайте zip (sha256), сохраните .env / uploads / lock, примените SQL-миграции.',

@@ -15,6 +15,7 @@ use Cms\Auth\TokenService;
 use Cms\Auth\UsersRepository;
 use Cms\Auth\UsersService;
 use Cms\Core\Settings;
+use Cms\Http\AdminUiSections;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Security\AutoBlock;
@@ -669,6 +670,10 @@ final class AuthController
                 'resourceGrants' => [],
             ];
 
-        return array_merge($base, $acl);
+        $hiddenSections = $this->settings !== null
+            ? AdminUiSections::fromSettings($this->settings)->hidden()
+            : [];
+
+        return array_merge($base, $acl, ['hiddenSections' => $hiddenSections]);
     }
 }
