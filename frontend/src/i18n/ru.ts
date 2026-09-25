@@ -823,7 +823,8 @@ export const ru: Record<MessageKey, string> = {
   'backups.delete': 'Удалить',
   'backups.deleted': 'Бекап удалён',
   'backups.restored': 'Бекап восстановлен',
-  'backups.restoreConfirm': 'Восстановить {id}? Текущие данные будут заменены (сначала делается safety-снимок).',
+  'backups.restoreConfirm':
+    'Восстановить {id}? Текущие данные будут заменены (сначала делается safety-снимок).',
   'backups.deleteConfirm': 'Удалить бекап {id}?',
   'backups.ownerOnlyRestore': 'Откат бекапа доступен только owner.',
   'backups.save': 'Сохранить',
@@ -852,7 +853,8 @@ export const ru: Record<MessageKey, string> = {
   'backups.cloud.account': 'Аккаунт: {label}',
   'backups.cloud.secretKeep': 'Задан ({masked}) — оставьте пустым, чтобы сохранить',
   'backups.cloud.secretPlaceholder': 'Оставьте пустым, чтобы не менять секрет',
-  'backups.cloud.hint.google': 'OAuth-приложение со scope Drive File (drive.file). Отдельно от входа через Google.',
+  'backups.cloud.hint.google':
+    'OAuth-приложение со scope Drive File (drive.file). Отдельно от входа через Google.',
   'backups.cloud.hint.yandex': 'Приложение на oauth.yandex.ru с доступом к Диску.',
   'backups.cloud.hint.dropbox': 'Приложение Dropbox с files.content.write и offline access.',
   'backups.cloud.hint.sftp': 'Нужен PHP curl со сборкой SFTP (libssh2).',

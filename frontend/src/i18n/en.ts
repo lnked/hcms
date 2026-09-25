@@ -801,7 +801,8 @@ export const en = {
   'backups.tab.backups': 'Backups',
   'backups.tab.cloud': 'Cloud',
   'backups.listTitle': 'Data backups',
-  'backups.listHint': 'Stored under storage/backups/data-*. Code update backups (update-*) are separate.',
+  'backups.listHint':
+    'Stored under storage/backups/data-*. Code update backups (update-*) are separate.',
   'backups.pushTo': 'Also push to',
   'backups.create': 'Create backup',
   'backups.creating': 'Creating…',
@@ -819,7 +820,8 @@ export const en = {
   'backups.delete': 'Delete',
   'backups.deleted': 'Backup deleted',
   'backups.restored': 'Backup restored',
-  'backups.restoreConfirm': 'Restore {id}? Current data will be replaced (a safety snapshot is taken first).',
+  'backups.restoreConfirm':
+    'Restore {id}? Current data will be replaced (a safety snapshot is taken first).',
   'backups.deleteConfirm': 'Delete backup {id}?',
   'backups.ownerOnlyRestore': 'Only the owner can restore backups.',
   'backups.save': 'Save',
@@ -848,7 +850,8 @@ export const en = {
   'backups.cloud.account': 'Account: {label}',
   'backups.cloud.secretKeep': 'Set ({masked}) — leave blank to keep',
   'backups.cloud.secretPlaceholder': 'Leave blank to keep current secret',
-  'backups.cloud.hint.google': 'OAuth app with Drive File scope (drive.file). Separate from Google login.',
+  'backups.cloud.hint.google':
+    'OAuth app with Drive File scope (drive.file). Separate from Google login.',
   'backups.cloud.hint.yandex': 'Create an app at oauth.yandex.ru with Disk access.',
   'backups.cloud.hint.dropbox': 'Dropbox app with files.content.write and offline access.',
   'backups.cloud.hint.sftp': 'Requires PHP curl built with SFTP (libssh2).',
