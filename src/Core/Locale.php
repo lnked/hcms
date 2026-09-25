@@ -7,7 +7,7 @@ namespace Cms\Core;
 final class Locale
 {
     /** @var list<string> */
-    public const SUPPORTED = ['en', 'ru'];
+    public const SUPPORTED = ['en', 'ru', 'ar'];
 
     public static function normalize(string $language): string
     {

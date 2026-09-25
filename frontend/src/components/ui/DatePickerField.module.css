@@ -1,7 +1,7 @@
 .group {
   align-items: center;
   gap: var(--hcms-SPx1);
-  padding-right: var(--hcms-SPx1);
+  padding-inline-end: var(--hcms-SPx1);
 }
 
 .group[data-focus-within] {
@@ -52,8 +52,7 @@
 
 .segment {
   border-radius: var(--hcms-CRx1);
-  padding-left: calc(var(--hcms-SPx1) / 2);
-  padding-right: calc(var(--hcms-SPx1) / 2);
+  padding-inline: calc(var(--hcms-SPx1) / 2);
   font-variant-numeric: tabular-nums;
   outline: none;
 }
@@ -68,8 +67,7 @@
 }
 
 .segment[data-type='literal'] {
-  padding-left: 0;
-  padding-right: 0;
+  padding-inline: 0;
   color: var(--hcms-color-muted-foreground);
 }
 

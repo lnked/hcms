@@ -10,6 +10,7 @@ use Cms\Core\EnvFile;
 use Cms\Core\Locale;
 use Cms\Core\Paths;
 use Cms\Core\Settings;
+use Cms\GraphQL\GraphqlSettings;
 use Cms\Http\AdminUiSections;
 use Cms\Http\ApiAccess;
 use Cms\Http\Request;
@@ -54,7 +55,7 @@ final class SettingsController
 
     public function graphql(): Response
     {
-        return Response::data($this->graphqlSettings());
+        return Response::data((new GraphqlSettings($this->settings))->toArray());
     }
 
     public function update(Request $request, AuthContext $context): Response
@@ -214,33 +215,34 @@ final class SettingsController
                     'graphql' => ['Must be an object'],
                 ]);
             }
-            if (!\array_key_exists('enabled', $payload['graphql'])) {
+            $gql = new GraphqlSettings($this->settings);
+            $hasEnabled = \array_key_exists('enabled', $payload['graphql']);
+            $hasPlayground = \array_key_exists('playground', $payload['graphql']);
+            if (!$hasEnabled && !$hasPlayground) {
                 return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                    'enabled' => ['Provide enabled'],
+                    'graphql' => ['Provide enabled and/or playground'],
                 ]);
             }
-            if (!\is_bool($payload['graphql']['enabled'])) {
-                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                    'enabled' => ['Must be a boolean'],
-                ]);
+            if ($hasEnabled) {
+                if (!\is_bool($payload['graphql']['enabled'])) {
+                    return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                        'enabled' => ['Must be a boolean'],
+                    ]);
+                }
+                $gql->setEnabled($payload['graphql']['enabled']);
             }
-            $this->settings->set('graphql.enabled', $payload['graphql']['enabled']);
-            $out['graphql'] = $this->graphqlSettings();
+            if ($hasPlayground) {
+                if (!\is_bool($payload['graphql']['playground'])) {
+                    return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                        'playground' => ['Must be a boolean'],
+                    ]);
+                }
+                $gql->setPlayground($payload['graphql']['playground']);
+            }
+            $out['graphql'] = $gql->toArray();
         }
 
         return Response::data($out);
-    }
-
-    /**
-     * @return array{enabled: bool}
-     */
-    private function graphqlSettings(): array
-    {
-        $value = $this->settings->get('graphql.enabled');
-
-        return [
-            'enabled' => $value === true || $value === 1 || $value === '1',
-        ];
     }
 
     /**

@@ -23,9 +23,8 @@
 
 .head {
   height: var(--hcms-SPx10);
-  padding-left: var(--hcms-SPx3);
-  padding-right: var(--hcms-SPx3);
-  text-align: left;
+  padding-inline: var(--hcms-SPx3);
+  text-align: start;
   vertical-align: middle;
   font-weight: 500;
   color: var(--hcms-color-muted-foreground);

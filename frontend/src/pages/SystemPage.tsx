@@ -124,8 +124,9 @@ export function SystemPage() {
   }
 
   useEffect(() => {
-    if (window.location.hash !== '#system-release') return
-    const el = document.getElementById('system-release')
+    const hash = window.location.hash
+    if (hash !== '#system-release' && hash !== '#system-graphql') return
+    const el = document.getElementById(hash.slice(1))
     if (!el) return
     const id = window.requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -515,6 +516,8 @@ export function SystemPage() {
         </CardContent>
       </Card>
 
+      <GraphqlSettingsCard />
+
       <Card>
         <CardHeader>
           <CardTitle>{t('system.apiAccessTitle')}</CardTitle>
@@ -528,8 +531,6 @@ export function SystemPage() {
           )}
         </CardContent>
       </Card>
-
-      <GraphqlSettingsCard />
 
       <SecuritySettingsCard />
 

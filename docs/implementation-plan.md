@@ -23,7 +23,7 @@ Follow-up polish: locale switcher / create-translation UI; rich blocks editor; w
 | Workflows | Opt-in `settings.workflow.enabled` → col `status` (`draft\|in_review\|published`). Public GET только `published`. Comments — later. |
 | Cache | `settings.cache.maxAge` (0 = как сейчас). Anonymous GET → `public, max-age=N`; Bearer → `private, no-store`. |
 | SDK | Thin `@hcms/sdk` + CLI typegen из `GET /api/openapi.json`. Не второй schema DSL. |
-| GraphQL | Opt-in `graphql.enabled`; thin layer over QueryEngine; see [`graphql.md`](graphql.md). REST stays default. |
+| GraphQL | Opt-in `api.graphql.enabled`; thin layer over QueryEngine; see [`graphql.md`](graphql.md). REST stays default. |
 | CDN / marketplace / multi-tenancy | Не в этом плане (OOS). |
 | Event Bus | Sync in-process `EventBus`; webhooks listen; controllers не зовут WebhookDispatcher напрямую. |
 | Revalidation presets | Webhook `preset` + `payloadMode` + `headers`; UI templates. |
@@ -263,9 +263,9 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 
 | Item | Why |
 |---|---|
-| AVIF / full DAM | Media WebP enough; separate media epic |
+| Full DAM / CDN image pipeline | Separate media epic beyond AVIF encode |
 | SAML / OIDC SSO | Enterprise; Google+TOTP covers MVP |
-| RTL admin | After more locales than en/ru |
+| Full ar/he UI catalogs | RTL shell + sparse `ar` shipped; complete translations later |
 | Admin iframe apps / plugin fields | Hooks cover external; UI extensions later |
 | CDN / HA / Redis / marketplace / compliance | Out of self-hosted core |
 

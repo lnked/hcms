@@ -57,6 +57,11 @@ Admin URL: **`/admin`** (не `/public_html/admin`).
 
 После `complete` инсталлятор может отправить анонимный ping (version / PHP / OS). Opt-out и приёмник: [install-telemetry.md](install-telemetry.md).
 
+### PHP GD / AVIF
+
+Для ресайза, crop и `encodeFormat` / Optimize → WebP|AVIF нужен PHP extension **gd**.
+AVIF (`imageavif` / `imagecreatefromavif`) — только если GD собран с **libavif**; без него выбор AVIF даёт понятную 422, не fatal. WebP — аналогично (`imagewebp`).
+
 ```bash
 composer install
 npm run build --prefix frontend

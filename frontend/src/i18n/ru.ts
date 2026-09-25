@@ -58,6 +58,7 @@ export const ru: Record<MessageKey, string> = {
 
   'locale.en': 'English',
   'locale.ru': 'Русский',
+  'locale.ar': 'العربية',
 
   'nav.dashboard': 'Обзор',
   'nav.resources': 'Ресурсы',
@@ -646,7 +647,7 @@ export const ru: Record<MessageKey, string> = {
   'schema.file.formatsHint': 'напр. pdf, docx, zip — пусто = глобальный allowlist',
   'schema.image.multiple': 'Несколько изображений',
   'schema.image.formats': 'Форматы (через запятую)',
-  'schema.image.formatsHint': 'напр. jpg, png, webp — пусто = любые картинки',
+  'schema.image.formatsHint': 'напр. jpg, png, webp, avif — пусто = любые картинки',
   'schema.image.encodeFormat': 'Конвертировать загруженные в',
   'schema.image.encodeFormatKeep': 'Оставить исходный формат',
   'schema.image.encodeFormatHint':
@@ -835,6 +836,7 @@ export const ru: Record<MessageKey, string> = {
   'users.acl.section.media': 'Медиа',
   'users.acl.section.logs': 'Логи',
   'users.acl.section.docs': 'Документация',
+  'users.acl.section.graphql': 'GraphQL',
   'users.acl.section.changelog': 'Changelog',
   'users.acl.section.tokens': 'API-токены',
   'users.acl.section.webhooks': 'Вебхуки',
@@ -1196,11 +1198,18 @@ export const ru: Record<MessageKey, string> = {
   'system.securitySaved': 'Настройки security сохранены',
   'system.graphqlTitle': 'GraphQL',
   'system.graphqlHint':
-    'Opt-in GraphQL на /api/graphql. Тот же auth, grants и apiEnabled, что у REST. По умолчанию выкл.',
+    'Opt-in GraphQL на POST /api/graphql (api.graphql.enabled). GraphiQL опционален и по умолчанию выкл. Тот же auth/grants/apiEnabled, что REST.',
   'system.graphqlEnabled': 'Включить GraphQL',
-  'system.graphqlEnabledHint': 'Выкл → /api/graphql отдаёт 404. REST и OpenAPI не меняются.',
+  'system.graphqlEnabledHint':
+    'Выкл → POST /api/graphql отдаёт 404. REST и OpenAPI не меняются. Ключ: api.graphql.enabled.',
+  'system.graphqlPlayground': 'Включить GraphiQL playground',
+  'system.graphqlPlaygroundHint':
+    'Опционально. GET /api/graphql отдаёт GraphiQL только если включено (по умолчанию выкл).',
   'system.graphqlSave': 'Сохранить GraphQL',
   'system.graphqlSaved': 'Настройки GraphQL сохранены',
+  'system.graphqlOwnerOnly': 'Менять GraphQL может только owner.',
+  'system.graphqlUnavailable':
+    'API настроек GraphQL недоступен на этой установке — обновите HCMS до 0.62.21+.',
   'system.adminBaseTitle': 'Базовый путь админки',
   'system.adminBaseHint':
     'Сегмент URL панели. Пусто = корень сайта. Admin API идёт под тем же префиксом, кроме корня — там API остаётся /admin/api. Ассеты всегда /admin/assets. После смены обнови OAuth redirect URI. Только owner.',

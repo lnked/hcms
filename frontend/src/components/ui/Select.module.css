@@ -6,7 +6,7 @@
 .select {
   cursor: pointer;
   appearance: none;
-  padding-right: var(--hcms-SPx8);
+  padding-inline-end: var(--hcms-SPx8);
 }
 
 .select:hover {
@@ -16,7 +16,7 @@
 .icon {
   pointer-events: none;
   position: absolute;
-  right: calc(var(--hcms-SPx2) + var(--hcms-SPx1) / 2);
+  inset-inline-end: calc(var(--hcms-SPx2) + var(--hcms-SPx1) / 2);
   top: 50%;
   width: calc(var(--hcms-SPx1) * 3.5);
   height: calc(var(--hcms-SPx1) * 3.5);

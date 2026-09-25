@@ -197,6 +197,42 @@ final class ImageProcessorTest extends TestCase
         self::assertSame(210, $remapped['variants']['thumb']);
     }
 
+    public function testOptimizeToAvifWhenSupported(): void
+    {
+        if (!\function_exists('imageavif')) {
+            self::markTestSkipped('GD without libavif (imageavif)');
+        }
+
+        $path = $this->makeJpeg(80, 40);
+        $processor = new ImageProcessor();
+        $out = $processor->optimize($path, 50, 'image/avif');
+        self::assertSame('image/avif', $out['mime']);
+        self::assertSame('avif', $out['ext']);
+        self::assertNotSame('', $out['bytes']);
+
+        $tmp = $this->tmpDir . '/roundtrip.avif';
+        file_put_contents($tmp, $out['bytes']);
+        if (!\function_exists('imagecreatefromavif')) {
+            return;
+        }
+        $decoded = $processor->optimize($tmp, 50, 'image/jpeg');
+        self::assertSame('image/jpeg', $decoded['mime']);
+    }
+
+    public function testAvifEncodeSoftFailsWithoutLibavif(): void
+    {
+        if (\function_exists('imageavif')) {
+            self::markTestSkipped('imageavif is available — soft-fail path not exercised');
+        }
+
+        $path = $this->makeJpeg(40, 20);
+        $processor = new ImageProcessor();
+        // encode() falls back to JPEG when AVIF encoder is missing (same soft-fail as WebP).
+        $out = $processor->optimize($path, 80, 'image/avif');
+        self::assertSame('image/jpeg', $out['mime']);
+        self::assertSame('jpg', $out['ext']);
+    }
+
     private function isRed(\GdImage $image, int $x, int $y): bool
     {
         $rgb = imagecolorat($image, $x, $y);

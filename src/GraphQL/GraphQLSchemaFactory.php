@@ -24,7 +24,7 @@ use Throwable;
 /**
  * Builds an executable GraphQL schema from published + apiEnabled resources.
  */
-final class SchemaFactory
+final class GraphQLSchemaFactory
 {
     public const MAX_RELATION_DEPTH = 3;
 
@@ -50,15 +50,13 @@ final class SchemaFactory
 
     public function schema(): Schema
     {
-        if ($this->built !== null) {
+        // Rebuild when MetadataCache was invalidated (publish / fields / migrate).
+        $stamp = $this->metadata?->getGraphqlStamp();
+        if ($this->built !== null && $stamp !== null) {
             return $this->built;
         }
 
-        // Stamp so MetadataCache::invalidate() drops in-process rebuilds after schema edits.
-        if ($this->metadata !== null && $this->metadata->getGraphqlStamp() === null) {
-            $this->metadata->setGraphqlStamp();
-        }
-
+        $this->built = null;
         $this->objectTypes = [];
         $this->resourceMeta = [];
         $this->collectResources();
@@ -94,6 +92,7 @@ final class SchemaFactory
                     'limit' => ['type' => Type::int(), 'defaultValue' => 20],
                     'sort' => ['type' => Type::string()],
                     'search' => ['type' => Type::string()],
+                    'locale' => ['type' => Type::string()],
                     'filter' => ['type' => Type::listOf(Type::nonNull($filterInput))],
                 ],
                 'resolve' => function ($root, array $args, array $context) use ($publicKey): array {
@@ -187,6 +186,7 @@ final class SchemaFactory
         }
 
         $this->built = new Schema($config);
+        $this->metadata?->setGraphqlStamp();
 
         return $this->built;
     }
@@ -231,6 +231,9 @@ final class SchemaFactory
         }
         if (isset($args['search']) && \is_string($args['search']) && $args['search'] !== '') {
             $query['search'] = $args['search'];
+        }
+        if (isset($args['locale']) && \is_string($args['locale']) && $args['locale'] !== '') {
+            $query['locale'] = $args['locale'];
         }
         $filters = $args['filter'] ?? null;
         if (\is_array($filters)) {

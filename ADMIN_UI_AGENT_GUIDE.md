@@ -581,7 +581,8 @@ UI: `/settings/integrations` (admin+).
 **Используемые API Endpoints:**
 - System: `GET /admin/api/system/version`, `stats`, `stats/timeseries`, `changelog`; `POST changelog/seen`
 - Update: `GET .../update/check`, `status`; `POST .../update/preview`, `.../update/run`
-- Settings: `GET /admin/api/settings/locale|api-access|admin-base|admin-sections|security|graphql`; `PATCH /admin/api/settings` (тело: `language` / `apiAccess` / `adminBase` / `adminSections` / `homeSection` / `security` / **`graphql: { enabled }`**)
+- Settings: `GET /admin/api/settings/locale|api-access|admin-base|admin-sections|security|graphql`; `PATCH /admin/api/settings` (тело: `language` / `apiAccess` / `adminBase` / `adminSections` / `homeSection` / `security` / **`graphql: { enabled, playground }`**)
+- Admin sections: toggles включают **`graphql`** (сайдбар → `/api/graphql`)
 - Backups: `GET/POST /admin/api/backups`, `GET .../status`, cloud connect/test/push, `POST .../{id}/restore`, `DELETE`, `GET .../download`
 - Uptime: `GET .../summary|status|targets`, CRUD targets, `POST .../run`, check/incidents
 - Logs: `GET /admin/api/logs/audit|api|anomalies|ip-blocks`, `POST/DELETE` ip-blocks
@@ -614,23 +615,23 @@ UI: `/settings/system`, `/settings/backups`, `/logs`, `/settings/uptime`.
 - Note у `apiEnabled`: [`ResourceSettingsPanel.tsx`](frontend/src/features/resources/ResourceSettingsPanel.tsx)
 
 **Исходные файлы (Backend):**
-- [`src/GraphQL/SchemaFactory.php`](src/GraphQL/SchemaFactory.php), [`src/Http/Controllers/GraphqlController.php`](src/Http/Controllers/GraphqlController.php)
+- [`src/GraphQL/GraphQLSchemaFactory.php`](src/GraphQL/GraphQLSchemaFactory.php), [`GraphqlSettings`](src/GraphQL/GraphqlSettings.php), [`src/Http/Controllers/GraphqlController.php`](src/Http/Controllers/GraphqlController.php)
 - Auth: [`src/Api/PublicApiAuthorizer.php`](src/Api/PublicApiAuthorizer.php) (общий с REST)
 - Routes: `GET|POST /api/graphql`, `/api/v1/graphql` в [`Kernel.php`](src/Http/Kernel.php)
-- Setting: `cms_settings` key `graphql.enabled` (default `false`)
+- Settings: `api.graphql.enabled` (POST), `api.graphql.playground` (GET GraphiQL, default off); legacy `graphql.enabled`
 
 **Используемые API Endpoints:**
-- `GET /admin/api/settings/graphql` → `{ enabled }`
-- `PATCH /admin/api/settings` body `{ "graphql": { "enabled": true } }` (owner)
-- `GET /api/graphql` — GraphiQL playground
+- `GET /admin/api/settings/graphql` → `{ enabled, playground }`
+- `PATCH /admin/api/settings` body `{ "graphql": { "enabled": true, "playground": false } }` (owner)
 - `POST /api/graphql` — execute (`{ query, variables?, operationName? }`)
+- `GET /api/graphql` — GraphiQL only if playground on
 
 ### 🔄 Пользовательский сценарий (User Flow)
 
-1. Owner: System → карточка **GraphQL** → Enable → Save.
-2. Сайдбар **GraphQL** открывает GraphiQL на `/api/graphql`.
-3. В GraphiQL: introspection / query list / nested relation / mutation (с Bearer, если `public.*` выкл).
-4. Resource Settings: `apiEnabled=false` убирает ресурс и из OpenAPI, и из GraphQL schema.
+1. Owner: System → **GraphQL** → Enable API → (optional) Enable playground → Save.
+2. Сайдбар **GraphQL** открывает `/api/graphql` (404 пока playground выкл).
+3. POST queries/mutations с Bearer при необходимости.
+4. Resource Settings: `apiEnabled=false` убирает ресурс из GraphQL schema.
 
 ### 🤖 Инструкции для AI-агента (Action Plan)
 

@@ -182,7 +182,7 @@ body {
 }
 
 .hcms-richtext-preview li {
-  margin-left: var(--hcms-SPx4);
+  margin-inline-start: var(--hcms-SPx4);
   list-style-type: disc;
 }
 

@@ -43,9 +43,12 @@ final class FieldTypeRegistryTest extends TestCase
         $image = (new FieldTypeRegistry())->get('image');
         $image->validateConfig(['formats' => [], 'encodeFormat' => null, 'sizes' => []]);
         $image->validateConfig(['formats' => [], 'encodeFormat' => 'webp', 'sizes' => []]);
+        $image->validateConfig(['formats' => [], 'encodeFormat' => 'avif', 'sizes' => []]);
         $image->validateConfig(['formats' => [], 'encodeFormat' => 'jpeg', 'sizes' => []]);
         $this->assertSame('image', $image->name());
         $this->assertArrayHasKey('encodeFormat', $image->defaultConfig());
+        $this->assertContains('avif', \Cms\Fields\Types\MediaFieldConfig::IMAGE_FORMATS);
+        $this->assertContains('avif', \Cms\Fields\Types\MediaFieldConfig::ENCODE_FORMATS);
     }
 
     public function testImageEncodeFormatRejectsUnknown(): void

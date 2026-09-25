@@ -24,6 +24,7 @@ final class MediaService
         'png' => 'image/png',
         'gif' => 'image/gif',
         'webp' => 'image/webp',
+        'avif' => 'image/avif',
         'svg' => 'image/svg+xml',
         'pdf' => 'application/pdf',
         'txt' => 'text/plain',
@@ -43,6 +44,7 @@ final class MediaService
         'image/png',
         'image/gif',
         'image/webp',
+        'image/avif',
         'image/svg+xml',
         'application/pdf',
         'text/plain',
@@ -62,6 +64,7 @@ final class MediaService
         'image/png' => 'png',
         'image/gif' => 'gif',
         'image/webp' => 'webp',
+        'image/avif' => 'avif',
         'image/svg+xml' => 'svg',
         'application/pdf' => 'pdf',
         'text/plain' => 'txt',
@@ -357,7 +360,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions user overrides keyed by prefix
      * @param list<string>|null $allowedFormats
-     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
+     * @param 'webp'|'avif'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, warning: string|null, media: array<string, mixed>}
      */
     public function uploadWithTransforms(
@@ -428,7 +431,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
      * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
-     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
+     * @param 'webp'|'avif'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, rotation: int, positions: array<string, string>, variants: array<string, int>, media: array<string, mixed>}
      */
     public function regenerateVariants(
@@ -482,7 +485,7 @@ HTACCESS;
      * @param list<array{prefix: string, width: int, height: int, mode: string, position: string}> $sizes
      * @param array<string, string> $positions
      * @param array<string, array{crop: array{x: float, y: float, w: float, h: float}}> $overrides
-     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
+     * @param 'webp'|'avif'|'jpeg'|'png'|null $encodeFormat
      * @return array{id: int, sourceId: int|null, edit: array<string, mixed>|null, rotation: int, positions: array<string, string>, overrides: array<string, mixed>, variants: array<string, int>, media: array<string, mixed>}
      */
     public function applyEdit(
@@ -542,9 +545,7 @@ HTACCESS;
         }
 
         $outputMime = MediaFieldConfig::encodeFormatToMime($encodeFormat) ?? (string) $row['mime'];
-        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
-            throw new InvalidArgumentException('WebP encoding is not available on this server');
-        }
+        $this->assertEncodeAvailable($outputMime);
 
         $absolute = $this->absolutePath($row);
         $baked = $this->images->bake($absolute, $edit, $outputMime);
@@ -619,19 +620,18 @@ HTACCESS;
         $format = isset($opts['format']) && \is_string($opts['format'])
             ? strtolower(trim($opts['format']))
             : 'keep';
-        if (!\in_array($format, ['keep', 'webp', 'jpeg', 'png'], true)) {
-            throw new InvalidArgumentException('format must be keep, webp, jpeg, or png');
+        if (!\in_array($format, ['keep', 'webp', 'avif', 'jpeg', 'png'], true)) {
+            throw new InvalidArgumentException('format must be keep, webp, avif, jpeg, or png');
         }
 
         $outputMime = match ($format) {
             'webp' => 'image/webp',
+            'avif' => 'image/avif',
             'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             default => $mime,
         };
-        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
-            throw new InvalidArgumentException('WebP encoding is not available on this server');
-        }
+        $this->assertEncodeAvailable($outputMime);
 
         $maxWidth = isset($opts['maxWidth']) && is_numeric($opts['maxWidth']) && (int) $opts['maxWidth'] > 0
             ? (int) $opts['maxWidth']
@@ -1009,10 +1009,20 @@ HTACCESS;
         return $variants;
     }
 
+    private function assertEncodeAvailable(string $outputMime): void
+    {
+        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
+            throw new InvalidArgumentException('WebP encoding is not available on this server');
+        }
+        if ($outputMime === 'image/avif' && !\function_exists('imageavif')) {
+            throw new InvalidArgumentException('AVIF encoding is not available on this server (need GD with libavif)');
+        }
+    }
+
     /**
      * Re-encode the master in place when the field asks for a storage format.
      *
-     * @param 'webp'|'jpeg'|'png'|null $encodeFormat
+     * @param 'webp'|'avif'|'jpeg'|'png'|null $encodeFormat
      */
     private function maybeReencode(int $mediaId, ?string $encodeFormat): void
     {
@@ -1020,9 +1030,7 @@ HTACCESS;
         if ($outputMime === null) {
             return;
         }
-        if ($outputMime === 'image/webp' && !\function_exists('imagewebp')) {
-            throw new InvalidArgumentException('WebP encoding is not available on this server');
-        }
+        $this->assertEncodeAvailable($outputMime);
 
         $row = $this->findRow($mediaId);
         if ($row === null) {

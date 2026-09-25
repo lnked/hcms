@@ -10,8 +10,8 @@ use Cms\Auth\TokenGrantRepository;
 use Cms\Core\Settings;
 use Cms\Database\Connection;
 use Cms\Fields\FieldRepository;
-use Cms\GraphQL\SchemaFactory;
-use Cms\GraphQL\TypeNames;
+use Cms\GraphQL\GraphQLSchemaFactory;
+use Cms\GraphQL\GraphqlSettings;
 use Cms\Http\Controllers\GraphqlController;
 use Cms\Http\Request;
 use Cms\Resources\ResourceRepository;
@@ -23,11 +23,11 @@ final class GraphqlTest extends TestCase
 {
     public function testTypeNames(): void
     {
-        $this->assertSame('Articles', TypeNames::object('articles'));
-        $this->assertSame('article', TypeNames::itemField('articles'));
-        $this->assertSame('createArticles', TypeNames::createField('articles'));
-        $this->assertSame('author', TypeNames::relationNest('author_id'));
-        $this->assertSame('tags_entry', TypeNames::relationNest('tags'));
+        $this->assertSame('Articles', \Cms\GraphQL\TypeNames::object('articles'));
+        $this->assertSame('article', \Cms\GraphQL\TypeNames::itemField('articles'));
+        $this->assertSame('createArticles', \Cms\GraphQL\TypeNames::createField('articles'));
+        $this->assertSame('author', \Cms\GraphQL\TypeNames::relationNest('author_id'));
+        $this->assertSame('tags_entry', \Cms\GraphQL\TypeNames::relationNest('tags'));
     }
 
     public function testDisabledGraphqlReturns404(): void
@@ -41,14 +41,45 @@ final class GraphqlTest extends TestCase
         $this->assertSame(404, $response->status);
     }
 
-    public function testPlaygroundDisabledReturns404(): void
+    public function testPlaygroundDisabledByDefaultWhenApiEnabled(): void
     {
-        $db = self::settingsDb(false);
+        $db = self::settingsDb(true, false);
         $controller = self::controller($db);
         $response = $controller->playground(
             new Request('GET', '/api/graphql', [], [], null, '', '127.0.0.1', 'test'),
         );
         $this->assertSame(404, $response->status);
+    }
+
+    public function testPlaygroundEnabledServesHtml(): void
+    {
+        $db = self::settingsDb(true, true);
+        $controller = self::controller($db);
+        $response = $controller->playground(
+            new Request('GET', '/api/graphql', [], [], null, '', '127.0.0.1', 'test'),
+        );
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('graphiql', strtolower($response->body));
+    }
+
+    public function testLegacyGraphqlEnabledKeyStillWorks(): void
+    {
+        $pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        $pdo->exec('CREATE TABLE cms_settings (`key` TEXT PRIMARY KEY, value_json TEXT, updated_at TEXT)');
+        $pdo->exec('CREATE TABLE cms_content_types (id INTEGER PRIMARY KEY, slug TEXT, label TEXT, is_system INTEGER)');
+        $pdo->exec('CREATE TABLE cms_resources (
+            id INTEGER PRIMARY KEY, content_type_id INTEGER, slug TEXT, endpoint TEXT, status TEXT, settings_json TEXT
+        )');
+        $pdo->exec('CREATE TABLE cms_fields (
+            id INTEGER PRIMARY KEY, content_type_id INTEGER, name TEXT, type TEXT, sort_order INTEGER, spec_json TEXT
+        )');
+        $pdo->exec('CREATE TABLE cms_token_grants (
+            id INTEGER PRIMARY KEY, token_id INTEGER, resource_id INTEGER,
+            can_read INTEGER, can_create INTEGER, can_update INTEGER, can_delete INTEGER
+        )');
+        $db = new Connection($pdo);
+        (new Settings($db))->set(GraphqlSettings::LEGACY_ENABLED_KEY, true);
+        $this->assertTrue((new GraphqlSettings(new Settings($db)))->enabled());
     }
 
     public function testSchemaExposesResourceQueryFields(): void
@@ -89,8 +120,7 @@ final class GraphqlTest extends TestCase
     public function testPublicReadListViaGraphql(): void
     {
         $db = self::seedResourceDb(withTable: true);
-        $settings = new Settings($db);
-        $settings->set('graphql.enabled', true);
+        (new GraphqlSettings(new Settings($db)))->setEnabled(true);
         $controller = self::controller($db);
         $body = json_encode([
             'query' => 'query { posts(limit: 10) { data { id title } meta { total } } }',
@@ -110,8 +140,7 @@ final class GraphqlTest extends TestCase
     public function testUnauthorizedWhenPublicReadDisabled(): void
     {
         $db = self::seedResourceDb(withTable: true, publicRead: false);
-        $settings = new Settings($db);
-        $settings->set('graphql.enabled', true);
+        (new GraphqlSettings(new Settings($db)))->setEnabled(true);
         $controller = self::controller($db);
         $body = json_encode([
             'query' => 'query { posts { data { id } } }',
@@ -131,7 +160,7 @@ final class GraphqlTest extends TestCase
         return new GraphqlController(self::schemaFactory($db), new Settings($db));
     }
 
-    private static function schemaFactory(Connection $db): SchemaFactory
+    private static function schemaFactory(Connection $db): GraphQLSchemaFactory
     {
         $resources = new ResourceRepository($db);
         $fields = new FieldRepository($db);
@@ -139,10 +168,10 @@ final class GraphqlTest extends TestCase
         $authorizer = new PublicApiAuthorizer($resources, $grants);
         $query = new QueryEngine($db, $resources, $fields);
 
-        return new SchemaFactory($resources, $fields, $query, $authorizer);
+        return new GraphQLSchemaFactory($resources, $fields, $query, $authorizer);
     }
 
-    private static function settingsDb(bool $enabled): Connection
+    private static function settingsDb(bool $enabled, bool $playground = false): Connection
     {
         $pdo = new PDO('sqlite::memory:', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $pdo->exec('CREATE TABLE cms_settings (`key` TEXT PRIMARY KEY, value_json TEXT, updated_at TEXT)');
@@ -158,7 +187,9 @@ final class GraphqlTest extends TestCase
             can_read INTEGER, can_create INTEGER, can_update INTEGER, can_delete INTEGER
         )');
         $db = new Connection($pdo);
-        (new Settings($db))->set('graphql.enabled', $enabled);
+        $gql = new GraphqlSettings(new Settings($db));
+        $gql->setEnabled($enabled);
+        $gql->setPlayground($playground);
 
         return $db;
     }

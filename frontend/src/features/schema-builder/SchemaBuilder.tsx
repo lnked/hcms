@@ -543,7 +543,9 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                                 .filter(Boolean),
                             })
                           }
-                          placeholder={field.type === 'image' ? 'jpg, png, webp' : 'pdf, docx, zip'}
+                          placeholder={
+                            field.type === 'image' ? 'jpg, png, webp, avif' : 'pdf, docx, zip'
+                          }
                         />
                         <p className={styles.hint}>
                           {t(
@@ -571,6 +573,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           >
                             <option value="">{t('schema.image.encodeFormatKeep')}</option>
                             <option value="webp">WebP</option>
+                            <option value="avif">AVIF</option>
                             <option value="jpeg">JPEG</option>
                             <option value="png">PNG</option>
                           </Select>

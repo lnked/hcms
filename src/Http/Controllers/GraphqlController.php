@@ -6,7 +6,8 @@ namespace Cms\Http\Controllers;
 
 use Cms\Auth\AuthContext;
 use Cms\Core\Settings;
-use Cms\GraphQL\SchemaFactory;
+use Cms\GraphQL\GraphQLSchemaFactory;
+use Cms\GraphQL\GraphqlSettings;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use GraphQL\Error\DebugFlag;
@@ -16,17 +17,21 @@ use Throwable;
 
 final class GraphqlController
 {
+    private readonly GraphqlSettings $graphqlSettings;
+
     public function __construct(
-        private readonly SchemaFactory $schemaFactory,
-        private readonly Settings $settings,
+        private readonly GraphQLSchemaFactory $schemaFactory,
+        Settings $settings,
+        ?GraphqlSettings $graphqlSettings = null,
     ) {
+        $this->graphqlSettings = $graphqlSettings ?? new GraphqlSettings($settings);
     }
 
     public function playground(Request $request): Response
     {
         unset($request);
-        if (!$this->enabled()) {
-            return Response::error('NOT_FOUND', 'GraphQL is disabled', 404);
+        if (!$this->graphqlSettings->playground()) {
+            return Response::error('NOT_FOUND', 'GraphQL playground is disabled', 404);
         }
 
         $html = <<<'HTML'
@@ -61,7 +66,7 @@ HTML;
 
     public function execute(Request $request, ?AuthContext $auth): Response
     {
-        if (!$this->enabled()) {
+        if (!$this->graphqlSettings->enabled()) {
             return Response::error('NOT_FOUND', 'GraphQL is disabled', 404);
         }
 
@@ -89,6 +94,7 @@ HTML;
             $context = [
                 'auth' => $auth,
                 'relationDepth' => 0,
+                'request' => $request,
             ];
 
             $result = GraphQL::executeQuery(
@@ -100,8 +106,7 @@ HTML;
                 $operationName,
             );
 
-            $debug = DebugFlag::NONE;
-            $output = $result->toArray($debug);
+            $output = $result->toArray(DebugFlag::NONE);
 
             $status = 200;
             if (isset($output['errors']) && \is_array($output['errors']) && $output['errors'] !== []) {
@@ -129,13 +134,6 @@ HTML;
         } catch (Throwable $e) {
             return Response::error('GRAPHQL_ERROR', $e->getMessage(), 400);
         }
-    }
-
-    private function enabled(): bool
-    {
-        $value = $this->settings->get('graphql.enabled');
-
-        return $value === true || $value === 1 || $value === '1';
     }
 
     /**

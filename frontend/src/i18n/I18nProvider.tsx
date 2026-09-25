@@ -10,11 +10,13 @@ import {
 } from 'react'
 import {
   isLocale,
+  localeDir,
   normalizeLocale,
   readStoredLocale,
   translate,
   writeStoredLocale,
   type Locale,
+  type TextDirection,
 } from './locale'
 import type { MessageKey } from './en'
 
@@ -22,6 +24,7 @@ type TranslateFn = (key: MessageKey, params?: Record<string, string | number>) =
 
 interface I18nContextValue {
   locale: Locale
+  dir: TextDirection
   setLocale: (locale: Locale) => void
   t: TranslateFn
 }
@@ -30,6 +33,7 @@ const I18nContext = createContext<I18nContextValue | null>(null)
 
 function applyDocumentLang(locale: Locale) {
   document.documentElement.lang = locale
+  document.documentElement.dir = localeDir(locale)
 }
 
 export function I18nProvider({
@@ -56,7 +60,10 @@ export function I18nProvider({
 
   const t = useCallback<TranslateFn>((key, params) => translate(locale, key, params), [locale])
 
-  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t])
+  const value = useMemo(
+    () => ({ locale, dir: localeDir(locale), setLocale, t }),
+    [locale, setLocale, t],
+  )
 
   return createElement(I18nContext.Provider, { value }, children)
 }

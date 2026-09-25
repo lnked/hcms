@@ -278,13 +278,14 @@ UI: `/api/docs` (Swagger). Клиентская типизация: `packages/sd
 
 ## 16a. GraphQL — `src/GraphQL/` (opt-in)
 
-Тонкий слой над `QueryEngine` + тот же auth, что public REST. Default выкл (`graphql.enabled`).
+Тонкий слой над `QueryEngine` + тот же auth, что public REST. Default выкл (`api.graphql.enabled`).
 
 | Класс | Назначение |
 |---|---|
-| `SchemaFactory` | Executable schema из published + `apiEnabled` resources |
+| `GraphQLSchemaFactory` | Executable schema из published + `apiEnabled` resources |
+| `GraphqlSettings` | `api.graphql.enabled` / `api.graphql.playground` |
 | `JsonType` / `TypeNames` | JSON scalar + naming helpers |
-| `GraphqlController` | `GET` GraphiQL, `POST` execute |
+| `GraphqlController` | `POST` execute; optional `GET` GraphiQL |
 | `PublicApiAuthorizer` (`src/Api/`) | Shared REST/GraphQL authorize |
 
 Endpoints: `/api/graphql`, `/api/v1/graphql`. Admin: System → GraphQL; сайдбар GraphQL. Дока: [`graphql.md`](graphql.md), UI: [`ADMIN_UI_AGENT_GUIDE.md`](../ADMIN_UI_AGENT_GUIDE.md#13-graphql-opt-in).
@@ -390,7 +391,7 @@ React SPA → build в `public/admin/`.
 | `features/media` | Медиатека |
 | `features/webhooks` / `inbound` / `uptime` / `logs` / `docs` / `auth` / `account` / `install` | Соответствующие экраны |
 | `pages/*` | Dashboard, Users, Tokens, FeatureFlags, Translates, KeyValues, Integrations, System |
-| `i18n` | en/ru админки |
+| `i18n` | en/ru/ar админки (`dir` + logical CSS shell) |
 | `lib/api.ts` | Fetch + Bearer + field errors |
 | `components/ui` | Design system (CSS Modules + `--hcms-*`) |
 

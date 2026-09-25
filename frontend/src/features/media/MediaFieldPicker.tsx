@@ -26,7 +26,7 @@ interface MediaFieldPickerProps {
   multiple?: boolean
   formats?: string[]
   sizes?: ImageSizeConfig[]
-  /** Optional storage re-encode: webp | jpeg | png */
+  /** Optional storage re-encode: webp | avif | jpeg | png */
   encodeFormat?: string | null
   isImage?: boolean
   onChange: (value: MediaFieldValue | MediaFieldValue[] | null) => void

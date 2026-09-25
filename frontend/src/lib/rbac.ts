@@ -8,6 +8,7 @@ export type AdminSection =
   | 'media'
   | 'logs'
   | 'docs'
+  | 'graphql'
   | 'changelog'
   | 'tokens'
   | 'webhooks'
@@ -30,6 +31,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   'media',
   'logs',
   'docs',
+  'graphql',
   'changelog',
   'tokens',
   'webhooks',
@@ -115,6 +117,8 @@ export function pathForSection(section: AdminSection): string {
       return '/logs'
     case 'docs':
       return '/docs'
+    case 'graphql':
+      return '/settings/system#system-graphql'
     case 'changelog':
       return '/changelog'
     case 'tokens':

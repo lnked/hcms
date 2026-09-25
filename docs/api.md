@@ -13,7 +13,7 @@ Email / Integrations: see [integrations-email.md](./integrations-email.md).
 | Enable | `PATCH /admin/api/settings` `{ "graphql": { "enabled": true } }` (owner) or System UI |
 | Playground | `GET /api/graphql` |
 | Execute | `POST /api/graphql` `{ "query": "…" }` |
-| Gate | `graphql.enabled`; per-resource: `apiEnabled` + `public.*` / token grants |
+| Gate | `api.graphql.enabled` (+ optional `api.graphql.playground`); per-resource: `apiEnabled` + `public.*` / token grants |
 
 Details, schema shape, relation depth: [graphql.md](./graphql.md). Admin playbook: [ADMIN_UI_AGENT_GUIDE.md §13](../ADMIN_UI_AGENT_GUIDE.md#13-graphql-opt-in).
 

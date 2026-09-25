@@ -23,7 +23,7 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | MFA + OAuth | **PARTIAL** | TOTP + Google + Telegram + generic OIDC; no SAML |
 | Audit logs | **HAVE** | `cms_audit_logs` + Logs UI |
 | Admin UI | **HAVE** | React schema builder, media, data table (en/ru) |
-| Media resize / WebP | **PARTIAL** | GD: WebP/JPEG/PNG, sizes; no AVIF / full DAM |
+| Media resize / WebP / AVIF | **HAVE** | GD: WebP/JPEG/PNG/AVIF (`encodeFormat` + Optimize); AVIF needs GD+libavif |
 | External extensibility | **PARTIAL** | Hooks, inbound, custom APIs, plugin field types (extensions/); no admin iframe apps / custom field widgets |
 | SDK / ecosystem | **HAVE** | [`packages/sdk`](../packages/sdk) (`@hcms/sdk`) + [`examples/react`](../examples/react) |
 | TS typegen from schema | **HAVE** | `hcms-types` CLI from OpenAPI |
@@ -36,9 +36,9 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | Internal Event Bus | **HAVE** | `Cms\Events\EventBus`; webhooks as listeners |
 | Webhook revalidation presets | **HAVE** | Vercel / Netlify / Cloudflare / Fastly templates |
 | Data backups (DB + media) | **HAVE** | Admin Backups + `php cms backup:*` + cloud/SFTP — [recovery.md](recovery.md#data-backups-бд--media) |
-| GraphQL | **HAVE** (opt-in) | [`graphql.md`](graphql.md); System toggle `graphql.enabled`; REST stays default |
+| GraphQL | **HAVE** (opt-in) | [`graphql.md`](graphql.md); `api.graphql.enabled`; REST stays default |
 | Plugin field types | **PARTIAL** | Core + `extensions/*/manifest.php` + composer `extra.hcms.field-types`; no marketplace |
-| RTL admin | **MISSING** | `en` / `ru` only; no `dir=rtl` |
+| RTL admin | **PARTIAL** | `en`/`ru`/`ar`; `html[dir]`; logical CSS shell; ar catalog sparse (EN fallback) |
 | Multi-tenancy | **OUT OF SCOPE** | One install = one tenant; no `tenant_id` in core |
 | Built-in CDN + SLA | **OUT OF SCOPE** | Document Cloudflare/proxy; do not build CDN |
 | Horizontal scaling | **OUT OF SCOPE** (for now) | Single PHP+MySQL; local FileCache |
@@ -64,7 +64,7 @@ Implementation status: see [`implementation-plan.md`](implementation-plan.md).
 
 1. Polish: locale switcher UI, rich blocks editor, workflow comments, System UI for `ip_auto_block_after_spam_rejects` (частично shipped).
 2. CDN / HA / compliance / marketplace / **multi-tenancy** — docs or future cloud-tier, **не** core MVP.
-3. RTL admin, SAML, AVIF — secondary.
+3. SAML, full ar/he catalogs, CDN image DAM — secondary.
 
 ---
 
@@ -88,4 +88,4 @@ Self-hosted core: одна инсталляция = один клиент. `tena
 
 ## One-liner
 
-HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL / opt-in GraphQL**. Остаются secondary polish (RTL/AVIF/SAML) и out-of-scope cloud concerns.
+HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL / opt-in GraphQL / AVIF + RTL shell**. Остаются secondary polish (full ar/he, SAML) и out-of-scope cloud concerns.

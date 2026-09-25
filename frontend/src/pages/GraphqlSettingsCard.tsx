@@ -15,9 +15,25 @@ import styles from './ApiAccessForm.module.css'
 
 export interface GraphqlSettings {
   enabled: boolean
+  playground: boolean
 }
 
-function GraphqlSettingsForm({ initial }: { initial: GraphqlSettings }) {
+function normalizeGraphqlSettings(
+  raw: Partial<GraphqlSettings> | null | undefined,
+): GraphqlSettings {
+  return {
+    enabled: raw?.enabled === true,
+    playground: raw?.playground === true,
+  }
+}
+
+function GraphqlSettingsForm({
+  initial,
+  readOnly,
+}: {
+  initial: GraphqlSettings
+  readOnly: boolean
+}) {
   const { t } = useI18n()
   const queryClient = useQueryClient()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -31,19 +47,20 @@ function GraphqlSettingsForm({ initial }: { initial: GraphqlSettings }) {
       }),
     onSuccess: (data) => {
       setFieldErrors({})
-      if (data.graphql) setDraft(data.graphql)
+      if (data.graphql) setDraft(normalizeGraphqlSettings(data.graphql))
       void queryClient.invalidateQueries({ queryKey: queryKeys.settings.graphql })
       showSuccess(t('system.graphqlSaved'))
     },
     onError: (err) => setFieldErrors(apiFieldErrors(err)),
   })
 
-  const isDirty = draft.enabled !== initial.enabled
+  const isDirty = draft.enabled !== initial.enabled || draft.playground !== initial.playground
 
   return (
     <Form
       className={styles.root}
       onSubmit={() => {
+        if (readOnly) return
         save.mutate(draft)
       }}
     >
@@ -52,8 +69,13 @@ function GraphqlSettingsForm({ initial }: { initial: GraphqlSettings }) {
           <Switch
             id="graphql-enabled"
             checked={draft.enabled}
+            disabled={readOnly}
             onCheckedChange={(next) => {
-              setDraft((prev) => ({ ...prev, enabled: next }))
+              setDraft((prev) => ({
+                ...prev,
+                enabled: next,
+                playground: next ? prev.playground : false,
+              }))
               setFieldErrors((prev) => clearFieldError(prev, 'enabled'))
             }}
           />
@@ -62,7 +84,23 @@ function GraphqlSettingsForm({ initial }: { initial: GraphqlSettings }) {
         <p className={styles.hint}>{t('system.graphqlEnabledHint')}</p>
         <FieldError messages={fieldErrors.enabled} />
       </div>
-      {isDirty ? (
+      <div className={styles.field}>
+        <label className={styles.checkRow} htmlFor="graphql-playground">
+          <Switch
+            id="graphql-playground"
+            checked={draft.playground}
+            disabled={readOnly || !draft.enabled}
+            onCheckedChange={(next) => {
+              setDraft((prev) => ({ ...prev, playground: next }))
+              setFieldErrors((prev) => clearFieldError(prev, 'playground'))
+            }}
+          />
+          <span>{t('system.graphqlPlayground')}</span>
+        </label>
+        <p className={styles.hint}>{t('system.graphqlPlaygroundHint')}</p>
+        <FieldError messages={fieldErrors.playground} />
+      </div>
+      {!readOnly && isDirty ? (
         <Button type="submit" disabled={save.isPending}>
           {save.isPending ? t('common.saving') : t('system.graphqlSave')}
         </Button>
@@ -77,30 +115,29 @@ export function GraphqlSettingsCard() {
 
   const query = useQuery({
     queryKey: queryKeys.settings.graphql,
-    queryFn: () => api<GraphqlSettings>('/admin/api/settings/graphql'),
-    enabled: isOwner,
+    queryFn: async () =>
+      normalizeGraphqlSettings(await api<Partial<GraphqlSettings>>('/admin/api/settings/graphql')),
   })
 
-  if (!isOwner) return null
-  if (!query.data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('system.graphqlTitle')}</CardTitle>
-          <CardDescription>{t('common.loading')}</CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-
   return (
-    <Card>
+    <Card id="system-graphql">
       <CardHeader>
         <CardTitle>{t('system.graphqlTitle')}</CardTitle>
         <CardDescription>{t('system.graphqlHint')}</CardDescription>
       </CardHeader>
       <CardContent>
-        <GraphqlSettingsForm key={JSON.stringify(query.data)} initial={query.data} />
+        {!isOwner ? <p className={styles.hint}>{t('system.graphqlOwnerOnly')}</p> : null}
+        {query.isError ? (
+          <p className={styles.hint}>{t('system.graphqlUnavailable')}</p>
+        ) : !query.data ? (
+          <p className={styles.hint}>{t('common.loading')}</p>
+        ) : (
+          <GraphqlSettingsForm
+            key={JSON.stringify(query.data)}
+            initial={query.data}
+            readOnly={!isOwner}
+          />
+        )}
       </CardContent>
     </Card>
   )

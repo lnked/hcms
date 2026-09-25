@@ -1,15 +1,29 @@
+import { ar } from './ar'
 import { en } from './en'
 import { ru } from './ru'
 import type { MessageKey } from './en'
 
-export const LOCALES = ['en', 'ru'] as const
+export type TextDirection = 'ltr' | 'rtl'
+
+export const LOCALES = ['en', 'ru', 'ar'] as const
 export type Locale = (typeof LOCALES)[number]
+
+export const LOCALE_META: Record<Locale, { code: Locale; dir: TextDirection }> = {
+  en: { code: 'en', dir: 'ltr' },
+  ru: { code: 'ru', dir: 'ltr' },
+  ar: { code: 'ar', dir: 'rtl' },
+}
 
 const LOCALE_STORAGE_KEY = 'hcms_locale'
 
-const catalogs: Record<Locale, Record<MessageKey, string>> = {
+const catalogs: Record<Locale, Partial<Record<MessageKey, string>>> = {
   en,
   ru,
+  ar,
+}
+
+export function localeDir(locale: Locale): TextDirection {
+  return LOCALE_META[locale].dir
 }
 
 export function isLocale(value: unknown): value is Locale {

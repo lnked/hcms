@@ -21,6 +21,7 @@ final class AdminUiSections
         'media',
         'logs',
         'docs',
+        'graphql',
         'changelog',
         'tokens',
         'webhooks',

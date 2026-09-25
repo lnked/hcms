@@ -173,19 +173,19 @@
 .themeThumb {
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: var(--hcms-SPx4);
   height: var(--hcms-SPx4);
   border-radius: 9999px;
   background: var(--hcms-color-background);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--hcms-color-foreground) 15%, transparent);
-  transition-property: transform;
+  transition-property: inset-inline-start;
   transition-duration: 300ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .themeThumbOn {
-  transform: translateX(var(--hcms-SPx4));
+  inset-inline-start: calc(2px + var(--hcms-SPx4));
 }
 
 .versionLink {
@@ -263,12 +263,12 @@
 .sidebar {
   position: fixed;
   inset-block: 0;
-  left: 0;
+  inset-inline-start: 0;
   z-index: 30;
   display: none;
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--hcms-color-sidebar-border);
+  border-inline-end: 1px solid var(--hcms-color-sidebar-border);
   background: var(--hcms-color-sidebar);
   color: var(--hcms-color-sidebar-foreground);
   transition-property: width;
@@ -336,6 +336,10 @@
   margin-inline-end: 0;
 }
 
+:global(html[dir='rtl']) .collapseBtn svg {
+  transform: scaleX(-1);
+}
+
 /* —— Mobile drawer —— */
 
 .overlay {
@@ -354,13 +358,13 @@
 .drawer {
   position: fixed;
   inset-block: 0;
-  left: 0;
+  inset-inline-start: 0;
   z-index: 50;
   display: flex;
   width: min(100vw - 3rem, 15rem);
   flex-direction: column;
   overflow: hidden;
-  border-right: 1px solid var(--hcms-color-sidebar-border);
+  border-inline-end: 1px solid var(--hcms-color-sidebar-border);
   background: var(--hcms-color-sidebar);
   color: var(--hcms-color-sidebar-foreground);
   outline: none;
@@ -422,9 +426,9 @@
 
 .main {
   min-height: 100svh;
-  margin-left: 0;
+  margin-inline-start: 0;
   padding: var(--hcms-SPx4);
-  transition-property: margin-left;
+  transition-property: margin-inline-start;
   transition-duration: 300ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -435,10 +439,10 @@
   }
 
   .mainSidebarOpen {
-    margin-left: 240px;
+    margin-inline-start: 240px;
   }
 
   .mainSidebarCollapsed {
-    margin-left: var(--hcms-SPx14);
+    margin-inline-start: var(--hcms-SPx14);
   }
 }

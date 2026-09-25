@@ -12,6 +12,7 @@ interface LanguageSelectProps {
 const localeKeys = {
   en: 'locale.en',
   ru: 'locale.ru',
+  ar: 'locale.ar',
 } as const
 
 export function LanguageSelect({ value, onChange, className, id }: LanguageSelectProps) {

@@ -17,6 +17,7 @@ final class UserAclPolicy
         'media',
         'logs',
         'docs',
+        'graphql',
         'changelog',
         'tokens',
         'webhooks',

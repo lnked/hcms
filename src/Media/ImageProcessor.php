@@ -166,6 +166,7 @@ final class ImageProcessor
             IMAGETYPE_PNG => @imagecreatefrompng($path),
             IMAGETYPE_GIF => @imagecreatefromgif($path),
             IMAGETYPE_WEBP => \function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+            IMAGETYPE_AVIF => \function_exists('imagecreatefromavif') ? @imagecreatefromavif($path) : false,
             default => false,
         };
         if ($img === false) {
@@ -388,6 +389,7 @@ final class ImageProcessor
             IMAGETYPE_PNG => 'image/png',
             IMAGETYPE_GIF => 'image/gif',
             IMAGETYPE_WEBP => 'image/webp',
+            IMAGETYPE_AVIF => 'image/avif',
             default => null,
         };
     }
@@ -402,6 +404,7 @@ final class ImageProcessor
         $q = $quality !== null ? max(1, min(100, $quality)) : null;
         $jpegQ = $q ?? 88;
         $webpQ = $q ?? 85;
+        $avifQ = $q ?? 60;
         // PNG compression level 0 (none) … 9 (max); map quality so 100 → lightest file pressure.
         $pngLevel = $q !== null ? (int) round((100 - $q) / 100 * 9) : 6;
 
@@ -411,6 +414,9 @@ final class ImageProcessor
             'image/gif' => imagegif($img),
             'image/webp' => \function_exists('imagewebp')
                 ? imagewebp($img, null, $webpQ)
+                : false,
+            'image/avif' => \function_exists('imageavif')
+                ? imageavif($img, null, $avifQ)
                 : false,
             'image/jpeg', 'image/jpg' => imagejpeg($img, null, $jpegQ),
             default => false,
@@ -427,6 +433,7 @@ final class ImageProcessor
             'image/png' => 'png',
             'image/gif' => 'gif',
             'image/webp' => 'webp',
+            'image/avif' => 'avif',
             default => 'jpg',
         };
 

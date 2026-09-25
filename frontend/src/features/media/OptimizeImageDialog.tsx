@@ -17,7 +17,7 @@ import { useI18n } from '@/i18n'
 import { api } from '@/lib/api'
 import styles from './OptimizeImageDialog.module.css'
 
-export type OptimizeFormat = 'keep' | 'webp' | 'jpeg' | 'png'
+export type OptimizeFormat = 'keep' | 'webp' | 'avif' | 'jpeg' | 'png'
 
 export type OptimizeOpts = {
   quality: number
@@ -188,6 +188,7 @@ export function OptimizeImageDialog({
             >
               <option value="keep">{t('media.optimizeFormatKeep')}</option>
               <option value="webp">WebP</option>
+              <option value="avif">AVIF</option>
               <option value="jpeg">JPEG</option>
               <option value="png">PNG</option>
             </Select>

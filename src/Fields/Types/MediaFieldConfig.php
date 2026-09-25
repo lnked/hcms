@@ -21,14 +21,14 @@ final class MediaFieldConfig
     /** @var list<string> */
     public const FILE_FORMATS = [
         'pdf', 'txt', 'csv', 'mp4', 'webm', 'doc', 'docx', 'xls', 'xlsx', 'zip',
-        'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg',
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg',
     ];
 
     /** @var list<string> */
-    public const IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    public const IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'];
 
     /** Optional storage re-encode targets (not the upload accept-list). */
-    public const ENCODE_FORMATS = ['webp', 'jpeg', 'png'];
+    public const ENCODE_FORMATS = ['webp', 'avif', 'jpeg', 'png'];
 
     /**
      * @param array<mixed> $formats
@@ -61,7 +61,7 @@ final class MediaFieldConfig
     /**
      * Optional convert-on-store format. Empty / null / "keep" = leave source encoding.
      *
-     * @return 'webp'|'jpeg'|'png'|null
+     * @return 'webp'|'avif'|'jpeg'|'png'|null
      */
     public static function normalizeEncodeFormat(mixed $format): ?string
     {
@@ -79,7 +79,7 @@ final class MediaFieldConfig
             $normalized = 'jpeg';
         }
         if (!\in_array($normalized, self::ENCODE_FORMATS, true)) {
-            throw new InvalidArgumentException('encodeFormat must be webp, jpeg, png, or empty');
+            throw new InvalidArgumentException('encodeFormat must be webp, avif, jpeg, png, or empty');
         }
 
         return $normalized;
@@ -89,6 +89,7 @@ final class MediaFieldConfig
     {
         return match ($format) {
             'webp' => 'image/webp',
+            'avif' => 'image/avif',
             'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             default => null,

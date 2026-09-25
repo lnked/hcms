@@ -86,15 +86,13 @@
 .sizeSm {
   height: var(--hcms-SPx8);
   border-radius: var(--hcms-CRx2);
-  padding-left: var(--hcms-SPx3);
-  padding-right: var(--hcms-SPx3);
+  padding-inline: var(--hcms-SPx3);
 }
 
 .sizeLg {
   height: var(--hcms-SPx10);
   border-radius: var(--hcms-CRx2);
-  padding-left: var(--hcms-SPx6);
-  padding-right: var(--hcms-SPx6);
+  padding-inline: var(--hcms-SPx6);
 }
 
 .sizeIcon {

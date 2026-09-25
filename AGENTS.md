@@ -31,7 +31,7 @@ GET  /api/{slug}                   → проверить
 
 ### 1.1 Требования
 
-PHP 8.3+, MySQL/MariaDB, расширения `pdo_mysql`, `json`, `mbstring`, `zip`, `curl`.
+PHP 8.3+, MySQL/MariaDB, расширения `pdo_mysql`, `json`, `mbstring`, `zip`, `curl`. Для image resize/encode — `gd` (AVIF → GD+libavif).
 Для сборки админки — Node.js 20+, Composer.
 
 ### 1.2 Локально из репозитория (основной путь для агента)
@@ -45,7 +45,7 @@ php -S 127.0.0.1:8080 -t public public/router.php
 
 - Админка: `http://127.0.0.1:8080/admin`
 - Swagger: `http://127.0.0.1:8080/api/docs`
-- GraphQL (opt-in, default off): `http://127.0.0.1:8080/api/graphql` — System → GraphQL; [`docs/graphql.md`](docs/graphql.md)
+- GraphQL (opt-in, default off): `http://127.0.0.1:8080/api/graphql` — System → GraphQL (`api.graphql.enabled`); [`docs/graphql.md`](docs/graphql.md)
 - Инсталлятор: `http://127.0.0.1:8080/install.php`
 
 `npm run build` нужен только для UI. Если задача чисто API — можно пропустить.
@@ -305,7 +305,7 @@ php scripts/seed-demo.php --url=http://127.0.0.1:8080 \
 | `slug` | `associatedWith` (имя исходного поля), `maxLength` (255) |
 | `enum` | `options: string[]` — **обязателен и непустой** |
 | `date`, `datetime` | `format` |
-| `image`, `file` | `multiple: bool`, `formats: string[]` (accept), `encodeFormat: webp\|jpeg\|png\|null` (storage, только image), `sizes` (только image) |
+| `image`, `file` | `multiple: bool`, `formats: string[]` (accept), `encodeFormat: webp\|avif\|jpeg\|png\|null` (storage, только image), `sizes` (только image) |
 | `relation` | `cardinality: manyToOne\|oneToMany`, `relatedSlug`, `labelField` (`id`), `foreignKey` (обязателен для `oneToMany`) |
 | остальные | нет |
 
@@ -445,7 +445,7 @@ curl -s "$BASE/admin/api/health"                 # без авторизации
 curl -s "$BASE/admin/api/resources" -H "Authorization: Bearer $TOKEN"
 curl -s "$BASE/api/{slug}?limit=1"               # публичное чтение
 curl -s "$BASE/api/openapi.json" | grep {slug}   # ресурс в OpenAPI
-# optional GraphQL (если graphql.enabled):
+# optional GraphQL (если api.graphql.enabled):
 # curl -s -X POST "$BASE/api/graphql" -H 'Content-Type: application/json' \
 #   -d '{"query":"{ {slug}(limit:1) { data { id } meta { total } } }"}'
 ```

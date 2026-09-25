@@ -126,11 +126,13 @@ function SidebarNav({
   collapsed,
   linkClass,
   onNavigate,
+  showGraphql,
 }: {
   nav: NavItem[]
   collapsed: boolean
   linkClass: (args: { isActive: boolean }) => string
   onNavigate?: () => void
+  showGraphql: boolean
 }) {
   const { t } = useI18n()
 
@@ -164,19 +166,21 @@ function SidebarNav({
           {t('nav.docs')}
         </SidebarLabel>
       </a>
-      <a
-        href="/api/graphql"
-        target="_blank"
-        rel="noopener noreferrer"
-        title={collapsed ? t('nav.graphql') : undefined}
-        className={styles.docsLink}
-        onClick={onNavigate}
-      >
-        <GraphqlIcon className={styles.icon} />
-        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
-          {t('nav.graphql')}
-        </SidebarLabel>
-      </a>
+      {showGraphql ? (
+        <a
+          href="/api/graphql"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={collapsed ? t('nav.graphql') : undefined}
+          className={styles.docsLink}
+          onClick={onNavigate}
+        >
+          <GraphqlIcon className={styles.icon} />
+          <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
+            {t('nav.graphql')}
+          </SidebarLabel>
+        </a>
+      ) : null}
     </nav>
   )
 }
@@ -414,6 +418,7 @@ export function AppShell() {
     clsx(styles.navLink, isActive && styles.navLinkActive)
 
   const closeMobile = () => setMobileOpen(false)
+  const showGraphql = canAccessNav(me.data, 'graphql')
 
   return (
     <div className={styles.root}>
@@ -480,7 +485,12 @@ export function AppShell() {
           </Button>
         </div>
 
-        <SidebarNav nav={nav} collapsed={collapsed} linkClass={linkClass} />
+        <SidebarNav
+          nav={nav}
+          collapsed={collapsed}
+          linkClass={linkClass}
+          showGraphql={showGraphql}
+        />
         <SidebarFooter collapsed={collapsed} version={version.data} />
       </aside>
 
@@ -520,6 +530,7 @@ export function AppShell() {
               collapsed={false}
               linkClass={linkClass}
               onNavigate={closeMobile}
+              showGraphql={showGraphql}
             />
             <SidebarFooter collapsed={false} version={version.data} onNavigate={closeMobile} />
           </DialogPrimitive.Content>

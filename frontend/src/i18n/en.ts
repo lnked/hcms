@@ -54,6 +54,7 @@ export const en = {
 
   'locale.en': 'English',
   'locale.ru': 'Русский',
+  'locale.ar': 'العربية',
 
   'nav.dashboard': 'Dashboard',
   'nav.resources': 'Resources',
@@ -641,7 +642,7 @@ export const en = {
   'schema.file.formatsHint': 'e.g. pdf, docx, zip — empty = global allowlist',
   'schema.image.multiple': 'Allow multiple images',
   'schema.image.formats': 'Allowed formats (comma-separated)',
-  'schema.image.formatsHint': 'e.g. jpg, png, webp — empty = any image',
+  'schema.image.formatsHint': 'e.g. jpg, png, webp, avif — empty = any image',
   'schema.image.encodeFormat': 'Convert uploaded images to',
   'schema.image.encodeFormatKeep': 'Keep original format',
   'schema.image.encodeFormatHint': 'Optional — re-encodes master and variants on upload/edit',
@@ -831,6 +832,7 @@ export const en = {
   'users.acl.section.media': 'Media',
   'users.acl.section.logs': 'Logs',
   'users.acl.section.docs': 'Documentation',
+  'users.acl.section.graphql': 'GraphQL',
   'users.acl.section.changelog': 'Changelog',
   'users.acl.section.tokens': 'API tokens',
   'users.acl.section.webhooks': 'Webhooks',
@@ -1195,12 +1197,18 @@ export const en = {
   'system.securitySaved': 'Security settings saved',
   'system.graphqlTitle': 'GraphQL',
   'system.graphqlHint':
-    'Opt-in GraphQL endpoint at /api/graphql. Uses the same auth, grants, and apiEnabled as REST. Off by default.',
+    'Opt-in GraphQL at POST /api/graphql (api.graphql.enabled). GraphiQL is optional and off by default. Same auth/grants/apiEnabled as REST.',
   'system.graphqlEnabled': 'Enable GraphQL',
   'system.graphqlEnabledHint':
-    'When off, /api/graphql returns 404. REST and OpenAPI are unchanged.',
+    'When off, POST /api/graphql returns 404. REST and OpenAPI are unchanged. Key: api.graphql.enabled.',
+  'system.graphqlPlayground': 'Enable GraphiQL playground',
+  'system.graphqlPlaygroundHint':
+    'Optional. GET /api/graphql serves GraphiQL only when this is on (off by default).',
   'system.graphqlSave': 'Save GraphQL settings',
   'system.graphqlSaved': 'GraphQL settings saved',
+  'system.graphqlOwnerOnly': 'Only the owner can change GraphQL settings.',
+  'system.graphqlUnavailable':
+    'GraphQL settings API is not available on this install — update HCMS to 0.62.21+.',
   'system.adminBaseTitle': 'Admin base path',
   'system.adminBaseHint':
     'URL segment for the admin UI. Empty = site root. Admin API follows the same prefix, except root UI keeps /admin/api. Assets stay under /admin/assets. Update OAuth redirect URIs after changing. Owner only.',

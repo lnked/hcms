@@ -53,7 +53,7 @@ use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
 use Cms\Fields\FieldTypeRegistry;
 use Cms\Fields\SqlTypeMapper;
-use Cms\GraphQL\SchemaFactory;
+use Cms\GraphQL\GraphQLSchemaFactory;
 use Cms\Hooks\HookClient;
 use Cms\Hooks\HookDeliveryRepository;
 use Cms\Hooks\InboundEndpointRepository;
@@ -912,7 +912,7 @@ final class Kernel
                 $this->config->appUrl,
             );
             $graphql = new GraphqlController(
-                new SchemaFactory(
+                new GraphQLSchemaFactory(
                     new ResourceRepository($this->db),
                     new FieldRepository($this->db),
                     $graphqlQuery,
