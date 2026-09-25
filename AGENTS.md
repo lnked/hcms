@@ -493,6 +493,7 @@ Data backups (БД+media, cloud/SFTP): раздел **Backups** в админк�
 
 | Файл | О чём |
 |---|---|
+| [`ADMIN_UI_AGENT_GUIDE.md`](ADMIN_UI_AGENT_GUIDE.md) | UI админки по разделам: сценарии и action plan для AI-агентов |
 | [`docs/architecture.md`](docs/architecture.md) | ContentType / Field / Resource, оси версионирования |
 | [`docs/review.md`](docs/review.md) | карта всех модулей `src/` / frontend / SDK для агентов |
 | [`docs/installation.md`](docs/installation.md) | раскладка каталогов, shared-хостинг, `public_html` |
