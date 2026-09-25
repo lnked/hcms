@@ -110,12 +110,6 @@
   gap: calc(var(--hcms-SPx1) * 1.5);
 }
 
-.stackXs {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--hcms-SPx1) * 1.5);
-}
-
 .textarea {
   width: 100%;
   min-height: 4.5rem;
