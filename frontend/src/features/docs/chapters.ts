@@ -1623,7 +1623,7 @@ Content-Type: application/json
   },
 ]
 
-const byLocale: Record<Locale, Chapter[]> = { en, ru }
+const byLocale: Record<Locale, Chapter[]> = { en, ru, ar: en }
 
 export function getChapters(locale: Locale, role?: string | null): Chapter[] {
   const all = byLocale[locale] ?? byLocale.en
