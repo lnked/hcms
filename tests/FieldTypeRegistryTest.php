@@ -16,9 +16,14 @@ final class FieldTypeRegistryTest extends TestCase
         $this->assertContains('enum', $registry->names());
         $this->assertContains('slug', $registry->names());
         $this->assertContains('richtext', $registry->names());
+        $this->assertContains('blocks', $registry->names());
         $this->assertTrue($registry->has('email'));
         $this->assertSame('integer', $registry->get('integer')->name());
         $this->assertSame('richtext', $registry->get('richtext')->name());
+        $this->assertSame('number', $registry->get('integer')->widget());
+        $descriptors = $registry->descriptors();
+        $this->assertNotEmpty($descriptors);
+        $this->assertArrayHasKey('widget', $descriptors[0]);
     }
 
     public function testEnumRequiresOptions(): void

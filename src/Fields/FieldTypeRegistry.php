@@ -38,7 +38,7 @@ final class FieldTypeRegistry
     }
 
     /**
-     * Core registry + composer extra + extensions/*/manifest.php discovery.
+     * Core registry + composer extra + extensions/<name>/manifest.php discovery.
      */
     public static function createWithDiscovery(string $projectRoot): self
     {
