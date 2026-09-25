@@ -13,6 +13,11 @@ final class FileType extends AbstractFieldType
         return 'file';
     }
 
+    public function widget(): string
+    {
+        return 'media';
+    }
+
     public function defaultConfig(): array
     {
         return [

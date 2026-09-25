@@ -13,6 +13,11 @@ final class ImageType extends AbstractFieldType
         return 'image';
     }
 
+    public function widget(): string
+    {
+        return 'media';
+    }
+
     public function defaultConfig(): array
     {
         return [

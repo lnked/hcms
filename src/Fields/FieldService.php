@@ -159,11 +159,17 @@ final class FieldService
     }
 
     /**
-     * @return list<string>
+     * @return list<array{
+     *   name: string,
+     *   label: string,
+     *   widget: string,
+     *   defaultConfig: array<string, mixed>,
+     *   configSchema: array<string, mixed>
+     * }>
      */
     public function availableTypes(): array
     {
-        return $this->types->names();
+        return $this->types->descriptors();
     }
 
     /**

@@ -10,4 +10,9 @@ final class IntegerType extends AbstractFieldType
     {
         return 'integer';
     }
+
+    public function widget(): string
+    {
+        return 'number';
+    }
 }

@@ -28,6 +28,20 @@ interface OauthConfig {
     botTokenConfigured: boolean
     botTokenMasked: string | null
   }
+  oidc: {
+    enabled: boolean
+    issuer: string
+    clientId: string
+    clientSecretConfigured: boolean
+    clientSecretMasked: string | null
+    scopes: string
+    claimEmail: string
+    claimSub: string
+    authorizationEndpoint: string
+    tokenEndpoint: string
+    userinfoEndpoint: string
+    redirectUri: string
+  }
 }
 
 export function OauthIntegrationsCard() {
@@ -39,6 +53,16 @@ export function OauthIntegrationsCard() {
   const [telegramEnabled, setTelegramEnabled] = useState(false)
   const [botUsername, setBotUsername] = useState('')
   const [botToken, setBotToken] = useState('')
+  const [oidcEnabled, setOidcEnabled] = useState(false)
+  const [oidcIssuer, setOidcIssuer] = useState('')
+  const [oidcClientId, setOidcClientId] = useState('')
+  const [oidcSecret, setOidcSecret] = useState('')
+  const [oidcScopes, setOidcScopes] = useState('openid email profile')
+  const [oidcClaimEmail, setOidcClaimEmail] = useState('email')
+  const [oidcClaimSub, setOidcClaimSub] = useState('sub')
+  const [oidcAuthEndpoint, setOidcAuthEndpoint] = useState('')
+  const [oidcTokenEndpoint, setOidcTokenEndpoint] = useState('')
+  const [oidcUserinfoEndpoint, setOidcUserinfoEndpoint] = useState('')
   const [hydratedAt, setHydratedAt] = useState(0)
 
   const query = useQuery({
@@ -54,6 +78,16 @@ export function OauthIntegrationsCard() {
     setTelegramEnabled(query.data.telegram.enabled)
     setBotUsername(query.data.telegram.botUsername)
     setBotToken('')
+    setOidcEnabled(query.data.oidc?.enabled ?? false)
+    setOidcIssuer(query.data.oidc?.issuer ?? '')
+    setOidcClientId(query.data.oidc?.clientId ?? '')
+    setOidcSecret('')
+    setOidcScopes(query.data.oidc?.scopes ?? 'openid email profile')
+    setOidcClaimEmail(query.data.oidc?.claimEmail ?? 'email')
+    setOidcClaimSub(query.data.oidc?.claimSub ?? 'sub')
+    setOidcAuthEndpoint(query.data.oidc?.authorizationEndpoint ?? '')
+    setOidcTokenEndpoint(query.data.oidc?.tokenEndpoint ?? '')
+    setOidcUserinfoEndpoint(query.data.oidc?.userinfoEndpoint ?? '')
   }
 
   const save = useMutation({
@@ -71,11 +105,24 @@ export function OauthIntegrationsCard() {
             botUsername,
             botToken,
           },
+          oidc: {
+            enabled: oidcEnabled,
+            issuer: oidcIssuer,
+            clientId: oidcClientId,
+            clientSecret: oidcSecret,
+            scopes: oidcScopes,
+            claimEmail: oidcClaimEmail,
+            claimSub: oidcClaimSub,
+            authorizationEndpoint: oidcAuthEndpoint,
+            tokenEndpoint: oidcTokenEndpoint,
+            userinfoEndpoint: oidcUserinfoEndpoint,
+          },
         }),
       }),
     onSuccess: () => {
       setGoogleSecret('')
       setBotToken('')
+      setOidcSecret('')
       showSuccess(t('account.oauth.saved'))
       void query.refetch()
       void queryClient.invalidateQueries({ queryKey: ['auth-providers'] })
@@ -165,6 +212,134 @@ export function OauthIntegrationsCard() {
                       type="button"
                       variant="outline"
                       onClick={() => void copyToClipboard(query.data.google.redirectUri)}
+                    >
+                      {t('common.copy')}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className={clsx(styles.panel)}>
+              <div className={clsx(styles.panelHeader)}>
+                <div>
+                  <h3 className={clsx(styles.panelTitle)}>OIDC SSO</h3>
+                  <p className={clsx(styles.hint)}>{t('account.oauth.oidcHint')}</p>
+                </div>
+                <Badge variant={oidcEnabled ? 'default' : 'secondary'}>
+                  {oidcEnabled ? t('common.enabled') : t('common.disabled')}
+                </Badge>
+              </div>
+              <label className={clsx(styles.checkRow)}>
+                <input
+                  type="checkbox"
+                  className={clsx(styles.checkInput)}
+                  checked={oidcEnabled}
+                  onChange={(e) => setOidcEnabled(e.target.checked)}
+                />
+                <span>{t('account.oauth.oidcEnabled')}</span>
+              </label>
+              <div className={clsx(styles.grid)}>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-issuer">{t('account.oauth.issuer')}</Label>
+                  <Input
+                    id="oidc-issuer"
+                    value={oidcIssuer}
+                    onChange={(e) => setOidcIssuer(e.target.value)}
+                    autoComplete="off"
+                  />
+                  <p className={clsx(styles.hint)}>{t('account.oauth.issuerHelp')}</p>
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-client-id">{t('account.oauth.clientId')}</Label>
+                  <Input
+                    id="oidc-client-id"
+                    value={oidcClientId}
+                    onChange={(e) => setOidcClientId(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-client-secret">{t('account.oauth.clientSecret')}</Label>
+                  <Input
+                    id="oidc-client-secret"
+                    type="password"
+                    value={oidcSecret}
+                    onChange={(e) => setOidcSecret(e.target.value)}
+                    placeholder={
+                      query.data?.oidc?.clientSecretMasked
+                        ? t('account.oauth.secretKeep', {
+                            masked: query.data.oidc.clientSecretMasked,
+                          })
+                        : t('account.oauth.secretPlaceholder')
+                    }
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-scopes">{t('account.oauth.scopes')}</Label>
+                  <Input
+                    id="oidc-scopes"
+                    value={oidcScopes}
+                    onChange={(e) => setOidcScopes(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-claim-email">{t('account.oauth.claimEmail')}</Label>
+                  <Input
+                    id="oidc-claim-email"
+                    value={oidcClaimEmail}
+                    onChange={(e) => setOidcClaimEmail(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-claim-sub">{t('account.oauth.claimSub')}</Label>
+                  <Input
+                    id="oidc-claim-sub"
+                    value={oidcClaimSub}
+                    onChange={(e) => setOidcClaimSub(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-auth">{t('account.oauth.authorizationEndpoint')}</Label>
+                  <Input
+                    id="oidc-auth"
+                    value={oidcAuthEndpoint}
+                    onChange={(e) => setOidcAuthEndpoint(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-token">{t('account.oauth.tokenEndpoint')}</Label>
+                  <Input
+                    id="oidc-token"
+                    value={oidcTokenEndpoint}
+                    onChange={(e) => setOidcTokenEndpoint(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className={clsx(styles.field)}>
+                  <Label htmlFor="oidc-userinfo">{t('account.oauth.userinfoEndpoint')}</Label>
+                  <Input
+                    id="oidc-userinfo"
+                    value={oidcUserinfoEndpoint}
+                    onChange={(e) => setOidcUserinfoEndpoint(e.target.value)}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+              {query.data?.oidc?.redirectUri ? (
+                <div className={clsx(styles.field)}>
+                  <Label>{t('account.oauth.redirectUri')}</Label>
+                  <div className={clsx(styles.row)}>
+                    <Input readOnly value={query.data.oidc.redirectUri} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void copyToClipboard(query.data.oidc.redirectUri)}
                     >
                       {t('common.copy')}
                     </Button>

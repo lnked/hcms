@@ -10,4 +10,9 @@ final class RichTextType extends AbstractFieldType
     {
         return 'richtext';
     }
+
+    public function widget(): string
+    {
+        return 'richtext';
+    }
 }

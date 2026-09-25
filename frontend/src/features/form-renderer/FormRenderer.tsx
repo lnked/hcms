@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { RichTextEditor } from '@/features/form-renderer/RichTextEditor'
+import { BlocksEditor } from '@/features/form-renderer/BlocksEditor'
 import { MediaFieldPicker } from '@/features/media/MediaFieldPicker'
 import { useI18n } from '@/i18n'
 import { configString } from '@/lib/coerce'
@@ -18,6 +19,7 @@ import { slugifyUrl } from '@/lib/slugify'
 import styles from './FormRenderer.module.css'
 import type { FieldErrors } from '@/lib/formErrors'
 import type { SchemaField } from '@/types/field'
+import { isBuiltinFieldType } from '@/types/field'
 
 export type EntryValues = Record<string, unknown>
 
@@ -118,7 +120,7 @@ export function FormRenderer({
                 onChange={(next) => set(field.name, next)}
               />
             ) : (
-              renderControl(field, id, value, disabled, set, invalid)
+              renderControl(field, id, value, disabled, set, invalid, errors)
             )}
             <FieldError messages={errors[field.name]} />
           </div>
@@ -231,6 +233,7 @@ function renderControl(
   disabled: boolean | undefined,
   set: (name: string, value: unknown) => void,
   invalid: boolean,
+  errors: FieldErrors = {},
 ) {
   if (field.type === 'boolean') {
     return (
@@ -291,7 +294,20 @@ function renderControl(
     )
   }
 
-  if (field.type === 'text' || field.type === 'json' || field.type === 'blocks') {
+  if (field.type === 'blocks') {
+    return (
+      <BlocksEditor
+        id={id}
+        field={field}
+        value={value}
+        disabled={disabled}
+        errors={errors}
+        onChange={(next) => set(field.name, next)}
+      />
+    )
+  }
+
+  if (field.type === 'text' || field.type === 'json') {
     return (
       <Textarea
         id={id}
@@ -336,6 +352,28 @@ function renderControl(
         aria-label={field.label || field.name}
         aria-invalid={invalid || undefined}
         onChange={(next) => set(field.name, next)}
+      />
+    )
+  }
+
+  if (!isBuiltinFieldType(field.type)) {
+    const asText =
+      typeof value === 'string' ? value : value == null ? '' : JSON.stringify(value, null, 2)
+    return (
+      <Textarea
+        id={id}
+        className={styles.textArea}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        value={asText}
+        onChange={(e) => {
+          const raw = e.target.value
+          try {
+            set(field.name, JSON.parse(raw) as unknown)
+          } catch {
+            set(field.name, raw)
+          }
+        }}
       />
     )
   }

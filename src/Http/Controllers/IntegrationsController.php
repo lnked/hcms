@@ -201,6 +201,7 @@ final class IntegrationsController
                 [
                     'googleEnabled' => $updated['google']['enabled'],
                     'telegramEnabled' => $updated['telegram']['enabled'],
+                    'oidcEnabled' => $updated['oidc']['enabled'],
                 ],
             );
 

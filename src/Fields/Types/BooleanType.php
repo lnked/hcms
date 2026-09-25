@@ -10,4 +10,9 @@ final class BooleanType extends AbstractFieldType
     {
         return 'boolean';
     }
+
+    public function widget(): string
+    {
+        return 'boolean';
+    }
 }

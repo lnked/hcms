@@ -10,4 +10,9 @@ final class TextType extends AbstractFieldType
     {
         return 'text';
     }
+
+    public function widget(): string
+    {
+        return 'textarea';
+    }
 }

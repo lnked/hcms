@@ -309,6 +309,7 @@ final class AuthController
             return Response::data([
                 'google' => ['enabled' => false, 'clientId' => ''],
                 'telegram' => ['enabled' => false, 'botUsername' => ''],
+                'oidc' => ['enabled' => false, 'label' => 'SSO'],
             ]);
         }
 
@@ -328,7 +329,33 @@ final class AuthController
         }
     }
 
+    public function oidcStart(Request $request): Response
+    {
+        unset($request);
+        if ($this->oauth === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+        }
+        try {
+            return Response::redirect($this->oauth->oidcAuthorizeUrl('login'));
+        } catch (OAuthException $e) {
+            return $this->oauthFragmentRedirect(['error' => $e->errorCode]);
+        }
+    }
+
     public function googleCallback(Request $request): Response
+    {
+        return $this->oidcStyleCallback($request, 'google');
+    }
+
+    public function oidcCallback(Request $request): Response
+    {
+        return $this->oidcStyleCallback($request, 'oidc');
+    }
+
+    /**
+     * @param 'google'|'oidc' $provider
+     */
+    private function oidcStyleCallback(Request $request, string $provider): Response
     {
         if ($this->oauth === null) {
             return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
@@ -349,18 +376,20 @@ final class AuthController
             $linkUserId = isset($decoded['userId']) && \is_int($decoded['userId'])
                 ? $decoded['userId']
                 : (isset($decoded['userId']) && is_numeric($decoded['userId']) ? (int) $decoded['userId'] : null);
-            $profile = $this->oauth->exchangeGoogleCode($code);
+            $profile = $provider === 'google'
+                ? $this->oauth->exchangeGoogleCode($code)
+                : $this->oauth->exchangeOidcCode($code);
 
             if ($intent === 'link') {
                 if ($linkUserId === null || $linkUserId < 1) {
                     return $this->oauthFragmentRedirect(['error' => 'UNAUTHORIZED']);
                 }
-                $this->oauth->linkIdentity($linkUserId, 'google', $profile['id'], $profile['email']);
+                $this->oauth->linkIdentity($linkUserId, $provider, $profile['id'], $profile['email']);
                 $this->audit->log($request, 'auth.identity_linked', $linkUserId, 'user', (string) $linkUserId, [
-                    'provider' => 'google',
+                    'provider' => $provider,
                 ]);
 
-                return $this->oauthFragmentRedirect(['linked' => 'google']);
+                return $this->oauthFragmentRedirect(['linked' => $provider]);
             }
 
             $guardKey = $profile['email'];
@@ -371,12 +400,14 @@ final class AuthController
                 return $this->oauthFragmentRedirect(['error' => 'TOO_MANY_REQUESTS']);
             }
 
-            $user = $this->oauth->userForGoogle($profile['id'], $profile['email'], $profile['emailVerified']);
+            $user = $provider === 'google'
+                ? $this->oauth->userForGoogle($profile['id'], $profile['email'], $profile['emailVerified'])
+                : $this->oauth->userForOidc($profile['id'], $profile['email'], $profile['emailVerified']);
             if ($user === null) {
                 $this->loginGuard->fail($request->ip, $guardKey);
                 $this->audit->log($request, 'auth.login_failed', null, 'user', null, [
                     'email' => $profile['email'],
-                    'reason' => 'google_not_found',
+                    'reason' => $provider . '_not_found',
                 ]);
 
                 return $this->oauthFragmentRedirect(['error' => 'ACCOUNT_NOT_FOUND']);
@@ -389,7 +420,7 @@ final class AuthController
                 return $this->oauthFragmentRedirect(['error' => 'ACCOUNT_DISABLED']);
             }
 
-            $this->oauth->ensureGoogleIdentity((int) $user['id'], $profile['id'], $profile['email']);
+            $this->oauth->ensureProviderIdentity((int) $user['id'], $provider, $profile['id'], $profile['email']);
 
             if ((bool) ($user['totp_enabled'] ?? false)) {
                 $expiresAt = (new DateTimeImmutable('+5 minutes'))->format('Y-m-d H:i:s');
@@ -401,7 +432,7 @@ final class AuthController
             $session = $this->issueAdminToken($user, false);
             $this->tokens->touchLogin((int) $user['id']);
             $this->audit->log($request, 'auth.login', (int) $user['id'], 'user', (string) $user['id'], [
-                'provider' => 'google',
+                'provider' => $provider,
             ]);
 
             return $this->oauthFragmentRedirect([
@@ -480,6 +511,19 @@ final class AuthController
         }
         try {
             return Response::data(['url' => $this->oauth->googleAuthorizeUrl('link', $auth->userId())]);
+        } catch (OAuthException $e) {
+            return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
+        }
+    }
+
+    public function oidcLinkStart(Request $request, AuthContext $auth): Response
+    {
+        unset($request);
+        if ($this->oauth === null || $auth->userId() === null) {
+            return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+        try {
+            return Response::data(['url' => $this->oauth->oidcAuthorizeUrl('link', $auth->userId())]);
         } catch (OAuthException $e) {
             return Response::error($e->errorCode, $e->getMessage(), $e->httpStatus);
         }

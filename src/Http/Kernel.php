@@ -32,6 +32,7 @@ use Cms\Backup\BackupRemoteSettings;
 use Cms\Backup\DataBackupService;
 use Cms\Backup\RemoteDriverFactory;
 use Cms\Content\ContentTypeRepository;
+use Cms\Content\EntryCommentService;
 use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryService;
 use Cms\Core\Config;
@@ -621,6 +622,7 @@ final class Kernel
             if ($audit === null) {
                 throw new \RuntimeException('Audit logger is required');
             }
+            $fieldTypes = FieldTypeRegistry::createWithDiscovery($this->paths->root);
             $resourceService = new ResourceService(
                 $this->db,
                 new ContentTypeRepository($this->db),
@@ -631,7 +633,7 @@ final class Kernel
                 $this->db,
                 new ResourceRepository($this->db),
                 new FieldRepository($this->db),
-                new SqlTypeMapper(new FieldTypeRegistry()),
+                new SqlTypeMapper($fieldTypes),
                 new SchemaDiff(),
                 $metadata,
             );
@@ -657,7 +659,7 @@ final class Kernel
                 $this->db,
                 new FieldRepository($this->db),
                 new ResourceRepository($this->db),
-                new FieldTypeRegistry(),
+                $fieldTypes,
                 $metadata,
             );
             $fields = new FieldController($fieldService, $audit);
@@ -670,6 +672,7 @@ final class Kernel
                 null,
                 $mediaRefs,
                 $this->config->appUrl,
+                $fieldTypes,
             );
             $entryImportExport = new EntryImportExportService($queryEngine);
             $entryRevisions = new EntryRevisionService($this->db, new Settings($this->db));
@@ -687,6 +690,7 @@ final class Kernel
                 $entryRevisions,
                 new PreviewTokenService($this->config->appSecret),
                 new ResourceRepository($this->db),
+                new EntryCommentService($this->db),
             );
 
             $migrations = new MigrationController(

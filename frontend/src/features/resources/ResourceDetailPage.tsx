@@ -294,6 +294,7 @@ export function ResourceDetailPage() {
           listColumns={resource.settings.list?.columns}
           previewUrl={resource.settings.preview?.url ?? ''}
           workflowEnabled={resource.settings.workflow?.enabled ?? false}
+          localizationEnabled={resource.settings.localization?.enabled ?? false}
           entryParam={entryParam ?? null}
           entryPath={(entry) =>
             entry === null

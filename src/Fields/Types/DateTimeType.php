@@ -13,6 +13,11 @@ final class DateTimeType extends AbstractFieldType
         return 'datetime';
     }
 
+    public function widget(): string
+    {
+        return 'datetime';
+    }
+
     public function defaultConfig(): array
     {
         return ['format' => self::DEFAULT_FORMAT];

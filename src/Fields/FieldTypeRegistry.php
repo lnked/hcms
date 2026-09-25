@@ -37,6 +37,17 @@ final class FieldTypeRegistry
         }
     }
 
+    /**
+     * Core registry + composer extra + extensions/*/manifest.php discovery.
+     */
+    public static function createWithDiscovery(string $projectRoot): self
+    {
+        $registry = new self();
+        FieldTypeDiscovery::registerInto($registry, $projectRoot);
+
+        return $registry;
+    }
+
     public function register(FieldType $type): void
     {
         $this->types[$type->name()] = $type;
@@ -62,5 +73,30 @@ final class FieldTypeRegistry
     public function names(): array
     {
         return array_keys($this->types);
+    }
+
+    /**
+     * @return list<array{
+     *   name: string,
+     *   label: string,
+     *   widget: string,
+     *   defaultConfig: array<string, mixed>,
+     *   configSchema: array<string, mixed>
+     * }>
+     */
+    public function descriptors(): array
+    {
+        $out = [];
+        foreach ($this->types as $type) {
+            $out[] = [
+                'name' => $type->name(),
+                'label' => $type->label(),
+                'widget' => $type->widget(),
+                'defaultConfig' => $type->defaultConfig(),
+                'configSchema' => $type->configSchema(),
+            ];
+        }
+
+        return $out;
     }
 }

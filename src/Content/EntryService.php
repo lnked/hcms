@@ -98,6 +98,37 @@ final class EntryService
         return $this->query->relationLabels($this->slug($resourceId), $field, $ids);
     }
 
+    /**
+     * @return list<array{id: int, locale: string}>
+     */
+    public function listTranslations(int $resourceId, int $entryId, ?AuthContext $auth = null): array
+    {
+        return $this->query->listTranslations(
+            $this->slug($resourceId),
+            $entryId,
+            $this->aclOptions($auth, $resourceId),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function createTranslation(
+        int $resourceId,
+        int $entryId,
+        string $locale,
+        ?AuthContext $auth = null,
+    ): array {
+        $options = $this->aclOptions($auth, $resourceId);
+        if ($auth?->userId() !== null) {
+            $options['actorUserId'] = $auth->userId();
+        }
+
+        return $this->attachActor(
+            $this->query->createTranslation($this->slug($resourceId), $entryId, $locale, $options),
+        );
+    }
+
     public function slug(int $resourceId): string
     {
         $resource = $this->resources->find($resourceId);

@@ -11,11 +11,9 @@ final class OAuthService
 {
     private const STATE_TTL_SECONDS = 600;
     private const TELEGRAM_AUTH_TTL_SECONDS = 86400;
-    private const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-    private const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-    private const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
     private readonly AdminBase $adminBase;
+    private readonly OidcClient $oidcClient;
 
     public function __construct(
         private readonly OAuthSettings $settings,
@@ -25,13 +23,26 @@ final class OAuthService
         private readonly string $appUrl,
         private readonly string $appSecret,
         ?AdminBase $adminBase = null,
+        ?OidcClient $oidcClient = null,
     ) {
         $this->adminBase = $adminBase ?? AdminBase::default();
+        $this->oidcClient = $oidcClient ?? new OidcClient($http);
     }
 
-    public function redirectUri(): string
+    public function googleRedirectUri(): string
     {
         return rtrim($this->appUrl, '/') . $this->adminBase->apiPrefix() . '/auth/google/callback';
+    }
+
+    public function oidcRedirectUri(): string
+    {
+        return rtrim($this->appUrl, '/') . $this->adminBase->apiPrefix() . '/auth/oidc/callback';
+    }
+
+    /** @deprecated use googleRedirectUri() */
+    public function redirectUri(): string
+    {
+        return $this->googleRedirectUri();
     }
 
     public function completeUrl(): string
@@ -40,7 +51,11 @@ final class OAuthService
     }
 
     /**
-     * @return array{google: array{enabled: bool, clientId: string}, telegram: array{enabled: bool, botUsername: string}}
+     * @return array{
+     *   google: array{enabled: bool, clientId: string},
+     *   telegram: array{enabled: bool, botUsername: string},
+     *   oidc: array{enabled: bool, label: string}
+     * }
      */
     public function publicProviders(): array
     {
@@ -60,20 +75,67 @@ final class OAuthService
             throw new OAuthException('UNAUTHORIZED', 'Unauthorized', 401);
         }
 
+        $preset = OidcClient::googlePreset();
+        $config = [
+            'clientId' => $google['clientId'],
+            'clientSecret' => $google['clientSecret'],
+            'scopes' => 'openid email profile',
+            'claimEmail' => 'email',
+            'claimSub' => 'sub',
+            'authorizationEndpoint' => $preset['authorizationEndpoint'],
+            'tokenEndpoint' => $preset['tokenEndpoint'],
+            'userinfoEndpoint' => $preset['userinfoEndpoint'],
+            'issuer' => $preset['issuer'],
+        ];
         $state = self::signState([
             'intent' => $intent,
             'userId' => $userId,
+            'provider' => 'google',
         ], $this->appSecret);
 
-        return self::GOOGLE_AUTH_URL . '?' . http_build_query([
-            'client_id' => $google['clientId'],
-            'redirect_uri' => $this->redirectUri(),
-            'response_type' => 'code',
-            'scope' => 'openid email profile',
-            'state' => $state,
+        return $this->oidcClient->authorizeUrl($config, $this->googleRedirectUri(), $state, [
             'access_type' => 'online',
             'prompt' => 'select_account',
-        ], '', '&', PHP_QUERY_RFC3986);
+        ]);
+    }
+
+    /**
+     * @param 'login'|'link' $intent
+     */
+    public function oidcAuthorizeUrl(string $intent, ?int $userId = null): string
+    {
+        $oidc = $this->settings->oidc();
+        if (!$oidc['enabled'] || $oidc['clientId'] === '' || $oidc['clientSecret'] === '') {
+            throw new OAuthException('PROVIDER_DISABLED', 'OIDC login is not configured', 400);
+        }
+        if ($intent === 'link' && $userId === null) {
+            throw new OAuthException('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+
+        $endpoints = $this->oidcClient->resolveEndpoints([
+            'issuer' => $oidc['issuer'],
+            'authorizationEndpoint' => $oidc['authorizationEndpoint'],
+            'tokenEndpoint' => $oidc['tokenEndpoint'],
+            'userinfoEndpoint' => $oidc['userinfoEndpoint'],
+        ]);
+        $config = [
+            'clientId' => $oidc['clientId'],
+            'clientSecret' => $oidc['clientSecret'],
+            'scopes' => $oidc['scopes'],
+            'claimEmail' => $oidc['claimEmail'],
+            'claimSub' => $oidc['claimSub'],
+            'authorizationEndpoint' => $endpoints['authorizationEndpoint'],
+            'tokenEndpoint' => $endpoints['tokenEndpoint'],
+            'userinfoEndpoint' => $endpoints['userinfoEndpoint'],
+            'issuer' => $endpoints['issuer'],
+        ];
+        $state = self::signState([
+            'intent' => $intent,
+            'userId' => $userId,
+            'provider' => 'oidc',
+        ], $this->appSecret);
+
+        return $this->oidcClient->authorizeUrl($config, $this->oidcRedirectUri(), $state);
     }
 
     /**
@@ -85,13 +147,14 @@ final class OAuthService
     }
 
     /**
-     * @param array{intent?: mixed, userId?: mixed} $payload
+     * @param array{intent?: mixed, userId?: mixed, provider?: mixed} $payload
      */
     public static function signState(array $payload, string $appSecret): string
     {
         $data = [
             'intent' => $payload['intent'] ?? 'login',
             'userId' => $payload['userId'] ?? null,
+            'provider' => $payload['provider'] ?? 'google',
             'ts' => time(),
             'nonce' => bin2hex(random_bytes(16)),
         ];
@@ -145,70 +208,87 @@ final class OAuthService
         if (!$google['enabled'] || $google['clientId'] === '' || $google['clientSecret'] === '') {
             throw new OAuthException('PROVIDER_DISABLED', 'Google login is not configured', 400);
         }
+        $preset = OidcClient::googlePreset();
 
-        $tokenResponse = $this->http->request(
-            'POST',
-            self::GOOGLE_TOKEN_URL,
-            ['Content-Type' => 'application/x-www-form-urlencoded', 'Accept' => 'application/json'],
-            http_build_query([
-                'code' => $code,
-                'client_id' => $google['clientId'],
-                'client_secret' => $google['clientSecret'],
-                'redirect_uri' => $this->redirectUri(),
-                'grant_type' => 'authorization_code',
-            ]),
-        );
-        $tokenJson = $this->decodeJson($tokenResponse['body']);
-        $accessToken = isset($tokenJson['access_token']) && \is_string($tokenJson['access_token'])
-            ? $tokenJson['access_token']
-            : '';
-        if ($tokenResponse['status'] >= 400 || $accessToken === '') {
-            throw new OAuthException('PROVIDER_ERROR', 'Google token exchange failed', 502);
-        }
-
-        $infoResponse = $this->http->request(
-            'GET',
-            self::GOOGLE_USERINFO_URL,
-            ['Authorization' => 'Bearer ' . $accessToken, 'Accept' => 'application/json'],
-        );
-        $info = $this->decodeJson($infoResponse['body']);
-        if ($infoResponse['status'] >= 400) {
-            throw new OAuthException('PROVIDER_ERROR', 'Google userinfo failed', 502);
-        }
-
-        $id = isset($info['sub']) && \is_string($info['sub']) ? $info['sub'] : '';
-        $email = isset($info['email']) && \is_string($info['email']) ? strtolower(trim($info['email'])) : '';
-        $verified = (bool) ($info['email_verified'] ?? false);
-        $name = isset($info['name']) && \is_string($info['name']) ? $info['name'] : $email;
-        if ($id === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new OAuthException('PROVIDER_ERROR', 'Google account has no verified email', 400);
-        }
-
-        return [
-            'id' => $id,
-            'email' => $email,
-            'emailVerified' => $verified,
-            'name' => $name,
-        ];
+        return $this->oidcClient->exchangeCode([
+            'clientId' => $google['clientId'],
+            'clientSecret' => $google['clientSecret'],
+            'scopes' => 'openid email profile',
+            'claimEmail' => 'email',
+            'claimSub' => 'sub',
+            'authorizationEndpoint' => $preset['authorizationEndpoint'],
+            'tokenEndpoint' => $preset['tokenEndpoint'],
+            'userinfoEndpoint' => $preset['userinfoEndpoint'],
+            'issuer' => $preset['issuer'],
+        ], $code, $this->googleRedirectUri());
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{id: string, email: string, emailVerified: bool, name: string}
+     */
+    public function exchangeOidcCode(string $code): array
+    {
+        $oidc = $this->settings->oidc();
+        if (!$oidc['enabled'] || $oidc['clientId'] === '' || $oidc['clientSecret'] === '') {
+            throw new OAuthException('PROVIDER_DISABLED', 'OIDC login is not configured', 400);
+        }
+        $endpoints = $this->oidcClient->resolveEndpoints([
+            'issuer' => $oidc['issuer'],
+            'authorizationEndpoint' => $oidc['authorizationEndpoint'],
+            'tokenEndpoint' => $oidc['tokenEndpoint'],
+            'userinfoEndpoint' => $oidc['userinfoEndpoint'],
+        ]);
+
+        return $this->oidcClient->exchangeCode([
+            'clientId' => $oidc['clientId'],
+            'clientSecret' => $oidc['clientSecret'],
+            'scopes' => $oidc['scopes'],
+            'claimEmail' => $oidc['claimEmail'],
+            'claimSub' => $oidc['claimSub'],
+            'authorizationEndpoint' => $endpoints['authorizationEndpoint'],
+            'tokenEndpoint' => $endpoints['tokenEndpoint'],
+            'userinfoEndpoint' => $endpoints['userinfoEndpoint'],
+            'issuer' => $endpoints['issuer'],
+        ], $code, $this->oidcRedirectUri());
+    }
+
+    /**
+     * @return array<string, mixed>|null
      */
     public function userForGoogle(string $googleId, string $email, bool $emailVerified): ?array
     {
-        $identity = $this->identities->findByProvider('google', $googleId);
+        return $this->userForEmailProvider('google', $googleId, $email, $emailVerified);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function userForOidc(string $subject, string $email, bool $emailVerified): ?array
+    {
+        return $this->userForEmailProvider('oidc', $subject, $email, $emailVerified);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function userForEmailProvider(
+        string $provider,
+        string $providerUserId,
+        string $email,
+        bool $emailVerified,
+    ): ?array {
+        $identity = $this->identities->findByProvider($provider, $providerUserId);
         $identityUser = null;
         if ($identity !== null) {
             $identityUser = $this->tokens->userById((int) $identity['user_id']);
         }
         $emailUser = $this->tokens->userByEmail($email);
 
-        return SocialIdentityPolicy::googleLoginUser($identityUser, $emailUser, $emailVerified);
+        return SocialIdentityPolicy::emailVerifiedLoginUser($identityUser, $emailUser, $emailVerified);
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
     public function userForTelegram(string $telegramId): ?array
     {
@@ -236,19 +316,27 @@ final class OAuthService
     }
 
     /**
-     * Auto-link Google id when login matched by email.
+     * Auto-link provider id when login matched by email.
      */
-    public function ensureGoogleIdentity(int $userId, string $googleId, string $email): void
+    public function ensureProviderIdentity(int $userId, string $provider, string $providerUserId, string $email): void
     {
-        $existing = $this->identities->findByUserAndProvider($userId, 'google');
+        $existing = $this->identities->findByUserAndProvider($userId, $provider);
         if ($existing !== null) {
             return;
         }
-        $taken = $this->identities->findByProvider('google', $googleId);
+        $taken = $this->identities->findByProvider($provider, $providerUserId);
         if ($taken !== null) {
             return;
         }
-        $this->identities->create($userId, 'google', $googleId, $email);
+        $this->identities->create($userId, $provider, $providerUserId, $email);
+    }
+
+    /**
+     * @deprecated use ensureProviderIdentity(..., 'google', ...)
+     */
+    public function ensureGoogleIdentity(int $userId, string $googleId, string $email): void
+    {
+        $this->ensureProviderIdentity($userId, 'google', $googleId, $email);
     }
 
     /**
@@ -260,7 +348,9 @@ final class OAuthService
         $byProvider = [];
         foreach ($rows as $row) {
             $provider = (string) $row['provider'];
-            $byProvider[$provider] = \is_string($row['email'] ?? null) ? (string) $row['email'] : (string) $row['provider_user_id'];
+            $byProvider[$provider] = \is_string($row['email'] ?? null)
+                ? (string) $row['email']
+                : (string) $row['provider_user_id'];
         }
 
         return [
@@ -274,12 +364,17 @@ final class OAuthService
                 'linked' => isset($byProvider['telegram']),
                 'label' => $byProvider['telegram'] ?? null,
             ],
+            [
+                'provider' => 'oidc',
+                'linked' => isset($byProvider['oidc']),
+                'label' => $byProvider['oidc'] ?? null,
+            ],
         ];
     }
 
     public function unlink(int $userId, string $provider): void
     {
-        if (!\in_array($provider, ['google', 'telegram'], true)) {
+        if (!\in_array($provider, ['google', 'telegram', 'oidc'], true)) {
             throw new OAuthException('VALIDATION_ERROR', 'Unknown provider', 422);
         }
         $this->identities->deleteByUserAndProvider($userId, $provider);
@@ -350,15 +445,5 @@ final class OAuthService
         $secret = hash('sha256', $botToken, true);
 
         return hash_hmac('sha256', implode("\n", $pairs), $secret);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function decodeJson(string $body): array
-    {
-        $decoded = json_decode($body, true);
-
-        return \is_array($decoded) ? $decoded : [];
     }
 }

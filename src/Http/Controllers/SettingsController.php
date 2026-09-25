@@ -47,6 +47,11 @@ final class SettingsController
         return Response::data(AdminUiSections::publicFromSettings($this->settings));
     }
 
+    public function security(): Response
+    {
+        return Response::data($this->securitySettings());
+    }
+
     public function update(Request $request, AuthContext $context): Response
     {
         $payload = $request->json();
@@ -55,10 +60,18 @@ final class SettingsController
         $hasAdminBase = \array_key_exists('adminBase', $payload);
         $hasAdminSections = \array_key_exists('adminSections', $payload);
         $hasHomeSection = \array_key_exists('homeSection', $payload);
+        $hasSecurity = \array_key_exists('security', $payload);
 
-        if (!$hasLanguage && !$hasApiAccess && !$hasAdminBase && !$hasAdminSections && !$hasHomeSection) {
+        if (
+            !$hasLanguage
+            && !$hasApiAccess
+            && !$hasAdminBase
+            && !$hasAdminSections
+            && !$hasHomeSection
+            && !$hasSecurity
+        ) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Provide language, apiAccess, adminBase, adminSections, and/or homeSection'],
+                'language' => ['Provide language, apiAccess, adminBase, adminSections, homeSection, and/or security'],
             ]);
         }
 
@@ -164,6 +177,84 @@ final class SettingsController
             $out['adminSections'] = $ui->toPublicArray($validatedHome['value']);
         }
 
+        if ($hasSecurity) {
+            $role = isset($context->user['role']) ? (string) $context->user['role'] : '';
+            if ($role !== 'owner') {
+                return Response::error('FORBIDDEN', 'Only the owner can change security settings', 403);
+            }
+            if (!\is_array($payload['security'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'security' => ['Must be an object'],
+                ]);
+            }
+            $validated = $this->validateSecurityPayload($payload['security']);
+            if ($validated['ok'] === false) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $validated['error']);
+            }
+            foreach ($validated['value'] as $key => $value) {
+                $this->settings->set($key, $value);
+            }
+            $out['security'] = $this->securitySettings();
+        }
+
         return Response::data($out);
+    }
+
+    /**
+     * @return array{
+     *   ipAutoBlockAfterSpamRejects: int,
+     *   ipAutoBlockAfterLoginBlocks: int,
+     *   ipAutoBlockWindowSeconds: int,
+     *   ipAutoBlockTtlSeconds: int
+     * }
+     */
+    private function securitySettings(): array
+    {
+        return [
+            'ipAutoBlockAfterSpamRejects' => max(0, $this->settings->int('security.ip_auto_block_after_spam_rejects', 0)),
+            'ipAutoBlockAfterLoginBlocks' => max(0, $this->settings->int('security.ip_auto_block_after_login_blocks', 3)),
+            'ipAutoBlockWindowSeconds' => max(60, $this->settings->int('security.ip_auto_block_window_seconds', 3600)),
+            'ipAutoBlockTtlSeconds' => max(60, $this->settings->int('security.ip_auto_block_ttl_seconds', 3600)),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{ok: true, value: array<string, int>}|array{ok: false, error: array<string, list<string>>}
+     */
+    private function validateSecurityPayload(array $payload): array
+    {
+        $map = [
+            'ipAutoBlockAfterSpamRejects' => ['key' => 'security.ip_auto_block_after_spam_rejects', 'min' => 0],
+            'ipAutoBlockAfterLoginBlocks' => ['key' => 'security.ip_auto_block_after_login_blocks', 'min' => 0],
+            'ipAutoBlockWindowSeconds' => ['key' => 'security.ip_auto_block_window_seconds', 'min' => 60],
+            'ipAutoBlockTtlSeconds' => ['key' => 'security.ip_auto_block_ttl_seconds', 'min' => 60],
+        ];
+        $out = [];
+        $errors = [];
+        foreach ($map as $field => $meta) {
+            if (!\array_key_exists($field, $payload)) {
+                continue;
+            }
+            $raw = $payload[$field];
+            if (!is_numeric($raw) || (int) $raw != $raw) {
+                $errors[$field] = ['Must be an integer'];
+                continue;
+            }
+            $value = (int) $raw;
+            if ($value < $meta['min']) {
+                $errors[$field] = ['Must be >= ' . $meta['min']];
+                continue;
+            }
+            $out[$meta['key']] = $value;
+        }
+        if ($errors !== []) {
+            return ['ok' => false, 'error' => $errors];
+        }
+        if ($out === []) {
+            return ['ok' => false, 'error' => ['security' => ['Provide at least one security field']]];
+        }
+
+        return ['ok' => true, 'value' => $out];
     }
 }

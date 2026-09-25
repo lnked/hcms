@@ -69,6 +69,8 @@
 .entryToolbarActions {
   display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--hcms-SPx2);
 }
 

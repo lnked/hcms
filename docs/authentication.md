@@ -23,28 +23,36 @@ POST /admin/api/auth/login
 
 Токен в БД не хранится открытым: `token_prefix` + `sha256`.
 
-## Social login (Google / Telegram)
+## Social login (Google / Telegram / OIDC)
 
 Новые аккаунты **не создаются**.
 
 - **Google**: вход, если verified email совпадает с `cms_users.email` (identity создаётся автоматически) или Google id уже привязан в Аккаунте.
+- **OIDC**: generic OpenID Connect (Keycloak / Auth0 / Okta…). Тот же email-match / identity; provider key = `oidc`. Issuer discovery (`/.well-known/openid-configuration`) или явные authorize/token/userinfo endpoints.
 - **Telegram**: вход только после ручной привязки в `/admin/settings/account`.
 
-Настройки провайдеров: Аккаунт → Вход через соцсети (`auth.google`, `auth.telegram` в `cms_settings`). Redirect URI: `{APP_URL}/admin/api/auth/google/callback`.
+Настройки: Аккаунт → Вход через соцсети (`auth.google`, `auth.telegram`, `auth.oidc` в `cms_settings`).
+
+Redirect URI:
+- Google: `{APP_URL}/admin/api/auth/google/callback`
+- OIDC: `{APP_URL}/admin/api/auth/oidc/callback`
 
 ```http
 GET  /admin/api/auth/providers
 GET  /admin/api/auth/google/start
 GET  /admin/api/auth/google/callback
+GET  /admin/api/auth/oidc/start
+GET  /admin/api/auth/oidc/callback
 POST /admin/api/auth/telegram
-POST /admin/api/auth/totp/complete          # { ticket, totpCode } после Google+2FA
+POST /admin/api/auth/totp/complete          # { ticket, totpCode } после Google/OIDC+2FA
 GET  /admin/api/auth/identities
 POST /admin/api/auth/identities/google/start
+POST /admin/api/auth/identities/oidc/start
 POST /admin/api/auth/identities/telegram
-DELETE /admin/api/auth/identities/{google|telegram}
+DELETE /admin/api/auth/identities/{google|telegram|oidc}
 ```
 
-Google callback редиректит на `/admin/oauth/complete#token=...` (fragment, не query). Если включён TOTP — `#ticket=...`.
+Google/OIDC callback редиректит на `/admin/oauth/complete#token=...` (fragment, не query). Если включён TOTP — `#ticket=...`.
 
 ## Смена своего пароля
 

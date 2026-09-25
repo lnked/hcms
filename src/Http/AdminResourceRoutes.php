@@ -318,6 +318,47 @@ final class AdminResourceRoutes
 
             return $entries->setStatus($request, $context, (int) $params['id'], (int) $params['entryId']);
         });
+        $router->add('GET', '/admin/api/resources/{id}/entries/{entryId}/translations', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->listTranslations($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
+        $router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/translations', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->createTranslation($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
+        $router->add('GET', '/admin/api/resources/{id}/entries/{entryId}/comments', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->listComments($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
+        $router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/comments', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->createComment($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
+        $router->add('DELETE', '/admin/api/resources/{id}/entries/{entryId}/comments/{commentId}', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->deleteComment(
+                $request,
+                $context,
+                (int) $params['id'],
+                (int) $params['entryId'],
+                (int) $params['commentId'],
+            );
+        });
 
         $router->add('POST', '/admin/api/resources/{id}/migrate', function (Request $request, array $params, ?AuthContext $context) use ($migrations): Response {
             if ($context === null) {
@@ -699,6 +740,14 @@ final class AdminResourceRoutes
             }
 
             return $settingsController->adminSections();
+        });
+        $router->add('GET', '/admin/api/settings/security', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+            unset($request, $params);
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $settingsController->security();
         });
         $router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
             unset($params);

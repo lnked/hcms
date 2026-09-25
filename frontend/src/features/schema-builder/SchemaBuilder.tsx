@@ -19,6 +19,7 @@ import {
   DEFAULT_DATETIME_FORMAT,
   emptyField,
   FIELD_TYPES,
+  type FieldTypeDescriptor,
   type FieldTypeName,
   type ImageSizeConfig,
   type SchemaField,
@@ -52,13 +53,33 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
 
   const fieldTypesQuery = useQuery({
     queryKey: ['field-types'],
-    queryFn: () => api<string[]>('/admin/api/field-types'),
+    queryFn: () => api<FieldTypeDescriptor[] | string[]>('/admin/api/field-types'),
     staleTime: 60_000,
   })
-  const fieldTypes: FieldTypeName[] =
-    fieldTypesQuery.data && fieldTypesQuery.data.length > 0
-      ? (fieldTypesQuery.data as FieldTypeName[])
-      : FIELD_TYPES
+  const fieldTypeDescriptors: FieldTypeDescriptor[] = (() => {
+    const data = fieldTypesQuery.data
+    if (!data || data.length === 0) {
+      return FIELD_TYPES.map((name) => ({
+        name,
+        label: name,
+        widget: 'text',
+        defaultConfig: {},
+        configSchema: {},
+      }))
+    }
+    if (typeof data[0] === 'string') {
+      return (data as string[]).map((name) => ({
+        name,
+        label: name,
+        widget: 'text',
+        defaultConfig: {},
+        configSchema: {},
+      }))
+    }
+    return data as FieldTypeDescriptor[]
+  })()
+  const fieldTypes: FieldTypeName[] = fieldTypeDescriptors.map((d) => d.name)
+  const descriptorByName = new Map(fieldTypeDescriptors.map((d) => [d.name, d]))
 
   useLayoutEffect(() => {
     if (!scrollToEditRef.current || editingIndex === null || !editFormRef.current) return
@@ -210,7 +231,7 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
   function changeType(index: number, type: FieldTypeName) {
     const field = schema[index]
     if (field === undefined) return
-    const base = emptyField(type, field.sortOrder)
+    const base = emptyField(type, field.sortOrder, descriptorByName.get(type))
     updateAt(index, {
       ...base,
       id: field.id,
@@ -337,9 +358,11 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       value={field.type}
                       onChange={(e) => changeType(index, e.target.value as FieldTypeName)}
                     >
-                      {fieldTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
+                      {fieldTypeDescriptors.map((descriptor) => (
+                        <option key={descriptor.name} value={descriptor.name}>
+                          {descriptor.label !== descriptor.name
+                            ? `${descriptor.label} (${descriptor.name})`
+                            : descriptor.name}
                         </option>
                       ))}
                     </Select>
@@ -448,6 +471,13 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         }
                       />
                     </div>
+                  ) : null}
+                  {field.type === 'blocks' ? (
+                    <BlocksComponentsEditor
+                      field={field}
+                      fieldTypes={fieldTypes.filter((t) => t !== 'blocks')}
+                      onChange={(components) => patchConfig(index, { components })}
+                    />
                   ) : null}
                   {field.type === 'date' || field.type === 'datetime' ? (
                     <div className={clsx(styles.field, styles.span2)}>
@@ -762,12 +792,210 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                       ) : null}
                     </>
                   ) : null}
+                  {!FIELD_TYPES.includes(field.type as (typeof FIELD_TYPES)[number]) ? (
+                    <div className={styles.field}>
+                      <Label>{t('schema.pluginConfig')}</Label>
+                      <textarea
+                        className={controlFieldClass}
+                        rows={6}
+                        value={JSON.stringify(field.config ?? {}, null, 2)}
+                        onChange={(e) => {
+                          try {
+                            const parsed = JSON.parse(e.target.value) as unknown
+                            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                              updateAt(index, { config: parsed as Record<string, unknown> })
+                            }
+                          } catch {
+                            /* keep typing */
+                          }
+                        }}
+                      />
+                      <p className={styles.hint}>{t('schema.pluginConfigHint')}</p>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </li>
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+type BlockNestedField = {
+  name: string
+  type: string
+  required?: boolean
+  nullable?: boolean
+  label?: string
+}
+
+function readComponents(field: SchemaField): Record<string, BlockNestedField[]> {
+  const raw = field.config.components
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, BlockNestedField[]> = {}
+  for (const [type, fields] of Object.entries(raw as Record<string, unknown>)) {
+    if (!Array.isArray(fields)) continue
+    out[type] = fields.map((f) => {
+      const row = f && typeof f === 'object' ? (f as Record<string, unknown>) : {}
+      return {
+        name: typeof row.name === 'string' ? row.name : '',
+        type: typeof row.type === 'string' ? row.type : 'string',
+        required: Boolean(row.required),
+        nullable: row.nullable !== false,
+        label: typeof row.label === 'string' ? row.label : '',
+      }
+    })
+  }
+  return out
+}
+
+function BlocksComponentsEditor({
+  field,
+  fieldTypes,
+  onChange,
+}: {
+  field: SchemaField
+  fieldTypes: FieldTypeName[]
+  onChange: (components: Record<string, BlockNestedField[]>) => void
+}) {
+  const { t } = useI18n()
+  const components = readComponents(field)
+  const entries = Object.entries(components)
+
+  function setComponents(next: Record<string, BlockNestedField[]>) {
+    onChange(next)
+  }
+
+  function renameType(from: string, to: string) {
+    const trimmed = slugifyIdentifier(to)
+    if (trimmed === '' || trimmed === from) return
+    if (components[trimmed]) return
+    const next: Record<string, BlockNestedField[]> = {}
+    for (const [key, fields] of Object.entries(components)) {
+      next[key === from ? trimmed : key] = fields
+    }
+    setComponents(next)
+  }
+
+  function addComponent() {
+    let name = 'block'
+    let i = 1
+    while (components[name]) {
+      name = `block_${i}`
+      i += 1
+    }
+    setComponents({
+      ...components,
+      [name]: [{ name: 'title', type: 'string', required: true, nullable: false, label: 'Title' }],
+    })
+  }
+
+  function removeComponent(type: string) {
+    const next = { ...components }
+    delete next[type]
+    setComponents(next)
+  }
+
+  function updateNested(type: string, index: number, patch: Partial<BlockNestedField>) {
+    const list = [...(components[type] ?? [])]
+    const current = list[index]
+    if (!current) return
+    list[index] = { ...current, ...patch }
+    setComponents({ ...components, [type]: list })
+  }
+
+  function addNested(type: string) {
+    const list = [...(components[type] ?? [])]
+    list.push({ name: '', type: 'string', required: false, nullable: true, label: '' })
+    setComponents({ ...components, [type]: list })
+  }
+
+  function removeNested(type: string, index: number) {
+    const list = (components[type] ?? []).filter((_, i) => i !== index)
+    setComponents({ ...components, [type]: list })
+  }
+
+  return (
+    <div className={clsx(styles.field, styles.span2)}>
+      <div className={styles.blocksHeader}>
+        <Label>{t('schema.blocks.components')}</Label>
+        <Button type="button" size="sm" variant="outline" onClick={addComponent}>
+          <Plus className={styles.iconSm} />
+          {t('schema.blocks.addComponent')}
+        </Button>
+      </div>
+      <p className={styles.hint}>{t('schema.blocks.componentsHint')}</p>
+      {entries.length === 0 ? <p className={styles.hint}>{t('schema.blocks.empty')}</p> : null}
+      {entries.map(([type, nested]) => (
+        <div key={type} className={styles.blocksComponent}>
+          <div className={styles.blocksComponentHeader}>
+            <Input
+              defaultValue={type}
+              key={type}
+              aria-label={t('schema.blocks.componentType')}
+              onBlur={(e) => renameType(type, e.target.value)}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              aria-label={t('schema.blocks.removeComponent')}
+              onClick={() => removeComponent(type)}
+            >
+              <Trash2 className={styles.iconSm} />
+            </Button>
+          </div>
+          {nested.map((nf, ni) => (
+            <div key={ni} className={styles.blocksNestedRow}>
+              <Input
+                placeholder={t('common.name')}
+                value={nf.name}
+                onChange={(e) =>
+                  updateNested(type, ni, { name: slugifyIdentifier(e.target.value) })
+                }
+              />
+              <Select
+                value={nf.type}
+                onChange={(e) => updateNested(type, ni, { type: e.target.value })}
+              >
+                {fieldTypes.map((ft) => (
+                  <option key={ft} value={ft}>
+                    {ft}
+                  </option>
+                ))}
+              </Select>
+              <Input
+                placeholder={t('common.label')}
+                value={nf.label ?? ''}
+                onChange={(e) => updateNested(type, ni, { label: e.target.value })}
+              />
+              <label className={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(nf.required)}
+                  onChange={(e) => updateNested(type, ni, { required: e.target.checked })}
+                />
+                {t('common.required')}
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                aria-label={t('common.delete')}
+                onClick={() => removeNested(type, ni)}
+              >
+                <Trash2 className={styles.iconSm} />
+              </Button>
+            </div>
+          ))}
+          <Button type="button" size="sm" variant="outline" onClick={() => addNested(type)}>
+            <Plus className={styles.iconSm} />
+            {t('schema.blocks.addField')}
+          </Button>
+        </div>
+      ))}
     </div>
   )
 }

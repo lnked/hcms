@@ -1,0 +1,53 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx3);
+  padding: var(--hcms-SPx3);
+  border: 1px solid var(--hcms-color-border);
+  border-radius: var(--hcms-CRx2);
+  background: var(--hcms-color-muted);
+}
+
+.blockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hcms-SPx2);
+}
+
+.blockType {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+.blockActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hcms-SPx1);
+}
+
+.icon {
+  width: var(--hcms-SPx4);
+  height: var(--hcms-SPx4);
+  flex-shrink: 0;
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hcms-SPx2);
+}
+
+.hint {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--hcms-color-muted-foreground);
+}

@@ -7,6 +7,7 @@ namespace Cms\Http\Controllers;
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
 use Cms\Content\EntryRevisionService;
+use Cms\Content\EntryCommentService;
 use Cms\Content\EntryService;
 use Cms\Core\Exception\HttpException;
 use Cms\Core\Exception\ValidationFailedException;
@@ -32,6 +33,7 @@ final class EntriesController
         private readonly ?EntryRevisionService $revisions = null,
         private readonly ?PreviewTokenService $previewTokens = null,
         private readonly ?ResourceRepository $resources = null,
+        private readonly ?EntryCommentService $comments = null,
     ) {
     }
 
@@ -367,6 +369,186 @@ final class EntriesController
             return $this->runtimeError($e);
         } catch (Throwable $e) {
             return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function listTranslations(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        unset($request);
+        try {
+            return Response::data($this->entries->listTranslations($resourceId, $entryId, $auth));
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function createTranslation(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        try {
+            $payload = $request->json();
+            $locale = isset($payload['locale']) && \is_string($payload['locale']) ? trim($payload['locale']) : '';
+            if ($locale === '') {
+                return Response::error('VALIDATION_ERROR', 'locale is required', 422, [
+                    'locale' => ['locale is required'],
+                ]);
+            }
+            $slug = $this->entries->slug($resourceId);
+            $entry = $this->entries->createTranslation($resourceId, $entryId, $locale, $auth);
+            $this->audit->log(
+                $request,
+                'entry.translation_created',
+                $auth->userId(),
+                'entry',
+                (string) ($entry['id'] ?? ''),
+                ['resourceId' => $resourceId, 'slug' => $slug, 'locale' => $locale, 'sourceEntryId' => $entryId],
+            );
+
+            return Response::data($entry, 201);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function listComments(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        unset($request);
+        try {
+            $this->assertWorkflowEnabled($resourceId);
+            $this->entries->find($resourceId, $entryId, $auth);
+            if ($this->comments === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'Comments unavailable', 503);
+            }
+
+            return Response::data($this->comments->list($resourceId, $entryId));
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function createComment(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        try {
+            $this->assertWorkflowEnabled($resourceId);
+            $this->entries->find($resourceId, $entryId, $auth);
+            if ($this->comments === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'Comments unavailable', 503);
+            }
+            $userId = $auth->userId();
+            if ($userId === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+            $payload = $request->json();
+            $body = isset($payload['body']) && \is_string($payload['body']) ? $payload['body'] : '';
+            $comment = $this->comments->create($resourceId, $entryId, $userId, $body);
+            $this->audit->log(
+                $request,
+                'entry.comment_created',
+                $userId,
+                'entry',
+                (string) $entryId,
+                ['resourceId' => $resourceId, 'commentId' => $comment['id'] ?? null],
+            );
+
+            return Response::data($comment, 201);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function deleteComment(
+        Request $request,
+        AuthContext $auth,
+        int $resourceId,
+        int $entryId,
+        int $commentId,
+    ): Response {
+        try {
+            $this->assertWorkflowEnabled($resourceId);
+            $this->entries->find($resourceId, $entryId, $auth);
+            if ($this->comments === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'Comments unavailable', 503);
+            }
+            $role = \Cms\Auth\RolePolicy::normalize(
+                isset($auth->user['role']) ? (string) $auth->user['role'] : null,
+            );
+            $canModerate = \Cms\Auth\RolePolicy::can($role, 'entries.publish')
+                || \in_array($role, ['owner', 'admin'], true);
+            $this->comments->delete($resourceId, $entryId, $commentId, $auth->userId(), $canModerate);
+            $this->audit->log(
+                $request,
+                'entry.comment_deleted',
+                $auth->userId(),
+                'entry',
+                (string) $entryId,
+                ['resourceId' => $resourceId, 'commentId' => $commentId],
+            );
+
+            return Response::data(['ok' => true]);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resourceSettings(int $resourceId): array
+    {
+        if ($this->resources === null) {
+            throw new RuntimeException('Unavailable', 503);
+        }
+        $row = $this->resources->find($resourceId);
+        if ($row === null) {
+            throw new RuntimeException('Resource not found', 404);
+        }
+        $raw = $row['settings_json'] ?? [];
+        if (\is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $settings = \is_array($decoded) ? $decoded : [];
+        } elseif (\is_array($raw)) {
+            $settings = $raw;
+        } else {
+            $settings = [];
+        }
+
+        return ResourceService::normalizeSettings($settings);
+    }
+
+    private function assertWorkflowEnabled(int $resourceId): void
+    {
+        $settings = $this->resourceSettings($resourceId);
+        if (!($settings['workflow']['enabled'] ?? false)) {
+            throw new InvalidArgumentException('Workflow is not enabled for this resource');
         }
     }
 

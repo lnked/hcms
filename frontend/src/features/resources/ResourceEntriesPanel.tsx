@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { Columns3, Eye, History, Link2, Upload } from 'lucide-react'
+import { Columns3, Eye, History, Link2, MessageSquare, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { TableSkeleton } from '@/components/skeletons'
@@ -23,6 +23,7 @@ import { ColumnsDialog } from '@/features/data-table/ColumnsDialog'
 import { DataTable, type EntryRow } from '@/features/data-table/DataTable'
 import { useRelationLabels } from '@/features/data-table/useRelationLabels'
 import { emptyValues, FormRenderer, type EntryValues } from '@/features/form-renderer/FormRenderer'
+import { EntryCommentsPanel } from '@/features/resources/EntryCommentsPanel'
 import { EntryRevisionsPanel } from '@/features/resources/EntryRevisionsPanel'
 import { useResourceEntriesList } from '@/features/resources/useResourceEntriesList'
 import { useI18n } from '@/i18n'
@@ -65,10 +66,24 @@ interface ResourceEntriesPanelProps {
   previewUrl?: string
   /** When true, show submit / publish / unpublish actions. */
   workflowEnabled?: boolean
+  /** When true, show locale filter / switcher / add translation. */
+  localizationEnabled?: boolean
   /** Entry segment from the URL: `12`, `new` or `null`. */
   entryParam: EntryParam
   /** Builds the router path for a given entry segment. */
   entryPath: (entry: EntryParam) => string
+}
+
+interface CmsLocale {
+  code: string
+  label: string
+  enabled: boolean
+  isDefault: boolean
+}
+
+interface EntryTranslation {
+  id: number
+  locale: string
 }
 
 export function ResourceEntriesPanel({
@@ -79,6 +94,7 @@ export function ResourceEntriesPanel({
   listColumns,
   previewUrl = '',
   workflowEnabled = false,
+  localizationEnabled = false,
   entryParam,
   entryPath,
 }: ResourceEntriesPanelProps) {
@@ -91,9 +107,11 @@ export function ResourceEntriesPanel({
   const [searchInput, setSearchInput] = useState('')
   const [sort, setSort] = useState('id')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [listLocale, setListLocale] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [draft, setDraft] = useState<EntryDraft | null>(null)
   const [revisionsOpen, setRevisionsOpen] = useState(false)
+  const [commentsOpen, setCommentsOpen] = useState(false)
   const [columnsOpen, setColumnsOpen] = useState(false)
 
   const [exportOpen, setExportOpen] = useState(false)
@@ -126,6 +144,28 @@ export function ResourceEntriesPanel({
     (allExportFieldNames.length > 0 &&
       allExportFieldNames.every((name) => exportFields.includes(name)))
 
+  const localesQuery = useQuery({
+    queryKey: ['locales'],
+    queryFn: () => api<CmsLocale[]>('/admin/api/locales'),
+    enabled: localizationEnabled && published,
+  })
+
+  const enabledLocales = useMemo(
+    () => (localesQuery.data ?? []).filter((l) => l.enabled),
+    [localesQuery.data],
+  )
+
+  const defaultLocaleCode = useMemo(() => {
+    const def = enabledLocales.find((l) => l.isDefault)
+    return def?.code ?? enabledLocales[0]?.code ?? ''
+  }, [enabledLocales])
+
+  const activeListLocale = localizationEnabled
+    ? listLocale !== ''
+      ? listLocale
+      : defaultLocaleCode
+    : ''
+
   const { list } = useResourceEntriesList({
     resourceId,
     published,
@@ -134,6 +174,7 @@ export function ResourceEntriesPanel({
     sort,
     filters,
     fields,
+    locale: activeListLocale !== '' ? activeListLocale : undefined,
   })
 
   const rows = list.data?.data ?? []
@@ -162,7 +203,46 @@ export function ResourceEntriesPanel({
     refetchOnWindowFocus: false,
   })
 
+  const translationsQuery = useQuery({
+    queryKey: ['resource-entry-translations', resourceId, editingId],
+    queryFn: () =>
+      api<EntryTranslation[]>(
+        `/admin/api/resources/${resourceId}/entries/${editingId}/translations`,
+      ),
+    enabled: localizationEnabled && published && editingId !== null,
+  })
+
+  const createTranslation = useMutation({
+    mutationFn: async (locale: string) => {
+      if (editingId === null) throw new Error('No entry')
+      return api<EntryRow>(`/admin/api/resources/${resourceId}/entries/${editingId}/translations`, {
+        method: 'POST',
+        body: JSON.stringify({ locale }),
+      })
+    },
+    onSuccess: (entry) => {
+      showSuccess(t('entries.translationCreated'))
+      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+      void queryClient.invalidateQueries({
+        queryKey: ['resource-entry-translations', resourceId, editingId],
+      })
+      void navigate(entryPath(String(entry.id)))
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.fields && Object.keys(err.fields).length > 0) return
+      showError(err instanceof Error ? err.message : t('common.error'))
+    },
+  })
+
   const editing = editingId === null ? null : (entryQuery.data ?? null)
+  const entryLocale =
+    editing && typeof editing.locale === 'string' && editing.locale !== ''
+      ? editing.locale
+      : activeListLocale
+  const siblingLocales = translationsQuery.data ?? []
+  const missingLocales = enabledLocales.filter(
+    (l) => !siblingLocales.some((s) => s.locale === l.code),
+  )
   const editingUpdatedBy = editing ? formatEntryActor(editing.updatedBy) : null
   const editingCreatedBy = editing ? formatEntryActor(editing.createdBy) : null
   const editingUpdatedAt =
@@ -253,7 +333,11 @@ export function ResourceEntriesPanel({
       }
       return api<EntryRow>(`/admin/api/resources/${resourceId}/entries`, {
         method: 'POST',
-        body: JSON.stringify(values),
+        body: JSON.stringify(
+          localizationEnabled && activeListLocale !== ''
+            ? { ...values, locale: activeListLocale }
+            : values,
+        ),
       })
     },
     onSuccess: () => {
@@ -480,6 +564,23 @@ export function ResourceEntriesPanel({
             setSearch(searchInput.trim())
           }}
         >
+          {localizationEnabled ? (
+            <Select
+              aria-label={t('entries.localeFilter')}
+              value={activeListLocale}
+              onChange={(e) => {
+                setListLocale(e.target.value)
+                setPage(1)
+                setSelectedIds([])
+              }}
+            >
+              {enabledLocales.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label} ({l.code})
+                </option>
+              ))}
+            </Select>
+          ) : null}
           <Input
             placeholder={t('entries.searchPlaceholder')}
             value={searchInput}
@@ -593,6 +694,47 @@ export function ResourceEntriesPanel({
                 <div className={styles.entryMeta} />
               )}
               <div className={styles.entryToolbarActions}>
+                {localizationEnabled && editing ? (
+                  <>
+                    <Select
+                      aria-label={t('entries.locale')}
+                      value={entryLocale}
+                      disabled={translationsQuery.isLoading || siblingLocales.length === 0}
+                      onChange={(e) => {
+                        const next = siblingLocales.find((s) => s.locale === e.target.value)
+                        if (next) void navigate(entryPath(String(next.id)))
+                      }}
+                    >
+                      {siblingLocales.map((s) => {
+                        const label =
+                          enabledLocales.find((l) => l.code === s.locale)?.label ?? s.locale
+                        return (
+                          <option key={s.id} value={s.locale}>
+                            {label} ({s.locale})
+                          </option>
+                        )
+                      })}
+                    </Select>
+                    {missingLocales.length > 0 ? (
+                      <Select
+                        aria-label={t('entries.addTranslation')}
+                        value=""
+                        disabled={createTranslation.isPending}
+                        onChange={(e) => {
+                          const code = e.target.value
+                          if (code) createTranslation.mutate(code)
+                        }}
+                      >
+                        <option value="">{t('entries.addTranslation')}</option>
+                        {missingLocales.map((l) => (
+                          <option key={l.code} value={l.code}>
+                            {l.label} ({l.code})
+                          </option>
+                        ))}
+                      </Select>
+                    ) : null}
+                  </>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"
@@ -652,6 +794,18 @@ export function ResourceEntriesPanel({
                       </Button>
                     )}
                   </>
+                ) : null}
+                {workflowEnabled && editing ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!editing}
+                    onClick={() => setCommentsOpen(true)}
+                  >
+                    <MessageSquare className={styles.icon} />
+                    {t('entries.comments')}
+                  </Button>
                 ) : null}
                 <Button
                   type="button"
@@ -911,6 +1065,15 @@ export function ResourceEntriesPanel({
           entryId={editingId}
           open={revisionsOpen}
           onOpenChange={setRevisionsOpen}
+        />
+      ) : null}
+
+      {workflowEnabled && editingId !== null ? (
+        <EntryCommentsPanel
+          resourceId={resourceId}
+          entryId={editingId}
+          open={commentsOpen}
+          onOpenChange={setCommentsOpen}
         />
       ) : null}
     </Card>

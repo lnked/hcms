@@ -1,6 +1,49 @@
 {
   "releases": [
     {
+      "version": "0.62.19",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Admin polish: locales, blocks, comments, security + OIDC + field extensions",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Content locale switcher / add translation + list filter when localization is enabled"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "GET/POST /admin/api/resources/{id}/entries/{entryId}/translations"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "BlocksEditor + SchemaBuilder components map (no raw JSON for blocks)"
+        },
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Workflow entry comments panel; cms_entry_comments migration"
+        },
+        {
+          "type": "added",
+          "area": "system",
+          "text": "System → IP auto-block UI for spam/login thresholds (owner)"
+        },
+        {
+          "type": "added",
+          "area": "auth",
+          "text": "Generic OIDC provider alongside Google/Telegram; docs update"
+        },
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "Field type discovery via extensions/*/manifest.php and composer extra.hcms.field-types; sample color extension"
+        }
+      ]
+    },
+    {
       "version": "0.62.18",
       "date": "2026-09-25",
       "channel": "stable",

@@ -11,6 +11,11 @@ final class EnumType extends AbstractFieldType
         return 'enum';
     }
 
+    public function widget(): string
+    {
+        return 'enum';
+    }
+
     public function defaultConfig(): array
     {
         return ['options' => []];

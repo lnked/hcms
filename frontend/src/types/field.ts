@@ -1,6 +1,7 @@
 import { randomId } from '@/lib/utils'
 
-export type FieldTypeName =
+/** Built-in field type names; plugin types are arbitrary strings. */
+export type BuiltinFieldTypeName =
   | 'string'
   | 'text'
   | 'richtext'
@@ -19,6 +20,30 @@ export type FieldTypeName =
   | 'image'
   | 'file'
   | 'relation'
+
+export type FieldTypeName = BuiltinFieldTypeName | (string & {})
+
+export type FieldTypeWidget =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'
+  | 'json'
+  | 'media'
+  | 'relation'
+  | 'enum'
+  | 'richtext'
+  | 'date'
+  | 'datetime'
+  | 'blocks'
+
+export interface FieldTypeDescriptor {
+  name: string
+  label: string
+  widget: FieldTypeWidget | string
+  defaultConfig: Record<string, unknown>
+  configSchema: Record<string, unknown>
+}
 
 export interface SchemaField {
   id?: number
@@ -44,7 +69,7 @@ export interface SchemaField {
   config: Record<string, unknown>
 }
 
-export const FIELD_TYPES: FieldTypeName[] = [
+export const FIELD_TYPES: BuiltinFieldTypeName[] = [
   'string',
   'text',
   'richtext',
@@ -68,7 +93,17 @@ export const FIELD_TYPES: FieldTypeName[] = [
 export const DEFAULT_DATE_FORMAT = 'DD.MM.YYYY'
 export const DEFAULT_DATETIME_FORMAT = 'DD.MM.YYYY HH:mm'
 
-function defaultConfig(type: FieldTypeName): Record<string, unknown> {
+export function isBuiltinFieldType(type: string): type is BuiltinFieldTypeName {
+  return (FIELD_TYPES as string[]).includes(type)
+}
+
+function defaultConfig(
+  type: FieldTypeName,
+  fromApi?: Record<string, unknown>,
+): Record<string, unknown> {
+  if (fromApi && Object.keys(fromApi).length > 0) {
+    return { ...fromApi }
+  }
   switch (type) {
     case 'relation':
       return {
@@ -98,7 +133,11 @@ function defaultConfig(type: FieldTypeName): Record<string, unknown> {
   }
 }
 
-export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): SchemaField {
+export function emptyField(
+  type: FieldTypeName = 'string',
+  sortOrder = 0,
+  descriptor?: FieldTypeDescriptor,
+): SchemaField {
   return {
     clientKey: randomId(),
     name: '',
@@ -123,7 +162,7 @@ export function emptyField(type: FieldTypeName = 'string', sortOrder = 0): Schem
     filterable: true,
     readable: true,
     writable: true,
-    config: defaultConfig(type),
+    config: defaultConfig(type, descriptor?.defaultConfig),
   }
 }
 

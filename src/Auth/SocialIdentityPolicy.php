@@ -7,13 +7,13 @@ namespace Cms\Auth;
 final class SocialIdentityPolicy
 {
     /**
-     * Google: identity wins, otherwise match existing CMS user by verified email.
+     * Google / OIDC: identity wins, otherwise match existing CMS user by verified email.
      *
      * @param array<string, mixed>|null $identityUser
      * @param array<string, mixed>|null $emailUser
      * @return array<string, mixed>|null
      */
-    public static function googleLoginUser(?array $identityUser, ?array $emailUser, bool $emailVerified): ?array
+    public static function emailVerifiedLoginUser(?array $identityUser, ?array $emailUser, bool $emailVerified): ?array
     {
         if ($identityUser !== null) {
             return $identityUser;
@@ -23,6 +23,16 @@ final class SocialIdentityPolicy
         }
 
         return $emailUser;
+    }
+
+    /**
+     * @param array<string, mixed>|null $identityUser
+     * @param array<string, mixed>|null $emailUser
+     * @return array<string, mixed>|null
+     */
+    public static function googleLoginUser(?array $identityUser, ?array $emailUser, bool $emailVerified): ?array
+    {
+        return self::emailVerifiedLoginUser($identityUser, $emailUser, $emailVerified);
     }
 
     /**

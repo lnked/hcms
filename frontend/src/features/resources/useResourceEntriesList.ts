@@ -14,6 +14,8 @@ interface UseResourceEntriesListArgs {
   sort: string
   filters: Record<string, string>
   fields: SchemaField[]
+  /** Content locale filter when localization is enabled. */
+  locale?: string
 }
 
 export function useResourceEntriesList({
@@ -24,6 +26,7 @@ export function useResourceEntriesList({
   sort,
   filters,
   fields,
+  locale,
 }: UseResourceEntriesListArgs) {
   const activeFilters = useMemo(() => {
     const out: Record<string, string> = {}
@@ -35,8 +38,8 @@ export function useResourceEntriesList({
   }, [filters])
 
   const queryKey = useMemo(
-    () => queryKeys.resources.entries(resourceId, { page, search, sort, activeFilters }),
-    [resourceId, page, search, sort, activeFilters],
+    () => queryKeys.resources.entries(resourceId, { page, search, sort, activeFilters, locale }),
+    [resourceId, page, search, sort, activeFilters, locale],
   )
 
   const list = useQuery({
@@ -49,6 +52,7 @@ export function useResourceEntriesList({
         sort,
       })
       if (search) params.set('search', search)
+      if (locale) params.set('locale', locale)
       for (const [field, value] of Object.entries(activeFilters)) {
         const fieldMeta = fields.find((f) => f.name === field)
         if (!fieldMeta) continue

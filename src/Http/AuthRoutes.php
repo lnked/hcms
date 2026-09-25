@@ -113,6 +113,24 @@ final class AuthRoutes
             return $auth->googleCallback($request);
         }, true);
 
+        $router->add('GET', '/admin/api/auth/oidc/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->oidcStart($request);
+        }, true);
+
+        $router->add('GET', '/admin/api/auth/oidc/callback', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params, $context);
+            if ($auth === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'CMS is not installed', 503);
+            }
+
+            return $auth->oidcCallback($request);
+        }, true);
+
         $router->add('POST', '/admin/api/auth/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
             unset($params, $context);
             if ($auth === null) {
@@ -147,6 +165,15 @@ final class AuthRoutes
             }
 
             return $auth->googleLinkStart($request, $context);
+        });
+
+        $router->add('POST', '/admin/api/auth/identities/oidc/start', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {
+            unset($params);
+            if ($auth === null || $context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $auth->oidcLinkStart($request, $context);
         });
 
         $router->add('POST', '/admin/api/auth/identities/telegram', function (Request $request, array $params, ?AuthContext $context) use ($auth): Response {

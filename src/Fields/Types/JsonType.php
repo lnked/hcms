@@ -10,4 +10,9 @@ final class JsonType extends AbstractFieldType
     {
         return 'json';
     }
+
+    public function widget(): string
+    {
+        return 'json';
+    }
 }

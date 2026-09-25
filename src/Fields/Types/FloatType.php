@@ -10,4 +10,9 @@ final class FloatType extends AbstractFieldType
     {
         return 'float';
     }
+
+    public function widget(): string
+    {
+        return 'number';
+    }
 }

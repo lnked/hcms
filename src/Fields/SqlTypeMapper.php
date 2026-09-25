@@ -39,7 +39,30 @@ final class SqlTypeMapper
             }
         }
 
-        $sqlType = match ($type) {
+        $fieldType = $this->types->get($type);
+        $sqlType = $fieldType->sqlType($config);
+        if ($sqlType === null) {
+            $sqlType = $this->legacySqlType($type, $config);
+        }
+
+        $unique = $unique || ($type === 'relation' && ($config['cardinality'] ?? '') === 'oneToOne');
+        $indexed = $indexed || $unique;
+
+        return new ColumnDefinition(
+            name: $name,
+            sqlType: $sqlType,
+            nullable: $nullable,
+            unique: $unique,
+            indexed: $indexed || $type === 'relation',
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function legacySqlType(string $type, array $config): string
+    {
+        return match ($type) {
             'string', 'email', 'slug' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
             'url' => 'VARCHAR(2048)',
             'text', 'json', 'blocks' => 'TEXT',
@@ -55,17 +78,6 @@ final class SqlTypeMapper
             'image', 'file' => 'JSON',
             default => throw new InvalidArgumentException('Unsupported SQL mapping for ' . $type),
         };
-
-        $unique = $unique || ($type === 'relation' && ($config['cardinality'] ?? '') === 'oneToOne');
-        $indexed = $indexed || $unique;
-
-        return new ColumnDefinition(
-            name: $name,
-            sqlType: $sqlType,
-            nullable: $nullable,
-            unique: $unique,
-            indexed: $indexed || $type === 'relation',
-        );
     }
 
     public function quoteIdent(string $ident): string

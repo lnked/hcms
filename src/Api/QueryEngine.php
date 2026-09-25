@@ -6,9 +6,11 @@ namespace Cms\Api;
 
 use Cms\Auth\FieldAcl;
 use Cms\Core\Exception\NotFoundException;
+use Cms\Core\Exception\ValidationFailedException;
 use Cms\Database\Connection;
 use Cms\Database\MigrationService;
 use Cms\Fields\FieldRepository;
+use Cms\Fields\FieldTypeRegistry;
 use Cms\Media\MediaRefService;
 use Cms\Media\MediaService;
 use Cms\Media\MediaValue;
@@ -28,6 +30,7 @@ final class QueryEngine
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?MediaRefService $mediaRefs = null,
         private readonly string $appUrl = 'http://localhost',
+        private readonly ?FieldTypeRegistry $fieldTypes = null,
     ) {
     }
 
@@ -258,6 +261,135 @@ final class QueryEngine
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
+    }
+
+    /**
+     * List sibling translations for an entry (same translation_group_id).
+     *
+     * @param array{public?: bool, ownCreatedBy?: int, fieldAcl?: array<string, array{readable: bool, writable: bool}>} $options
+     * @return list<array{id: int, locale: string}>
+     */
+    public function listTranslations(string $slug, int $entryId, array $options = []): array
+    {
+        [$resource, $table] = $this->resolve($slug, $options);
+        $settings = $this->settingsOf($resource);
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        if (!(bool) ($localization['enabled'] ?? false)) {
+            throw new InvalidArgumentException('Localization is not enabled for this resource');
+        }
+        $row = $this->requireRow($table, $entryId);
+        $this->assertOwnEntry($row, $options);
+        $group = isset($row['translation_group_id']) && \is_string($row['translation_group_id'])
+            ? $row['translation_group_id']
+            : '';
+        if ($group === '') {
+            return [
+                [
+                    'id' => (int) $row['id'],
+                    'locale' => isset($row['locale']) && \is_string($row['locale']) ? $row['locale'] : $this->defaultLocaleCode(),
+                ],
+            ];
+        }
+        $siblings = $this->db->select(
+            'SELECT `id`, `locale` FROM `' . $table . '` WHERE `translation_group_id` = :g AND `deleted_at` IS NULL ORDER BY `locale` ASC',
+            ['g' => $group],
+        );
+        $out = [];
+        foreach ($siblings as $sibling) {
+            $out[] = [
+                'id' => (int) $sibling['id'],
+                'locale' => (string) ($sibling['locale'] ?? ''),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Create a sibling row in the same translation group for a new locale.
+     *
+     * @param array{public?: bool, actorUserId?: int|null, fieldAcl?: array<string, array{readable: bool, writable: bool}>, ownCreatedBy?: int} $options
+     * @return array<string, mixed>
+     */
+    public function createTranslation(string $slug, int $entryId, string $locale, array $options = []): array
+    {
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
+        $settings = $this->settingsOf($resource);
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        if (!(bool) ($localization['enabled'] ?? false)) {
+            throw new InvalidArgumentException('Localization is not enabled for this resource');
+        }
+        if (!preg_match('/^[a-z]{2}(-[A-Za-z0-9]+)?$/', $locale)) {
+            throw ValidationFailedException::field('locale', 'Invalid locale');
+        }
+        $row = $this->requireRow($table, $entryId);
+        $this->assertOwnEntry($row, $options);
+        $existingGroup = isset($row['translation_group_id']) && \is_string($row['translation_group_id'])
+            ? $row['translation_group_id']
+            : '';
+        $group = $existingGroup !== '' ? $existingGroup : $this->newUuid();
+        if ($existingGroup === '') {
+            $this->db->execute(
+                'UPDATE `' . $table . '` SET `translation_group_id` = :g WHERE `id` = :id',
+                ['g' => $group, 'id' => $entryId],
+            );
+        }
+        $existing = $this->db->selectOne(
+            'SELECT `id` FROM `' . $table . '` WHERE `translation_group_id` = :g AND `locale` = :l AND `deleted_at` IS NULL LIMIT 1',
+            ['g' => $group, 'l' => $locale],
+        );
+        if ($existing !== null) {
+            throw ValidationFailedException::field('locale', 'Translation for this locale already exists');
+        }
+
+        $source = $this->serialize($row, $fieldMap, $slug);
+        $payload = $this->translationSeedFromSource($source, $fieldMap, $locale);
+        $payload['locale'] = $locale;
+        $payload['translationGroupId'] = $group;
+        if ((bool) (($settings['workflow']['enabled'] ?? false))) {
+            $payload['status'] = 'draft';
+        }
+
+        return $this->create($slug, $payload, $options);
+    }
+
+    /**
+     * Seed sibling from source; unique string/slug fields get a locale suffix so UNIQUE holds.
+     *
+     * @param array<string, mixed> $source
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @return array<string, mixed>
+     */
+    private function translationSeedFromSource(array $source, array $fieldMap, string $locale): array
+    {
+        $payload = [];
+        foreach ($fieldMap as $name => $meta) {
+            $spec = $meta['spec'];
+            $type = (string) $meta['type'];
+            $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            if (!($spec['writable'] ?? true)) {
+                continue;
+            }
+            if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                continue;
+            }
+            if (!\array_key_exists($name, $source)) {
+                continue;
+            }
+            $value = $source[$name];
+            if (($spec['unique'] ?? false) && \is_string($value) && $value !== '') {
+                $suffix = '-' . $locale;
+                $max = (int) ($config['maxLength'] ?? 255);
+                if ($max > 0 && \strlen($value) + \strlen($suffix) > $max) {
+                    $value = substr($value, 0, max(1, $max - \strlen($suffix))) . $suffix;
+                } else {
+                    $value .= $suffix;
+                }
+            }
+            $payload[$name] = $value;
+        }
+
+        return $payload;
     }
 
     /**
@@ -1012,7 +1144,7 @@ final class QueryEngine
      */
     private function validatePayload(array $payload, array $fieldMap, bool $partial): array
     {
-        return (new PayloadValidator())->validate($payload, $fieldMap, $partial);
+        return (new PayloadValidator($this->fieldTypes))->validate($payload, $fieldMap, $partial);
     }
 
     /**

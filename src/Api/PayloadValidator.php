@@ -6,6 +6,7 @@ namespace Cms\Api;
 
 use Cms\Content\UrlSlug;
 use Cms\Core\Exception\ValidationFailedException;
+use Cms\Fields\FieldTypeRegistry;
 use Cms\Media\MediaValue;
 use InvalidArgumentException;
 
@@ -15,6 +16,10 @@ use InvalidArgumentException;
  */
 final class PayloadValidator
 {
+    public function __construct(private readonly ?FieldTypeRegistry $types = null)
+    {
+    }
+
     /**
      * @param array<string, mixed> $payload
      * @param array<string, array<string, mixed>> $fieldMap
@@ -112,6 +117,13 @@ final class PayloadValidator
      */
     private function castValue(mixed $value, string $type, string $name, array $config = []): mixed
     {
+        if ($this->types !== null && $this->types->has($type)) {
+            $fieldType = $this->types->get($type);
+            if ($fieldType->usesCustomCast()) {
+                return $fieldType->castValue($value, $name, $config);
+            }
+        }
+
         return match ($type) {
             'integer', 'relation' => is_numeric($value)
                 ? (int) $value
@@ -235,7 +247,19 @@ final class PayloadValidator
                     $normalized[$fname] = null;
                     continue;
                 }
-                $normalized[$fname] = \is_scalar($fv) || \is_array($fv) ? $fv : (string) $fv;
+                $nestedType = isset($field['type']) && \is_string($field['type']) ? $field['type'] : 'string';
+                if ($nestedType === 'blocks') {
+                    throw ValidationFailedException::field(
+                        $name . '.' . $i . '.' . $fname,
+                        'Nested blocks are not supported',
+                    );
+                }
+                $nestedConfig = \is_array($field['config'] ?? null) ? $field['config'] : [];
+                try {
+                    $normalized[$fname] = $this->castValue($fv, $nestedType, $name . '.' . $i . '.' . $fname, $nestedConfig);
+                } catch (ValidationFailedException $e) {
+                    throw $e;
+                }
             }
             $out[] = $normalized;
         }

@@ -11,6 +11,11 @@ final class RelationType extends AbstractFieldType
         return 'relation';
     }
 
+    public function widget(): string
+    {
+        return 'relation';
+    }
+
     public function defaultConfig(): array
     {
         return [

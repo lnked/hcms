@@ -17,6 +17,11 @@ final class BlocksType extends AbstractFieldType
         return 'blocks';
     }
 
+    public function widget(): string
+    {
+        return 'blocks';
+    }
+
     public function defaultConfig(): array
     {
         return [
@@ -44,6 +49,9 @@ final class BlocksType extends AbstractFieldType
                 $name = (string) $field['name'];
                 if (!preg_match('/^[a-z][a-z0-9_]{0,47}$/', $name)) {
                     throw new InvalidArgumentException('Invalid nested field name in blocks component "' . $type . '"');
+                }
+                if ((string) $field['type'] === 'blocks') {
+                    throw new InvalidArgumentException('Nested blocks are not supported');
                 }
             }
         }

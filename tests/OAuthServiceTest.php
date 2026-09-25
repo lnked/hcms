@@ -61,6 +61,7 @@ final class OAuthServiceTest extends TestCase
         $this->assertSame($emailUser, SocialIdentityPolicy::googleLoginUser(null, $emailUser, true));
         $this->assertNull(SocialIdentityPolicy::googleLoginUser(null, $emailUser, false));
         $this->assertNull(SocialIdentityPolicy::googleLoginUser(null, null, true));
+        $this->assertSame($emailUser, SocialIdentityPolicy::emailVerifiedLoginUser(null, $emailUser, true));
     }
 
     public function testTelegramLoginRequiresIdentity(): void

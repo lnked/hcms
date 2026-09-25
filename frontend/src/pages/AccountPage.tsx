@@ -16,10 +16,11 @@ import { OauthIntegrationsCard } from './OauthIntegrationsCard'
 interface AuthProviders {
   google: { enabled: boolean; clientId: string }
   telegram: { enabled: boolean; botUsername: string }
+  oidc?: { enabled: boolean; label: string }
 }
 
 interface IdentityRow {
-  provider: 'google' | 'telegram'
+  provider: 'google' | 'telegram' | 'oidc'
   linked: boolean
   label: string | null
 }
@@ -40,7 +41,7 @@ export function AccountPage() {
   })
 
   const unlink = useMutation({
-    mutationFn: (provider: 'google' | 'telegram') =>
+    mutationFn: (provider: 'google' | 'telegram' | 'oidc') =>
       api<IdentityRow[]>(`/admin/api/auth/identities/${provider}`, { method: 'DELETE' }),
     onSuccess: (rows) => {
       queryClient.setQueryData(['auth-identities'], rows)
@@ -83,9 +84,26 @@ export function AccountPage() {
     },
   })
 
+  const linkOidc = useMutation({
+    mutationFn: () =>
+      api<{ url: string }>('/admin/api/auth/identities/oidc/start', { method: 'POST' }),
+    onSuccess: (data) => {
+      window.location.assign(data.url)
+    },
+    onError: (err) => {
+      if (err instanceof ApiError && err.code === 'PROVIDER_DISABLED') {
+        showError(t('account.providerDisabled'))
+        return
+      }
+      showError(err instanceof Error ? err.message : t('common.saveFailed'))
+    },
+  })
+
   const google = identities.data?.find((row) => row.provider === 'google')
   const telegram = identities.data?.find((row) => row.provider === 'telegram')
+  const oidc = identities.data?.find((row) => row.provider === 'oidc')
   const googleReady = providers.data?.google.enabled === true
+  const oidcReady = providers.data?.oidc?.enabled === true
   const telegramReady = Boolean(
     providers.data?.telegram.enabled && providers.data.telegram.botUsername,
   )
@@ -139,6 +157,45 @@ export function AccountPage() {
                   onClick={() => linkGoogle.mutate()}
                 >
                   {t('account.connectGoogle')}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className={clsx(styles.cardHeader)}>
+              <div className={clsx(styles.cardIntro)}>
+                <CardTitle>OIDC SSO</CardTitle>
+                <CardDescription>
+                  {oidcReady
+                    ? t('account.oidcHint')
+                    : canManageOauth
+                      ? t('account.providerOff')
+                      : t('account.providerOffAskAdmin')}
+                </CardDescription>
+              </div>
+              <Badge variant={oidc?.linked ? 'default' : 'secondary'}>
+                {oidc?.linked ? t('account.linkedStatus') : t('account.notLinked')}
+              </Badge>
+            </CardHeader>
+            <CardContent className={clsx(styles.cardBody)}>
+              {oidc?.linked && oidc.label ? (
+                <p className={clsx(styles.muted)}>{oidc.label}</p>
+              ) : null}
+              {oidc?.linked ? (
+                <Button
+                  variant="outline"
+                  disabled={unlink.isPending}
+                  onClick={() => unlink.mutate('oidc')}
+                >
+                  {t('account.disconnect')}
+                </Button>
+              ) : (
+                <Button
+                  disabled={!oidcReady || linkOidc.isPending}
+                  onClick={() => linkOidc.mutate()}
+                >
+                  {t('account.connectOidc')}
                 </Button>
               )}
             </CardContent>

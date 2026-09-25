@@ -24,6 +24,7 @@ interface CaptchaConfig {
 interface AuthProviders {
   google: { enabled: boolean; clientId: string }
   telegram: { enabled: boolean; botUsername: string }
+  oidc?: { enabled: boolean; label: string }
 }
 
 export function LoginPage() {
@@ -131,6 +132,7 @@ export function LoginPage() {
   }
 
   const googleEnabled = providers.data?.google.enabled === true
+  const oidcEnabled = providers.data?.oidc?.enabled === true
   const telegramEnabled = Boolean(
     providers.data?.telegram.enabled && providers.data.telegram.botUsername,
   )
@@ -227,7 +229,7 @@ export function LoginPage() {
               {pending ? t('login.submitting') : t('login.submit')}
             </Button>
           </form>
-          {googleEnabled || telegramEnabled ? (
+          {googleEnabled || oidcEnabled || telegramEnabled ? (
             <div className={styles.oauth}>
               <div className={styles.oauthDivider}>
                 <span className={styles.oauthDividerLabel}>{t('login.oauth.or')}</span>
@@ -244,6 +246,19 @@ export function LoginPage() {
                   }}
                 >
                   {t('login.oauth.google')}
+                </Button>
+              ) : null}
+              {oidcEnabled ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={styles.fullWidth}
+                  disabled={pending}
+                  onClick={() => {
+                    window.location.assign('/admin/api/auth/oidc/start')
+                  }}
+                >
+                  {t('login.oauth.sso')}
                 </Button>
               ) : null}
               {telegramEnabled ? (

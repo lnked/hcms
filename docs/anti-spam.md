@@ -153,9 +153,11 @@ DELETE /admin/api/logs/ip-blocks/{id}
 
 `ttlSeconds <= 0` → бан бессрочный (`expires_at = NULL`). Повторный `POST` по тому же IP обновляет причину и TTL, а не плодит записи. Каждый бан пишется в audit как `security.ip_blocked`.
 
-Автобан есть, но **только по логину**: `AuthController::maybeAutoBlockIp` считает события `auth.login_blocked` за `security.ip_auto_block_window_seconds` (3600) и при достижении `security.ip_auto_block_after_login_blocks` (3) банит IP на `security.ip_auto_block_ttl_seconds` (3600) с причиной `auto:login_blocked`. **Спам в публичный API к автобану не приводит** — реакция на него ручная.
+Автобан по логину: `AuthController` считает `auth.login_blocked` за `security.ip_auto_block_window_seconds` (default 3600) и при `security.ip_auto_block_after_login_blocks` (default 3) банит IP на `security.ip_auto_block_ttl_seconds` с причиной `auto:login_blocked`.
 
-Кого банить, подсказывает `GET /admin/api/logs/anomalies` (вкладка Security): топ IP по подозрительным audit-действиям и по 4xx/429 в `cms_api_logs`.
+Автобан по спаму: после reject (honeypot / blocklist / too_fast) `PublicApiController` зовёт тот же `AutoBlock` с порогом `security.ip_auto_block_after_spam_rejects` (default **0** = выкл.) и причиной `auto:spam_rejected`. Порог настраивается в **System → IP auto-block** (`GET/PATCH /admin/api/settings` → `security`, owner-only).
+
+Кого банить вручную, подсказывает `GET /admin/api/logs/anomalies` (вкладка Security): топ IP по подозрительным audit-действиям и по 4xx/429 в `cms_api_logs`.
 
 ## Что включено на чистой установке
 
@@ -170,7 +172,7 @@ DELETE /admin/api/logs/ip-blocks/{id}
 | `spam.requireCaptcha` | ❌ (false) | — |
 | `spam.maxLinks` | ❌ (0) | — |
 | `spam.blocklist` | ❌ ([]) | — |
-| Автобан IP | ⚠️ только для брутфорса логина | не реагирует на спам в `/api/*` |
+| Автобан IP | ⚠️ login + opt-in spam (`ip_auto_block_after_spam_rejects`, default 0) | System → IP auto-block |
 | Бан IP вручную | ✅ | точечно, после факта |
 
 Итого на дефолтах публичная форма держит поток в 20 запросов в минуту с одного IP и режет точные дубли. Один хост с ротацией payload наливает ~28k записей в сутки легально; пул из 50 IP — 1.4M. Всё, что стоит между этим и базой, — включаемые вручную honeypot/minSubmitMs/captcha.
