@@ -62,7 +62,8 @@ const ROLE_RANK: Record<string, number> = {
 
 export function roleAllows(userRole: string | undefined, minRole: AdminRole | undefined): boolean {
   if (!minRole) return true
-  const rank = ROLE_RANK[userRole ?? 'admin'] ?? 3
+  // Unknown / missing role must not elevate — deny when a minimum is required.
+  const rank = ROLE_RANK[userRole ?? ''] ?? 0
   return rank >= (ROLE_RANK[minRole] ?? 0)
 }
 

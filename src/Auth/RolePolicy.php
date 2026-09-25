@@ -19,11 +19,21 @@ final class RolePolicy
     /** @var list<string> */
     public const ROLES = [self::OWNER, self::ADMIN, self::EDITOR, self::VIEWER];
 
+    public static function isValid(?string $role): bool
+    {
+        $role = strtolower(trim((string) $role));
+
+        return $role !== '' && \in_array($role, self::ROLES, true);
+    }
+
+    /**
+     * Unknown / empty roles fail closed to viewer (never elevate).
+     */
     public static function normalize(?string $role): string
     {
         $role = strtolower(trim((string) $role));
         if ($role === '' || !\in_array($role, self::ROLES, true)) {
-            return self::ADMIN;
+            return self::VIEWER;
         }
 
         return $role;

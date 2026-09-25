@@ -221,7 +221,6 @@ final class ImageProcessorTest extends TestCase
         imagefilledrectangle($img, (int) ($w / 2), 0, $w, $h, $blue);
         $path = $this->tmpDir . '/src.jpg';
         imagejpeg($img, $path, 90);
-        imagedestroy($img);
 
         return $path;
     }

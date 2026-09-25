@@ -10,11 +10,14 @@ use PHPUnit\Framework\TestCase;
 
 final class RolePolicyTest extends TestCase
 {
-    public function testNormalizeDefaultsToAdmin(): void
+    public function testNormalizeFailsClosedToViewer(): void
     {
-        self::assertSame('admin', RolePolicy::normalize(null));
-        self::assertSame('admin', RolePolicy::normalize('nope'));
+        self::assertSame('viewer', RolePolicy::normalize(null));
+        self::assertSame('viewer', RolePolicy::normalize('nope'));
         self::assertSame('viewer', RolePolicy::normalize('VIEWER'));
+        self::assertTrue(RolePolicy::isValid('admin'));
+        self::assertFalse(RolePolicy::isValid('hacker'));
+        self::assertFalse(RolePolicy::isValid(null));
     }
 
     public function testViewerCannotWrite(): void

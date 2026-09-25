@@ -285,7 +285,7 @@ final class UsersService
         if (!\in_array($status, ['active', 'disabled'], true)) {
             throw ValidationFailedException::field('status', 'Invalid status');
         }
-        if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+        if (!RolePolicy::isValid($role)) {
             throw ValidationFailedException::field('role', 'Invalid role');
         }
 
@@ -335,7 +335,7 @@ final class UsersService
         }
         if (\array_key_exists('role', $payload)) {
             $role = \is_string($payload['role']) ? trim($payload['role']) : '';
-            if (!\in_array(RolePolicy::normalize($role), RolePolicy::ROLES, true)) {
+            if (!RolePolicy::isValid($role)) {
                 throw ValidationFailedException::field('role', 'Invalid role');
             }
             $out['role'] = RolePolicy::normalize($role);

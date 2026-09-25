@@ -12,9 +12,10 @@ echo "==> Frontend: bump package.json (same major) + install"
 (
   cd frontend
   if command -v ncu >/dev/null 2>&1; then
-    ncu -u --target minor
+    # Keep TS7 (@typescript/native) + TS6 API alias (typescript) intact — ncu would flatten them.
+    ncu -u --target minor --reject '/^(typescript|@typescript\/native)$/'
   else
-    npx --yes npm-check-updates -u --target minor
+    npx --yes npm-check-updates -u --target minor --reject '/^(typescript|@typescript\/native)$/'
   fi
   npm install
 )

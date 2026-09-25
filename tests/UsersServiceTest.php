@@ -46,4 +46,21 @@ final class UsersServiceTest extends TestCase
             'password' => 'short',
         ]);
     }
+
+    public function testValidateCreateRejectsUnknownRole(): void
+    {
+        $this->expectException(ValidationFailedException::class);
+        UsersService::validateCreate([
+            'name' => 'Ada',
+            'email' => 'ada@example.com',
+            'password' => 'password1',
+            'role' => 'hacker',
+        ]);
+    }
+
+    public function testValidateUpdateRejectsUnknownRole(): void
+    {
+        $this->expectException(ValidationFailedException::class);
+        UsersService::validateUpdate(['role' => 'superuser']);
+    }
 }

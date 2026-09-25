@@ -26,6 +26,8 @@ describe('rbac', () => {
     expect(roleAllows('editor', 'editor')).toBe(true)
     expect(roleAllows('viewer', 'editor')).toBe(false)
     expect(roleAllows('owner', 'admin')).toBe(true)
+    expect(roleAllows(undefined, 'viewer')).toBe(false)
+    expect(roleAllows('hacker', 'viewer')).toBe(false)
   })
 
   it('sectionAllows with ACL', () => {
