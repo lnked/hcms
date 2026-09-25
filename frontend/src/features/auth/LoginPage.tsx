@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { TelegramLoginButton, type TelegramAuthPayload } from '@/features/auth/TelegramLoginButton'
 import { useI18n } from '@/i18n'
 import { api, ApiError, getToken, setToken } from '@/lib/api'
+import { homePath } from '@/lib/rbac'
 import { showError } from '@/lib/toast'
 import styles from './LoginPage.module.css'
 import type { AuthUser } from '@/types/system'
@@ -54,8 +55,8 @@ export function LoginPage() {
       return
     }
     void api<AuthUser>('/admin/api/auth/me')
-      .then(() => {
-        void navigate('/', { replace: true })
+      .then((user) => {
+        void navigate(homePath(user), { replace: true })
       })
       .catch(() => setCheckingSession(false))
   }, [navigate])
@@ -79,7 +80,7 @@ export function LoginPage() {
         body: JSON.stringify(body),
       })
       setToken(data.token)
-      void navigate('/', { replace: true })
+      void navigate(homePath(data.user), { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'TOTP_REQUIRED') {
         setNeedTotp(true)
@@ -106,7 +107,7 @@ export function LoginPage() {
         body: JSON.stringify({ ...payload, totpCode: code, remember }),
       })
       setToken(data.token)
-      void navigate('/', { replace: true })
+      void navigate(homePath(data.user), { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.code === 'TOTP_REQUIRED') {
         setTelegramPayload(payload)

@@ -1149,6 +1149,10 @@ export const ru: Record<MessageKey, string> = {
   'system.adminSectionsOwnerOnly': 'Менять видимость разделов может только owner.',
   'system.adminSectionsLocked': 'Всегда включено',
   'system.adminSectionsSaved': 'Видимость раздела сохранена',
+  'system.homeSectionLabel': 'Раздел по умолчанию при входе',
+  'system.homeSectionHint':
+    'Открывается после логина и при заходе на `/`. Если раздел потом скроют — возьмётся ближайший доступный.',
+  'system.homeSectionSaved': 'Стартовый раздел сохранён',
   'system.update': 'Обновление',
   'system.updateHint':
     'Выберите более новую версию, скачайте zip (sha256), сохраните .env / uploads / lock, примените SQL-миграции.',

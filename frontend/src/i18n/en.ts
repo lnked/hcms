@@ -1148,6 +1148,10 @@ export const en = {
   'system.adminSectionsOwnerOnly': 'Only the owner can change section visibility.',
   'system.adminSectionsLocked': 'Always on',
   'system.adminSectionsSaved': 'Section visibility saved',
+  'system.homeSectionLabel': 'Default section on login',
+  'system.homeSectionHint':
+    'Opens after login and when `/` is visited. If this section is hidden later, the nearest enabled one is used.',
+  'system.homeSectionSaved': 'Default section saved',
   'system.update': 'Update',
   'system.updateHint':
     'Pick a newer release, download the zip (sha256), preserve .env / uploads / lock, run pending SQL migrations.',

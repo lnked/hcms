@@ -7,11 +7,13 @@ namespace Cms\Http;
 use Cms\Core\Settings;
 
 /**
- * Instance-wide admin nav visibility. Owner toggles on System page.
- * Locked sections cannot be hidden (System is how you turn others back on).
+ * Instance-wide admin nav visibility + default landing section.
+ * Owner toggles on System page. Locked sections cannot be hidden.
  */
 final class AdminUiSections
 {
+    public const DEFAULT_HOME = 'dashboard';
+
     /** @var list<string> */
     public const ALL = [
         'dashboard',
@@ -108,30 +110,44 @@ final class AdminUiSections
         return $out;
     }
 
+    public function resolveHome(string $preferred): string
+    {
+        if (\in_array($preferred, self::ALL, true) && $this->isEnabled($preferred)) {
+            return $preferred;
+        }
+        foreach (self::ALL as $section) {
+            if ($this->isEnabled($section)) {
+                return $section;
+            }
+        }
+
+        return 'account';
+    }
+
+    public static function homeFromSettings(Settings $settings): string
+    {
+        $preferred = $settings->string('admin.ui.home_section', self::DEFAULT_HOME);
+
+        return self::fromSettings($settings)->resolveHome($preferred);
+    }
+
     /**
-     * @return array{sections: array<string, bool>, locked: list<string>}
+     * @return array{sections: array<string, bool>, locked: list<string>, homeSection: string}
      */
-    public function toPublicArray(): array
+    public function toPublicArray(string $homeSection = self::DEFAULT_HOME): array
     {
         return [
             'sections' => $this->enabled,
             'locked' => self::LOCKED,
+            'homeSection' => $this->resolveHome($homeSection),
         ];
     }
 
-    /**
-     * Persistable map (locked always true).
-     *
-     * @return array<string, bool>
-     */
-    public function toStorage(): array
+    public static function publicFromSettings(Settings $settings): array
     {
-        $out = $this->enabled;
-        foreach (self::LOCKED as $section) {
-            $out[$section] = true;
-        }
+        $ui = self::fromSettings($settings);
 
-        return $out;
+        return $ui->toPublicArray($settings->string('admin.ui.home_section', self::DEFAULT_HOME));
     }
 
     /**
@@ -169,5 +185,20 @@ final class AdminUiSections
         }
 
         return ['ok' => true, 'value' => $map];
+    }
+
+    /**
+     * @return array{ok: true, value: string}|array{ok: false, error: array<string, list<string>>}
+     */
+    public static function validateHomeSection(string $section, self $ui): array
+    {
+        if (!\in_array($section, self::ALL, true)) {
+            return ['ok' => false, 'error' => ['homeSection' => ['Unknown section']]];
+        }
+        if (!$ui->isEnabled($section)) {
+            return ['ok' => false, 'error' => ['homeSection' => ['Section is hidden — enable it first']]];
+        }
+
+        return ['ok' => true, 'value' => $section];
     }
 }

@@ -44,7 +44,7 @@ final class SettingsController
 
     public function adminSections(): Response
     {
-        return Response::data(AdminUiSections::fromSettings($this->settings)->toPublicArray());
+        return Response::data(AdminUiSections::publicFromSettings($this->settings));
     }
 
     public function update(Request $request, AuthContext $context): Response
@@ -54,10 +54,11 @@ final class SettingsController
         $hasApiAccess = \array_key_exists('apiAccess', $payload);
         $hasAdminBase = \array_key_exists('adminBase', $payload);
         $hasAdminSections = \array_key_exists('adminSections', $payload);
+        $hasHomeSection = \array_key_exists('homeSection', $payload);
 
-        if (!$hasLanguage && !$hasApiAccess && !$hasAdminBase && !$hasAdminSections) {
+        if (!$hasLanguage && !$hasApiAccess && !$hasAdminBase && !$hasAdminSections && !$hasHomeSection) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Provide language, apiAccess, adminBase, and/or adminSections'],
+                'language' => ['Provide language, apiAccess, adminBase, adminSections, and/or homeSection'],
             ]);
         }
 
@@ -133,8 +134,34 @@ final class SettingsController
             if ($validated['ok'] === false) {
                 return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $validated['error']);
             }
+            $ui = new AdminUiSections($validated['value']);
             $this->settings->set('admin.ui.sections', $validated['value']);
-            $out['adminSections'] = (new AdminUiSections($validated['value']))->toPublicArray();
+            $home = $this->settings->string('admin.ui.home_section', AdminUiSections::DEFAULT_HOME);
+            if (!$ui->isEnabled($home)) {
+                $home = $ui->resolveHome(AdminUiSections::DEFAULT_HOME);
+                $this->settings->set('admin.ui.home_section', $home);
+            }
+            $out['adminSections'] = $ui->toPublicArray($home);
+        }
+
+        if ($hasHomeSection) {
+            $role = isset($context->user['role']) ? (string) $context->user['role'] : '';
+            if ($role !== 'owner') {
+                return Response::error('FORBIDDEN', 'Only the owner can change the home section', 403);
+            }
+            if (!\is_string($payload['homeSection'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'homeSection' => ['Must be a section id string'],
+                ]);
+            }
+            $ui = AdminUiSections::fromSettings($this->settings);
+            $validatedHome = AdminUiSections::validateHomeSection($payload['homeSection'], $ui);
+            if ($validatedHome['ok'] === false) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, $validatedHome['error']);
+            }
+            $this->settings->set('admin.ui.home_section', $validatedHome['value']);
+            $out['homeSection'] = $validatedHome['value'];
+            $out['adminSections'] = $ui->toPublicArray($validatedHome['value']);
         }
 
         return Response::data($out);

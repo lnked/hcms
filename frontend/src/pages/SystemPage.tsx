@@ -176,7 +176,7 @@ export function SystemPage() {
   const adminSectionsQuery = useQuery({
     queryKey: queryKeys.settings.adminSections,
     queryFn: () =>
-      api<{ sections: Record<string, boolean>; locked: string[] }>(
+      api<{ sections: Record<string, boolean>; locked: string[]; homeSection: string }>(
         '/admin/api/settings/admin-sections',
       ),
   })
@@ -200,7 +200,7 @@ export function SystemPage() {
   const saveAdminSection = useMutation({
     mutationFn: ({ section, enabled }: { section: AdminSection; enabled: boolean }) => {
       const current = adminSectionsQuery.data?.sections ?? {}
-      return api<{ adminSections: { sections: Record<string, boolean>; locked: string[] } }>(
+      return api<{ adminSections: { sections: Record<string, boolean>; locked: string[]; homeSection: string } }>(
         '/admin/api/settings',
         {
           method: 'PATCH',
@@ -212,6 +212,22 @@ export function SystemPage() {
     },
     onSuccess: (data) => {
       showSuccess(t('system.adminSectionsSaved'))
+      queryClient.setQueryData(queryKeys.settings.adminSections, data.adminSections)
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.root })
+    },
+  })
+
+  const saveHomeSection = useMutation({
+    mutationFn: (homeSection: string) =>
+      api<{
+        homeSection: string
+        adminSections: { sections: Record<string, boolean>; locked: string[]; homeSection: string }
+      }>('/admin/api/settings', {
+        method: 'PATCH',
+        body: JSON.stringify({ homeSection }),
+      }),
+    onSuccess: (data) => {
+      showSuccess(t('system.homeSectionSaved'))
       queryClient.setQueryData(queryKeys.settings.adminSections, data.adminSections)
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.root })
     },
@@ -446,34 +462,55 @@ export function SystemPage() {
           ) : adminSectionsQuery.isLoading || !adminSectionsQuery.data ? (
             <FormBlockSkeleton fields={4} />
           ) : (
-            <div className={styles.sectionSwitchList}>
-              {ADMIN_SECTIONS.map((section) => {
-                const locked = adminSectionsQuery.data.locked.includes(section)
-                const enabled = adminSectionsQuery.data.sections[section] ?? true
-                const busy =
-                  saveAdminSection.isPending && saveAdminSection.variables?.section === section
-                return (
-                  <div key={section} className={styles.sectionSwitchRow}>
-                    <div className={styles.sectionSwitchMeta}>
-                      <Label htmlFor={`admin-section-${section}`}>
-                        {t(`users.acl.section.${section}` as MessageKey)}
-                      </Label>
-                      {locked ? (
-                        <span className={styles.hint}>{t('system.adminSectionsLocked')}</span>
-                      ) : null}
+            <>
+              <div className={styles.homeSectionPick}>
+                <Label htmlFor="admin-home-section">{t('system.homeSectionLabel')}</Label>
+                <Select
+                  id="admin-home-section"
+                  value={adminSectionsQuery.data.homeSection}
+                  disabled={saveHomeSection.isPending}
+                  onChange={(e) => saveHomeSection.mutate(e.target.value)}
+                  containerClassName={styles.homeSectionSelect}
+                >
+                  {ADMIN_SECTIONS.filter(
+                    (section) => adminSectionsQuery.data.sections[section] ?? true,
+                  ).map((section) => (
+                    <option key={section} value={section}>
+                      {t(`users.acl.section.${section}` as MessageKey)}
+                    </option>
+                  ))}
+                </Select>
+                <p className={clsx(styles.hint)}>{t('system.homeSectionHint')}</p>
+              </div>
+              <div className={styles.sectionSwitchList}>
+                {ADMIN_SECTIONS.map((section) => {
+                  const locked = adminSectionsQuery.data.locked.includes(section)
+                  const enabled = adminSectionsQuery.data.sections[section] ?? true
+                  const busy =
+                    saveAdminSection.isPending && saveAdminSection.variables?.section === section
+                  return (
+                    <div key={section} className={styles.sectionSwitchRow}>
+                      <div className={styles.sectionSwitchMeta}>
+                        <Label htmlFor={`admin-section-${section}`}>
+                          {t(`users.acl.section.${section}` as MessageKey)}
+                        </Label>
+                        {locked ? (
+                          <span className={styles.hint}>{t('system.adminSectionsLocked')}</span>
+                        ) : null}
+                      </div>
+                      <Switch
+                        id={`admin-section-${section}`}
+                        checked={enabled}
+                        disabled={locked || busy}
+                        onCheckedChange={(next) =>
+                          saveAdminSection.mutate({ section, enabled: next })
+                        }
+                      />
                     </div>
-                    <Switch
-                      id={`admin-section-${section}`}
-                      checked={enabled}
-                      disabled={locked || busy}
-                      onCheckedChange={(next) =>
-                        saveAdminSection.mutate({ section, enabled: next })
-                      }
-                    />
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -531,7 +568,7 @@ export function SystemPage() {
           </CardContent>
         ) : (
           <CardContent className={clsx(styles.stackMd)}>
-            {versions.length > 0 ? (
+            {versions.length > 1 ? (
               <div className={clsx(styles.versionPick)}>
                 <Label htmlFor="system-target-version">{t('system.selectVersion')}</Label>
                 <Select

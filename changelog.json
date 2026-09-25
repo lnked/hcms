@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "0.62.16",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Default admin home section",
+      "changes": [
+        {
+          "type": "added",
+          "area": "admin",
+          "text": "Owner sets default login section (System → Admin sections); auth/me.homeSection; fallback when home is hidden"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "PATCH /admin/api/settings { homeSection }; GET admin-sections includes homeSection"
+        },
+        {
+          "type": "changed",
+          "area": "admin",
+          "text": "System update: hide version select when only one available version"
+        }
+      ]
+    },
+    {
       "version": "0.62.15",
       "date": "2026-09-25",
       "channel": "stable",

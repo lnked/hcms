@@ -55,6 +55,23 @@ export const RESOURCE_TABS: ResourceTab[] = [
   'export',
 ]
 
+/** Min role for nav items that require more than viewer. */
+export const SECTION_MIN_ROLE: Partial<Record<AdminSection, AdminRole>> = {
+  media: 'editor',
+  logs: 'admin',
+  tokens: 'admin',
+  webhooks: 'admin',
+  inbound: 'admin',
+  uptime: 'admin',
+  'feature-flags': 'admin',
+  'key-values': 'admin',
+  translates: 'admin',
+  users: 'admin',
+  integrations: 'admin',
+  backups: 'admin',
+  system: 'admin',
+}
+
 const ROLE_RANK: Record<string, number> = {
   viewer: 1,
   editor: 2,
@@ -84,6 +101,66 @@ export function canAccessNav(
   minRole?: AdminRole,
 ): boolean {
   return roleAllows(user?.role, minRole) && sectionAllows(user, section)
+}
+
+export function pathForSection(section: AdminSection): string {
+  switch (section) {
+    case 'dashboard':
+      return '/'
+    case 'resources':
+      return '/resources'
+    case 'media':
+      return '/media'
+    case 'logs':
+      return '/logs'
+    case 'docs':
+      return '/docs'
+    case 'changelog':
+      return '/changelog'
+    case 'tokens':
+      return '/settings/tokens'
+    case 'webhooks':
+      return '/settings/webhooks'
+    case 'inbound':
+      return '/settings/inbound'
+    case 'uptime':
+      return '/settings/uptime'
+    case 'feature-flags':
+      return '/settings/feature-flags'
+    case 'key-values':
+      return '/settings/key-values'
+    case 'translates':
+      return '/settings/translates'
+    case 'users':
+      return '/settings/users'
+    case 'integrations':
+      return '/settings/integrations'
+    case 'system':
+      return '/settings/system'
+    case 'backups':
+      return '/settings/backups'
+    case 'account':
+      return '/settings/account'
+  }
+}
+
+/** Prefer instance homeSection; fall back to first section the user can open. */
+export function resolveHomeSection(user: AuthUser | undefined): AdminSection {
+  const preferred =
+    user?.homeSection && (ADMIN_SECTIONS as string[]).includes(user.homeSection)
+      ? (user.homeSection as AdminSection)
+      : 'dashboard'
+  const order = [preferred, ...ADMIN_SECTIONS.filter((s) => s !== preferred)]
+  for (const section of order) {
+    if (canAccessNav(user, section, SECTION_MIN_ROLE[section])) {
+      return section
+    }
+  }
+  return 'account'
+}
+
+export function homePath(user: AuthUser | undefined): string {
+  return pathForSection(resolveHomeSection(user))
 }
 
 export interface ResourceGrant {

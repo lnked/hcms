@@ -35,7 +35,7 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 | Установка / откат релиза | `POST /admin/api/system/update/run` · System → Update / Downgrade |
 | Откат data-бэкапа | `POST /admin/api/backups/{id}/restore` · Backups → Restore |
 | Путь панели | `PATCH /admin/api/settings` с `adminBase` · System → Admin path |
-| Видимость разделов админки | `PATCH /admin/api/settings` с `adminSections` · System → Admin sections (`GET …/settings/admin-sections`; `auth/me.hiddenSections`) |
+| Видимость разделов админки | `PATCH /admin/api/settings` с `adminSections` / `homeSection` · System → Admin sections (`GET …/settings/admin-sections`; `auth/me.hiddenSections`, `auth/me.homeSection`) |
 | Чтение / запись ACL | `GET` / `PATCH /admin/api/users/{id}/acl` · Users → ACL |
 | Сброс чужого пароля | `PATCH /admin/api/users/{id}` с `password` (нельзя другому `owner`) |
 | Bypass user ACL | всегда для `owner` |

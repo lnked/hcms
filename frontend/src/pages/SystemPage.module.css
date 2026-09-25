@@ -41,6 +41,17 @@
   max-width: 28rem;
 }
 
+.homeSectionPick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hcms-SPx2);
+  max-width: 28rem;
+}
+
+.homeSectionSelect {
+  max-width: 20rem;
+}
+
 .sectionSwitchRow {
   display: flex;
   align-items: center;

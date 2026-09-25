@@ -3,6 +3,9 @@ import {
   allowsResourceAction,
   allowsResourceTab,
   canAccessNav,
+  homePath,
+  pathForSection,
+  resolveHomeSection,
   roleAllows,
   sectionAllows,
   sectionForPath,
@@ -47,6 +50,17 @@ describe('rbac', () => {
     expect(sectionAllows(owner, 'webhooks')).toBe(false)
     expect(sectionAllows(owner, 'system')).toBe(true)
     expect(canAccessNav(owner, 'webhooks', 'admin')).toBe(false)
+  })
+
+  it('resolveHomeSection falls back when preferred is hidden', () => {
+    const owner = baseUser({
+      role: 'owner',
+      homeSection: 'dashboard',
+      hiddenSections: ['dashboard'],
+    })
+    expect(resolveHomeSection(owner)).toBe('resources')
+    expect(homePath(owner)).toBe('/resources')
+    expect(pathForSection('webhooks')).toBe('/settings/webhooks')
   })
 
   it('resource grants', () => {

@@ -45,6 +45,8 @@ export interface AuthUser {
   resourceGrants?: ResourceGrant[]
   /** Instance-wide sections hidden by owner (System → Admin sections). */
   hiddenSections?: string[]
+  /** Default landing section after login (resolved against hidden sections). */
+  homeSection?: string
 }
 
 export interface InstallStatus {

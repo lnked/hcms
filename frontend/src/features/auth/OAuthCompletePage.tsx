@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useI18n, type MessageKey } from '@/i18n'
 import { api, getToken, setToken } from '@/lib/api'
+import { homePath } from '@/lib/rbac'
 import { showError } from '@/lib/toast'
 import styles from './OAuthCompletePage.module.css'
 import type { AuthUser } from '@/types/system'
@@ -64,7 +65,7 @@ export function OAuthCompletePage() {
         body: JSON.stringify({ ticket, totpCode }),
       })
       setToken(data.token)
-      void navigate('/', { replace: true })
+      void navigate(homePath(data.user), { replace: true })
     } catch (err) {
       const text = err instanceof Error ? err.message : t('login.failed')
       setMessage(text)

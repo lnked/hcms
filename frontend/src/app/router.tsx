@@ -3,13 +3,16 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { TrailingSlashRedirect } from '@/app/TrailingSlashRedirect'
 import { AppShell } from '@/components/AppShell'
 import { AppToast } from '@/components/AppToast'
+import { PageSkeleton } from '@/components/skeletons'
+import { HomeLanding } from '@/features/auth/HomeLanding'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { OAuthCompletePage } from '@/features/auth/OAuthCompletePage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { RequireSection } from '@/features/auth/RequireSection'
 import { InstallPage } from '@/features/install/InstallPage'
+import { useAuthMe } from '@/hooks/useAcl'
 import { getAdminBasename } from '@/lib/adminBase'
-import type { AdminRole, AdminSection } from '@/lib/rbac'
+import { homePath, type AdminRole, type AdminSection } from '@/lib/rbac'
 
 /**
  * Login, OAuth and install stay eager: they are the first paint for a visitor
@@ -30,9 +33,6 @@ const CreateResourcePage = lazy(() =>
   import('@/features/resources/CreateResourcePage').then((m) => ({
     default: m.CreateResourcePage,
   })),
-)
-const DashboardPage = lazy(() =>
-  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 )
 const DocsPage = lazy(() =>
   import('@/features/docs/DocsPage').then((m) => ({ default: m.DocsPage })),
@@ -89,6 +89,14 @@ function withSection(section: AdminSection, minRole: AdminRole | undefined, page
   )
 }
 
+function CatchAllRedirect() {
+  const me = useAuthMe()
+  if (me.isLoading || !me.data) {
+    return <PageSkeleton />
+  }
+  return <Navigate to={homePath(me.data)} replace />
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter basename={getAdminBasename() || undefined}>
@@ -100,7 +108,7 @@ export function AppRouter() {
         <Route path="/install" element={<InstallPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            <Route index element={withSection('dashboard', undefined, <DashboardPage />)} />
+            <Route index element={<HomeLanding />} />
             <Route
               path="resources"
               element={withSection('resources', undefined, <ResourcesPage />)}
@@ -165,7 +173,7 @@ export function AppRouter() {
               path="settings/account"
               element={withSection('account', undefined, <AccountPage />)}
             />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<CatchAllRedirect />} />
           </Route>
         </Route>
       </Routes>

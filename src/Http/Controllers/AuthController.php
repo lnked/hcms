@@ -670,10 +670,17 @@ final class AuthController
                 'resourceGrants' => [],
             ];
 
-        $hiddenSections = $this->settings !== null
-            ? AdminUiSections::fromSettings($this->settings)->hidden()
-            : [];
+        $ui = $this->settings !== null
+            ? AdminUiSections::fromSettings($this->settings)
+            : AdminUiSections::defaults();
+        $hiddenSections = $ui->hidden();
+        $homeSection = $this->settings !== null
+            ? AdminUiSections::homeFromSettings($this->settings)
+            : AdminUiSections::DEFAULT_HOME;
 
-        return array_merge($base, $acl, ['hiddenSections' => $hiddenSections]);
+        return array_merge($base, $acl, [
+            'hiddenSections' => $hiddenSections,
+            'homeSection' => $homeSection,
+        ]);
     }
 }

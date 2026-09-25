@@ -29,6 +29,22 @@ final class AdminUiSectionsTest extends TestCase
         self::assertSame(['webhooks'], $sections->hidden());
     }
 
+    public function testResolveHomeFallsBackWhenHidden(): void
+    {
+        $sections = AdminUiSections::fromMap(['dashboard' => false]);
+        self::assertSame('resources', $sections->resolveHome('dashboard'));
+        self::assertSame('resources', $sections->toPublicArray('dashboard')['homeSection']);
+    }
+
+    public function testValidateHomeSection(): void
+    {
+        $ui = AdminUiSections::fromMap(['uptime' => false]);
+        $ok = AdminUiSections::validateHomeSection('resources', $ui);
+        self::assertTrue($ok['ok']);
+        $bad = AdminUiSections::validateHomeSection('uptime', $ui);
+        self::assertFalse($bad['ok']);
+    }
+
     public function testValidatePayload(): void
     {
         $ok = AdminUiSections::validatePayload(['uptime' => false, 'system' => false]);
