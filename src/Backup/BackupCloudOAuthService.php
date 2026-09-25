@@ -77,7 +77,11 @@ final class BackupCloudOAuthService
      */
     public function handleCallback(string $provider, string $code, string $state): string
     {
-        $payload = OAuthService::parseState($state, $this->appSecret);
+        try {
+            $payload = OAuthService::parseState($state, $this->appSecret);
+        } catch (\Cms\Auth\OAuthException $e) {
+            throw new RuntimeException($e->getMessage(), 0, $e);
+        }
         if (($payload['intent'] ?? '') !== 'backup' || ($payload['userId'] ?? '') !== $provider) {
             throw new RuntimeException('Invalid OAuth state');
         }

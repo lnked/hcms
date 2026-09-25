@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Cms\Http\Controllers;
 
 use Cms\Auth\AuthContext;
-use Cms\Auth\OAuthException;
 use Cms\Auth\RolePolicy;
 use Cms\Backup\BackupCloudOAuthService;
 use Cms\Backup\BackupRemoteSettings;
@@ -179,7 +178,7 @@ final class BackupsController
         }
         try {
             $this->oauth->handleCallback($provider, $code, $state);
-        } catch (OAuthException|RuntimeException|Throwable $e) {
+        } catch (Throwable $e) {
             return Response::redirect($this->oauth->completeRedirectUrl($provider, false, $e->getMessage()));
         }
 
