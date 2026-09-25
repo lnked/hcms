@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { clsx } from 'clsx'
-import { Columns3, History, Link2, Upload } from 'lucide-react'
+import { Columns3, Eye, History, Link2, Upload } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { TableSkeleton } from '@/components/skeletons'
@@ -61,6 +61,10 @@ interface ResourceEntriesPanelProps {
   published: boolean
   /** Saved table layout from resource settings; empty means schema defaults. */
   listColumns?: ResourceListColumn[]
+  /** Preview URL template from settings (`{token}`, `{slug}`, `{id}`). Empty disables Preview. */
+  previewUrl?: string
+  /** When true, show submit / publish / unpublish actions. */
+  workflowEnabled?: boolean
   /** Entry segment from the URL: `12`, `new` or `null`. */
   entryParam: EntryParam
   /** Builds the router path for a given entry segment. */
@@ -73,6 +77,8 @@ export function ResourceEntriesPanel({
   fields,
   published,
   listColumns,
+  previewUrl = '',
+  workflowEnabled = false,
   entryParam,
   entryPath,
 }: ResourceEntriesPanelProps) {
@@ -202,6 +208,41 @@ export function ResourceEntriesPanel({
       showError(t('common.copyFailed'))
     }
   }
+
+  const openPreview = useMutation({
+    mutationFn: async () => {
+      if (editingId === null) {
+        throw new Error('No entry')
+      }
+      return api<{ previewUrl: string; token: string; expiresAt: number }>(
+        `/admin/api/resources/${resourceId}/entries/${editingId}/preview`,
+        { method: 'POST' },
+      )
+    },
+    onSuccess: (data) => {
+      window.open(data.previewUrl, '_blank', 'noopener,noreferrer')
+    },
+  })
+
+  const setEntryStatus = useMutation({
+    mutationFn: async (status: 'draft' | 'in_review' | 'published') => {
+      if (editingId === null) {
+        throw new Error('No entry')
+      }
+      return api<EntryRow>(`/admin/api/resources/${resourceId}/entries/${editingId}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status }),
+      })
+    },
+    onSuccess: () => {
+      showSuccess(t('entries.statusUpdated'))
+      void queryClient.invalidateQueries({ queryKey: ['resource-entry', resourceId, editingId] })
+      void queryClient.invalidateQueries({ queryKey: ['resource-entries', resourceId] })
+    },
+  })
+
+  const entryStatus =
+    editing && typeof editing.status === 'string' ? editing.status : 'draft'
 
   const save = useMutation({
     mutationFn: async () => {
@@ -562,6 +603,57 @@ export function ResourceEntriesPanel({
                   <Link2 className={styles.icon} />
                   {t('entries.copyLink')}
                 </Button>
+                {previewUrl.trim() !== '' ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={!editing || openPreview.isPending}
+                    onClick={() => openPreview.mutate()}
+                  >
+                    <Eye className={styles.icon} />
+                    {t('entries.preview')}
+                  </Button>
+                ) : null}
+                {workflowEnabled && editing ? (
+                  <>
+                    <span className={styles.entryMeta}>
+                      {t('entries.status')}: {entryStatus}
+                    </span>
+                    {entryStatus === 'draft' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={setEntryStatus.isPending}
+                        onClick={() => setEntryStatus.mutate('in_review')}
+                      >
+                        {t('entries.submitReview')}
+                      </Button>
+                    ) : null}
+                    {entryStatus !== 'published' ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={setEntryStatus.isPending}
+                        onClick={() => setEntryStatus.mutate('published')}
+                      >
+                        {t('entries.publish')}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={setEntryStatus.isPending}
+                        onClick={() => setEntryStatus.mutate('draft')}
+                      >
+                        {t('entries.unpublish')}
+                      </Button>
+                    )}
+                  </>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"

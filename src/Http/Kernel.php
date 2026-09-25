@@ -62,6 +62,7 @@ use Cms\Http\Controllers\KeyValuesController;
 use Cms\Http\Controllers\LogsController;
 use Cms\Http\Controllers\MediaController;
 use Cms\Http\Controllers\MigrationController;
+use Cms\Http\Controllers\PreviewController;
 use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\PublicInboundController;
 use Cms\Http\Controllers\PublicIntegrationApiController;
@@ -86,12 +87,14 @@ use Cms\Mail\Mailer;
 use Cms\Media\MediaRefService;
 use Cms\Media\MediaService;
 use Cms\OpenApi\OpenApiGenerator;
+use Cms\Preview\PreviewTokenService;
 use Cms\Resources\EntryImportExportService;
 use Cms\Resources\ResourceApiRepository;
 use Cms\Resources\ResourceApiService;
 use Cms\Resources\ResourcePackageService;
 use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
+use Cms\Security\AutoBlock;
 use Cms\Security\CaptchaVerifier;
 use Cms\Security\IpBlockRepository;
 use Cms\Security\SpamGuard;
@@ -535,6 +538,9 @@ final class Kernel
                 $usersRepo,
                 $oauth,
                 $usersService,
+                ($this->ipBlocks !== null && $this->runtimeSettings !== null)
+                    ? new AutoBlock($this->ipBlocks, $this->runtimeSettings, $this->audit)
+                    : null,
             )
             : null;
         $metadata = new MetadataCache(new FileCache($this->paths->cache()));
@@ -635,6 +641,8 @@ final class Kernel
                 $entryImportExport,
                 $webhookDispatcher,
                 $entryRevisions,
+                new PreviewTokenService($this->config->appSecret),
+                new ResourceRepository($this->db),
             );
 
             $migrations = new MigrationController(
@@ -931,6 +939,12 @@ final class Kernel
                 $spamGuard,
                 $webhookDispatcher,
                 $resourceHookService,
+                $this->audit,
+                $this->rateLimitStore,
+                ($this->ipBlocks !== null && $this->runtimeSettings !== null && $this->audit !== null)
+                    ? new AutoBlock($this->ipBlocks, $this->runtimeSettings, $this->audit)
+                    : null,
+                $this->runtimeSettings,
             );
             $publicInbound = new PublicInboundController(
                 $inboundEndpointService,
@@ -940,7 +954,11 @@ final class Kernel
                 $spamGuard,
                 $webhookDispatcher,
             );
-            PublicApiRoutes::register($this->router, $publicApi, $publicInbound);
+            $previewController = new PreviewController(
+                new PreviewTokenService($this->config->appSecret),
+                $queryEnginePublic,
+            );
+            PublicApiRoutes::register($this->router, $publicApi, $publicInbound, $previewController);
         }
 
         $this->router->add('GET', '/admin/api/health', function (Request $request, array $params, ?AuthContext $context) use ($uptimeHeartbeat, $uptimeScheduler): Response {

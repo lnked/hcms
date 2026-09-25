@@ -291,7 +291,7 @@ function renderControl(
     )
   }
 
-  if (field.type === 'text' || field.type === 'json') {
+  if (field.type === 'text' || field.type === 'json' || field.type === 'blocks') {
     return (
       <Textarea
         id={id}

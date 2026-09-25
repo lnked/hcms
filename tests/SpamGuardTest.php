@@ -8,7 +8,7 @@ use Cms\Auth\MemoryRateLimitStore;
 use Cms\Http\Request;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
-use InvalidArgumentException;
+use Cms\Security\SpamRejected;
 use PHPUnit\Framework\TestCase;
 
 final class SpamGuardTest extends TestCase
@@ -16,23 +16,32 @@ final class SpamGuardTest extends TestCase
     public function testHoneypotRejects(): void
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
-        $this->expectException(InvalidArgumentException::class);
-        $guard->assertCreateAllowed(
-            $this->request(),
-            'leads',
-            ['spam' => ['honeypotField' => 'website', 'rejectDuplicates' => false]],
-            ['name' => 'Ada', 'website' => 'http://spam'],
-        );
+        try {
+            $payload = ['name' => 'Ada', 'website' => 'http://spam'];
+            $guard->assertWriteAllowed(
+                $this->request(),
+                'leads',
+                ['spam' => ['honeypotField' => 'website', 'rejectDuplicates' => false]],
+                $payload,
+                'create',
+            );
+            $this->fail('Expected SpamRejected');
+        } catch (SpamRejected $e) {
+            $this->assertSame('honeypot', $e->reason);
+            $this->assertSame('Submission rejected', $e->publicMessage());
+        }
     }
 
     public function testAllowsCleanPayload(): void
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
-        $guard->assertCreateAllowed(
+        $payload = ['name' => 'Ada', 'website' => ''];
+        $guard->assertWriteAllowed(
             $this->request(),
             'leads',
             ['spam' => ['honeypotField' => 'website', 'rejectDuplicates' => false]],
-            ['name' => 'Ada', 'website' => ''],
+            $payload,
+            'create',
         );
         $this->assertTrue(true);
     }
@@ -42,9 +51,19 @@ final class SpamGuardTest extends TestCase
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
         $settings = ['spam' => ['rejectDuplicates' => true]];
         $payload = ['name' => 'Ada'];
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
-        $this->expectException(InvalidArgumentException::class);
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $payload, 'create');
+        $this->expectException(SpamRejected::class);
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $payload, 'create');
+    }
+
+    public function testDeleteSkipsDuplicateCheck(): void
+    {
+        $guard = new SpamGuard(null, new MemoryRateLimitStore());
+        $settings = ['spam' => ['rejectDuplicates' => true]];
+        $empty = [];
+        $guard->assertWriteAllowed($this->request('DELETE'), 'leads', $settings, $empty, 'delete');
+        $guard->assertWriteAllowed($this->request('DELETE'), 'leads', $settings, $empty, 'delete');
+        $this->assertTrue(true);
     }
 
     public function testDuplicateBucketIsPerResource(): void
@@ -52,8 +71,8 @@ final class SpamGuardTest extends TestCase
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
         $settings = ['spam' => ['rejectDuplicates' => true]];
         $payload = ['name' => 'Ada'];
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, $payload);
-        $guard->assertCreateAllowed($this->request(), 'comments', $settings, $payload);
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $payload, 'create');
+        $guard->assertWriteAllowed($this->request(), 'comments', $settings, $payload, 'create');
         $this->assertTrue(true);
     }
 
@@ -61,21 +80,25 @@ final class SpamGuardTest extends TestCase
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
         $settings = ['spam' => ['rateLimitPerMinute' => 1, 'rejectDuplicates' => false]];
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Ada']);
-        $guard->assertCreateAllowed($this->request(), 'comments', $settings, ['name' => 'Ada']);
+        $a = ['name' => 'Ada'];
+        $b = ['name' => 'Grace'];
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $a, 'create');
+        $guard->assertWriteAllowed($this->request(), 'comments', $settings, $a, 'create');
 
         $this->expectException(RateLimitExceeded::class);
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Grace']);
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $b, 'create');
     }
 
     public function testRateLimitCarriesRetryAfterAndLimit(): void
     {
         $guard = new SpamGuard(null, new MemoryRateLimitStore());
         $settings = ['spam' => ['rateLimitPerMinute' => 1, 'rejectDuplicates' => false]];
-        $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Ada']);
+        $a = ['name' => 'Ada'];
+        $b = ['name' => 'Grace'];
+        $guard->assertWriteAllowed($this->request(), 'leads', $settings, $a, 'create');
 
         try {
-            $guard->assertCreateAllowed($this->request(), 'leads', $settings, ['name' => 'Grace']);
+            $guard->assertWriteAllowed($this->request(), 'leads', $settings, $b, 'create');
             $this->fail('Expected RateLimitExceeded');
         } catch (RateLimitExceeded $e) {
             $this->assertSame(429, $e->getCode());
@@ -84,8 +107,8 @@ final class SpamGuardTest extends TestCase
         }
     }
 
-    private function request(): Request
+    private function request(string $method = 'POST'): Request
     {
-        return new Request('POST', '/api/leads', [], [], null, '', '127.0.0.1', 'test');
+        return new Request($method, '/api/leads', [], [], null, '', '127.0.0.1', 'test');
     }
 }

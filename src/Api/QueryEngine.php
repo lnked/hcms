@@ -51,6 +51,7 @@ final class QueryEngine
 
         $where = ['`deleted_at` IS NULL'];
         $params = [];
+        $this->applyFeatureFilters($query, $settings, $public, $where, $params);
         if (!$public || ($settings['filtering'] ?? true)) {
             $this->applyFilters($query, $fieldMap, $where, $params);
         } elseif ($this->hasFilterParams($query)) {
@@ -82,7 +83,7 @@ final class QueryEngine
         );
 
         return [
-            'data' => array_map(fn (array $row): array => $this->serialize($row, $fieldMap), $rows),
+            'data' => array_map(fn (array $row): array => $this->serialize($row, $fieldMap, $slug), $rows),
             'meta' => [
                 'page' => $page,
                 'limit' => $limit,
@@ -197,7 +198,7 @@ final class QueryEngine
             'SELECT * FROM `' . $table . '` WHERE `deleted_at` IS NULL ORDER BY `id` ASC',
         );
 
-        return array_map(fn (array $row): array => $this->serialize($row, $fieldMap), $rows);
+        return array_map(fn (array $row): array => $this->serialize($row, $fieldMap, $slug), $rows);
     }
 
     /**
@@ -206,7 +207,7 @@ final class QueryEngine
      */
     public function find(string $slug, int $id, array $options = []): array
     {
-        [, $table, $fieldMap] = $this->resolve($slug, $options);
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $row = $this->db->selectOne(
             'SELECT * FROM `' . $table . '` WHERE id = :id AND `deleted_at` IS NULL',
             ['id' => $id],
@@ -214,8 +215,14 @@ final class QueryEngine
         if ($row === null) {
             throw new NotFoundException('Resource not found');
         }
+        $settings = $this->settingsOf($resource);
+        $public = (bool) ($options['public'] ?? false);
+        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
+        if ($public && (bool) ($workflow['enabled'] ?? false) && ($row['status'] ?? '') !== 'published') {
+            throw new NotFoundException('Resource not found');
+        }
 
-        return $this->serialize($row, $fieldMap);
+        return $this->serialize($row, $fieldMap, $slug);
     }
 
     /**
@@ -227,13 +234,18 @@ final class QueryEngine
     {
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $this->ensureActorColumns($table);
-        $data = $this->validatePayload($payload, $fieldMap, false);
+        $settings = $this->settingsOf($resource);
+        [$payload, $system] = $this->extractSystemFields($payload, $settings);
+        $validated = $this->validatePayload($payload, $fieldMap, false);
+        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        $data = [...$data, ...$system];
         $actorId = $this->actorUserId($options);
         if ($actorId !== null) {
             $data['created_by'] = $actorId;
             $data['updated_by'] = $actorId;
         }
         $id = $this->insertRow($table, $data);
+        $this->syncManyToMany($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -249,12 +261,19 @@ final class QueryEngine
         [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $this->requireRow($table, $id);
         $this->ensureActorColumns($table);
-        $data = $this->validatePayload($payload, $fieldMap, true);
+        $settings = $this->settingsOf($resource);
+        [$payload, $system] = $this->extractSystemFields($payload, $settings, true);
+        $validated = $this->validatePayload($payload, $fieldMap, true);
+        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        $data = [...$data, ...$system];
         $actorId = $this->actorUserId($options);
         if ($actorId !== null) {
             $data['updated_by'] = $actorId;
         }
-        $this->updateRow($table, $id, $data);
+        if ($data !== []) {
+            $this->updateRow($table, $id, $data);
+        }
+        $this->syncManyToMany($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->find($slug, $id, $options);
@@ -265,12 +284,13 @@ final class QueryEngine
      */
     public function delete(string $slug, int $id, array $options = []): void
     {
-        [$resource, $table] = $this->resolve($slug, $options);
+        [$resource, $table, $fieldMap] = $this->resolve($slug, $options);
         $settings = $this->settingsOf($resource);
         $hard = !(($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft');
         $this->deleteRow($table, $id, $settings);
         if ($hard) {
             $this->clearMediaRefs($resource, $id);
+            $this->clearManyToMany($slug, $id, $fieldMap);
         }
     }
 
@@ -363,8 +383,10 @@ final class QueryEngine
     public function createCustom(string $slug, string $apiSlug, array $payload, array $options = []): array
     {
         [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'POST', $options);
-        $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, false);
+        $validated = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, false);
+        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
         $id = $this->insertRow($table, $data);
+        $this->syncManyToMany($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
@@ -379,8 +401,12 @@ final class QueryEngine
     {
         [$resource, $table, $fieldMap, $api] = $this->resolveCustom($slug, $apiSlug, 'PATCH', $options);
         $this->requireRow($table, $id);
-        $data = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, true);
-        $this->updateRow($table, $id, $data);
+        $validated = $this->validatePayload($this->maskPayload($payload, $api, $fieldMap), $fieldMap, true);
+        [$data, $m2m] = $this->extractManyToMany($validated, $fieldMap);
+        if ($data !== []) {
+            $this->updateRow($table, $id, $data);
+        }
+        $this->syncManyToMany($slug, $id, $m2m);
         $this->syncMediaRefs($resource, $table, $id, $fieldMap);
 
         return $this->fetchCustom($table, $id, $fieldMap, $api);
@@ -391,12 +417,13 @@ final class QueryEngine
      */
     public function deleteCustom(string $slug, string $apiSlug, int $id, array $options = []): void
     {
-        [$resource, $table] = $this->resolveCustom($slug, $apiSlug, 'DELETE', $options);
+        [$resource, $table, $fieldMap] = $this->resolveCustom($slug, $apiSlug, 'DELETE', $options);
         $settings = $this->settingsOf($resource);
         $hard = !(($settings['softDelete'] ?? false) === true || ($settings['deleteStrategy'] ?? 'hard') === 'soft');
         $this->deleteRow($table, $id, $settings);
         if ($hard) {
             $this->clearMediaRefs($resource, $id);
+            $this->clearManyToMany($slug, $id, $fieldMap);
         }
     }
 
@@ -524,7 +551,7 @@ final class QueryEngine
         if ($api['fields'] === null) {
             foreach ($fieldMap as $name => $meta) {
                 $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                if (($meta['type'] ?? '') === 'relation' && \in_array(($config['cardinality'] ?? 'manyToOne'), ['oneToMany', 'manyToMany'], true)) {
                     continue;
                 }
                 $needed[$name] = true;
@@ -568,7 +595,7 @@ final class QueryEngine
             $out['updatedAt'] = $row['updated_at'] ?? null;
             foreach ($fieldMap as $name => $meta) {
                 $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                if (($meta['type'] ?? '') === 'relation' && \in_array(($config['cardinality'] ?? 'manyToOne'), ['oneToMany', 'manyToMany'], true)) {
                     continue;
                 }
                 if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
@@ -694,7 +721,7 @@ final class QueryEngine
             $out['updatedAt'] = $row['updated_at'] ?? null;
             foreach ($fieldMap as $name => $meta) {
                 $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-                if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
+                if (($meta['type'] ?? '') === 'relation' && \in_array(($config['cardinality'] ?? 'manyToOne'), ['oneToMany', 'manyToMany'], true)) {
                     continue;
                 }
                 if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
@@ -1088,7 +1115,7 @@ final class QueryEngine
      * @param array<string, array<string, mixed>> $fieldMap
      * @return array<string, mixed>
      */
-    private function serialize(array $row, array $fieldMap): array
+    private function serialize(array $row, array $fieldMap, string $slug = ''): array
     {
         $out = [
             'id' => (int) $row['id'],
@@ -1097,11 +1124,32 @@ final class QueryEngine
             'createdById' => isset($row['created_by']) ? (int) $row['created_by'] : null,
             'updatedById' => isset($row['updated_by']) ? (int) $row['updated_by'] : null,
         ];
+        if (\array_key_exists('locale', $row)) {
+            $out['locale'] = $row['locale'];
+        }
+        if (\array_key_exists('translation_group_id', $row)) {
+            $out['translationGroupId'] = $row['translation_group_id'];
+        }
+        if (\array_key_exists('status', $row)) {
+            $out['status'] = $row['status'];
+        }
         $mediaCache = [];
         foreach ($fieldMap as $name => $meta) {
             $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
-            if (($meta['type'] ?? '') === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
-                continue;
+            if (($meta['type'] ?? '') === 'relation') {
+                $cardinality = $config['cardinality'] ?? 'manyToOne';
+                if ($cardinality === 'oneToMany') {
+                    continue;
+                }
+                if ($cardinality === 'manyToMany') {
+                    if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
+                        continue;
+                    }
+                    $out[$name] = $slug === ''
+                        ? []
+                        : $this->loadManyToManyIds($slug, $name, (int) $row['id']);
+                    continue;
+                }
             }
             if (!($meta['spec']['readable'] ?? true) || ($meta['spec']['hidden'] ?? false)) {
                 continue;
@@ -1110,6 +1158,195 @@ final class QueryEngine
         }
 
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $validated
+     * @param array<string, array<string, mixed>> $fieldMap
+     * @return array{0: array<string, mixed>, 1: array<string, list<int>>}
+     */
+    private function extractManyToMany(array $validated, array $fieldMap): array
+    {
+        $m2m = [];
+        $data = $validated;
+        foreach ($fieldMap as $name => $meta) {
+            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+            if (($meta['type'] ?? '') !== 'relation' || ($config['cardinality'] ?? '') !== 'manyToMany') {
+                continue;
+            }
+            if (!\array_key_exists($name, $data)) {
+                continue;
+            }
+            /** @var list<int> $ids */
+            $ids = \is_array($data[$name]) ? $data[$name] : [];
+            $m2m[$name] = $ids;
+            unset($data[$name]);
+        }
+
+        return [$data, $m2m];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $settings
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>}
+     */
+    private function extractSystemFields(array $payload, array $settings, bool $partial = false): array
+    {
+        $system = [];
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
+
+        if ((bool) ($localization['enabled'] ?? false)) {
+            if (\array_key_exists('locale', $payload)) {
+                $locale = $payload['locale'];
+                unset($payload['locale']);
+                if (\is_string($locale) && preg_match('/^[a-z]{2}(-[A-Za-z0-9]+)?$/', $locale)) {
+                    $system['locale'] = $locale;
+                } elseif ($locale !== null) {
+                    throw new InvalidArgumentException('Invalid locale');
+                }
+            } elseif (!$partial) {
+                $system['locale'] = $this->defaultLocaleCode();
+            }
+            if (\array_key_exists('translationGroupId', $payload) || \array_key_exists('translation_group_id', $payload)) {
+                $group = $payload['translationGroupId'] ?? $payload['translation_group_id'];
+                unset($payload['translationGroupId'], $payload['translation_group_id']);
+                if (\is_string($group) && $group !== '') {
+                    $system['translation_group_id'] = $group;
+                }
+            } elseif (!$partial) {
+                $system['translation_group_id'] = $this->newUuid();
+            }
+        }
+
+        if ((bool) ($workflow['enabled'] ?? false)) {
+            if (\array_key_exists('status', $payload)) {
+                $status = $payload['status'];
+                unset($payload['status']);
+                if (!\is_string($status) || !\in_array($status, ['draft', 'in_review', 'published'], true)) {
+                    throw new InvalidArgumentException('Invalid entry status');
+                }
+                $system['status'] = $status;
+            } elseif (!$partial) {
+                $system['status'] = 'draft';
+            }
+        }
+
+        return [$payload, $system];
+    }
+
+    private function newUuid(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+
+        return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+    }
+
+    /**
+     * @param array<string, string> $query
+     * @param array<string, mixed> $settings
+     * @param list<string> $where
+     * @param array<string, mixed> $params
+     */
+    private function applyFeatureFilters(
+        array $query,
+        array $settings,
+        bool $public,
+        array &$where,
+        array &$params,
+    ): void {
+        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
+        if ($public && (bool) ($workflow['enabled'] ?? false)) {
+            $where[] = '`status` = :wf_status';
+            $params['wf_status'] = 'published';
+        }
+
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        if ((bool) ($localization['enabled'] ?? false)) {
+            $locale = isset($query['locale']) && \is_string($query['locale']) ? trim($query['locale']) : '';
+            if ($locale !== '') {
+                $where[] = '`locale` = :feat_locale';
+                $params['feat_locale'] = $locale;
+            } elseif ($public) {
+                $where[] = '`locale` = :feat_locale';
+                $params['feat_locale'] = $this->defaultLocaleCode();
+            }
+        }
+    }
+
+    private function defaultLocaleCode(): string
+    {
+        try {
+            $row = $this->db->selectOne(
+                'SELECT code FROM cms_locales WHERE is_default = 1 AND enabled = 1 LIMIT 1',
+            );
+            if ($row !== null && isset($row['code']) && \is_string($row['code']) && $row['code'] !== '') {
+                return $row['code'];
+            }
+        } catch (\Throwable) {
+            // Locales table may be missing on older installs mid-migrate.
+        }
+
+        return 'en';
+    }
+
+    /**
+     * @param array<string, list<int>> $m2m
+     */
+    private function syncManyToMany(string $slug, int $leftId, array $m2m): void
+    {
+        foreach ($m2m as $field => $ids) {
+            $join = MigrationService::manyToManyJoinTable($slug, $field);
+            $this->db->execute('DELETE FROM `' . $join . '` WHERE `left_id` = :id', ['id' => $leftId]);
+            foreach ($ids as $rightId) {
+                $this->db->execute(
+                    'INSERT INTO `' . $join . '` (`left_id`, `right_id`) VALUES (:l, :r)',
+                    ['l' => $leftId, 'r' => $rightId],
+                );
+            }
+        }
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $fieldMap
+     */
+    private function clearManyToMany(string $slug, int $leftId, array $fieldMap): void
+    {
+        foreach ($fieldMap as $name => $meta) {
+            $config = \is_array($meta['spec']['config'] ?? null) ? $meta['spec']['config'] : [];
+            if (($meta['type'] ?? '') !== 'relation' || ($config['cardinality'] ?? '') !== 'manyToMany') {
+                continue;
+            }
+            $join = MigrationService::manyToManyJoinTable($slug, $name);
+            try {
+                $this->db->execute('DELETE FROM `' . $join . '` WHERE `left_id` = :id', ['id' => $leftId]);
+            } catch (\Throwable) {
+                // Join table may not exist yet.
+            }
+        }
+    }
+
+    /** @return list<int> */
+    private function loadManyToManyIds(string $slug, string $field, int $leftId): array
+    {
+        $join = MigrationService::manyToManyJoinTable($slug, $field);
+        try {
+            $rows = $this->db->select(
+                'SELECT `right_id` FROM `' . $join . '` WHERE `left_id` = :id ORDER BY `right_id` ASC',
+                ['id' => $leftId],
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+        $ids = [];
+        foreach ($rows as $row) {
+            $ids[] = (int) $row['right_id'];
+        }
+
+        return $ids;
     }
 
     /**

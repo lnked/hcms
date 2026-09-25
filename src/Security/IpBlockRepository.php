@@ -21,8 +21,34 @@ final class IpBlockRepository
              LIMIT 1',
             ['ip' => $ip, 'at' => $at],
         );
+        if ($row !== null) {
+            return true;
+        }
 
-        return $row !== null;
+        $cidrs = $this->activeCidrPatterns($at);
+
+        return $cidrs !== [] && IpMatcher::matchesAny($cidrs, $ip);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function activeCidrPatterns(string $at): array
+    {
+        $rows = $this->db->select(
+            "SELECT ip FROM cms_ip_blocks
+             WHERE ip LIKE '%/%' AND (expires_at IS NULL OR expires_at > :at)",
+            ['at' => $at],
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $normalized = IpMatcher::normalizePattern((string) ($row['ip'] ?? ''));
+            if ($normalized !== null) {
+                $out[] = $normalized;
+            }
+        }
+
+        return $out;
     }
 
     public function block(string $ip, string $reason, ?string $expiresAt, ?int $createdBy = null): int

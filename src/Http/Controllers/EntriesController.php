@@ -13,7 +13,10 @@ use Cms\Core\Exception\ValidationFailedException;
 use Cms\Hooks\RequestMeta;
 use Cms\Http\Request;
 use Cms\Http\Response;
+use Cms\Preview\PreviewTokenService;
 use Cms\Resources\EntryImportExportService;
+use Cms\Resources\ResourceRepository;
+use Cms\Resources\ResourceService;
 use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
@@ -27,6 +30,8 @@ final class EntriesController
         private readonly EntryImportExportService $importExport,
         private readonly ?WebhookDispatcher $webhooks = null,
         private readonly ?EntryRevisionService $revisions = null,
+        private readonly ?PreviewTokenService $previewTokens = null,
+        private readonly ?ResourceRepository $resources = null,
     ) {
     }
 
@@ -289,6 +294,129 @@ final class EntriesController
                 ['resourceId' => $resourceId, 'revisionId' => $revisionId],
             );
             $this->webhooks?->dispatchAfterResponse('entry.updated', [
+                'resourceId' => $resourceId,
+                'slug' => $slug,
+                'entry' => $entry,
+                'meta' => RequestMeta::fromRequest($request, 'admin'),
+            ], $resourceId);
+
+            return Response::data($entry);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function preview(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        if ($this->previewTokens === null || $this->resources === null) {
+            return Response::error('SERVICE_UNAVAILABLE', 'Preview unavailable', 503);
+        }
+        try {
+            $slug = $this->entries->slug($resourceId);
+            $this->entries->find($resourceId, $entryId);
+            $row = $this->resources->find($resourceId);
+            if ($row === null) {
+                return Response::error('NOT_FOUND', 'Resource not found', 404);
+            }
+            $raw = $row['settings_json'] ?? [];
+            if (\is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $settings = \is_array($decoded) ? $decoded : [];
+            } elseif (\is_array($raw)) {
+                $settings = $raw;
+            } else {
+                $settings = [];
+            }
+            $settings = ResourceService::normalizeSettings($settings);
+            $template = (string) ($settings['preview']['url'] ?? '');
+            if ($template === '') {
+                return Response::error(
+                    'VALIDATION_ERROR',
+                    'Preview URL is not configured',
+                    422,
+                    ['preview.url' => ['Preview URL is not configured']],
+                );
+            }
+
+            $issued = $this->previewTokens->issue($resourceId, $entryId, $slug);
+            $previewUrl = PreviewTokenService::buildPreviewUrl($template, $slug, $entryId, $issued);
+            $this->audit->log(
+                $request,
+                'entry.preview_issued',
+                $auth->userId(),
+                'entry',
+                (string) $entryId,
+                ['resourceId' => $resourceId, 'expiresAt' => $issued['expiresAt']],
+            );
+
+            return Response::data([
+                'previewUrl' => $previewUrl,
+                'token' => $issued['token'],
+                'expiresAt' => $issued['expiresAt'],
+            ]);
+        } catch (ValidationFailedException $e) {
+            return Response::error($e->errorCode(), $e->getMessage(), $e->status(), $e->fields() ?? []);
+        } catch (InvalidArgumentException $e) {
+            return Response::error('VALIDATION_ERROR', $e->getMessage(), 422);
+        } catch (RuntimeException $e) {
+            return $this->runtimeError($e);
+        } catch (Throwable $e) {
+            return Response::error('INTERNAL_ERROR', $e->getMessage(), 500);
+        }
+    }
+
+    public function setStatus(Request $request, AuthContext $auth, int $resourceId, int $entryId): Response
+    {
+        try {
+            if ($this->resources === null) {
+                return Response::error('SERVICE_UNAVAILABLE', 'Unavailable', 503);
+            }
+            $row = $this->resources->find($resourceId);
+            if ($row === null) {
+                return Response::error('NOT_FOUND', 'Resource not found', 404);
+            }
+            $raw = $row['settings_json'] ?? [];
+            if (\is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                $settings = \is_array($decoded) ? $decoded : [];
+            } elseif (\is_array($raw)) {
+                $settings = $raw;
+            } else {
+                $settings = [];
+            }
+            $settings = ResourceService::normalizeSettings($settings);
+            if (!($settings['workflow']['enabled'] ?? false)) {
+                return Response::error('VALIDATION_ERROR', 'Workflow is not enabled for this resource', 422);
+            }
+            $payload = $request->json();
+            $status = isset($payload['status']) && \is_string($payload['status']) ? $payload['status'] : '';
+            if (!\in_array($status, ['draft', 'in_review', 'published'], true)) {
+                return Response::error('VALIDATION_ERROR', 'Invalid status', 422, ['status' => ['Invalid status']]);
+            }
+            $role = \Cms\Auth\RolePolicy::normalize(
+                isset($auth->user['role']) ? (string) $auth->user['role'] : null,
+            );
+            if ($status === 'published' && !\Cms\Auth\RolePolicy::can($role, 'entries.publish')) {
+                return Response::error('FORBIDDEN', 'Insufficient role to publish', 403);
+            }
+            $slug = $this->entries->slug($resourceId);
+            $entry = $this->entries->patch($resourceId, $entryId, ['status' => $status], $auth->userId());
+            $event = match ($status) {
+                'in_review' => 'entry.submitted',
+                'published' => 'entry.published',
+                default => 'entry.unpublished',
+            };
+            $this->audit->log($request, $event, $auth->userId(), 'entry', (string) $entryId, [
+                'resourceId' => $resourceId,
+                'status' => $status,
+            ]);
+            $this->webhooks?->dispatchAfterResponse($event, [
                 'resourceId' => $resourceId,
                 'slug' => $slug,
                 'entry' => $entry,

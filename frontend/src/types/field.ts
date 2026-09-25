@@ -13,6 +13,7 @@ export type FieldTypeName =
   | 'url'
   | 'uuid'
   | 'json'
+  | 'blocks'
   | 'enum'
   | 'slug'
   | 'image'
@@ -56,6 +57,7 @@ export const FIELD_TYPES: FieldTypeName[] = [
   'url',
   'uuid',
   'json',
+  'blocks',
   'enum',
   'slug',
   'image',
@@ -75,6 +77,8 @@ function defaultConfig(type: FieldTypeName): Record<string, unknown> {
         labelField: 'id',
         foreignKey: '',
       }
+    case 'blocks':
+      return { components: { hero: [{ name: 'title', type: 'string', required: true }] } }
     case 'enum':
       return { options: ['draft', 'published'] }
     case 'slug':

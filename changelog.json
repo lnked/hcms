@@ -1,6 +1,44 @@
 {
   "releases": [
     {
+      "version": "0.62.11",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Preview, content features, anti-spam K–N, SDK",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Live Preview: settings.preview.url, POST …/entries/{id}/preview, GET /api/preview/{token}"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Cache-Control + Surrogate-Key на public GET (settings.cache.maxAge); localization/workflow system cols + filters"
+        },
+        {
+          "type": "added",
+          "area": "schema",
+          "text": "Relation manyToMany/oneToOne; field type blocks; join tables на migrate"
+        },
+        {
+          "type": "added",
+          "area": "api",
+          "text": "Entry workflow: POST …/status (draft/in_review/published) + admin UI actions"
+        },
+        {
+          "type": "security",
+          "area": "api",
+          "text": "Anti-spam K–N: anon update/delete, SpamRejected, AutoBlock, CIDR IP blocks"
+        },
+        {
+          "type": "added",
+          "area": "dev",
+          "text": "packages/sdk (@hcms/sdk + hcms-types); docs/review.md module map; product roadmap"
+        }
+      ]
+    },
+    {
       "version": "0.62.10",
       "date": "2026-09-25",
       "channel": "stable",

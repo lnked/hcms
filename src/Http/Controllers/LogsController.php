@@ -11,6 +11,7 @@ use Cms\Auth\AuthContext;
 use Cms\Http\Request;
 use Cms\Http\Response;
 use Cms\Security\IpBlockRepository;
+use Cms\Security\IpMatcher;
 
 final class LogsController
 {
@@ -91,9 +92,11 @@ final class LogsController
         $ip = isset($payload['ip']) && \is_string($payload['ip']) ? trim($payload['ip']) : '';
         $reason = isset($payload['reason']) && \is_string($payload['reason']) ? trim($payload['reason']) : 'manual';
         $ttl = isset($payload['ttlSeconds']) ? (int) $payload['ttlSeconds'] : 3600;
-        if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
-            return Response::error('VALIDATION_ERROR', 'Valid IP is required', 422);
+        if ($ip === '' || IpMatcher::normalizePattern($ip) === null) {
+            return Response::error('VALIDATION_ERROR', 'Valid IP or CIDR is required', 422);
         }
+        $normalized = IpMatcher::normalizePattern($ip);
+        $ip = $normalized ?? $ip;
         $expires = $ttl > 0 ? date('Y-m-d H:i:s', time() + $ttl) : null;
         $id = $this->ipBlocks->block($ip, $reason !== '' ? $reason : 'manual', $expires, $auth->userId());
         $this->auditLogger?->log($request, 'security.ip_blocked', $auth->userId(), 'ip', $ip, [

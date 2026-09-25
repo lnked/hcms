@@ -18,6 +18,7 @@ use Cms\Resources\ResourceRepository;
 use Cms\Resources\ResourceService;
 use Cms\Security\RateLimitExceeded;
 use Cms\Security\SpamGuard;
+use Cms\Security\SpamRejected;
 use Cms\Webhooks\WebhookDispatcher;
 use InvalidArgumentException;
 use RuntimeException;
@@ -32,6 +33,10 @@ final class PublicApiController
         private readonly ?SpamGuard $spamGuard = null,
         private readonly ?WebhookDispatcher $webhooks = null,
         private readonly ?ResourceHookService $hooks = null,
+        private readonly ?\Cms\Audit\AuditLogger $audit = null,
+        private readonly ?\Cms\Auth\RateLimitStore $rateLimitStore = null,
+        private readonly ?\Cms\Security\AutoBlock $autoBlock = null,
+        private readonly ?\Cms\Core\Settings $settings = null,
     ) {
     }
 
@@ -41,20 +46,29 @@ final class PublicApiController
             $this->authorize($request->method, $slug, $auth);
 
             return match ($request->method) {
-                'GET' => $id === null
-                    ? Response::json($this->query->list($slug, $request->query, ['public' => true]))
-                    : Response::data($this->query->find($slug, (int) $id, ['public' => true])),
+                'GET' => $this->withCacheHeaders(
+                    $request,
+                    $slug,
+                    $auth,
+                    $id === null
+                        ? Response::json($this->query->list($slug, $request->query, ['public' => true]))
+                        : Response::data($this->query->find($slug, (int) $id, ['public' => true])),
+                ),
                 'POST' => $id === null
                     ? $this->create($request, $slug, null, $auth)
                     : Response::error('BAD_REQUEST', 'Unexpected id', 400),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->update($request, $slug, null, (int) $id, $request->json()),
+                    : $this->update($request, $slug, null, (int) $id, $request->json(), $auth),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->delete($request, $slug, null, (int) $id),
+                    : $this->delete($request, $slug, null, (int) $id, $auth),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (SpamRejected $e) {
+            $this->onSpamRejected($request, $slug, $e);
+
+            return Response::error('VALIDATION_ERROR', $e->publicMessage(), 422);
         } catch (HookRejectedException $e) {
             return Response::error($e->errorCode, $e->getMessage(), 422);
         } catch (RateLimitExceeded $e) {
@@ -80,20 +94,29 @@ final class PublicApiController
             $this->authorizeCustom($slug, $apiSlug, self::actionFor($request->method), $auth);
 
             return match ($request->method) {
-                'GET' => $id === null
-                    ? Response::json($this->query->listCustom($slug, $apiSlug, $request->query, ['public' => true]))
-                    : Response::data($this->query->findCustom($slug, $apiSlug, (int) $id, ['public' => true])),
+                'GET' => $this->withCacheHeaders(
+                    $request,
+                    $slug,
+                    $auth,
+                    $id === null
+                        ? Response::json($this->query->listCustom($slug, $apiSlug, $request->query, ['public' => true]))
+                        : Response::data($this->query->findCustom($slug, $apiSlug, (int) $id, ['public' => true])),
+                ),
                 'POST' => $id === null
                     ? $this->create($request, $slug, $apiSlug, $auth)
                     : Response::error('BAD_REQUEST', 'Unexpected id', 400),
                 'PUT', 'PATCH' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->update($request, $slug, $apiSlug, (int) $id, $request->json()),
+                    : $this->update($request, $slug, $apiSlug, (int) $id, $request->json(), $auth),
                 'DELETE' => $id === null
                     ? Response::error('BAD_REQUEST', 'Missing id', 400)
-                    : $this->delete($request, $slug, $apiSlug, (int) $id),
+                    : $this->delete($request, $slug, $apiSlug, (int) $id, $auth),
                 default => Response::error('METHOD_NOT_ALLOWED', 'Method not allowed', 405),
             };
+        } catch (SpamRejected $e) {
+            $this->onSpamRejected($request, $slug, $e);
+
+            return Response::error('VALIDATION_ERROR', $e->publicMessage(), 422);
         } catch (HookRejectedException $e) {
             return Response::error($e->errorCode, $e->getMessage(), 422);
         } catch (RateLimitExceeded $e) {
@@ -109,7 +132,7 @@ final class PublicApiController
     {
         $payload = $request->json();
         if ($auth === null) {
-            $this->guardAnonymousCreate($request, $slug, $payload);
+            $this->guardAnonymousWrite($request, $slug, 'create', $payload);
         }
 
         $meta = RequestMeta::fromRequest($request, 'public');
@@ -139,8 +162,17 @@ final class PublicApiController
     /**
      * @param array<string, mixed> $payload
      */
-    private function update(Request $request, string $slug, ?string $apiSlug, int $id, array $payload): Response
-    {
+    private function update(
+        Request $request,
+        string $slug,
+        ?string $apiSlug,
+        int $id,
+        array $payload,
+        ?AuthContext $auth = null,
+    ): Response {
+        if ($auth === null) {
+            $this->guardAnonymousWrite($request, $slug, 'update', $payload);
+        }
         $entry = $apiSlug === null
             ? $this->query->patch($slug, $id, $payload, ['public' => true])
             : $this->query->patchCustom($slug, $apiSlug, $id, $payload, ['public' => true]);
@@ -149,8 +181,17 @@ final class PublicApiController
         return Response::data($entry);
     }
 
-    private function delete(Request $request, string $slug, ?string $apiSlug, int $id): Response
-    {
+    private function delete(
+        Request $request,
+        string $slug,
+        ?string $apiSlug,
+        int $id,
+        ?AuthContext $auth = null,
+    ): Response {
+        if ($auth === null) {
+            $empty = [];
+            $this->guardAnonymousWrite($request, $slug, 'delete', $empty);
+        }
         if ($apiSlug === null) {
             $this->query->delete($slug, $id, ['public' => true]);
         } else {
@@ -161,33 +202,96 @@ final class PublicApiController
         return new Response(204, '');
     }
 
+    private function withCacheHeaders(Request $request, string $slug, ?AuthContext $auth, Response $response): Response
+    {
+        unset($request);
+        if ($auth !== null) {
+            return $response->withHeaders([
+                'Cache-Control' => 'private, no-store',
+                'Vary' => 'Authorization',
+            ]);
+        }
+
+        $settings = $this->normalizedSettings($slug);
+        $maxAge = (int) ($settings['cache']['maxAge'] ?? 0);
+        if ($maxAge <= 0) {
+            return $response;
+        }
+
+        return $response->withHeaders([
+            'Cache-Control' => 'public, max-age=' . $maxAge,
+            'Surrogate-Key' => $slug,
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizedSettings(string $slug): array
+    {
+        $resource = $this->resources->findByPublicKey($slug);
+        if ($resource === null) {
+            return ResourceService::defaultSettings();
+        }
+        $raw = $resource['settings_json'] ?? [];
+        if (\is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $settings = \is_array($decoded) ? $decoded : [];
+        } elseif (\is_array($raw)) {
+            $settings = $raw;
+        } else {
+            $settings = [];
+        }
+
+        return ResourceService::normalizeSettings($settings);
+    }
+
     /**
      * @param array<string, mixed> $payload
      */
-    private function guardAnonymousCreate(Request $request, string $slug, array &$payload): void
+    private function guardAnonymousWrite(Request $request, string $slug, string $action, array &$payload): void
     {
         if ($this->spamGuard === null) {
             return;
         }
 
-        $resource = $this->resources->findByPublicKey($slug);
-        $settings = [];
-        if ($resource !== null) {
-            $raw = $resource['settings_json'] ?? [];
-            if (\is_string($raw)) {
-                $decoded = json_decode($raw, true);
-                $settings = \is_array($decoded) ? $decoded : [];
-            } elseif (\is_array($raw)) {
-                $settings = $raw;
-            }
-            $settings = ResourceService::normalizeSettings($settings);
-        }
-        $this->spamGuard->assertCreateAllowed($request, $slug, $settings, $payload);
+        $settings = $this->normalizedSettings($slug);
+        $this->spamGuard->assertWriteAllowed($request, $slug, $settings, $payload, $action);
         $honeypot = \is_string($settings['spam']['honeypotField'] ?? null) ? $settings['spam']['honeypotField'] : '';
         if ($honeypot !== '') {
             unset($payload[$honeypot]);
         }
         unset($payload['captchaToken'], $payload['_startedAt']);
+    }
+
+    private function onSpamRejected(Request $request, string $slug, SpamRejected $e): void
+    {
+        if ($this->audit === null) {
+            return;
+        }
+        $shouldLog = true;
+        if ($this->rateLimitStore !== null) {
+            $limiter = new \Cms\Auth\RateLimiter($this->rateLimitStore, 60, 1);
+            $shouldLog = $limiter->hit('spam:audit:' . $request->ip);
+        }
+        if ($shouldLog) {
+            $this->audit->log($request, 'security.spam_rejected', null, 'resource', $slug, [
+                'reason' => $e->reason,
+                'slug' => $slug,
+            ]);
+        }
+        if ($this->autoBlock !== null && $this->settings !== null
+            && \in_array($e->reason, ['honeypot', 'blocklist', 'too_fast'], true)
+        ) {
+            $threshold = max(0, $this->settings->int('security.ip_auto_block_after_spam_rejects', 0));
+            $this->autoBlock->maybeBlock($request, 'security.spam_rejected', $threshold, 'auto:spam_rejected');
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function guardAnonymousCreate(Request $request, string $slug, array &$payload): void
+    {
+        $this->guardAnonymousWrite($request, $slug, 'create', $payload);
     }
 
     /**

@@ -24,6 +24,24 @@ final class ResourceServiceTest extends TestCase
         $this->assertSame('hard', $settings['deleteStrategy']);
         $this->assertSame('', $settings['spam']['honeypotField']);
         $this->assertFalse($settings['spam']['requireCaptcha']);
+        $this->assertSame(0, $settings['cache']['maxAge']);
+        $this->assertSame('', $settings['preview']['url']);
+        $this->assertFalse($settings['localization']['enabled']);
+        $this->assertFalse($settings['workflow']['enabled']);
+    }
+
+    public function testCacheAndPreviewNormalization(): void
+    {
+        $settings = ResourceService::normalizeSettings([
+            'cache' => ['maxAge' => 999999],
+            'preview' => ['url' => ' https://x.test/{token} '],
+            'localization' => ['enabled' => 1],
+            'workflow' => ['enabled' => true],
+        ]);
+        $this->assertSame(86400, $settings['cache']['maxAge']);
+        $this->assertSame('https://x.test/{token}', $settings['preview']['url']);
+        $this->assertTrue($settings['localization']['enabled']);
+        $this->assertTrue($settings['workflow']['enabled']);
     }
 
     public function testSoftDeleteStrategyNormalization(): void

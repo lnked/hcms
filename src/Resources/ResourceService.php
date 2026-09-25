@@ -298,6 +298,18 @@ final class ResourceService
                 'blocklist' => [],
                 'rejectDuplicates' => true,
             ],
+            'cache' => [
+                'maxAge' => 0,
+            ],
+            'preview' => [
+                'url' => '',
+            ],
+            'localization' => [
+                'enabled' => false,
+            ],
+            'workflow' => [
+                'enabled' => false,
+            ],
         ], $override));
     }
 
@@ -312,6 +324,10 @@ final class ResourceService
         $softDelete = $strategy === 'soft' || (bool) ($settings['softDelete'] ?? false);
         $list = \is_array($settings['list'] ?? null) ? $settings['list'] : [];
         $spam = \is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
+        $cache = \is_array($settings['cache'] ?? null) ? $settings['cache'] : [];
+        $preview = \is_array($settings['preview'] ?? null) ? $settings['preview'] : [];
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
         $blocklist = [];
         if (\is_array($spam['blocklist'] ?? null)) {
             foreach ($spam['blocklist'] as $term) {
@@ -320,6 +336,7 @@ final class ResourceService
                 }
             }
         }
+        $previewUrl = \is_string($preview['url'] ?? null) ? trim($preview['url']) : '';
 
         return [
             'apiEnabled' => (bool) ($settings['apiEnabled'] ?? true),
@@ -346,6 +363,18 @@ final class ResourceService
                 'maxLinks' => max(0, (int) ($spam['maxLinks'] ?? 0)),
                 'blocklist' => $blocklist,
                 'rejectDuplicates' => (bool) ($spam['rejectDuplicates'] ?? true),
+            ],
+            'cache' => [
+                'maxAge' => max(0, min(86400, (int) ($cache['maxAge'] ?? 0))),
+            ],
+            'preview' => [
+                'url' => $previewUrl,
+            ],
+            'localization' => [
+                'enabled' => (bool) ($localization['enabled'] ?? false),
+            ],
+            'workflow' => [
+                'enabled' => (bool) ($workflow['enabled'] ?? false),
             ],
         ];
     }

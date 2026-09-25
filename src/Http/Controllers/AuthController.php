@@ -17,6 +17,7 @@ use Cms\Auth\UsersService;
 use Cms\Core\Settings;
 use Cms\Http\Request;
 use Cms\Http\Response;
+use Cms\Security\AutoBlock;
 use Cms\Security\CaptchaVerifier;
 use Cms\Security\IpBlockRepository;
 use Cms\Security\Totp;
@@ -36,6 +37,7 @@ final class AuthController
         private readonly ?UsersRepository $users = null,
         private readonly ?OAuthService $oauth = null,
         private readonly ?UsersService $usersService = null,
+        private readonly ?AutoBlock $autoBlock = null,
     ) {
     }
 
@@ -616,16 +618,23 @@ final class AuthController
 
     private function maybeAutoBlockIp(Request $request): void
     {
-        if ($this->ipBlocks === null || $this->settings === null) {
+        if ($this->settings === null) {
             return;
         }
         $threshold = max(0, $this->settings->int('security.ip_auto_block_after_login_blocks', 3));
+        if ($this->autoBlock !== null) {
+            $this->autoBlock->maybeBlock($request, 'auth.login_blocked', $threshold, 'auto:login_blocked');
+
+            return;
+        }
+        if ($this->ipBlocks === null) {
+            return;
+        }
         if ($threshold <= 0) {
             return;
         }
         $window = max(60, $this->settings->int('security.ip_auto_block_window_seconds', 3600));
         $count = $this->ipBlocks->countAuditActions($request->ip, 'auth.login_blocked', $window);
-        // Current event already logged.
         if ($count < $threshold) {
             return;
         }

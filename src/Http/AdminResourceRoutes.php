@@ -304,6 +304,20 @@ final class AdminResourceRoutes
                 (int) $params['revId'],
             );
         });
+        $router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/preview', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->preview($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
+        $router->add('POST', '/admin/api/resources/{id}/entries/{entryId}/status', function (Request $request, array $params, ?AuthContext $context) use ($entries): Response {
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $entries->setStatus($request, $context, (int) $params['id'], (int) $params['entryId']);
+        });
 
         $router->add('POST', '/admin/api/resources/{id}/migrate', function (Request $request, array $params, ?AuthContext $context) use ($migrations): Response {
             if ($context === null) {

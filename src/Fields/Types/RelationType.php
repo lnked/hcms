@@ -24,8 +24,10 @@ final class RelationType extends AbstractFieldType
     public function validateConfig(array $config): void
     {
         $cardinality = $config['cardinality'] ?? 'manyToOne';
-        if (!\in_array($cardinality, ['manyToOne', 'oneToMany'], true)) {
-            throw new \InvalidArgumentException('Relation cardinality must be manyToOne or oneToMany');
+        if (!\in_array($cardinality, ['manyToOne', 'oneToMany', 'manyToMany', 'oneToOne'], true)) {
+            throw new \InvalidArgumentException(
+                'Relation cardinality must be manyToOne, oneToMany, manyToMany or oneToOne',
+            );
         }
         $slug = isset($config['relatedSlug']) && \is_string($config['relatedSlug'])
             ? trim($config['relatedSlug'])

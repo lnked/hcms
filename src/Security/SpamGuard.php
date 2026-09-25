@@ -7,10 +7,9 @@ namespace Cms\Security;
 use Cms\Auth\RateLimiter;
 use Cms\Auth\RateLimitStore;
 use Cms\Http\Request;
-use InvalidArgumentException;
 
 /**
- * Per-resource spam checks for anonymous public writes.
+ * Per-resource spam checks for anonymous public writes (create / update / delete).
  */
 final class SpamGuard
 {
@@ -21,14 +20,19 @@ final class SpamGuard
     }
 
     /**
-     * @param string $slug resource slug, scopes rate limit and duplicate buckets
+     * @param string $action create|update|delete
      * @param array<string, mixed> $settings resource settings
      * @param array<string, mixed> $payload
-     * @throws InvalidArgumentException failed spam check
+     * @throws SpamRejected failed spam check
      * @throws RateLimitExceeded too many submissions from this IP
      */
-    public function assertCreateAllowed(Request $request, string $slug, array $settings, array $payload): void
-    {
+    public function assertWriteAllowed(
+        Request $request,
+        string $slug,
+        array $settings,
+        array &$payload,
+        string $action = 'create',
+    ): void {
         $spam = \is_array($settings['spam'] ?? null) ? $settings['spam'] : [];
 
         $perMin = max(0, (int) ($spam['rateLimitPerMinute'] ?? 0));
@@ -45,17 +49,17 @@ final class SpamGuard
             $bait = $payload[$honeypot];
             $filled = \is_string($bait) ? trim($bait) !== '' : ($bait !== null && $bait !== false && $bait !== 0 && $bait !== 0.0);
             if ($filled) {
-                throw new InvalidArgumentException('Spam check failed');
+                throw new SpamRejected('honeypot');
             }
         }
 
         $minMs = isset($spam['minSubmitMs']) ? (int) $spam['minSubmitMs'] : 0;
-        if ($minMs > 0) {
+        if ($minMs > 0 && $payload !== []) {
             $started = $payload['_startedAt'] ?? $request->header('x-form-started-at');
             if (is_numeric($started)) {
                 $elapsed = (int) (round(microtime(true) * 1000) - (int) $started);
                 if ($elapsed >= 0 && $elapsed < $minMs) {
-                    throw new InvalidArgumentException('Submission too fast');
+                    throw new SpamRejected('too_fast');
                 }
             }
         }
@@ -69,45 +73,60 @@ final class SpamGuard
                 $token = $request->header('x-captcha-token');
             }
             if ($this->captcha === null || !$this->captcha->isConfigured()) {
-                throw new InvalidArgumentException('Captcha is required but not configured');
+                throw new SpamRejected('captcha', 'Captcha verification failed');
             }
             if ($token === null || !$this->captcha->verify($token, $request->ip)) {
-                throw new InvalidArgumentException('Captcha verification failed');
+                throw new SpamRejected('captcha', 'Captcha verification failed');
             }
         }
 
         $maxLinks = isset($spam['maxLinks']) ? (int) $spam['maxLinks'] : 0;
-        if ($maxLinks > 0) {
+        if ($maxLinks > 0 && $payload !== []) {
             $text = $this->flattenText($payload);
             $count = preg_match_all('#https?://#i', $text) ?: 0;
             if ($count > $maxLinks) {
-                throw new InvalidArgumentException('Too many links');
+                throw new SpamRejected('links');
             }
         }
 
         $blocklist = \is_array($spam['blocklist'] ?? null) ? $spam['blocklist'] : [];
-        if ($blocklist !== []) {
+        if ($blocklist !== [] && $payload !== []) {
             $text = mb_strtolower($this->flattenText($payload));
             foreach ($blocklist as $term) {
                 if (!\is_string($term) || trim($term) === '') {
                     continue;
                 }
                 if (str_contains($text, mb_strtolower(trim($term)))) {
-                    throw new InvalidArgumentException('Content blocked');
+                    throw new SpamRejected('blocklist');
                 }
             }
         }
 
-        if ($this->rateLimitStore !== null && (bool) ($spam['rejectDuplicates'] ?? true)) {
+        if (
+            $action !== 'delete'
+            && $this->rateLimitStore !== null
+            && (bool) ($spam['rejectDuplicates'] ?? true)
+            && $payload !== []
+        ) {
             $dupLimiter = new RateLimiter($this->rateLimitStore, 600, 1);
             $hash = hash(
                 'sha256',
                 $slug . '|' . $request->ip . '|' . json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             );
             if (!$dupLimiter->hit('spam:dup:' . $hash)) {
-                throw new InvalidArgumentException('Duplicate submission');
+                throw new SpamRejected('duplicate');
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @param array<string, mixed> $payload
+     * @deprecated use assertWriteAllowed
+     */
+    public function assertCreateAllowed(Request $request, string $slug, array $settings, array $payload): void
+    {
+        $this->assertWriteAllowed($request, $slug, $settings, $payload, 'create');
     }
 
     /**

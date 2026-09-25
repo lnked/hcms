@@ -32,14 +32,17 @@ final class SqlTypeMapper
         $indexed = (bool) ($field['indexed'] ?? false) || $unique;
         $config = \is_array($field['config'] ?? null) ? $field['config'] : [];
 
-        if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
-            return null;
+        if ($type === 'relation') {
+            $cardinality = $config['cardinality'] ?? 'manyToOne';
+            if ($cardinality === 'oneToMany' || $cardinality === 'manyToMany') {
+                return null;
+            }
         }
 
         $sqlType = match ($type) {
             'string', 'email', 'slug' => 'VARCHAR(' . (int) ($config['maxLength'] ?? 255) . ')',
             'url' => 'VARCHAR(2048)',
-            'text', 'json' => 'TEXT',
+            'text', 'json', 'blocks' => 'TEXT',
             'richtext' => 'MEDIUMTEXT',
             'integer' => 'INT',
             'float' => 'DOUBLE',
@@ -52,6 +55,9 @@ final class SqlTypeMapper
             'image', 'file' => 'JSON',
             default => throw new InvalidArgumentException('Unsupported SQL mapping for ' . $type),
         };
+
+        $unique = $unique || ($type === 'relation' && ($config['cardinality'] ?? '') === 'oneToOne');
+        $indexed = $indexed || $unique;
 
         return new ColumnDefinition(
             name: $name,

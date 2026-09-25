@@ -2,6 +2,8 @@
 
 Чеклист доработок HCMS.
 
+Продуктовый gap vs modern headless CMS и приоритет эпиков: [`roadmap-product.md`](roadmap-product.md).
+
 - [x] A Tech debt (clean.php, htaccess, frontend devDeps, CHANGELOG, Phase comments, ChangelogPage states)
 - [x] B CI GitHub Actions (`.github/workflows/ci.yml` + badge)
 - [x] C Webhooks (migration 005, HMAC dispatcher, admin CRUD + UI)
@@ -12,10 +14,10 @@
 - [x] H RBAC (roles owner/admin/editor/viewer, RolePolicy, UI)
 - [x] I Test coverage (PHPUnit 101, Vitest 34)
 - [x] J Docker (`Dockerfile` + `docker-compose.yml` + docs)
-- [ ] K Anti-spam на публичные update/delete
-- [ ] L Автобан IP по спаму
-- [ ] M Нейтральный текст отказа спам-проверок
-- [ ] N Подсети (CIDR) в блокировках IP
+- [x] K Anti-spam на публичные update/delete
+- [x] L Автобан IP по спаму
+- [x] M Нейтральный текст отказа спам-проверок
+- [x] N Подсети (CIDR) в блокировках IP
 - [x] O Architecture & QA tooling (фазы 1–2 + каркас фазы 3)
 
 Контекст к K–N: [anti-spam.md](anti-spam.md), раздел «Известные ограничения». Порядок — K → M → L → N: K закрывает дыру, M дешёвый и меняет тот же код, L опирается на сигнал, который добавит M, N независим.

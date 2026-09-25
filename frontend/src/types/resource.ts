@@ -34,6 +34,18 @@ export interface ResourceSettings {
     blocklist: string[]
     rejectDuplicates: boolean
   }
+  cache?: {
+    maxAge: number
+  }
+  preview?: {
+    url: string
+  }
+  localization?: {
+    enabled: boolean
+  }
+  workflow?: {
+    enabled: boolean
+  }
 }
 
 export interface Resource {

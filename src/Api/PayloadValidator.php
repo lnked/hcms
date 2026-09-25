@@ -27,8 +27,29 @@ final class PayloadValidator
             $spec = $meta['spec'];
             $type = (string) $meta['type'];
             $config = \is_array($spec['config'] ?? null) ? $spec['config'] : [];
-            if ($type === 'relation' && ($config['cardinality'] ?? 'manyToOne') === 'oneToMany') {
-                continue;
+            if ($type === 'relation') {
+                $cardinality = $config['cardinality'] ?? 'manyToOne';
+                if ($cardinality === 'oneToMany') {
+                    continue;
+                }
+                if ($cardinality === 'manyToMany') {
+                    if (!\array_key_exists($name, $payload)) {
+                        if (!$partial && ($spec['required'] ?? false)) {
+                            throw ValidationFailedException::field($name, 'Field required: ' . $name);
+                        }
+                        continue;
+                    }
+                    $value = $payload[$name];
+                    if ($value === null) {
+                        if (!($spec['nullable'] ?? true)) {
+                            throw ValidationFailedException::field($name, 'Field not nullable: ' . $name);
+                        }
+                        $out[$name] = [];
+                        continue;
+                    }
+                    $out[$name] = $this->castRelationIds($value, $name);
+                    continue;
+                }
             }
             if (!($spec['writable'] ?? true)) {
                 continue;
@@ -96,6 +117,7 @@ final class PayloadValidator
                 ? (int) $value
                 : throw ValidationFailedException::field($name, 'Invalid integer: ' . $name),
             'image', 'file' => $this->castMediaValue($value, $name, (bool) ($config['multiple'] ?? false)),
+            'blocks' => $this->castBlocksValue($value, $name, $config),
             'float' => is_numeric($value)
                 ? (float) $value
                 : throw ValidationFailedException::field($name, 'Invalid float: ' . $name),
@@ -132,5 +154,92 @@ final class PayloadValidator
         }
 
         return MediaValue::encode($normalized) ?? 'null';
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function castRelationIds(mixed $value, string $name): array
+    {
+        if (!\is_array($value)) {
+            throw ValidationFailedException::field($name, 'manyToMany expects an array of ids: ' . $name);
+        }
+        $ids = [];
+        foreach ($value as $item) {
+            if (!is_numeric($item)) {
+                throw ValidationFailedException::field($name, 'Invalid relation id in ' . $name);
+            }
+            $id = (int) $item;
+            if ($id < 1) {
+                throw ValidationFailedException::field($name, 'Invalid relation id in ' . $name);
+            }
+            $ids[$id] = $id;
+        }
+
+        return array_values($ids);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function castBlocksValue(mixed $value, string $name, array $config): string
+    {
+        if (\is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (!\is_array($decoded)) {
+                throw ValidationFailedException::field($name, 'Invalid blocks JSON: ' . $name);
+            }
+            $value = $decoded;
+        }
+        if (!\is_array($value)) {
+            throw ValidationFailedException::field($name, 'blocks expects an array: ' . $name);
+        }
+        $components = \is_array($config['components'] ?? null) ? $config['components'] : [];
+        $out = [];
+        foreach ($value as $i => $block) {
+            if (!\is_array($block)) {
+                throw ValidationFailedException::field($name, 'Invalid block at index ' . $i);
+            }
+            $type = isset($block['type']) && \is_string($block['type']) ? $block['type'] : '';
+            if ($type === '' || !isset($components[$type]) || !\is_array($components[$type])) {
+                throw ValidationFailedException::field($name . '.' . $i . '.type', 'Unknown block type: ' . $type);
+            }
+            $normalized = ['type' => $type];
+            foreach ($components[$type] as $field) {
+                if (!\is_array($field)) {
+                    continue;
+                }
+                $fname = isset($field['name']) && \is_string($field['name']) ? $field['name'] : '';
+                if ($fname === '') {
+                    continue;
+                }
+                $required = (bool) ($field['required'] ?? false);
+                $nullable = (bool) ($field['nullable'] ?? true);
+                if (!\array_key_exists($fname, $block)) {
+                    if ($required) {
+                        throw ValidationFailedException::field(
+                            $name . '.' . $i . '.' . $fname,
+                            'Field required: ' . $fname,
+                        );
+                    }
+                    continue;
+                }
+                $fv = $block[$fname];
+                if ($fv === null) {
+                    if (!$nullable) {
+                        throw ValidationFailedException::field(
+                            $name . '.' . $i . '.' . $fname,
+                            'Field not nullable: ' . $fname,
+                        );
+                    }
+                    $normalized[$fname] = null;
+                    continue;
+                }
+                $normalized[$fname] = \is_scalar($fv) || \is_array($fv) ? $fv : (string) $fv;
+            }
+            $out[] = $normalized;
+        }
+
+        return json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
     }
 }

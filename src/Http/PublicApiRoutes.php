@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Cms\Http;
 
 use Cms\Auth\AuthContext;
+use Cms\Http\Controllers\PreviewController;
 use Cms\Http\Controllers\PublicApiController;
 use Cms\Http\Controllers\PublicInboundController;
 
@@ -26,11 +27,22 @@ final class PublicApiRoutes
         Router $router,
         PublicApiController $api,
         ?PublicInboundController $inbound = null,
+        ?PreviewController $preview = null,
     ): void {
         if ($inbound !== null) {
             foreach (self::PREFIXES as $prefix) {
                 $router->add('POST', $prefix . '/inbound/{slug}', function (Request $request, array $params, ?AuthContext $context) use ($inbound): Response {
                     return $inbound->handle($request, (string) $params['slug'], $context);
+                }, true, 'api');
+            }
+        }
+
+        if ($preview !== null) {
+            foreach (self::PREFIXES as $prefix) {
+                $router->add('GET', $prefix . '/preview/{token}', function (Request $request, array $params, ?AuthContext $context) use ($preview): Response {
+                    unset($context);
+
+                    return $preview->resolve($request, (string) $params['token']);
                 }, true, 'api');
             }
         }

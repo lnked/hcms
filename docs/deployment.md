@@ -12,6 +12,14 @@
 
 Не клади `.env` в git и в zip, если там уже есть секреты сайта.
 
+## CDN / reverse proxy
+
+HCMS не включает CDN. Типичная схема: Cloudflare / Fastly / nginx cache перед PHP.
+
+- `settings.cache.maxAge` + заголовок `Surrogate-Key: {slug}` на анонимных public GET
+- инвалидация: webhooks `entry.updated` / `entry.deleted` (см. [webhooks.md](webhooks.md))
+- `security.trusted_proxies` — CIDR прокси, иначе rate-limit/IP-ban видят один IP шлюза
+
 ## Uptime cron
 
 Если сайт часто без трафика, поставь минутный cron — иначе soft cron (после `/admin/api/health`) может не тикать. Подробности: [`development.md#uptime-checks-cron`](development.md#uptime-checks-cron).

@@ -487,6 +487,7 @@ php scripts/verify-tree.php
 | Файл | О чём |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | ContentType / Field / Resource, оси версионирования |
+| [`docs/review.md`](docs/review.md) | карта всех модулей `src/` / frontend / SDK для агентов |
 | [`docs/installation.md`](docs/installation.md) | раскладка каталогов, shared-хостинг, `public_html` |
 | [`docs/deployment.md`](docs/deployment.md) | состав релиза, `latest.json` |
 | [`docs/development.md`](docs/development.md) | локальная разработка, Docker, quality gates |
@@ -503,4 +504,8 @@ php scripts/verify-tree.php
 | [`docs/recovery.md`](docs/recovery.md) | обновление и восстановление |
 | [`docs/landing-downloads.md`](docs/landing-downloads.md) | счётчик скачиваний на лендинге |
 | [`docs/install-telemetry.md`](docs/install-telemetry.md) | анонимный ping успешных установок |
+| [`docs/improvements.md`](docs/improvements.md) | инженерный backlog (anti-spam K–N, QA) |
+| [`docs/roadmap-product.md`](docs/roadmap-product.md) | gap vs modern headless CMS, приоритет продуктовых эпиков |
+| [`docs/implementation-plan.md`](docs/implementation-plan.md) | фазы реализации (preview, i18n, M2M, blocks, workflows, SDK) |
+| [`packages/sdk`](packages/sdk) | `@hcms/sdk` client + `hcms-types` CLI |
 | [`examples/react`](examples/react) | консьюмер публичного API |

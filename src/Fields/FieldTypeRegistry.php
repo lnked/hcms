@@ -31,6 +31,7 @@ final class FieldTypeRegistry
             new Types\ImageType(),
             new Types\FileType(),
             new Types\RelationType(),
+            new Types\BlocksType(),
         ] as $type) {
             $this->register($type);
         }

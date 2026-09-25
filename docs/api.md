@@ -63,6 +63,21 @@ DELETE /api/{slug}/{id}
 Auth: `Authorization: Bearer <token>` unless the resource `settings.public.{read|create|update|delete}` allows anonymous access.  
 API tokens need matching grants; admin tokens bypass grants.
 
+**Cache:** `settings.cache.maxAge` (0–86400, default 0). Anonymous GET gets `Cache-Control: public, max-age=N` when N>0 plus `Surrogate-Key: {slug}` (purge-friendly for CDN/ISR); Bearer GET always `private, no-store`.
+
+**CDN / ISR:** HCMS does not ship a CDN. Put Cloudflare/Fastly/nginx in front; use webhooks (`entry.updated` / `entry.deleted`) plus `Surrogate-Key` to invalidate. Set `security.trusted_proxies` to the proxy CIDRs so rate limits and IP blocks see real clients.
+
+**Locale / workflow (opt-in):** after enabling `settings.localization` / `settings.workflow` and migrating, public list accepts `?locale=xx` (default `en`); workflow hides non-`published` rows from public GET.
+
+**Live preview:**
+
+```http
+POST /admin/api/resources/{id}/entries/{entryId}/preview
+GET  /api/preview/{token}
+```
+
+Configure `settings.preview.url` with `{token}`, `{slug}`, `{id}`, `{expiresAt}`. Site fetches the token endpoint (`Cache-Control: no-store`).
+
 Filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`, `in`.  
 `search` — splits into words (drops prepositions), matches any word via `LIKE`, ranks by how many words hit; `sort` is secondary.
 

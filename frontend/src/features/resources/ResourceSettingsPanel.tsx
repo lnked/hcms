@@ -27,6 +27,11 @@ const DEFAULT_SPAM: NonNullable<ResourceSettings['spam']> = {
   rejectDuplicates: true,
 }
 
+const DEFAULT_CACHE: NonNullable<ResourceSettings['cache']> = { maxAge: 0 }
+const DEFAULT_PREVIEW: NonNullable<ResourceSettings['preview']> = { url: '' }
+const DEFAULT_LOCALIZATION: NonNullable<ResourceSettings['localization']> = { enabled: false }
+const DEFAULT_WORKFLOW: NonNullable<ResourceSettings['workflow']> = { enabled: false }
+
 function cloneSettings(settings: ResourceSettings): ResourceSettings {
   const spam = settings.spam ?? DEFAULT_SPAM
   return {
@@ -36,6 +41,10 @@ function cloneSettings(settings: ResourceSettings): ResourceSettings {
       ...spam,
       blocklist: [...(spam.blocklist ?? [])],
     },
+    cache: { ...(settings.cache ?? DEFAULT_CACHE) },
+    preview: { ...(settings.preview ?? DEFAULT_PREVIEW) },
+    localization: { ...(settings.localization ?? DEFAULT_LOCALIZATION) },
+    workflow: { ...(settings.workflow ?? DEFAULT_WORKFLOW) },
   }
 }
 
@@ -81,6 +90,20 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
     setSettings((prev) => ({
       ...prev,
       spam: { ...(prev.spam ?? DEFAULT_SPAM), ...partial },
+    }))
+  }
+
+  function patchCache(partial: Partial<NonNullable<ResourceSettings['cache']>>) {
+    setSettings((prev) => ({
+      ...prev,
+      cache: { ...(prev.cache ?? DEFAULT_CACHE), ...partial },
+    }))
+  }
+
+  function patchPreview(partial: Partial<NonNullable<ResourceSettings['preview']>>) {
+    setSettings((prev) => ({
+      ...prev,
+      preview: { ...(prev.preview ?? DEFAULT_PREVIEW), ...partial },
     }))
   }
 
@@ -260,6 +283,72 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
                 placeholder="casino, crypto"
               />
             </div>
+          </div>
+
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('resources.settings.cacheTitle')}</p>
+            <p className={styles.hint}>{t('resources.settings.cacheHint')}</p>
+            <div className={styles.field}>
+              <Label htmlFor="cache-max-age">{t('resources.settings.cacheMaxAge')}</Label>
+              <Input
+                id="cache-max-age"
+                type="number"
+                min={0}
+                max={86400}
+                value={settings.cache?.maxAge ?? 0}
+                onChange={(e) => patchCache({ maxAge: Number(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('resources.settings.previewTitle')}</p>
+            <p className={styles.hint}>{t('resources.settings.previewHint')}</p>
+            <div className={styles.field}>
+              <Label htmlFor="preview-url">{t('resources.settings.previewUrl')}</Label>
+              <Input
+                id="preview-url"
+                value={settings.preview?.url ?? ''}
+                onChange={(e) => patchPreview({ url: e.target.value })}
+                placeholder="https://site.example/preview?token={token}"
+              />
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <p className={styles.sectionTitle}>{t('resources.settings.featuresTitle')}</p>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={settings.localization?.enabled ?? false}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    localization: {
+                      ...(prev.localization ?? DEFAULT_LOCALIZATION),
+                      enabled: e.target.checked,
+                    },
+                  }))
+                }
+              />
+              {t('resources.settings.localizationEnabled')}
+            </label>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={settings.workflow?.enabled ?? false}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    workflow: {
+                      ...(prev.workflow ?? DEFAULT_WORKFLOW),
+                      enabled: e.target.checked,
+                    },
+                  }))
+                }
+              />
+              {t('resources.settings.workflowEnabled')}
+            </label>
           </div>
 
           <div className={styles.deleteStrategy}>

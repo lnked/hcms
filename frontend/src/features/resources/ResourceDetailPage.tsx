@@ -292,6 +292,8 @@ export function ResourceDetailPage() {
           fields={fieldsQuery.data ?? schema}
           published={resource.status === 'published'}
           listColumns={resource.settings.list?.columns}
+          previewUrl={resource.settings.preview?.url ?? ''}
+          workflowEnabled={resource.settings.workflow?.enabled ?? false}
           entryParam={entryParam ?? null}
           entryPath={(entry) =>
             entry === null

@@ -46,6 +46,7 @@ final class RolePolicy
         return match ($capability) {
             'read' => true,
             'entries.write' => \in_array($role, [self::OWNER, self::ADMIN, self::EDITOR], true),
+            'entries.publish' => \in_array($role, [self::OWNER, self::ADMIN], true),
             'schema.write' => \in_array($role, [self::OWNER, self::ADMIN], true),
             'users.write' => \in_array($role, [self::OWNER, self::ADMIN], true),
             'settings.write' => \in_array($role, [self::OWNER, self::ADMIN], true),

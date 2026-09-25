@@ -225,7 +225,8 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
     const field = schema[index]
     if (field === undefined) return
     const nextConfig = { ...field.config, ...patch }
-    const cardinality = nextConfig.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+    const cardinality =
+      typeof nextConfig.cardinality === 'string' ? nextConfig.cardinality : 'manyToOne'
     updateAt(index, {
       config: nextConfig,
       writable: field.type === 'relation' && cardinality === 'oneToMany' ? false : field.writable,
@@ -723,11 +724,12 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                         <Label>{t('schema.relation.cardinality')}</Label>
                         <Select
                           value={
-                            field.config.cardinality === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+                            typeof field.config.cardinality === 'string'
+                              ? field.config.cardinality
+                              : 'manyToOne'
                           }
                           onChange={(e) => {
-                            const cardinality =
-                              e.target.value === 'oneToMany' ? 'oneToMany' : 'manyToOne'
+                            const cardinality = e.target.value
                             updateAt(index, {
                               config: { ...field.config, cardinality },
                               writable: cardinality === 'oneToMany' ? false : true,
@@ -735,6 +737,8 @@ export function SchemaBuilder({ schema, onChange }: SchemaBuilderProps) {
                           }}
                         >
                           <option value="manyToOne">{t('schema.relation.manyToOne')}</option>
+                          <option value="oneToOne">{t('schema.relation.oneToOne')}</option>
+                          <option value="manyToMany">{t('schema.relation.manyToMany')}</option>
                           <option value="oneToMany">{t('schema.relation.oneToMany')}</option>
                         </Select>
                       </div>

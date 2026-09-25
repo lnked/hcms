@@ -275,6 +275,7 @@ final class Installer
             'security.trusted_proxies' => [],
             'security.login_captcha_after_failures' => 2,
             'security.ip_auto_block_after_login_blocks' => 3,
+            'security.ip_auto_block_after_spam_rejects' => 0,
             'security.ip_auto_block_window_seconds' => 3600,
             'security.ip_auto_block_ttl_seconds' => 3600,
             'security.captcha' => [

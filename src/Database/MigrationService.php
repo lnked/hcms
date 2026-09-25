@@ -33,6 +33,95 @@ final class MigrationService
         return 'res_' . $slug;
     }
 
+    public static function manyToManyJoinTable(string $ownerSlug, string $fieldName): string
+    {
+        if (!Slug::isValid($ownerSlug) || !preg_match('/^[a-z][a-z0-9_]{0,47}$/', $fieldName)) {
+            throw new InvalidArgumentException('Invalid manyToMany join table name');
+        }
+
+        return 'res_' . $ownerSlug . '_' . $fieldName;
+    }
+
+    /**
+     * Ensure join tables exist for manyToMany fields; drop joins for removed m2m fields.
+     *
+     * @param list<array<string, mixed>> $fieldRows
+     * @param array{confirmDestructive?: bool} $options
+     * @return list<array<string, mixed>>
+     */
+    private function syncManyToManyJoins(string $slug, array $fieldRows, array $options): array
+    {
+        $ops = [];
+        $desired = [];
+        foreach ($fieldRows as $row) {
+            $spec = \is_string($row['spec_json']) ? json_decode((string) $row['spec_json'], true) : $row['spec_json'];
+            $config = \is_array($spec) && \is_array($spec['config'] ?? null) ? $spec['config'] : [];
+            if ((string) $row['type'] !== 'relation' || ($config['cardinality'] ?? '') !== 'manyToMany') {
+                continue;
+            }
+            $fieldName = (string) $row['name'];
+            $join = self::manyToManyJoinTable($slug, $fieldName);
+            $desired[$join] = $fieldName;
+            if (!$this->tableExists($join)) {
+                $this->createManyToManyJoinTable($join);
+                $ops[] = ['op' => 'create_m2m_join', 'table' => $join, 'field' => $fieldName];
+            }
+        }
+
+        $prefix = 'res_' . $slug . '_';
+        $existing = $this->db->select(
+            'SELECT table_name AS t FROM information_schema.tables
+             WHERE table_schema = DATABASE() AND table_name LIKE :prefix',
+            ['prefix' => $prefix . '%'],
+        );
+        foreach ($existing as $row) {
+            $table = (string) ($row['t'] ?? '');
+            if ($table === '' || isset($desired[$table])) {
+                continue;
+            }
+            // Skip the main resource table itself (res_{slug}).
+            if ($table === self::tableName($slug)) {
+                continue;
+            }
+            // Only drop tables that look like m2m joins (have left_id/right_id).
+            if (!$this->isManyToManyJoinTable($table)) {
+                continue;
+            }
+            if (empty($options['confirmDestructive'])) {
+                throw new InvalidArgumentException(
+                    'Destructive migration requires confirmDestructive=true: drop_m2m_join ' . $table,
+                );
+            }
+            $this->db->execRaw('DROP TABLE ' . $this->mapper->quoteIdent($table));
+            $ops[] = ['op' => 'drop_m2m_join', 'table' => $table];
+        }
+
+        return $ops;
+    }
+
+    private function createManyToManyJoinTable(string $table): void
+    {
+        $q = $this->mapper->quoteIdent($table);
+        $sql = 'CREATE TABLE ' . $q . ' (
+            `left_id` BIGINT UNSIGNED NOT NULL,
+            `right_id` BIGINT UNSIGNED NOT NULL,
+            PRIMARY KEY (`left_id`, `right_id`),
+            KEY `idx_right_id` (`right_id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $this->db->execRaw($sql);
+    }
+
+    private function isManyToManyJoinTable(string $table): bool
+    {
+        $cols = $this->db->select('SHOW COLUMNS FROM ' . $this->mapper->quoteIdent($table));
+        $names = [];
+        foreach ($cols as $col) {
+            $names[(string) $col['Field']] = true;
+        }
+
+        return isset($names['left_id'], $names['right_id']) && !isset($names['id']);
+    }
+
     /**
      * Apply schema to physical table and bump schema_version.
      *
@@ -71,11 +160,25 @@ final class MigrationService
         if (!$exists) {
             $this->createTable($table, $desired);
             $ops[] = ['op' => 'create_table', 'table' => $table];
+            $settings = \is_string($resource['settings_json'] ?? null)
+                ? json_decode((string) $resource['settings_json'], true)
+                : ($resource['settings_json'] ?? []);
+            $settings = \is_array($settings) ? $settings : [];
+            foreach ($this->ensureFeatureColumns($table, $settings) as $col) {
+                $ops[] = ['op' => 'add_system_column', 'name' => $col];
+            }
         } else {
             if ($this->ensureDeletedAtColumn($table)) {
                 $ops[] = ['op' => 'add_system_column', 'name' => 'deleted_at'];
             }
             foreach ($this->ensureActorColumns($table) as $col) {
+                $ops[] = ['op' => 'add_system_column', 'name' => $col];
+            }
+            $settings = \is_string($resource['settings_json'] ?? null)
+                ? json_decode((string) $resource['settings_json'], true)
+                : ($resource['settings_json'] ?? []);
+            $settings = \is_array($settings) ? $settings : [];
+            foreach ($this->ensureFeatureColumns($table, $settings) as $col) {
                 $ops[] = ['op' => 'add_system_column', 'name' => $col];
             }
             $current = $this->describeTable($table);
@@ -89,6 +192,10 @@ final class MigrationService
                 $this->applyStep($table, $step);
                 $ops[] = $step;
             }
+        }
+
+        foreach ($this->syncManyToManyJoins($slug, $fieldRows, $options) as $joinOp) {
+            $ops[] = $joinOp;
         }
 
         $version = (int) $resource['schema_version'] + 1;
@@ -138,7 +245,7 @@ final class MigrationService
         $cols = [];
         foreach ($rows as $row) {
             $name = (string) $row['Field'];
-            if (\in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by'], true)) {
+            if (\in_array($name, ['id', 'created_at', 'updated_at', 'deleted_at', 'created_by', 'updated_by', 'locale', 'translation_group_id', 'status'], true)) {
                 continue;
             }
             $cols[] = new ColumnDefinition(
@@ -212,6 +319,60 @@ final class MigrationService
             }
             $this->db->execRaw('ALTER TABLE ' . $t . ' ADD COLUMN `' . $col . '` BIGINT UNSIGNED NULL');
             $added[] = $col;
+        }
+
+        return $added;
+    }
+
+    /**
+     * Opt-in system columns driven by resource settings (localization / workflow).
+     *
+     * @param array<string, mixed> $settings
+     * @return list<string>
+     */
+    public function ensureFeatureColumns(string $table, array $settings): array
+    {
+        $added = [];
+        $t = $this->mapper->quoteIdent($table);
+        $localization = \is_array($settings['localization'] ?? null) ? $settings['localization'] : [];
+        $workflow = \is_array($settings['workflow'] ?? null) ? $settings['workflow'] : [];
+
+        if ((bool) ($localization['enabled'] ?? false)) {
+            foreach (
+                [
+                    'locale' => "VARCHAR(16) NOT NULL DEFAULT 'en'",
+                    'translation_group_id' => 'CHAR(36) NOT NULL',
+                ] as $col => $def
+            ) {
+                $rows = $this->db->select('SHOW COLUMNS FROM ' . $t . " LIKE '" . $col . "'");
+                if ($rows !== []) {
+                    continue;
+                }
+                $this->db->execRaw('ALTER TABLE ' . $t . ' ADD COLUMN `' . $col . '` ' . $def);
+                $added[] = $col;
+            }
+            // Backfill empty group ids for existing rows.
+            $this->db->execRaw(
+                'UPDATE ' . $t . " SET `translation_group_id` = UUID() WHERE `translation_group_id` = '' OR `translation_group_id` IS NULL",
+            );
+            try {
+                $this->db->execRaw(
+                    'ALTER TABLE ' . $t . ' ADD UNIQUE KEY `uq_locale_group` (`locale`, `translation_group_id`)',
+                );
+            } catch (\Throwable) {
+                // Index may already exist.
+            }
+        }
+
+        if ((bool) ($workflow['enabled'] ?? false)) {
+            $rows = $this->db->select('SHOW COLUMNS FROM ' . $t . " LIKE 'status'");
+            if ($rows === []) {
+                $this->db->execRaw(
+                    "ALTER TABLE " . $t . " ADD COLUMN `status` VARCHAR(32) NOT NULL DEFAULT 'published'",
+                );
+                $this->db->execRaw('ALTER TABLE ' . $t . ' ADD KEY `idx_status` (`status`)');
+                $added[] = 'status';
+            }
         }
 
         return $added;
