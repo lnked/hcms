@@ -45,6 +45,9 @@ Surrogate keys совпадают с заголовком `Surrogate-Key: {slug}
 | `entry.created` | create записи (admin или Content API) |
 | `entry.updated` | update / restore revision |
 | `entry.deleted` | delete / bulk delete |
+| `entry.submitted` | workflow: статус → `in_review` |
+| `entry.published` | workflow: статус → `published` |
+| `entry.unpublished` | workflow: статус → `draft` (и прочие не-published) |
 | `resource.published` | publish ресурса (создание таблицы) |
 | `webhook.test` | только кнопка Test / `POST …/test` (не выбирается в форме) |
 

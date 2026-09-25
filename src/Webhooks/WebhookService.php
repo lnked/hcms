@@ -14,6 +14,9 @@ final class WebhookService
         'entry.created',
         'entry.updated',
         'entry.deleted',
+        'entry.submitted',
+        'entry.published',
+        'entry.unpublished',
         'resource.published',
     ];
 

@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "0.62.14",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Workflow webhook events whitelist",
+      "changes": [
+        {
+          "type": "fixed",
+          "area": "webhooks",
+          "text": "Whitelist entry.submitted / entry.published / entry.unpublished so workflow transitions can be selected and delivered"
+        },
+        {
+          "type": "changed",
+          "area": "docs",
+          "text": "webhooks.md — document workflow entry.* events"
+        }
+      ]
+    },
+    {
       "version": "0.62.13",
       "date": "2026-09-25",
       "channel": "stable",
