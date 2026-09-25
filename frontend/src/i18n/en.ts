@@ -1197,7 +1197,8 @@ export const en = {
   'system.graphqlHint':
     'Opt-in GraphQL endpoint at /api/graphql. Uses the same auth, grants, and apiEnabled as REST. Off by default.',
   'system.graphqlEnabled': 'Enable GraphQL',
-  'system.graphqlEnabledHint': 'When off, /api/graphql returns 404. REST and OpenAPI are unchanged.',
+  'system.graphqlEnabledHint':
+    'When off, /api/graphql returns 404. REST and OpenAPI are unchanged.',
   'system.graphqlSave': 'Save GraphQL settings',
   'system.graphqlSaved': 'GraphQL settings saved',
   'system.adminBaseTitle': 'Admin base path',
