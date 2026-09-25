@@ -494,7 +494,7 @@ php scripts/verify-tree.php
 | [`docs/resources.md`](docs/resources.md) | ресурсы, custom APIs, фильтры админки |
 | [`docs/api.md`](docs/api.md) | admin/public API, токены, ограничения |
 | [`docs/authentication.md`](docs/authentication.md) | Bearer, social login, TOTP, rate limits |
-| [`docs/permissions.md`](docs/permissions.md) | роли и RBAC |
+| [`docs/permissions.md`](docs/permissions.md) | роли и RBAC; owner-only (update run, adminBase, ACL, password reset). В UI Docs глава Owner — только `role=owner` |
 | [`docs/anti-spam.md`](docs/anti-spam.md) | защита анонимной записи |
 | [`docs/webhooks.md`](docs/webhooks.md) | исходящие HMAC-хуки |
 | [`docs/hooks.md`](docs/hooks.md) | sync request hooks + inbound endpoints |

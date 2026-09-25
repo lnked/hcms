@@ -1,4 +1,5 @@
 import type { Locale } from '@/i18n'
+import { roleAllows, type AdminRole } from '@/lib/rbac'
 
 const CHAPTER_IDS = [
   'overview',
@@ -14,6 +15,7 @@ const CHAPTER_IDS = [
   'translates',
   'limits',
   'quickstart',
+  'owner',
 ] as const
 
 export type ChapterId = (typeof CHAPTER_IDS)[number]
@@ -46,6 +48,8 @@ export interface DocSection {
 export interface Chapter {
   id: ChapterId
   title: string
+  /** When set, chapter is hidden unless the signed-in role meets the minimum. */
+  minRole?: AdminRole
   sections: DocSection[]
 }
 
@@ -754,6 +758,83 @@ console.log(await res.json())`,
       },
     ],
   },
+  {
+    id: 'owner',
+    title: 'Owner-only',
+    minRole: 'owner',
+    sections: [
+      {
+        paragraphs: [
+          'The first admin created at install is the owner. Owner is the highest role (above admin). There is no separate “superadmin” — use role owner.',
+          'This chapter is visible only to owners. Everything below requires owner on the server, not just in the UI.',
+        ],
+      },
+      {
+        heading: 'System self-update / downgrade',
+        paragraphs: [
+          'Only owner can run POST /admin/api/system/update/run (install or downgrade a release). Preview/check/status are readable by admin; the apply step is system.write → owner.',
+          'UI: System → Update / Downgrade. Non-owners see a notice and a disabled apply action.',
+        ],
+        links: [{ label: 'System', href: '/settings/system' }],
+      },
+      {
+        heading: 'Admin base path (CMS_ADMIN_BASE)',
+        paragraphs: [
+          'Only owner can change the panel URL segment via PATCH /admin/api/settings { adminBase } (writes .env CMS_ADMIN_BASE and app.admin_base). Empty = site root; otherwise e.g. admin or panel. After change, update OAuth redirect URIs.',
+          'UI: System → Admin path. Non-owners can read the current value but cannot save.',
+        ],
+        links: [{ label: 'System', href: '/settings/system' }],
+      },
+      {
+        heading: 'User ACL',
+        paragraphs: [
+          'Owner bypasses per-user ACL entirely. Only owner can GET/PATCH /admin/api/users/{id}/acl. You cannot attach ACL to another owner.',
+          'When acl_enabled is on for a user, access is an allowlist of admin sections and resource grants (tabs + CRUD). Creating resources / package import is denied under ACL.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Set ACL',
+            code: `PATCH /admin/api/users/{id}/acl
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "aclEnabled": true,
+  "sections": ["resources", "media"],
+  "resources": [
+    {
+      "resourceId": 1,
+      "canRead": true,
+      "canCreate": true,
+      "canUpdate": false,
+      "canDelete": false,
+      "tabs": ["overview", "data"]
+    }
+  ]
+}`,
+          },
+        ],
+        links: [{ label: 'Users', href: '/settings/users' }],
+      },
+      {
+        heading: 'Password reset',
+        paragraphs: [
+          'Resetting another user’s password (PATCH /admin/api/users/{id} with password) is owner-only. You cannot reset another owner’s password — only your own.',
+        ],
+        links: [{ label: 'Users', href: '/settings/users' }],
+      },
+      {
+        heading: 'Role matrix (reminder)',
+        paragraphs: [
+          'viewer — read admin API.',
+          'editor — + entries/media write.',
+          'admin — + schema, users, settings, tokens, integrations.',
+          'owner — + system update run, adminBase, ACL management, password reset.',
+        ],
+      },
+    ],
+  },
 ]
 
 const ru: Chapter[] = [
@@ -1457,14 +1538,96 @@ console.log(await res.json())`,
       },
     ],
   },
+  {
+    id: 'owner',
+    title: 'Только владелец',
+    minRole: 'owner',
+    sections: [
+      {
+        paragraphs: [
+          'Первый админ при установке получает роль owner. Это высшая роль (выше admin). Отдельного «суперадмина» нет — используйте owner.',
+          'Эта глава видна только владельцу. Всё ниже на сервере тоже требует owner, не только в UI.',
+        ],
+      },
+      {
+        heading: 'Self-update / downgrade',
+        paragraphs: [
+          'Только owner может вызвать POST /admin/api/system/update/run (установка или откат релиза). Preview/check/status доступны admin; apply — capability system.write → owner.',
+          'UI: System → Update / Downgrade. Не-owner видит предупреждение и заблокированную кнопку.',
+        ],
+        links: [{ label: 'System', href: '/settings/system' }],
+      },
+      {
+        heading: 'Путь админки (CMS_ADMIN_BASE)',
+        paragraphs: [
+          'Только owner меняет сегмент URL панели через PATCH /admin/api/settings { adminBase } (пишет .env CMS_ADMIN_BASE и app.admin_base). Пусто = корень сайта; иначе admin, panel и т.п. После смены обновите OAuth redirect URI.',
+          'UI: System → путь админки. Не-owner видит значение, но сохранить не может.',
+        ],
+        links: [{ label: 'System', href: '/settings/system' }],
+      },
+      {
+        heading: 'ACL пользователей',
+        paragraphs: [
+          'Owner всегда обходит user ACL. Только owner делает GET/PATCH /admin/api/users/{id}/acl. На другого owner ACL повесить нельзя.',
+          'При acl_enabled доступ — allowlist секций админки и грантов на ресурсы (табы + CRUD). Создание ресурсов / package import при ACL запрещены.',
+        ],
+        samples: [
+          {
+            language: 'http',
+            label: 'Выдать ACL',
+            code: `PATCH /admin/api/users/{id}/acl
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+
+{
+  "aclEnabled": true,
+  "sections": ["resources", "media"],
+  "resources": [
+    {
+      "resourceId": 1,
+      "canRead": true,
+      "canCreate": true,
+      "canUpdate": false,
+      "canDelete": false,
+      "tabs": ["overview", "data"]
+    }
+  ]
+}`,
+          },
+        ],
+        links: [{ label: 'Пользователи', href: '/settings/users' }],
+      },
+      {
+        heading: 'Сброс пароля',
+        paragraphs: [
+          'Сброс пароля другого пользователя (PATCH /admin/api/users/{id} с password) — только owner. Пароль другого owner сбросить нельзя — только свой.',
+        ],
+        links: [{ label: 'Пользователи', href: '/settings/users' }],
+      },
+      {
+        heading: 'Матрица ролей (кратко)',
+        paragraphs: [
+          'viewer — чтение admin API.',
+          'editor — + запись entries/media.',
+          'admin — + schema, users, settings, tokens, integrations.',
+          'owner — + system update run, adminBase, управление ACL, сброс паролей.',
+        ],
+      },
+    ],
+  },
 ]
 
 const byLocale: Record<Locale, Chapter[]> = { en, ru }
 
-export function getChapters(locale: Locale): Chapter[] {
-  return byLocale[locale] ?? byLocale.en
+export function getChapters(locale: Locale, role?: string | null): Chapter[] {
+  const all = byLocale[locale] ?? byLocale.en
+  return all.filter((chapter) => roleAllows(role ?? undefined, chapter.minRole))
 }
 
-export function getChapter(locale: Locale, id: ChapterId): Chapter | undefined {
-  return getChapters(locale).find((chapter) => chapter.id === id)
+export function getChapter(
+  locale: Locale,
+  id: ChapterId,
+  role?: string | null,
+): Chapter | undefined {
+  return getChapters(locale, role).find((chapter) => chapter.id === id)
 }

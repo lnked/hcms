@@ -20,9 +20,25 @@ Grants в `cms_token_grants` (`read/create/update/delete` на Resource).
 | entries / media write | — | yes | yes | yes |
 | schema / resources write | — | — | yes | yes |
 | users / settings / tokens | — | — | yes | yes |
-| system self-update | — | — | — | yes |
+| system self-update (`POST …/update/run`) | — | — | — | yes |
+| change admin base (`CMS_ADMIN_BASE`) | — | — | — | yes |
+| manage user ACL / reset others’ passwords | — | — | — | yes |
 
-Первый пользователь при установке получает `owner`. Миграция `007_cms_user_roles` повышает `MIN(id)` до `owner`.
+Первый пользователь при установке получает `owner`. Миграция `007_cms_user_roles` повышает `MIN(id)` до `owner`. Отдельной роли «суперадмин» нет — это и есть `owner`.
+
+В админке глава **Docs → Owner-only / Только владелец** показывается только пользователю с `role=owner`.
+
+## Owner-only (сводка)
+
+| Действие | Эндпоинт / UI |
+|---|---|
+| Установка / откат релиза | `POST /admin/api/system/update/run` · System → Update / Downgrade |
+| Путь панели | `PATCH /admin/api/settings` с `adminBase` · System → Admin path |
+| Чтение / запись ACL | `GET` / `PATCH /admin/api/users/{id}/acl` · Users → ACL |
+| Сброс чужого пароля | `PATCH /admin/api/users/{id}` с `password` (нельзя другому `owner`) |
+| Bypass user ACL | всегда для `owner` |
+
+Preview/check/status обновлений (`…/system/update/*` кроме `run`) доступны admin; **apply** — только owner (`system.write`).
 
 ## Admin user ACL (поверх ролей)
 

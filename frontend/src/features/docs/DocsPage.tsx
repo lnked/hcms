@@ -2,6 +2,7 @@ import { clsx } from 'clsx'
 import { ExternalLink } from 'lucide-react'
 import { Link, Navigate, NavLink, useParams } from 'react-router-dom'
 import { CodeBlock } from '@/components/CodeBlock'
+import { useAcl } from '@/hooks/useAcl'
 import { useI18n } from '@/i18n'
 import { DEFAULT_CHAPTER, getChapter, getChapters, isChapterId, type DocLink } from './chapters'
 import styles from './DocsPage.module.css'
@@ -31,7 +32,10 @@ function DocNavLink({ link }: { link: DocLink }) {
 export function DocsPage() {
   const { t, locale } = useI18n()
   const { chapter: chapterParam } = useParams()
-  const chapters = getChapters(locale)
+  const { user, me } = useAcl()
+  // Hide minRole chapters until /me resolves — fail closed for owner-only docs.
+  const role = me.isSuccess ? user?.role : undefined
+  const chapters = getChapters(locale, role)
 
   if (!chapterParam) {
     return <Navigate to={`/docs/${DEFAULT_CHAPTER}`} replace />
@@ -41,7 +45,7 @@ export function DocsPage() {
     return <Navigate to={`/docs/${DEFAULT_CHAPTER}`} replace />
   }
 
-  const chapter = getChapter(locale, chapterParam)
+  const chapter = getChapter(locale, chapterParam, role)
   if (!chapter) {
     return <Navigate to={`/docs/${DEFAULT_CHAPTER}`} replace />
   }
