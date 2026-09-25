@@ -179,10 +179,10 @@ final class PendingMigrations
     private static function ensureColumn(Connection $db, string $table, string $column, string $alterSql): void
     {
         $row = $db->selectOne(
-            "SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+            'SELECT COUNT(*) AS c FROM information_schema.COLUMNS
              WHERE TABLE_SCHEMA = DATABASE()
                AND TABLE_NAME = :table
-               AND COLUMN_NAME = :column",
+               AND COLUMN_NAME = :column',
             ['table' => $table, 'column' => $column],
         );
         if ($row !== null && (int) $row['c'] > 0) {

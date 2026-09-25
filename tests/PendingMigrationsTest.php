@@ -13,7 +13,7 @@ final class PendingMigrationsTest extends TestCase
     {
         $raw = "-- Webhook revalidation presets + fine-grained ACL columns.\n\n"
             . "ALTER TABLE cms_webhooks\n"
-            . "    ADD COLUMN preset VARCHAR(32) NULL AFTER status";
+            . '    ADD COLUMN preset VARCHAR(32) NULL AFTER status';
 
         $statement = PendingMigrations::stripLeadingSqlComments(trim($raw));
 
@@ -29,7 +29,7 @@ final class PendingMigrationsTest extends TestCase
 
     public function testMigration022FirstStatementIsNotSkipped(): void
     {
-        $sql = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/022_webhooks_presets_field_acl.sql');
+        $sql = (string) file_get_contents(\dirname(__DIR__) . '/database/migrations/022_webhooks_presets_field_acl.sql');
         $statements = [];
         foreach (explode(';', $sql) as $raw) {
             $statement = PendingMigrations::stripLeadingSqlComments(trim($raw));
