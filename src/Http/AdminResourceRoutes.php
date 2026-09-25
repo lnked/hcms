@@ -749,6 +749,14 @@ final class AdminResourceRoutes
 
             return $settingsController->security();
         });
+        $router->add('GET', '/admin/api/settings/graphql', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
+            unset($request, $params);
+            if ($context === null) {
+                return Response::error('UNAUTHORIZED', 'Unauthorized', 401);
+            }
+
+            return $settingsController->graphql();
+        });
         $router->add('PATCH', '/admin/api/settings', function (Request $request, array $params, ?AuthContext $context) use ($settingsController): Response {
             unset($params);
             if ($context === null) {

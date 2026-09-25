@@ -272,7 +272,22 @@ UI: Logs (audit / api / security / IP blocks).
 |---|---|
 | `OpenApiGenerator` | `GET /api/openapi.json` (+ custom APIs, integrations) |
 
-Клиентская типизация: `packages/sdk` `hcms-types` поверх этого JSON.
+UI: `/api/docs` (Swagger). Клиентская типизация: `packages/sdk` `hcms-types` поверх этого JSON. Дока: [`openapi.md`](openapi.md).
+
+---
+
+## 16a. GraphQL — `src/GraphQL/` (opt-in)
+
+Тонкий слой над `QueryEngine` + тот же auth, что public REST. Default выкл (`graphql.enabled`).
+
+| Класс | Назначение |
+|---|---|
+| `SchemaFactory` | Executable schema из published + `apiEnabled` resources |
+| `JsonType` / `TypeNames` | JSON scalar + naming helpers |
+| `GraphqlController` | `GET` GraphiQL, `POST` execute |
+| `PublicApiAuthorizer` (`src/Api/`) | Shared REST/GraphQL authorize |
+
+Endpoints: `/api/graphql`, `/api/v1/graphql`. Admin: System → GraphQL; сайдбар GraphQL. Дока: [`graphql.md`](graphql.md), UI: [`ADMIN_UI_AGENT_GUIDE.md`](../ADMIN_UI_AGENT_GUIDE.md#13-graphql-opt-in).
 
 ---
 

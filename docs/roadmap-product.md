@@ -36,7 +36,7 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | Internal Event Bus | **HAVE** | `Cms\Events\EventBus`; webhooks as listeners |
 | Webhook revalidation presets | **HAVE** | Vercel / Netlify / Cloudflare / Fastly templates |
 | Data backups (DB + media) | **HAVE** | Admin Backups + `php cms backup:*` + cloud/SFTP — [recovery.md](recovery.md#data-backups-бд--media) |
-| GraphQL | **MISSING** | REST + filters + OpenAPI only (default stays REST-first) |
+| GraphQL | **HAVE** (opt-in) | [`graphql.md`](graphql.md); System toggle `graphql.enabled`; REST stays default |
 | Plugin field types | **PARTIAL** | Core + `extensions/*/manifest.php` + composer `extra.hcms.field-types`; no marketplace |
 | RTL admin | **MISSING** | `en` / `ru` only; no `dir=rtl` |
 | Multi-tenancy | **OUT OF SCOPE** | One install = one tenant; no `tenant_id` in core |
@@ -58,13 +58,13 @@ Implementation status: see [`implementation-plan.md`](implementation-plan.md).
 - Growth P5–P7 (~0.62.12): Event Bus, revalidation presets, field/row ACL
 - Data backups (DB + media, cloud/SFTP, CLI) — ~0.62.12
 - Anti-spam K–N — [`improvements.md`](improvements.md)
+- **P8 GraphQL** (opt-in) — [`graphql.md`](graphql.md)
 
 ### Next (remaining)
 
-1. **GraphQL** — demand-gated; REST stays default.
-2. Polish: locale switcher UI, rich blocks editor, workflow comments, System UI for `ip_auto_block_after_spam_rejects`.
-3. CDN / HA / compliance / marketplace / **multi-tenancy** — docs or future cloud-tier, **не** core MVP.
-4. RTL admin, SAML, AVIF — secondary.
+1. Polish: locale switcher UI, rich blocks editor, workflow comments, System UI for `ip_auto_block_after_spam_rejects` (частично shipped).
+2. CDN / HA / compliance / marketplace / **multi-tenancy** — docs or future cloud-tier, **не** core MVP.
+3. RTL admin, SAML, AVIF — secondary.
 
 ---
 
@@ -72,12 +72,13 @@ Implementation status: see [`implementation-plan.md`](implementation-plan.md).
 
 ### Shipped (reference)
 
-P1–P4 и growth P5–P7 реализованы — детали в [`implementation-plan.md`](implementation-plan.md), [webhooks.md](webhooks.md), [permissions.md](permissions.md).
+P1–P4, growth P5–P7 и **P8 GraphQL** реализованы — детали в [`implementation-plan.md`](implementation-plan.md), [webhooks.md](webhooks.md), [permissions.md](permissions.md), [graphql.md](graphql.md).
 
-### P8 — GraphQL (demand-gated)
+### P8 — GraphQL (shipped, opt-in)
 
 - Thin opt-in layer над QueryEngine / той же схемой, что OpenAPI.
 - Не dual source of truth; REST остаётся default public API.
+- Enable: System → GraphQL; playground `/api/graphql`.
 
 ### Multi-tenancy — out of scope
 
@@ -87,4 +88,4 @@ Self-hosted core: одна инсталляция = один клиент. `tena
 
 ## One-liner
 
-HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL**. Остаются polish UX, demand-gated GraphQL и out-of-scope cloud concerns.
+HCMS закрыл self-host base + product cut + **Event Bus / ISR presets / fine-grained ACL / opt-in GraphQL**. Остаются secondary polish (RTL/AVIF/SAML) и out-of-scope cloud concerns.

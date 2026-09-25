@@ -5,9 +5,9 @@
 
 **Правило:** каждый эпик — opt-in через `settings` или новый field type; default поведение public API не ломаем.
 
-**Статус:** Phase 0–6 + anti-spam K–N + growth P5–P7 (Event Bus, webhook presets, field/row ACL) — shipped ~0.62.12.  
+**Статус:** Phase 0–6 + anti-spam K–N + growth P5–P7 (Event Bus, webhook presets, field/row ACL) + **P8 GraphQL** — shipped.  
 Follow-up polish: locale switcher / create-translation UI; rich blocks editor; workflow comments; System UI for `ip_auto_block_after_spam_rejects`.  
-Не в плане: GraphQL (demand-gated), multi-tenancy, CDN product.
+Не в плане: multi-tenancy, CDN product.
 
 ---
 
@@ -23,7 +23,8 @@ Follow-up polish: locale switcher / create-translation UI; rich blocks editor; w
 | Workflows | Opt-in `settings.workflow.enabled` → col `status` (`draft\|in_review\|published`). Public GET только `published`. Comments — later. |
 | Cache | `settings.cache.maxAge` (0 = как сейчас). Anonymous GET → `public, max-age=N`; Bearer → `private, no-store`. |
 | SDK | Thin `@hcms/sdk` + CLI typegen из `GET /api/openapi.json`. Не второй schema DSL. |
-| GraphQL / CDN / marketplace / multi-tenancy | Не в этом плане (см. roadmap growth / OOS). |
+| GraphQL | Opt-in `graphql.enabled`; thin layer over QueryEngine; see [`graphql.md`](graphql.md). REST stays default. |
+| CDN / marketplace / multi-tenancy | Не в этом плане (OOS). |
 | Event Bus | Sync in-process `EventBus`; webhooks listen; controllers не зовут WebhookDispatcher напрямую. |
 | Revalidation presets | Webhook `preset` + `payloadMode` + `headers`; UI templates. |
 | Field/row ACL | `field_acl_json` + `own_entries_only` на `cms_user_resource_grants`; QueryEngine projection/WHERE. |
@@ -262,7 +263,6 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 
 | Item | Why |
 |---|---|
-| GraphQL | REST+OpenAPI+filters enough until demand |
 | AVIF / full DAM | Media WebP enough; separate media epic |
 | SAML / OIDC SSO | Enterprise; Google+TOTP covers MVP |
 | RTL admin | After more locales than en/ru |

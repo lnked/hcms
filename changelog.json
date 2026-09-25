@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.62.20",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Opt-in GraphQL over QueryEngine",
+      "changes": [
+        {
+          "type": "added",
+          "area": "api",
+          "text": "POST/GET /api/graphql (and /api/v1/graphql): queries, mutations, nested manyToOne (depth≤3); gated by graphql.enabled"
+        },
+        {
+          "type": "added",
+          "area": "system",
+          "text": "System → GraphQL toggle (owner); sidebar GraphiQL link; Resource Settings note that apiEnabled applies to GraphQL"
+        },
+        {
+          "type": "added",
+          "area": "deps",
+          "text": "webonyx/graphql-php runtime dependency"
+        },
+        {
+          "type": "added",
+          "area": "docs",
+          "text": "docs/graphql.md + ADMIN_UI_AGENT_GUIDE §13, README/AGENTS/api/openapi/review updates"
+        }
+      ]
+    },
+    {
       "version": "0.62.19",
       "date": "2026-09-25",
       "channel": "stable",

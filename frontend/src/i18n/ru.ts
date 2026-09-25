@@ -77,6 +77,7 @@ export const ru: Record<MessageKey, string> = {
   'nav.backups': 'Бекапы',
   'nav.system': 'Система',
   'nav.docs': 'Swagger',
+  'nav.graphql': 'GraphQL',
   'nav.documentation': 'Документация',
   'nav.collapse': 'Свернуть меню',
   'nav.expand': 'Развернуть меню',
@@ -406,6 +407,8 @@ export const ru: Record<MessageKey, string> = {
   'resources.settings.title': 'Настройки ресурса',
   'resources.settings.hint': 'Возможности публичного API и стратегия удаления.',
   'resources.settings.apiEnabled': 'API включён',
+  'resources.settings.apiEnabledGraphqlNote':
+    'Также определяет, попадает ли ресурс в GraphQL (когда GraphQL включён в System).',
   'resources.settings.pagination': 'Пагинация',
   'resources.settings.search': 'Поиск',
   'resources.settings.sorting': 'Сортировка',
@@ -1191,6 +1194,13 @@ export const ru: Record<MessageKey, string> = {
   'system.securityTtl': 'Длительность бана (сек)',
   'system.securitySave': 'Сохранить security',
   'system.securitySaved': 'Настройки security сохранены',
+  'system.graphqlTitle': 'GraphQL',
+  'system.graphqlHint':
+    'Opt-in GraphQL на /api/graphql. Тот же auth, grants и apiEnabled, что у REST. По умолчанию выкл.',
+  'system.graphqlEnabled': 'Включить GraphQL',
+  'system.graphqlEnabledHint': 'Выкл → /api/graphql отдаёт 404. REST и OpenAPI не меняются.',
+  'system.graphqlSave': 'Сохранить GraphQL',
+  'system.graphqlSaved': 'Настройки GraphQL сохранены',
   'system.adminBaseTitle': 'Базовый путь админки',
   'system.adminBaseHint':
     'Сегмент URL панели. Пусто = корень сайта. Admin API идёт под тем же префиксом, кроме корня — там API остаётся /admin/api. Ассеты всегда /admin/assets. После смены обнови OAuth redirect URI. Только owner.',

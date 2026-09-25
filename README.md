@@ -45,6 +45,7 @@ php -S 127.0.0.1:8080 -t public public/router.php
 
 Админка: `http://127.0.0.1:8080/admin`  
 Swagger: `http://127.0.0.1:8080/api/docs`  
+GraphQL (opt-in): `http://127.0.0.1:8080/api/graphql` — включить в **Settings → System → GraphQL**  
 Installer: `http://127.0.0.1:8080/install.php`
 
 Если `src/` уже на диске, download в installer пропускается.
@@ -83,9 +84,10 @@ Authorization: Bearer <token>
 - Public API: `/api/*` и `/api/v1/*` (published resources с `settings.apiEnabled`)
 - OpenAPI: `/api/openapi.json`
 - Swagger UI: `/api/docs`
+- GraphQL (opt-in): `/api/graphql` — System → GraphQL; см. [docs/graphql.md](docs/graphql.md)
 - React consumer demo: [`examples/react`](examples/react) (`npm run dev` после seed)
 
-В админке: **Settings → System** — язык и CORS/origins для public API; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); **Feature flags** — remote config / A/B (см. ниже); **Переводы** — i18n-ключи для клиентов (см. ниже); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter, анти-спам для анонимной записи — см. [docs/anti-spam.md](docs/anti-spam.md)) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
+В админке: **Settings → System** — язык, CORS/origins, security, **GraphQL enable**; **Settings → Integrations** — почта (Resend/Postmark/Mailgun), см. [docs/integrations-email.md](docs/integrations-email.md); **Settings → Webhooks** — исходящие HMAC-хуки на изменения контента, см. [docs/webhooks.md](docs/webhooks.md); **Feature flags** — remote config / A/B (см. ниже); **Переводы** — i18n-ключи для клиентов (см. ниже); у каждого ресурса — **Settings** (`public` CRUD, soft delete, pagination/search/sort/filter, анти-спам для анонимной записи — см. [docs/anti-spam.md](docs/anti-spam.md); `apiEnabled` также управляет попаданием в GraphQL) и **APIs** — именованные эндпоинты с проекцией полей, своим набором методов (`GET`/`POST`/`PATCH`/`DELETE`) и правами по каждому из них, см. [docs/resources.md](docs/resources.md#custom-apis).
 
 ## Feature flags
 

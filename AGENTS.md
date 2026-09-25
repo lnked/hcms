@@ -45,6 +45,7 @@ php -S 127.0.0.1:8080 -t public public/router.php
 
 - Админка: `http://127.0.0.1:8080/admin`
 - Swagger: `http://127.0.0.1:8080/api/docs`
+- GraphQL (opt-in, default off): `http://127.0.0.1:8080/api/graphql` — System → GraphQL; [`docs/graphql.md`](docs/graphql.md)
 - Инсталлятор: `http://127.0.0.1:8080/install.php`
 
 `npm run build` нужен только для UI. Если задача чисто API — можно пропустить.
@@ -444,6 +445,9 @@ curl -s "$BASE/admin/api/health"                 # без авторизации
 curl -s "$BASE/admin/api/resources" -H "Authorization: Bearer $TOKEN"
 curl -s "$BASE/api/{slug}?limit=1"               # публичное чтение
 curl -s "$BASE/api/openapi.json" | grep {slug}   # ресурс в OpenAPI
+# optional GraphQL (если graphql.enabled):
+# curl -s -X POST "$BASE/api/graphql" -H 'Content-Type: application/json' \
+#   -d '{"query":"{ {slug}(limit:1) { data { id } meta { total } } }"}'
 ```
 
 Изменил PHP-код — прогнать гейты:
@@ -509,6 +513,7 @@ Data backups (БД+media, cloud/SFTP): раздел **Backups** в админк�
 | [`docs/hooks.md`](docs/hooks.md) | sync request hooks + inbound endpoints |
 | [`docs/integrations-email.md`](docs/integrations-email.md) | Resend / Postmark / Mailgun |
 | [`docs/openapi.md`](docs/openapi.md) | генерация OpenAPI |
+| [`docs/graphql.md`](docs/graphql.md) | opt-in GraphQL (`/api/graphql`) |
 | [`docs/recovery.md`](docs/recovery.md) | обновление и восстановление |
 | [`docs/landing-downloads.md`](docs/landing-downloads.md) | счётчик скачиваний на лендинге |
 | [`docs/install-telemetry.md`](docs/install-telemetry.md) | анонимный ping успешных установок |

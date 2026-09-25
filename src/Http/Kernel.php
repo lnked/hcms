@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Http;
 
+use Cms\Api\PublicApiAuthorizer;
 use Cms\Api\QueryEngine;
 use Cms\Audit\ApiLogRepository;
 use Cms\Audit\AuditLogger;
@@ -52,6 +53,7 @@ use Cms\Fields\FieldRepository;
 use Cms\Fields\FieldService;
 use Cms\Fields\FieldTypeRegistry;
 use Cms\Fields\SqlTypeMapper;
+use Cms\GraphQL\SchemaFactory;
 use Cms\Hooks\HookClient;
 use Cms\Hooks\HookDeliveryRepository;
 use Cms\Hooks\InboundEndpointRepository;
@@ -64,6 +66,7 @@ use Cms\Http\Controllers\DocsController;
 use Cms\Http\Controllers\EntriesController;
 use Cms\Http\Controllers\FeatureFlagsController;
 use Cms\Http\Controllers\FieldController;
+use Cms\Http\Controllers\GraphqlController;
 use Cms\Http\Controllers\InboundEndpointsController;
 use Cms\Http\Controllers\IntegrationsController;
 use Cms\Http\Controllers\KeyValuesController;
@@ -398,8 +401,10 @@ final class Kernel
             && str_starts_with($request->path, '/api/')
             && $request->path !== '/api/docs'
             && $request->path !== '/api/openapi.json'
+            && $request->path !== '/api/graphql'
             && $request->path !== '/api/v1/docs'
             && $request->path !== '/api/v1/openapi.json'
+            && $request->path !== '/api/v1/graphql'
         ) {
             $durationMs = (int) ((hrtime(true) - $started) / 1_000_000);
             $tokenId = $auth instanceof AuthContext && !$auth->isAdmin() ? $auth->tokenId() : null;
@@ -893,6 +898,42 @@ final class Kernel
 
         if ($this->db !== null) {
             $resourceApiRepo = new ResourceApiRepository($this->db);
+            $graphqlAuthorizer = new PublicApiAuthorizer(
+                new ResourceRepository($this->db),
+                new TokenGrantRepository($this->db),
+                $resourceApiRepo,
+            );
+            $graphqlQuery = new QueryEngine(
+                $this->db,
+                new ResourceRepository($this->db),
+                new FieldRepository($this->db),
+                $resourceApiRepo,
+                new MediaRefService($this->db),
+                $this->config->appUrl,
+            );
+            $graphql = new GraphqlController(
+                new SchemaFactory(
+                    new ResourceRepository($this->db),
+                    new FieldRepository($this->db),
+                    $graphqlQuery,
+                    $graphqlAuthorizer,
+                    $metadata,
+                ),
+                new Settings($this->db),
+            );
+            foreach (['/api/graphql', '/api/v1/graphql'] as $graphqlPath) {
+                $this->router->add('GET', $graphqlPath, function (Request $request, array $params, ?AuthContext $context) use ($graphql): Response {
+                    unset($params, $context);
+
+                    return $graphql->playground($request);
+                }, true, 'api');
+                $this->router->add('POST', $graphqlPath, function (Request $request, array $params, ?AuthContext $context) use ($graphql): Response {
+                    unset($params);
+
+                    return $graphql->execute($request, $context);
+                }, true, 'api');
+            }
+
             $integrationApiService = new IntegrationApiService(
                 new IntegrationApiRepository($this->db),
                 $metadata,
@@ -1053,10 +1094,11 @@ final class Kernel
             || $path === '/admin/api/settings/locale'
             || $path === '/api/docs'
             || $path === '/api/openapi.json'
+            || $path === '/api/graphql'
         ) {
             return false;
         }
-        if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json') {
+        if ($path === '/api/v1/docs' || $path === '/api/v1/openapi.json' || $path === '/api/v1/graphql') {
             return false;
         }
 

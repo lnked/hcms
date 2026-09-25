@@ -17,6 +17,7 @@ import { queryKeys } from '@/lib/queryKeys'
 import { ADMIN_SECTIONS, type AdminSection } from '@/lib/rbac'
 import { showSuccess, showError } from '@/lib/toast'
 import { ApiAccessForm, type ApiAccessSettings } from '@/pages/ApiAccessForm'
+import { GraphqlSettingsCard } from '@/pages/GraphqlSettingsCard'
 import { SecuritySettingsCard } from '@/pages/SecuritySettingsCard'
 import styles from './SystemPage.module.css'
 import type { SystemVersion } from '@/types/system'
@@ -527,6 +528,8 @@ export function SystemPage() {
           )}
         </CardContent>
       </Card>
+
+      <GraphqlSettingsCard />
 
       <SecuritySettingsCard />
 

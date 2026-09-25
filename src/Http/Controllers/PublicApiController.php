@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Cms\Http\Controllers;
 
+use Cms\Api\PublicApiAuthorizer;
 use Cms\Api\QueryEngine;
 use Cms\Auth\AuthContext;
 use Cms\Auth\TokenGrantRepository;
@@ -25,10 +26,12 @@ use RuntimeException;
 
 final class PublicApiController
 {
+    private readonly PublicApiAuthorizer $authorizer;
+
     public function __construct(
         private readonly QueryEngine $query,
         private readonly ResourceRepository $resources,
-        private readonly TokenGrantRepository $grants,
+        TokenGrantRepository $grants,
         private readonly ?ResourceApiRepository $apis = null,
         private readonly ?SpamGuard $spamGuard = null,
         private readonly ?EventBus $events = null,
@@ -37,7 +40,9 @@ final class PublicApiController
         private readonly ?\Cms\Auth\RateLimitStore $rateLimitStore = null,
         private readonly ?\Cms\Security\AutoBlock $autoBlock = null,
         private readonly ?\Cms\Core\Settings $settings = null,
+        ?PublicApiAuthorizer $authorizer = null,
     ) {
+        $this->authorizer = $authorizer ?? new PublicApiAuthorizer($resources, $grants, $apis);
     }
 
     public function handle(Request $request, string $slug, ?string $id, ?AuthContext $auth): Response
@@ -308,23 +313,6 @@ final class PublicApiController
         $this->events->dispatchAfterResponse($event, $payload, $resourceId);
     }
 
-    private static function actionFor(string $method): string
-    {
-        return match ($method) {
-            'POST' => 'create',
-            'PUT', 'PATCH' => 'update',
-            'DELETE' => 'delete',
-            default => 'read',
-        };
-    }
-
-    private function resourceId(string $slug): ?int
-    {
-        $resource = $this->resources->findByPublicKey($slug);
-
-        return $resource === null ? null : (int) $resource['id'];
-    }
-
     private function runtimeError(RuntimeException $e): Response
     {
         $code = $e->getCode();
@@ -342,73 +330,23 @@ final class PublicApiController
 
     private function authorize(string $method, string $slug, ?AuthContext $auth): void
     {
-        $resource = $this->resources->findByPublicKey($slug);
-        if ($resource === null || ($resource['status'] ?? '') !== 'published') {
-            throw new RuntimeException('Resource not found', 404);
-        }
-        $settings = \is_string($resource['settings_json'])
-            ? json_decode((string) $resource['settings_json'], true)
-            : $resource['settings_json'];
-        $public = \is_array($settings['public'] ?? null) ? $settings['public'] : [];
-        $action = self::actionFor($method);
-
-        $this->authorizeAction($resource, (bool) ($public[$action] ?? false), $action, $auth);
+        $this->authorizer->authorize($method, $slug, $auth);
     }
 
     private function authorizeCustom(string $slug, string $apiSlug, string $action, ?AuthContext $auth): void
     {
-        $resource = $this->resources->findByPublicKey($slug);
-        if ($resource === null || ($resource['status'] ?? '') !== 'published') {
-            throw new RuntimeException('Resource not found', 404);
-        }
-        if ($this->apis === null) {
-            throw new RuntimeException('Resource API not found', 404);
-        }
-        $api = $this->apis->findByResourceAndSlug((int) $resource['id'], $apiSlug);
-        if ($api === null || !(bool) (int) ($api['enabled'] ?? 0)) {
-            throw new RuntimeException('Resource API not found', 404);
-        }
-
-        $resourceSettings = \is_string($resource['settings_json'])
-            ? json_decode((string) $resource['settings_json'], true)
-            : $resource['settings_json'];
-        $resourcePublic = \is_array($resourceSettings['public'] ?? null) ? $resourceSettings['public'] : [];
-
-        $apiSettings = \is_string($api['settings_json'])
-            ? json_decode((string) $api['settings_json'], true)
-            : $api['settings_json'];
-        $apiPublic = \is_array($apiSettings['public'] ?? null) ? $apiSettings['public'] : [];
-
-        $allowPublic = \array_key_exists($action, $apiPublic) && $apiPublic[$action] !== null
-            ? (bool) $apiPublic[$action]
-            : (bool) ($resourcePublic[$action] ?? false);
-
-        $this->authorizeAction($resource, $allowPublic, $action, $auth);
+        $this->authorizer->authorizeCustom($slug, $apiSlug, $action, $auth);
     }
 
-    /**
-     * @param array<string, mixed> $resource
-     */
-    private function authorizeAction(array $resource, bool $allowPublic, string $action, ?AuthContext $auth): void
+    private static function actionFor(string $method): string
     {
-        if ($allowPublic === true) {
-            return;
-        }
+        return PublicApiAuthorizer::actionFor($method);
+    }
 
-        if ($auth === null) {
-            throw new RuntimeException('Unauthorized', 401);
-        }
+    private function resourceId(string $slug): ?int
+    {
+        $resource = $this->resources->findByPublicKey($slug);
 
-        if ($auth->isAdmin()) {
-            return;
-        }
-
-        if (($auth->token['type'] ?? '') !== 'api') {
-            throw new RuntimeException('Forbidden', 403);
-        }
-
-        if (!$this->grants->allows($auth->tokenId(), (int) $resource['id'], $action)) {
-            throw new RuntimeException('Forbidden', 403);
-        }
+        return $resource === null ? null : (int) $resource['id'];
     }
 }

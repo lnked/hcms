@@ -16,12 +16,15 @@ POST /admin/api/media                          → медиа
 POST /admin/api/resources/{id}/entries         → контент
 POST /admin/api/tokens                         → ключ для фронта сайта
 POST /admin/api/webhooks                       → ISR/CDN/build hooks
-GET  /api/{slug}                              → проверка публичного API
+GET  /api/{slug}                              → проверка публичного REST
+# optional: System → GraphQL enable, then POST /api/graphql
 ```
 
 Клиент админки: [`frontend/src/lib/api.ts`](frontend/src/lib/api.ts) — `api` / `apiPage` / `apiUpload`, Bearer из `localStorage` (`hcms_token`), ошибки валидации в `ApiError.fields`. Basename админки: `getAdminBasename()` (обычно `/admin`).
 
 ACL: роли `owner | admin | editor | viewer`, секции nav и `resourceGrants` / `tabs` — [`frontend/src/lib/rbac.ts`](frontend/src/lib/rbac.ts). Owner обходит section ACL; `account` всегда доступен.
+
+Внешние API-доки (не React-route): сайдбар **Swagger** → `/api/docs`, **GraphQL** → `/api/graphql` (последний 404, пока System → GraphQL выкл). Подробно: §13 и [`docs/graphql.md`](docs/graphql.md).
 
 ---
 
@@ -39,6 +42,7 @@ ACL: роли `owner | admin | editor | viewer`, секции nav и `resourceGr
 10. [Translates & KeyValues](#10-translates--keyvalues)
 11. [Integrations](#11-integrations)
 12. [System & Updates](#12-system--updates)
+13. [GraphQL (opt-in)](#13-graphql-opt-in)
 - [Приложение A — E2E блог](#приложение-a--e2e-сценарий-блог)
 - [Приложение B — RBAC routes](#приложение-b--route--section--minrole)
 
@@ -320,8 +324,8 @@ UI: `/media` (minRole `editor`).
 UI tabs: `/resources/:id/settings`, `/api`, `/hooks`, `/export`.
 
 Ключи `settings` (из типа + UI):
-- `apiEnabled`, `pagination`, `search`, `sorting`, `filtering`
-- `public.{read,create,update,delete}`
+- `apiEnabled`, `pagination`, `search`, `sorting`, `filtering` — **`apiEnabled` также включает ресурс в GraphQL schema** (когда GraphQL глобально включён, §13)
+- `public.{read,create,update,delete}` — те же флаги для REST и GraphQL mutations/queries
 - `spam.*` (honeypotField, minSubmitMs, rateLimitPerMinute, requireCaptcha, maxLinks, blocklist, rejectDuplicates)
 - `cache.maxAge`
 - `preview.url`
@@ -560,10 +564,10 @@ UI: `/settings/integrations` (admin+).
 
 ## 12. System & Updates
 
-**Цель раздела:** Версия/обновление инстанса, locale UI админки, api-access / admin-base / sections / security; data backups; кратко logs & uptime.
+**Цель раздела:** Версия/обновление инстанса, locale UI админки, api-access / admin-base / sections / security / **GraphQL**; data backups; кратко logs & uptime.
 
 **Исходные файлы (Frontend):**
-- [`frontend/src/pages/SystemPage.tsx`](frontend/src/pages/SystemPage.tsx), `ApiAccessForm`, `SecuritySettingsCard`
+- [`frontend/src/pages/SystemPage.tsx`](frontend/src/pages/SystemPage.tsx), `ApiAccessForm`, `SecuritySettingsCard`, [`GraphqlSettingsCard`](frontend/src/pages/GraphqlSettingsCard.tsx)
 - [`frontend/src/pages/BackupsPage.tsx`](frontend/src/pages/BackupsPage.tsx)
 - [`frontend/src/features/logs/LogsPage.tsx`](frontend/src/features/logs/LogsPage.tsx)
 - [`frontend/src/features/uptime/UptimePage.tsx`](frontend/src/features/uptime/UptimePage.tsx)
@@ -577,7 +581,7 @@ UI: `/settings/integrations` (admin+).
 **Используемые API Endpoints:**
 - System: `GET /admin/api/system/version`, `stats`, `stats/timeseries`, `changelog`; `POST changelog/seen`
 - Update: `GET .../update/check`, `status`; `POST .../update/preview`, `.../update/run`
-- Settings: `GET /admin/api/settings/locale|api-access|admin-base|admin-sections|security`; `PATCH /admin/api/settings`
+- Settings: `GET /admin/api/settings/locale|api-access|admin-base|admin-sections|security|graphql`; `PATCH /admin/api/settings` (тело: `language` / `apiAccess` / `adminBase` / `adminSections` / `homeSection` / `security` / **`graphql: { enabled }`**)
 - Backups: `GET/POST /admin/api/backups`, `GET .../status`, cloud connect/test/push, `POST .../{id}/restore`, `DELETE`, `GET .../download`
 - Uptime: `GET .../summary|status|targets`, CRUD targets, `POST .../run`, check/incidents
 - Logs: `GET /admin/api/logs/audit|api|anomalies|ip-blocks`, `POST/DELETE` ip-blocks
@@ -586,16 +590,66 @@ UI: `/settings/system`, `/settings/backups`, `/logs`, `/settings/uptime`.
 
 ### 🔄 Пользовательский сценарий (User Flow)
 
-1. System: language, api-access, admin base path, visible sections, security; check update → preview → run (owner-sensitive).
-2. Backups: create snapshot (± pushTo cloud), configure Google/Yandex/Dropbox/SFTP, restore/download/delete.
-3. Uptime: targets + cron/`POST .../run` (admin Bearer).
-4. Logs: audit/api/anomalies, IP blocks.
+1. System: language, api-access, admin base path, visible sections, security, **GraphQL enable** (owner); check update → preview → run (owner-sensitive).
+2. Сайдбар: **Swagger** → `/api/docs`; **GraphQL** → `/api/graphql` (пока выкл — 404; см. §13).
+3. Backups: create snapshot (± pushTo cloud), configure Google/Yandex/Dropbox/SFTP, restore/download/delete.
+4. Uptime: targets + cron/`POST .../run` (admin Bearer).
+5. Logs: audit/api/anomalies, IP blocks.
 
 ### 🤖 Инструкции для AI-агента (Action Plan)
 
-- **Для создания структуры данных:** Перед продом — backup create. После схемы/контента — uptime target на `/api/{slug}` и `/admin/api/health`.
-- **Валидация и проверки:** Update/run и часть settings — owner-only. `POST /admin/api/uptime/run` с API token из §8 → `403 Admin token required`. Restore деструктивен — только с confirm. Не вызывать `install.php?action=complete` на живой БД.
-- **Best Practices:** Backup до migrate destructive и до system update. Подробности: [`docs/recovery.md`](docs/recovery.md). После смены `admin-base` обновить URL скриптов агента.
+- **Для создания структуры данных:** Перед продом — backup create. После схемы/контента — uptime target на `/api/{slug}` и `/admin/api/health`. Если клиенту нужен GraphQL — включить через `PATCH .../settings` с `{"graphql":{"enabled":true}}` (owner), затем §13.
+- **Валидация и проверки:** Update/run, security, graphql, admin-base/sections — owner-only. `POST /admin/api/uptime/run` с API token из §8 → `403 Admin token required`. Restore деструктивен — только с confirm. Не вызывать `install.php?action=complete` на живой БД.
+- **Best Practices:** Backup до migrate destructive и до system update. Подробности: [`docs/recovery.md`](docs/recovery.md). После смены `admin-base` обновить URL скриптов агента. GraphQL не ломает REST — default выкл.
+
+---
+
+## 13. GraphQL (opt-in)
+
+**Цель раздела:** Включить и проверить GraphQL рядом с REST (тот же QueryEngine / auth / `apiEnabled`). REST остаётся default public API.
+
+**Исходные файлы (Frontend):**
+- Сайдбар: [`AppShell.tsx`](frontend/src/components/AppShell.tsx) — внешняя ссылка `/api/graphql`
+- Тоггл: [`GraphqlSettingsCard.tsx`](frontend/src/pages/GraphqlSettingsCard.tsx) на System page
+- Note у `apiEnabled`: [`ResourceSettingsPanel.tsx`](frontend/src/features/resources/ResourceSettingsPanel.tsx)
+
+**Исходные файлы (Backend):**
+- [`src/GraphQL/SchemaFactory.php`](src/GraphQL/SchemaFactory.php), [`src/Http/Controllers/GraphqlController.php`](src/Http/Controllers/GraphqlController.php)
+- Auth: [`src/Api/PublicApiAuthorizer.php`](src/Api/PublicApiAuthorizer.php) (общий с REST)
+- Routes: `GET|POST /api/graphql`, `/api/v1/graphql` в [`Kernel.php`](src/Http/Kernel.php)
+- Setting: `cms_settings` key `graphql.enabled` (default `false`)
+
+**Используемые API Endpoints:**
+- `GET /admin/api/settings/graphql` → `{ enabled }`
+- `PATCH /admin/api/settings` body `{ "graphql": { "enabled": true } }` (owner)
+- `GET /api/graphql` — GraphiQL playground
+- `POST /api/graphql` — execute (`{ query, variables?, operationName? }`)
+
+### 🔄 Пользовательский сценарий (User Flow)
+
+1. Owner: System → карточка **GraphQL** → Enable → Save.
+2. Сайдбар **GraphQL** открывает GraphiQL на `/api/graphql`.
+3. В GraphiQL: introspection / query list / nested relation / mutation (с Bearer, если `public.*` выкл).
+4. Resource Settings: `apiEnabled=false` убирает ресурс и из OpenAPI, и из GraphQL schema.
+
+### 🤖 Инструкции для AI-агента (Action Plan)
+
+- **Включить:**
+  ```bash
+  curl -s -X PATCH "$BASE/admin/api/settings" \
+    -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"graphql":{"enabled":true}}'
+  ```
+- **Проверка после publish ресурса `articles` с `public.read`:**
+  ```bash
+  curl -s -X POST "$BASE/api/graphql" -H 'Content-Type: application/json' \
+    -d '{"query":"{ articles(limit: 5) { data { id title } meta { total } } }"}'
+  ```
+- **Без grant / без public.read** → GraphQL errors + HTTP 401 (сообщение `Unauthorized`).
+- **Выкл** → `GET`/`POST /api/graphql` → **404** (не fatal).
+- **Schema:** query `{slug}` / singular item; mutations `create{Pascal}`, `update{Pascal}`, `delete{Pascal}`; nested manyToOne companion (`author_id` → `author`), max depth 3.
+- **Не в v1:** subscriptions, custom resource APIs в GraphQL, `@hcms/sdk` GraphQL.
+- **Best Practices:** Полная дока — [`docs/graphql.md`](docs/graphql.md). Не дублируй auth: те же tokens/grants, что REST (§8). Custom APIs остаются только REST/OpenAPI.
 
 ---
 
@@ -666,12 +720,19 @@ curl -s -X POST "$BASE/admin/api/webhooks" \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"vercel","url":"https://api.vercel.com/v1/integrations/deploy/…","events":["entry.created","entry.updated","entry.deleted","resource.published"],"payloadMode":"empty","preset":"vercel_deploy"}'
 
-# 7. Verify
+# 7. Verify REST
 curl -s "$BASE/api/articles?limit=1"
 curl -s "$BASE/admin/api/health"
+
+# 8. Optional GraphQL (owner settings; REST stays default)
+curl -s -X PATCH "$BASE/admin/api/settings" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"graphql":{"enabled":true}}'
+curl -s -X POST "$BASE/api/graphql" -H 'Content-Type: application/json' \
+  -d '{"query":"{ articles(limit: 1) { data { id title author_id author { id name } } meta { total } } }"}'
 ```
 
-Готовый расширенный сид: [`scripts/seed-demo.php`](scripts/seed-demo.php).
+Готовый расширенный сид: [`scripts/seed-demo.php`](scripts/seed-demo.php). GraphQL: [`docs/graphql.md`](docs/graphql.md), UI §13.
 
 ---
 

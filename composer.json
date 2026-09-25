@@ -5,7 +5,8 @@
   "license": "MIT",
   "require": {
     "php": ">=8.3",
-    "ext-curl": "*"
+    "ext-curl": "*",
+    "webonyx/graphql-php": "^15.37"
   },
   "require-dev": {
     "deptrac/deptrac": "^4.7",

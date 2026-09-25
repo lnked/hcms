@@ -2,9 +2,20 @@
 
 Admin: `/admin/api/*` (Bearer admin token).  
 Public: `/api/{slug}` and `/api/v1/{slug}` for **published** resources.  
-Docs: `/api/docs`.
+Docs: `/api/docs`. GraphQL (opt-in): [`graphql.md`](./graphql.md) — `/api/graphql` (enable under System; default off). REST stays the default public API.
 
 Email / Integrations: see [integrations-email.md](./integrations-email.md).
+
+## GraphQL (opt-in)
+
+| | |
+|---|---|
+| Enable | `PATCH /admin/api/settings` `{ "graphql": { "enabled": true } }` (owner) or System UI |
+| Playground | `GET /api/graphql` |
+| Execute | `POST /api/graphql` `{ "query": "…" }` |
+| Gate | `graphql.enabled`; per-resource: `apiEnabled` + `public.*` / token grants |
+
+Details, schema shape, relation depth: [graphql.md](./graphql.md). Admin playbook: [ADMIN_UI_AGENT_GUIDE.md §13](../ADMIN_UI_AGENT_GUIDE.md#13-graphql-opt-in).
 
 ## Admin tokens
 

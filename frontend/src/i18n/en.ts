@@ -73,6 +73,7 @@ export const en = {
   'nav.backups': 'Backups',
   'nav.system': 'System',
   'nav.docs': 'Swagger',
+  'nav.graphql': 'GraphQL',
   'nav.documentation': 'Documentation',
   'nav.collapse': 'Collapse sidebar',
   'nav.expand': 'Expand sidebar',
@@ -402,6 +403,8 @@ export const en = {
   'resources.settings.title': 'Resource settings',
   'resources.settings.hint': 'Public API capabilities and delete strategy.',
   'resources.settings.apiEnabled': 'API enabled',
+  'resources.settings.apiEnabledGraphqlNote':
+    'Also controls whether this resource appears in GraphQL (when GraphQL is enabled in System).',
   'resources.settings.pagination': 'Pagination',
   'resources.settings.search': 'Search',
   'resources.settings.sorting': 'Sorting',
@@ -1190,6 +1193,13 @@ export const en = {
   'system.securityTtl': 'Block duration (seconds)',
   'system.securitySave': 'Save security settings',
   'system.securitySaved': 'Security settings saved',
+  'system.graphqlTitle': 'GraphQL',
+  'system.graphqlHint':
+    'Opt-in GraphQL endpoint at /api/graphql. Uses the same auth, grants, and apiEnabled as REST. Off by default.',
+  'system.graphqlEnabled': 'Enable GraphQL',
+  'system.graphqlEnabledHint': 'When off, /api/graphql returns 404. REST and OpenAPI are unchanged.',
+  'system.graphqlSave': 'Save GraphQL settings',
+  'system.graphqlSaved': 'GraphQL settings saved',
   'system.adminBaseTitle': 'Admin base path',
   'system.adminBaseHint':
     'URL segment for the admin UI. Empty = site root. Admin API follows the same prefix, except root UI keeps /admin/api. Assets stay under /admin/assets. Update OAuth redirect URIs after changing. Owner only.',

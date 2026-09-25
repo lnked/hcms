@@ -26,5 +26,6 @@ export const queryKeys = {
     adminBase: ['settings-admin-base'] as const,
     adminSections: ['settings-admin-sections'] as const,
     security: ['settings-security'] as const,
+    graphql: ['settings-graphql'] as const,
   },
 }

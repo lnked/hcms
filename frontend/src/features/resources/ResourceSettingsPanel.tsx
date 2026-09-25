@@ -135,6 +135,7 @@ export function ResourceSettingsPanel({ resource, onSaved }: ResourceSettingsPan
               />
               {t('resources.settings.apiEnabled')}
             </label>
+            <p className={styles.hint}>{t('resources.settings.apiEnabledGraphqlNote')}</p>
             <label className={styles.checkLabel}>
               <input
                 type="checkbox"

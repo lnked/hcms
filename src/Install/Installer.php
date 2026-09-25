@@ -290,6 +290,7 @@ final class Installer
             'security.ip_auto_block_after_spam_rejects' => 0,
             'security.ip_auto_block_window_seconds' => 3600,
             'security.ip_auto_block_ttl_seconds' => 3600,
+            'graphql.enabled' => false,
             'security.captcha' => [
                 'enabled' => false,
                 'provider' => 'turnstile',

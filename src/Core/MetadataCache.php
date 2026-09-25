@@ -11,6 +11,8 @@ final class MetadataCache
 {
     public const OPENAPI_KEY = 'openapi.json';
 
+    public const GRAPHQL_STAMP_KEY = 'graphql.stamp';
+
     public function __construct(private readonly FileCache $cache)
     {
     }
@@ -38,9 +40,20 @@ final class MetadataCache
         $this->cache->set(self::OPENAPI_KEY, $spec, $ttl);
     }
 
+    public function getGraphqlStamp(): mixed
+    {
+        return $this->cache->get(self::GRAPHQL_STAMP_KEY);
+    }
+
+    public function setGraphqlStamp(): void
+    {
+        $this->cache->set(self::GRAPHQL_STAMP_KEY, time(), 86400);
+    }
+
     public function invalidate(): void
     {
         $this->cache->forget(self::OPENAPI_KEY);
+        $this->cache->forget(self::GRAPHQL_STAMP_KEY);
     }
 
     public function flush(): void

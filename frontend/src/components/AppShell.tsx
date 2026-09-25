@@ -99,6 +99,18 @@ function SwaggerIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+/** GraphQL mark */
+function GraphqlIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+      <path
+        fill="currentColor"
+        d="M12.397.573l6.25 10.825.043.075-6.25 10.824-.043.075H5.69l-.043-.075L-.603 11.473l-.043-.075.043-.075L5.647.573 5.69.498h6.664l.043.075zM8.45 4.482L3.66 12.78l4.79 8.297h5.58l4.79-8.297-4.79-8.298H8.45zm2.293 2.651h1.994l3.373 5.844-3.373 5.844h-1.994l-3.373-5.844 3.373-5.844z"
+      />
+    </svg>
+  )
+}
+
 type NavItem = {
   to: string
   label: string
@@ -150,6 +162,19 @@ function SidebarNav({
         <SwaggerIcon className={styles.icon} />
         <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
           {t('nav.docs')}
+        </SidebarLabel>
+      </a>
+      <a
+        href="/api/graphql"
+        target="_blank"
+        rel="noopener noreferrer"
+        title={collapsed ? t('nav.graphql') : undefined}
+        className={styles.docsLink}
+        onClick={onNavigate}
+      >
+        <GraphqlIcon className={styles.icon} />
+        <SidebarLabel collapsed={collapsed} className={styles.sidebarLabelGap}>
+          {t('nav.graphql')}
         </SidebarLabel>
       </a>
     </nav>

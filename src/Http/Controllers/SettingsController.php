@@ -52,6 +52,11 @@ final class SettingsController
         return Response::data($this->securitySettings());
     }
 
+    public function graphql(): Response
+    {
+        return Response::data($this->graphqlSettings());
+    }
+
     public function update(Request $request, AuthContext $context): Response
     {
         $payload = $request->json();
@@ -61,6 +66,7 @@ final class SettingsController
         $hasAdminSections = \array_key_exists('adminSections', $payload);
         $hasHomeSection = \array_key_exists('homeSection', $payload);
         $hasSecurity = \array_key_exists('security', $payload);
+        $hasGraphql = \array_key_exists('graphql', $payload);
 
         if (
             !$hasLanguage
@@ -69,9 +75,10 @@ final class SettingsController
             && !$hasAdminSections
             && !$hasHomeSection
             && !$hasSecurity
+            && !$hasGraphql
         ) {
             return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
-                'language' => ['Provide language, apiAccess, adminBase, adminSections, homeSection, and/or security'],
+                'language' => ['Provide language, apiAccess, adminBase, adminSections, homeSection, security, and/or graphql'],
             ]);
         }
 
@@ -197,7 +204,43 @@ final class SettingsController
             $out['security'] = $this->securitySettings();
         }
 
+        if ($hasGraphql) {
+            $role = isset($context->user['role']) ? (string) $context->user['role'] : '';
+            if ($role !== 'owner') {
+                return Response::error('FORBIDDEN', 'Only the owner can change GraphQL settings', 403);
+            }
+            if (!\is_array($payload['graphql'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'graphql' => ['Must be an object'],
+                ]);
+            }
+            if (!\array_key_exists('enabled', $payload['graphql'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'enabled' => ['Provide enabled'],
+                ]);
+            }
+            if (!\is_bool($payload['graphql']['enabled'])) {
+                return Response::error('VALIDATION_ERROR', 'Validation failed', 422, [
+                    'enabled' => ['Must be a boolean'],
+                ]);
+            }
+            $this->settings->set('graphql.enabled', $payload['graphql']['enabled']);
+            $out['graphql'] = $this->graphqlSettings();
+        }
+
         return Response::data($out);
+    }
+
+    /**
+     * @return array{enabled: bool}
+     */
+    private function graphqlSettings(): array
+    {
+        $value = $this->settings->get('graphql.enabled');
+
+        return [
+            'enabled' => $value === true || $value === 1 || $value === '1',
+        ];
     }
 
     /**
