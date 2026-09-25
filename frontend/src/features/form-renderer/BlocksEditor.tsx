@@ -72,7 +72,7 @@ function nestedFieldFromRow(row: Record<string, unknown>, i: number): SchemaFiel
 }
 
 /** Supports legacy `type → FieldSpec[]` and `{ label?, description?, fields }`. */
-export function resolveComponentDefs(field: SchemaField): Record<string, ComponentDef> {
+function resolveComponentDefs(field: SchemaField): Record<string, ComponentDef> {
   const raw = field.config.components
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const out: Record<string, ComponentDef> = {}
