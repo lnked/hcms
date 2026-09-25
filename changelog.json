@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "0.62.9",
+      "date": "2026-09-25",
+      "channel": "stable",
+      "title": "Deps majors, role fail-closed, install telemetry",
+      "changes": [
+        {
+          "type": "security",
+          "area": "auth",
+          "text": "Неизвестная роль больше не повышается до admin: normalize → viewer, create/update отклоняют invalid role; FE roleAllows fail-closed"
+        },
+        {
+          "type": "added",
+          "area": "install",
+          "text": "Анонимный install telemetry ping после complete (version/PHP/OS); opt-out telemetry:false / HCMS_TELEMETRY=0"
+        },
+        {
+          "type": "added",
+          "area": "dev",
+          "text": "npm run update — composer + ncu (same major) + QA"
+        },
+        {
+          "type": "changed",
+          "area": "deps",
+          "text": "TypeScript 7 (+ TS6 API alias для eslint), recharts 3, PHPUnit 12"
+        }
+      ]
+    },
+    {
       "version": "0.62.8",
       "date": "2026-09-12",
       "channel": "stable",
