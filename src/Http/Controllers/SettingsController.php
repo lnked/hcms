@@ -237,11 +237,11 @@ final class SettingsController
                 continue;
             }
             $raw = $payload[$field];
-            if (!is_numeric($raw) || (int) $raw != $raw) {
+            $value = filter_var($raw, FILTER_VALIDATE_INT);
+            if ($value === false) {
                 $errors[$field] = ['Must be an integer'];
                 continue;
             }
-            $value = (int) $raw;
             if ($value < $meta['min']) {
                 $errors[$field] = ['Must be >= ' . $meta['min']];
                 continue;

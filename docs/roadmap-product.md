@@ -20,11 +20,11 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | RBAC | **HAVE** | owner/admin/editor/viewer + section/resource ACL |
 | Field-level permissions | **HAVE** | Per-grant `fieldAcl` (readable/writable overrides) |
 | Row-level permissions | **HAVE** | Per-grant `ownEntriesOnly` → `created_by` filter |
-| MFA + OAuth | **PARTIAL** | TOTP + Google (+ Telegram); no SAML / generic OIDC SSO |
+| MFA + OAuth | **PARTIAL** | TOTP + Google + Telegram + generic OIDC; no SAML |
 | Audit logs | **HAVE** | `cms_audit_logs` + Logs UI |
 | Admin UI | **HAVE** | React schema builder, media, data table (en/ru) |
 | Media resize / WebP | **PARTIAL** | GD: WebP/JPEG/PNG, sizes; no AVIF / full DAM |
-| External extensibility | **PARTIAL** | Hooks, inbound, custom APIs; no admin iframe apps / custom field widgets |
+| External extensibility | **PARTIAL** | Hooks, inbound, custom APIs, plugin field types (extensions/); no admin iframe apps / custom field widgets |
 | SDK / ecosystem | **HAVE** | [`packages/sdk`](../packages/sdk) (`@hcms/sdk`) + [`examples/react`](../examples/react) |
 | TS typegen from schema | **HAVE** | `hcms-types` CLI from OpenAPI |
 | Relations | **HAVE** | `manyToOne`, virtual `oneToMany`, `oneToOne`, `manyToMany` (join tables) |
@@ -37,7 +37,7 @@ Gap-анализ HCMS против типичного чеклиста «сов�
 | Webhook revalidation presets | **HAVE** | Vercel / Netlify / Cloudflare / Fastly templates |
 | Data backups (DB + media) | **HAVE** | Admin Backups + `php cms backup:*` + cloud/SFTP — [recovery.md](recovery.md#data-backups-бд--media) |
 | GraphQL | **MISSING** | REST + filters + OpenAPI only (default stays REST-first) |
-| Plugin field types | **PARTIAL** | Hardcoded registry; extend only in core |
+| Plugin field types | **PARTIAL** | Core + `extensions/*/manifest.php` + composer `extra.hcms.field-types`; no marketplace |
 | RTL admin | **MISSING** | `en` / `ru` only; no `dir=rtl` |
 | Multi-tenancy | **OUT OF SCOPE** | One install = one tenant; no `tenant_id` in core |
 | Built-in CDN + SLA | **OUT OF SCOPE** | Document Cloudflare/proxy; do not build CDN |
@@ -64,7 +64,7 @@ Implementation status: see [`implementation-plan.md`](implementation-plan.md).
 1. **GraphQL** — demand-gated; REST stays default.
 2. Polish: locale switcher UI, rich blocks editor, workflow comments, System UI for `ip_auto_block_after_spam_rejects`.
 3. CDN / HA / compliance / marketplace / **multi-tenancy** — docs or future cloud-tier, **не** core MVP.
-4. RTL admin, SAML/OIDC, AVIF, plugin field API — secondary.
+4. RTL admin, SAML, AVIF — secondary.
 
 ---
 

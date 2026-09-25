@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Cms\Tests;
 
-use Cms\Auth\OidcClient;
 use Cms\Auth\OAuthException;
+use Cms\Auth\OidcClient;
 use Cms\Http\HttpClient;
 use PHPUnit\Framework\TestCase;
 
@@ -21,7 +21,7 @@ final class OidcClientTest extends TestCase
 
     public function testAuthorizeUrlBuildsQuery(): void
     {
-        $client = new OidcClient(new class implements HttpClient {
+        $client = new OidcClient(new class () implements HttpClient {
             public function request(string $method, string $url, array $headers = [], ?string $body = null): array
             {
                 unset($method, $url, $headers, $body);
@@ -49,7 +49,7 @@ final class OidcClientTest extends TestCase
 
     public function testResolveEndpointsUsesExplicitWhenComplete(): void
     {
-        $client = new OidcClient(new class implements HttpClient {
+        $client = new OidcClient(new class () implements HttpClient {
             public function request(string $method, string $url, array $headers = [], ?string $body = null): array
             {
                 unset($method, $url, $headers, $body);
@@ -68,7 +68,7 @@ final class OidcClientTest extends TestCase
 
     public function testDiscoverParsesWellKnown(): void
     {
-        $http = new class implements HttpClient {
+        $http = new class () implements HttpClient {
             public string $seenUrl = '';
 
             public function request(string $method, string $url, array $headers = [], ?string $body = null): array
@@ -95,7 +95,7 @@ final class OidcClientTest extends TestCase
 
     public function testExchangeCodeReadsUserinfoClaims(): void
     {
-        $client = new OidcClient(new class implements HttpClient {
+        $client = new OidcClient(new class () implements HttpClient {
             public function request(string $method, string $url, array $headers = [], ?string $body = null): array
             {
                 if (str_contains($url, '/token')) {
@@ -135,7 +135,7 @@ final class OidcClientTest extends TestCase
 
     public function testDiscoverRejectsBadIssuer(): void
     {
-        $client = new OidcClient(new class implements HttpClient {
+        $client = new OidcClient(new class () implements HttpClient {
             public function request(string $method, string $url, array $headers = [], ?string $body = null): array
             {
                 unset($method, $url, $headers, $body);

@@ -123,7 +123,7 @@ HTTP (Controllers + Routes)
 
 | Класс | Назначение |
 |---|---|
-| `FieldTypeRegistry` | Реестр типов (hardcoded) |
+| `FieldTypeRegistry` | Built-in types + discovery (`extensions/`, composer `extra.hcms.field-types`) |
 | `FieldService` / `FieldRepository` / `FieldSpec` | CRUD `cms_fields`, нормализация spec |
 | `SqlTypeMapper` | Field → SQL column (null для oneToMany / manyToMany) |
 | `Types/*` | Реализации типов |
@@ -166,7 +166,7 @@ HTTP (Controllers + Routes)
 | `LoginGuard` / `Password` / `RolePolicy` | Логин, хэш пароля, RBAC (`owner|admin|editor|viewer`), capability `entries.publish` |
 | `UsersService` / `UsersRepository` | Пользователи |
 | `UserAclGuard` / `User*GrantRepository` | Section + resource ACL |
-| `OAuthService` / identities | Google (+ Telegram) OAuth, link/unlink |
+| `OAuthService` / identities | Google + Telegram + generic OIDC; link/unlink |
 | `RateLimiter` + stores | Sliding window (memory / DB) |
 
 Admin token обходит resource grants; API token — нет.
@@ -455,7 +455,7 @@ Foundation + фичи по миграциям `001`…`021`:
 
 1. Settings — только через `ResourceService::normalizeSettings` (+ TS `ResourceSettings`).
 2. Новые system cols на `res_*` — через `MigrationService` + opt-in settings; default public behaviour не ломать.
-3. Новые field types — `FieldTypeRegistry` + `SqlTypeMapper` + `PayloadValidator` + SchemaBuilder/FormRenderer.
+3. Новые field types — класс `FieldType` + `extensions/<name>/manifest.php` (или composer `extra.hcms.field-types`); UI подхватит через `GET /admin/api/field-types`.
 4. Секреты только в `.env`; не трогать `install complete` на живой БД.
 5. После PHP/TS — `composer qa` / `npm run qa` по затронутому контуру.
 6. Релиз — только после зелёного CI ([pre-release-ci-loop](../.cursor/rules/pre-release-ci-loop.mdc)).

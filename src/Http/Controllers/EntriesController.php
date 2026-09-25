@@ -6,8 +6,8 @@ namespace Cms\Http\Controllers;
 
 use Cms\Audit\AuditLogger;
 use Cms\Auth\AuthContext;
-use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryCommentService;
+use Cms\Content\EntryRevisionService;
 use Cms\Content\EntryService;
 use Cms\Core\Exception\HttpException;
 use Cms\Core\Exception\ValidationFailedException;
