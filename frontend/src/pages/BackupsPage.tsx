@@ -102,7 +102,7 @@ export function BackupsPage() {
   const tab = parseTab(params.get('section'))
 
   const [pushTo, setPushTo] = useState<Provider[]>([])
-  const [retention, setRetention] = useState(10)
+  const [retentionDraft, setRetentionDraft] = useState<number | null>(null)
 
   const listQuery = useQuery({
     queryKey: ['backups'],
@@ -123,9 +123,7 @@ export function BackupsPage() {
     queryFn: () => api<CloudConfig>('/admin/api/backups/cloud'),
   })
 
-  useEffect(() => {
-    if (cloudQuery.data) setRetention(cloudQuery.data.retention)
-  }, [cloudQuery.data])
+  const retention = retentionDraft ?? cloudQuery.data?.retention ?? 10
 
   useEffect(() => {
     const connected = params.get('connected')
@@ -369,6 +367,7 @@ export function BackupsPage() {
                     body: JSON.stringify({ retention }),
                   }).then(() => {
                     showSuccess(t('backups.saved'))
+                    setRetentionDraft(null)
                     void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })
                   })
                 }}
@@ -380,25 +379,29 @@ export function BackupsPage() {
                   min={1}
                   max={100}
                   value={retention}
-                  onChange={(e) => setRetention(Number(e.target.value) || 10)}
+                  onChange={(e) => setRetentionDraft(Number(e.target.value) || 10)}
                 />
                 <Button type="submit">{t('backups.save')}</Button>
               </Form>
             </CardContent>
           </Card>
 
-          {OAUTH_PROVIDERS.map((provider) => (
-            <OauthCard
-              key={provider}
-              provider={provider}
-              data={cloudQuery.data.providers[provider]}
-              onChanged={() =>
-                void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })
-              }
-            />
-          ))}
+          {OAUTH_PROVIDERS.map((provider) => {
+            const data = cloudQuery.data.providers[provider]
+            return (
+              <OauthCard
+                key={`${provider}-${data.clientId}-${data.connected}-${data.enabled}`}
+                provider={provider}
+                data={data}
+                onChanged={() =>
+                  void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })
+                }
+              />
+            )
+          })}
 
           <SftpCard
+            key={`sftp-${cloudQuery.data.providers.sftp.host}-${cloudQuery.data.providers.sftp.connected}`}
             data={cloudQuery.data.providers.sftp}
             onChanged={() => void queryClient.invalidateQueries({ queryKey: ['backups', 'cloud'] })}
           />
@@ -439,11 +442,6 @@ function OauthCard({
   const [enabled, setEnabled] = useState(data.enabled)
   const [clientId, setClientId] = useState(data.clientId)
   const [clientSecret, setClientSecret] = useState('')
-
-  useEffect(() => {
-    setEnabled(data.enabled)
-    setClientId(data.clientId)
-  }, [data])
 
   const save = useMutation({
     mutationFn: () =>
@@ -601,16 +599,6 @@ function SftpCard({ data, onChanged }: { data: SftpPublic; onChanged: () => void
   const [passphrase, setPassphrase] = useState('')
   const [remotePath, setRemotePath] = useState(data.remotePath)
   const [insecureHostKey, setInsecureHostKey] = useState(data.insecureHostKey)
-
-  useEffect(() => {
-    setEnabled(data.enabled)
-    setHost(data.host)
-    setPort(data.port)
-    setUsername(data.username)
-    setAuth(data.auth)
-    setRemotePath(data.remotePath)
-    setInsecureHostKey(data.insecureHostKey)
-  }, [data])
 
   const save = useMutation({
     mutationFn: () =>
