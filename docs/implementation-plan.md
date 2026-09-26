@@ -228,7 +228,7 @@ Phase 0 можно влить в любой момент. Phase 1 и 2 — P1 и
 
 ### Out of scope
 
-- Comments, assignees, multi-step custom workflows.
+- Assignees, multi-step custom workflows (entry comments — shipped separately).
 
 ---
 
